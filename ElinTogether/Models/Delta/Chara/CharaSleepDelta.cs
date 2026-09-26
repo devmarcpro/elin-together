@@ -27,6 +27,7 @@ public class CharaSleepDelta : ElinDelta
 
         using var _ = Simulate();
         pc.OnSleep(Power, Days, pc.pos.IsSunLit);
+        player.DreamSpell();
 
         pc.conSleep?.Kill();
         SleepSynchronizationContext.CloseSleepLayerIfOpen();

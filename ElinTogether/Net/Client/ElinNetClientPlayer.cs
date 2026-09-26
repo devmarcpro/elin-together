@@ -71,6 +71,7 @@ internal partial class ElinNetClient
 
         player.uidChara = remoteChara.uid;
         player.chara = remoteChara;
+        player.RefreshDomain();
 
         probeGame.isCloud = false;
         probeGame.isLoading = true;
