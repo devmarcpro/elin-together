@@ -15,9 +15,9 @@ internal static class ZoneAddCardEvent
             return true;
         }
 
-        if (ElinDelta.IsApplying) {
-            // host running remote progress during apply context
-            // pack backer loot, treasure chest into the batch
+        // host running remote progress during apply context
+        // pack backer loot, treasure chest into the batch
+        if (ElinDelta.IsApplying || (connection.IsHost && CharaProgressCompleteEvent.Action is TaskBuild)) {
             if (CharaProgressCompleteEvent.ShouldPack(false) && __instance.IsActiveZone && !t.isDestroyed) {
                 CharaProgressCompleteEvent.Pack(new ZoneAddCardDelta {
                     Card = RemoteCard.Create(t),

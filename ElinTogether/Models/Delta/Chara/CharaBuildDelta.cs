@@ -103,6 +103,7 @@ public class CharaBuildDelta : ElinDelta
             Dir = taskBuild.recipe._dir,
             Altitude = taskBuild.altitude,
             BridgeHeight = taskBuild.bridgeHeight,
+            TargetUid = (taskBuild.target?.uid).GetValueOrDefault(),
             DeltaList = deltaList ?? [],
         };
     }
