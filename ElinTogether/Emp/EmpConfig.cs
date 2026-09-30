@@ -102,6 +102,16 @@ internal partial class EmpConfig
             "The zone is simulated by that client and sent back to the host when leaving\n" +
             "客机可以独自前往其他地图，由该客机模拟，离开时回传给主机");
 
+        Server.TravelCheckpointSeconds = config.Bind(
+            "Server",
+            "TravelCheckpointSeconds",
+            60,
+            new ConfigDescription(
+                "Seconds between two checkpoints of a client travelling alone (its zone and character)\n" +
+                "If it disconnects, only what happened since the last checkpoint is lost. 0 disables\n" +
+                "独自行动的客机每隔多少秒回传一次进度，断线时只丢失最后一次之后的内容。0 为关闭",
+                new AcceptableValueRange<int>(0, 600)));
+
         Dev.Listener = config.Bind(
             "Dev",
             "Listener",
@@ -138,5 +148,6 @@ internal partial class EmpConfig
         internal static ConfigEntry<bool> SharedAverageSpeed { get; set; } = null!;
         internal static ConfigEntry<bool> TurnBasedCombat { get; set; } = null!;
         internal static ConfigEntry<bool> IndependentTravel { get; set; } = null!;
+        internal static ConfigEntry<int> TravelCheckpointSeconds { get; set; } = null!;
     }
 }

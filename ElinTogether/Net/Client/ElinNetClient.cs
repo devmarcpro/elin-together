@@ -25,6 +25,8 @@ internal partial class ElinNetClient : ElinNetBase
     {
         base.Update();
 
+        UpdateTravelCheckpoint();
+
         if (IsConnected) {
             _lastTimeout = DateTime.Now;
             return;

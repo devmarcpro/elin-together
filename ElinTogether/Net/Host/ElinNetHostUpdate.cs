@@ -106,7 +106,13 @@ internal partial class ElinNetHost
     /// </summary>
     private void OnWorldStateDeltaResponse(WorldStateDeltaList response, ISteamNetPeer peer)
     {
+        var away = IsAway(peer);
         foreach (var delta in response.DeltaList) {
+            // an away player is not on the host map, only its chat is relevant here
+            if (away && delta is not MsgSayDelta) {
+                continue;
+            }
+
             delta.OriginPeer = peer.Id;
             Delta.AddLocal(delta);
         }

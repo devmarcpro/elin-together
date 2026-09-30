@@ -75,6 +75,11 @@ internal partial class ElinNetClient
     /// </summary>
     private void OnWorldStateDeltaResponse(WorldStateDeltaList response)
     {
+        if (Session.IsAway) {
+            ApplyChatWhileAway(response);
+            return;
+        }
+
         foreach (var delta in response.DeltaList) {
             Delta.AddLocal(delta);
         }

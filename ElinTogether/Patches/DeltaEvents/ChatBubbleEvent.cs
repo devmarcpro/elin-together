@@ -42,19 +42,28 @@ internal class ChatBubbleEvent
     [HarmonyPatch(typeof(AM_Adv), nameof(AM_Adv.OnEnterChat))]
     internal static void OnEnterChat()
     {
-        if (NetSession.Instance.Connection is not { } connection) {
+        // an away player still chats with everyone, straight through the transport
+        var away = NetSession.Instance.IsAway ? NetSession.Instance.Transport as ElinNetClient : null;
+        var connection = NetSession.Instance.Connection;
+        if (connection is null && away is null) {
             return;
         }
 
         var text = EClass.game.log.dict[EClass.game.log.currentLogIndex - 1].text;
         var color = MsgBlock.lastBlock.txt.color;
-        connection.Delta.AddRemote(new MsgSayDelta {
+        var delta = new MsgSayDelta {
             Text = text,
             R = color.r,
             G = color.g,
             B = color.b,
             A = color.a,
-        });
+        };
+
+        if (away is not null) {
+            away.SendChatWhileAway(delta);
+        } else {
+            connection!.Delta.AddRemote(delta);
+        }
     }
 
     [HarmonyPatch]

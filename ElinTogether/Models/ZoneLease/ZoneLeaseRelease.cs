@@ -42,4 +42,10 @@ public class ZoneLeaseRelease
     /// </summary>
     [Key(6)]
     public required bool Rejoin { get; init; }
+
+    /// <summary>
+    ///     Progress save while still away: applied by the host, the lease is kept
+    /// </summary>
+    [Key(7)]
+    public bool Checkpoint { get; init; }
 }

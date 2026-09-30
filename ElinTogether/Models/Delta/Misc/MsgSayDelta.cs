@@ -25,12 +25,9 @@ public class MsgSayDelta : ElinDelta
     protected override void OnApply(ElinNetBase net)
     {
         if (net is ElinNetHost host) {
-            // relay
-            foreach (var peer in NetSession.Instance.CurrentPlayers) {
-                if (peer.Index != 0 && peer.Index != OriginPeer) {
-                    host.SendDeltaTo(peer.Index, this);
-                }
-            }
+            // relay to every connected player, including those travelling alone
+            // (they are not in CurrentPlayers while away)
+            host.SendDeltaToAllExcept(OriginPeer, this);
         }
 
         Msg.SetColor(new Color {

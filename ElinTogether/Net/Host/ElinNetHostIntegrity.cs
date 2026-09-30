@@ -37,8 +37,8 @@ internal partial class ElinNetHost
             NetHandshakePhase.AwaitingVersion => packet is NetIntegrityResponse,
             NetHandshakePhase.AwaitingIntegrity => packet is SourceValidationResponse or SourceValidationContinue,
             // an away player simulates its own zone, nothing it does applies to the host map
-            NetHandshakePhase.Joined when IsAway(peer) => packet is not (WorldStateDeltaList or
-                CharaStateSnapshot or
+            // (its delta lists only carry chat, see OnWorldStateDeltaResponse)
+            NetHandshakePhase.Joined when IsAway(peer) => packet is not (CharaStateSnapshot or
                 ZoneDataReceivedResponse),
             NetHandshakePhase.Joined => true,
             _ => false,

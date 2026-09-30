@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using ElinTogether.Models;
+using UnityEngine;
 
 namespace ElinTogether.Net;
 
@@ -21,6 +22,8 @@ internal partial class ElinNetClient
     ///     Zones this client created itself (world map fields, dungeon floors...), unknown to the host until leased
     /// </summary>
     private readonly HashSet<Zone> _localZones = [];
+
+    private float _nextCheckpoint;
 
     internal void OnLocalZoneCreated(Zone zone)
     {
@@ -266,6 +269,7 @@ internal partial class ElinNetClient
             return;
         }
 
+        _nextCheckpoint = Time.realtimeSinceStartup + Session.Rules.TravelCheckpointSeconds;
         StopWorldStateUpdate();
         Delta.ClearOut();
         Delta.ClearIn();
@@ -292,7 +296,7 @@ internal partial class ElinNetClient
         }
     }
 
-    private ZoneLeaseRelease CreateLeaseRelease(bool rejoin)
+    private ZoneLeaseRelease CreateLeaseRelease(bool rejoin, bool checkpoint = false)
     {
         var zone = Session.AwayZone!;
 
@@ -305,7 +309,53 @@ internal partial class ElinNetClient
             Chara = LZ4Bytes.Create(pc),
             UidNext = game.cards.uidNext,
             Rejoin = rejoin,
+            Checkpoint = checkpoint,
         };
+    }
+
+    internal void SendChatWhileAway(MsgSayDelta delta)
+    {
+        Host.Send(new WorldStateDeltaList {
+            DeltaList = [delta],
+        });
+    }
+
+    /// <summary>
+    ///     Delta lists reaching an away client are about the host map, except chat
+    /// </summary>
+    private void ApplyChatWhileAway(WorldStateDeltaList response)
+    {
+        foreach (var delta in response.DeltaList) {
+            if (delta is MsgSayDelta) {
+                // the regular delta loop does not run while away, see CoreSynchronizationContext
+                delta.Apply(this);
+            }
+        }
+    }
+
+    /// <summary>
+    ///     Regular progress save while away, so a disconnect only loses what happened since
+    /// </summary>
+    private void UpdateTravelCheckpoint()
+    {
+        var interval = Session.Rules.TravelCheckpointSeconds;
+        if (!Session.IsAway || interval <= 0 || _pendingTravel is not null || _rejoining ||
+            !core.IsGameStarted || _zone != Session.AwayZone) {
+            return;
+        }
+
+        if (Time.realtimeSinceStartup < _nextCheckpoint) {
+            return;
+        }
+
+        _nextCheckpoint = Time.realtimeSinceStartup + interval;
+        SendTravelCheckpoint();
+    }
+
+    internal void SendTravelCheckpoint()
+    {
+        Host.Send(CreateLeaseRelease(false, true));
+        EmpLog.Debug("Sent checkpoint of zone {ZoneFullName}", Session.AwayZone!.ZoneFullName);
     }
 
     /// <summary>
@@ -314,6 +364,7 @@ internal partial class ElinNetClient
     private static bool ShouldReceiveWhileAway(object packet)
     {
         return packet is ZoneLeaseGrant or
+            WorldStateDeltaList or
             ZoneLeaseDepart or
             ZoneLeaseDenied or
             ZoneLeaseRecall or

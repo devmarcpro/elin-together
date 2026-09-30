@@ -31,6 +31,11 @@ internal partial class ElinNetHost
     private readonly HashSet<int> _departed = [];
 
     /// <summary>
+    ///     Peer id -> card uid counter of its last checkpoint
+    /// </summary>
+    private readonly Dictionary<int, int> _checkpointUidNext = [];
+
+    /// <summary>
     ///     Host move into a leased zone, performed once the client hands it back
     /// </summary>
     private (Zone Zone, ZoneTransition Transition)? _pendingHostMove;
@@ -174,6 +179,11 @@ internal partial class ElinNetHost
             return;
         }
 
+        if (release.Checkpoint) {
+            ApplyCheckpoint(release, peer);
+            return;
+        }
+
         if (_leases.TryGetValue(peer.Id, out var zones) && zones.Remove(release.ZoneUid, out var rangeStart)) {
             if (game.spatials.Find(release.ZoneUid) is { IsRegion: false } zone) {
                 ApplyLeasedZone(zone, release);
@@ -198,6 +208,7 @@ internal partial class ElinNetHost
 
             _leases.Remove(peer.Id);
             _departed.Remove(peer.Id);
+            _checkpointUidNext.Remove(peer.Id);
 
             if (chara is not null) {
                 EmpLog.Information("Player {@Peer} returns to the host zone",
@@ -213,6 +224,30 @@ internal partial class ElinNetHost
         }
 
         ResumePendingHostMove();
+    }
+
+    /// <summary>
+    ///     Progress of a client still away: its zone and character, the lease stays
+    /// </summary>
+    private void ApplyCheckpoint(ZoneLeaseRelease checkpoint, ISteamNetPeer peer)
+    {
+        if (!_leases.TryGetValue(peer.Id, out var zones) || !zones.ContainsKey(checkpoint.ZoneUid)) {
+            EmpLog.Warning("Player {@Peer} sent a checkpoint for zone {ZoneUid} it does not hold",
+                peer, checkpoint.ZoneUid);
+            return;
+        }
+
+        if (game.spatials.Find(checkpoint.ZoneUid) is { IsRegion: false } zone) {
+            ApplyLeasedZone(zone, checkpoint);
+        }
+
+        // the client keeps allocating in its range, the host counter only moves on release or disconnect
+        _checkpointUidNext[peer.Id] = checkpoint.UidNext;
+
+        ReplaceRemoteChara(peer, checkpoint.Chara);
+
+        EmpLog.Debug("Checkpoint of player {@Peer} in zone {ZoneUid}",
+            peer, checkpoint.ZoneUid);
     }
 
     private void ResumePendingHostMove()
@@ -390,10 +425,19 @@ internal partial class ElinNetHost
     {
         _departed.Remove(peer.Id);
 
+        // cards of the last checkpoint are in the save now, the host must not allocate their uids
+        if (_checkpointUidNext.Remove(peer.Id, out var uidNext)) {
+            game.cards.uidNext = Math.Max(game.cards.uidNext, uidNext);
+        }
+
         if (_leases.Remove(peer.Id, out var zones) && zones.Count > 0) {
-            // TODO: periodic checkpoints, changes made in the zone are lost for now
-            EmpLog.Warning("Player {@Peer} disconnected while away in zones {ZoneUids}, its changes are lost",
+            EmpLog.Warning("Player {@Peer} disconnected while away in zones {ZoneUids}, " +
+                           "keeping its last checkpoint",
                 peer, zones.Keys);
+
+            if (!EClass.debug.ignoreAutoSave) {
+                game.Save(isAutoSave: true);
+            }
         }
 
         ResumePendingHostMove();
