@@ -53,6 +53,7 @@ internal partial class ElinNetClient
             // host changed zone while we are away, only remember where to find it
             Session.CurrentZone = game.spatials.Find(response.ZoneUid) ?? Session.CurrentZone;
             EmpLog.Debug("Host moved to {ZoneFullName} while away", response.ZoneFullName);
+            OnHostZoneChangedWhileAway(response.ZoneUid);
             return;
         }
 

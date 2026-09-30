@@ -34,6 +34,16 @@ internal static class SpatialGenEvent
     [HarmonyPatch(typeof(SpatialGen), nameof(SpatialGen.Create))]
     internal static void OnSpatialGen(Spatial __result)
     {
+        // zones a client creates on its own (not replicated from the host) are unknown to the host,
+        // travelling there sends it a blueprint, see ZoneLeaseRequest
+        if (NetSession.Instance.Transport is ElinNetClient client) {
+            if (!ElinDelta.IsApplying && __result is Zone zone) {
+                client.OnLocalZoneCreated(zone);
+            }
+
+            return;
+        }
+
         if (NetSession.Instance.Connection is not ElinNetHost host) {
             return;
         }

@@ -10,8 +10,17 @@ namespace ElinTogether.Models;
 [MessagePackObject]
 public class ZoneLeaseGrant
 {
+    /// <summary>
+    ///     Host uid of the zone, differs from <see cref="RequestedUid" /> for a zone the client created
+    /// </summary>
     [Key(0)]
     public required int ZoneUid { get; init; }
+
+    /// <summary>
+    ///     Uid the client asked for
+    /// </summary>
+    [Key(5)]
+    public required int RequestedUid { get; init; }
 
     /// <summary>
     ///     First card uid the client may allocate, reserved above the host's own allocations

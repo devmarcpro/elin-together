@@ -112,5 +112,7 @@
     "LangGeneral.emp_travel_disabled.text": "主机未允许独自行动",
     "LangGeneral.emp_travel_invalid.text": "无法独自前往该地点",
     "LangGeneral.emp_travel_host_zone.text": "主机已经在那里了",
-    "LangGeneral.emp_travel_occupied.text": "其他玩家已在该地点"
+    "LangGeneral.emp_travel_occupied.text": "其他玩家已在该地点",
+    "LangGeneral.emp_travel_recalling.text": "正在等待 {@Peer} 交还该地点…",
+    "LangGeneral.emp_travel_recalled.text": "主机即将到来，正在汇合…"
 }

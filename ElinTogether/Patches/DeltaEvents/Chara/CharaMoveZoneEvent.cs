@@ -9,6 +9,11 @@ internal class CharaMoveZoneEvent
     [HarmonyPrefix]
     internal static bool OnClientMoveZone(Chara __instance, Zone z, ZoneTransition transition)
     {
+        // host may have to recall the zone from a client simulating it
+        if (NetSession.Instance.Transport is ElinNetHost host) {
+            return !__instance.IsPC || host.TryEnterZone(z, transition);
+        }
+
         // checked first: an away client reads as host, see NetSession.Connection
         if (NetSession.Instance.Transport is not ElinNetClient client) {
             return true;

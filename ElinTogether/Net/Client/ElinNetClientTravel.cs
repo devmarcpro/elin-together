@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using ElinTogether.Models;
 
@@ -12,14 +13,44 @@ internal partial class ElinNetClient
     private (Zone Zone, ZoneTransition Transition)? _pendingTravel;
 
     /// <summary>
+    ///     Lease granted while on the host map, waiting for <see cref="ZoneLeaseDepart" />
+    /// </summary>
+    private ZoneLeaseGrant? _pendingGrant;
+
+    /// <summary>
+    ///     Zones this client created itself (world map fields, dungeon floors...), unknown to the host until leased
+    /// </summary>
+    private readonly HashSet<Zone> _localZones = [];
+
+    internal void OnLocalZoneCreated(Zone zone)
+    {
+        _localZones.Add(zone);
+    }
+
+    /// <summary>
+    ///     Away zone handed back, waiting for the host save probe
+    /// </summary>
+    private bool _rejoining;
+
+    /// <summary>
     ///     The local player moves to a zone other than the one it replicates from the host <br />
     ///     Returns true to let the move happen now
     /// </summary>
     internal bool TryTravel(Zone zone, ZoneTransition transition)
     {
         // moving into the zone just granted
-        if (Session.AwayZone == zone) {
+        if (Session.AwayZone == zone && !_rejoining) {
             return true;
+        }
+
+        if (!Session.IsAway && (pc.isDead || player.deathZoneMove)) {
+            // the host revives remote players where they fell, see CharaReviveEvent
+            return false;
+        }
+
+        // leaving an instance, Elin sends the player back where it started, see Chara.MoveZone
+        if (pc.currentZone?.instance is { } instance) {
+            zone = game.spatials.Find(instance.uidZone) ?? pc.homeZone;
         }
 
         if (!Session.Rules.AllowIndependentTravel) {
@@ -27,7 +58,7 @@ internal partial class ElinNetClient
             return false;
         }
 
-        if (_pendingTravel is not null) {
+        if (_pendingTravel is not null || _rejoining) {
             // a request is in flight
             return false;
         }
@@ -36,8 +67,7 @@ internal partial class ElinNetClient
             EmpLog.Information("Returning from {AwayZone} to host zone {ZoneFullName}",
                 Session.AwayZone!.ZoneFullName, zone.ZoneFullName);
 
-            // the host answers with a save probe, which rebuilds the game in the host zone
-            Host.Send(CreateLeaseRelease(true));
+            SendRejoin();
             EmpPop.Debug("emp_travel_returning".lang());
             return false;
         }
@@ -46,7 +76,7 @@ internal partial class ElinNetClient
             zone.ZoneFullName);
 
         _pendingTravel = (zone, transition);
-        Host.Send(ZoneLeaseRequest.Create(zone));
+        Host.Send(ZoneLeaseRequest.Create(zone, _localZones.Contains(zone)));
         EmpPop.Debug("emp_travel_requesting".lang());
         return false;
     }
@@ -56,19 +86,90 @@ internal partial class ElinNetClient
     /// </summary>
     private void OnZoneLeaseGrant(ZoneLeaseGrant grant)
     {
-        if (_pendingTravel is not { } travel || travel.Zone.uid != grant.ZoneUid) {
-            EmpLog.Warning("Received unexpected lease for zone {ZoneUid}", grant.ZoneUid);
+        if (_pendingTravel is not { } travel || travel.Zone.uid != grant.RequestedUid) {
+            EmpLog.Warning("Received unexpected lease for zone {ZoneUid}", grant.RequestedUid);
+            return;
+        }
+
+        AdoptHostUid(travel.Zone, grant.ZoneUid);
+
+        if (Session.IsAway) {
+            _pendingTravel = null;
+
+            // hand back the zone we are leaving, while it is still active
+            Host.Send(CreateLeaseRelease(false));
+            TravelTo(travel.Zone, travel.Transition, grant);
+            return;
+        }
+
+        // leaving the host map: everything done there reaches the host first, then we wait for
+        // the results of those actions before going, see ZoneLeaseDepart
+        FlushDeltasNow();
+        Host.Send(new ZoneLeaseAck {
+            ZoneUid = grant.ZoneUid,
+        });
+        _pendingGrant = grant;
+    }
+
+    /// <summary>
+    ///     Net event: The host applied our last actions on its map and sent their results, now we go
+    /// </summary>
+    private void OnZoneLeaseDepart(ZoneLeaseDepart depart)
+    {
+        if (_pendingTravel is not { } travel || _pendingGrant is not { } grant || grant.ZoneUid != depart.ZoneUid) {
+            EmpLog.Warning("Received unexpected departure for zone {ZoneUid}", depart.ZoneUid);
             return;
         }
 
         _pendingTravel = null;
-        var (zone, transition) = travel;
+        _pendingGrant = null;
 
-        // hand back the zone we are leaving, while it is still active
-        if (Session.IsAway) {
-            Host.Send(CreateLeaseRelease(false));
+        // the results arrived right before this packet, apply them while still synced
+        WorldStateDeltaProcess();
+
+        TravelTo(travel.Zone, travel.Transition, grant);
+    }
+
+    /// <summary>
+    ///     A zone created here gets the uid the host assigned, nothing refers to it by uid yet
+    /// </summary>
+    private void AdoptHostUid(Zone zone, int uid)
+    {
+        _localZones.Remove(zone);
+
+        if (zone.uid == uid) {
+            return;
         }
 
+        var spatials = game.spatials;
+        spatials.uidNext = Math.Max(spatials.uidNext, uid + 1);
+
+        if (spatials.map.TryGetValue(uid, out var other) && other != zone) {
+            spatials.map.Remove(uid);
+
+            if (other.id == zone.id && other.x == zone.x && other.y == zone.y) {
+                // host copy announced through SpatialGenDelta before the grant
+                other.parent?.RemoveChild(other);
+            } else {
+                // another zone created here took that uid
+                spatials.AssignUID(other);
+            }
+        }
+
+        EmpLog.Debug("Zone {ZoneFullName} created locally as {LocalUid}, host uid {ZoneUid}",
+            zone.ZoneFullName, zone.uid, uid);
+
+        spatials.map.Remove(zone.uid);
+        zone.uid = uid;
+        spatials.map[uid] = zone;
+
+        if (zone.parent is Region region) {
+            region.elomap.SetZone(zone.x, zone.y, zone, true);
+        }
+    }
+
+    private void TravelTo(Zone zone, ZoneTransition transition, ZoneLeaseGrant grant)
+    {
         if (grant.Map is not null) {
             if (zone.map is not null) {
                 // stale copy from an earlier visit alongside the host
@@ -103,6 +204,57 @@ internal partial class ElinNetClient
         EmpPop.Information(denied.Reason.lang());
     }
 
+    /// <summary>
+    ///     Net event: The host wants to enter our zone, hand it back and rejoin the host
+    /// </summary>
+    private void OnZoneLeaseRecall(ZoneLeaseRecall recall)
+    {
+        if (Session.AwayZone?.uid != recall.ZoneUid) {
+            // already handed back
+            return;
+        }
+
+        if (_pendingTravel is not null) {
+            // leaving already, the zone is released as soon as the next one is granted
+            return;
+        }
+
+        EmpLog.Information("Host recalls zone {ZoneFullName}, rejoining",
+            Session.AwayZone.ZoneFullName);
+
+        SendRejoin();
+        EmpPop.Information("emp_travel_recalled".lang());
+    }
+
+    /// <summary>
+    ///     Host zone change while away, rejoin if the host arrived in our zone anyway
+    /// </summary>
+    private void OnHostZoneChangedWhileAway(int zoneUid)
+    {
+        if (Session.AwayZone?.uid != zoneUid || _pendingTravel is not null) {
+            return;
+        }
+
+        EmpLog.Warning("Host entered away zone {ZoneFullName} without recall, rejoining",
+            Session.AwayZone.ZoneFullName);
+
+        SendRejoin();
+    }
+
+    /// <summary>
+    ///     Hand the away zone back and return to the host <br />
+    ///     The host answers with a save probe, which rebuilds the game in the host zone
+    /// </summary>
+    private void SendRejoin()
+    {
+        if (_rejoining) {
+            return;
+        }
+
+        _rejoining = true;
+        Host.Send(CreateLeaseRelease(true));
+    }
+
     private void EnterAway(Zone zone)
     {
         var wasAway = Session.IsAway;
@@ -122,6 +274,20 @@ internal partial class ElinNetClient
         foreach (var member in pc.party.members.ToList()) {
             if (member != pc && Session.CurrentPlayers.Any(p => p.CharaUid == member.uid)) {
                 pc.party.RemoveMember(member);
+            }
+        }
+    }
+
+    private void FlushDeltasNow()
+    {
+        Delta.RefreshBuffer();
+
+        // second pass sends what was deferred by the first
+        for (var i = 0; i < 3 && Delta.HasPendingOut; i++) {
+            if (Delta.FlushOutBuffer() is { Count: > 0 } deltaList) {
+                Host.Send(new WorldStateDeltaList {
+                    DeltaList = deltaList,
+                });
             }
         }
     }
@@ -148,7 +314,9 @@ internal partial class ElinNetClient
     private static bool ShouldReceiveWhileAway(object packet)
     {
         return packet is ZoneLeaseGrant or
+            ZoneLeaseDepart or
             ZoneLeaseDenied or
+            ZoneLeaseRecall or
             ZoneDataResponse or
             SaveDataProbe or
             SessionPlayersSnapshot or

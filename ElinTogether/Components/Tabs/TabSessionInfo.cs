@@ -79,14 +79,16 @@ internal class TabSessionInfo : TabEmpBase
         infoGroup.Text(BuildPingStat(player));
 
         // action buttons: only show for non-host players
-        if (NetSession.Instance.IsHost ^ player.User.IsMe) {
+        // IsHost also reads true on an away client, and reconnecting would drop its zone
+        var isHost = NetSession.Instance.Transport is ElinNetHost;
+        if (isHost ^ player.User.IsMe && !NetSession.Instance.IsAway) {
             var btnRow = infoGroup.Horizontal();
             btnRow.Layout.childForceExpandWidth = true;
             btnRow.Layout.childAlignment = TextAnchor.MiddleCenter;
 
             btnRow.Button("emp_ui_reconnect".lang(), () => ReconnectPlayer(player.Index));
 
-            if (NetSession.Instance.IsHost) {
+            if (isHost) {
                 btnRow.Button("emp_ui_kick".lang(), () => KickPlayer(player.Index));
             }
         }

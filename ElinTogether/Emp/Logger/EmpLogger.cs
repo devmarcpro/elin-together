@@ -81,7 +81,7 @@ internal static partial class EmpLogger
                     PlayerName = ps.User.Name,
                 })
                 .Destructure.ByTransforming<NetSession>(s => new {
-                    Role = s.IsHost ? "Host" : "Client",
+                    Role = s.IsAway ? "Away" : s.IsHost ? "Host" : "Client",
                     s.SessionId,
                     s.Tick,
                     //s.SyncMode,

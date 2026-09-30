@@ -79,6 +79,7 @@ internal partial class ElinNetHost : ElinNetBase
 
         // independent travel
         Router.RegisterHandler<ZoneLeaseRequest>(OnZoneLeaseRequest);
+        Router.RegisterHandler<ZoneLeaseAck>(OnZoneLeaseAck);
         Router.RegisterHandler<ZoneLeaseRelease>(OnZoneLeaseRelease);
 
         // source validation
@@ -94,6 +95,15 @@ internal partial class ElinNetHost : ElinNetBase
     protected void DisconnectInactive()
     {
         foreach (var peer in Socket.Peers) {
+            if (IsAway(peer)) {
+                // away players have no tick state, drop them as soon as the transport is gone
+                if (!peer.IsConnected) {
+                    Socket.Disconnect(peer, EmpDisconnectInfo.InactivePeer);
+                }
+
+                continue;
+            }
+
             if (!States.TryGetValue(peer.Id, out var state)) {
                 continue;
             }

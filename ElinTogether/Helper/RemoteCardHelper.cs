@@ -18,7 +18,8 @@ internal static class RemoteCardHelper
     [ElinPreSceneInit]
     private static void ClearProfiles(Scene.Mode mode)
     {
-        if (mode == Scene.Mode.Title) {
+        // None: game torn down before rejoining from independent travel
+        if (mode is Scene.Mode.Title or Scene.Mode.None) {
             RemoteCardNetProfile.Clear();
         }
     }

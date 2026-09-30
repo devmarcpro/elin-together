@@ -40,7 +40,8 @@ public abstract partial class ElinNetBase : EMono
         Scheduler.Tick();
         Socket.Poll();
 
-        if (Input.GetKeyDown(EmpConfig.Client.PingKeybind.Value) && !ui.BlockActions) {
+        // an away player is alone in its zone, there is nobody to ping
+        if (!Session.IsAway && Input.GetKeyDown(EmpConfig.Client.PingKeybind.Value) && !ui.BlockActions) {
             var point = Scene.HitPoint;
             if (point is not null) {
                 Delta.AddRemote(PingPointDelta.Ping(point));

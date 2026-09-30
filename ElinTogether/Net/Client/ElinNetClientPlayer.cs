@@ -50,10 +50,14 @@ internal partial class ElinNetClient
     {
         EmpLog.Information("Received save data from host");
 
-        if (Session.IsAway) {
+        var returning = Session.IsAway;
+        if (returning) {
             // back from independent travel, the probe rebuilds the whole game
             Session.AwayZone = null;
             _pendingTravel = null;
+            _pendingGrant = null;
+            _rejoining = false;
+            _localZones.Clear();
             StartWorldStateUpdate();
         }
 
@@ -67,6 +71,12 @@ internal partial class ElinNetClient
                     equipped.Add((worn.uid, slot.elementId));
                 }
             }
+        }
+
+        if (returning) {
+            // tear down the away game and its scene like the title screen does before a first join,
+            // widgets and actors would otherwise keep reading a game without active zone
+            scene.Init(Scene.Mode.None);
         }
 
         var probeGame = probe.MakeGameSave();
