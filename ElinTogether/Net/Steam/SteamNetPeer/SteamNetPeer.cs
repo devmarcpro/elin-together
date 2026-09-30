@@ -50,7 +50,7 @@ internal class SteamNetPeer : ISteamNetPeer, IDisposable
         } else {
             preferredId = Interlocked.Increment(ref _nextId);
         }
-        Id = _peerIdHistory[User] = preferredId;
+        _id = _peerIdHistory[User] = preferredId;
 
         Serializer = serializer;
         ArenaSize = MemoryArenaInitialSize;
@@ -62,8 +62,27 @@ internal class SteamNetPeer : ISteamNetPeer, IDisposable
             ? info.m_eState
             : ESteamNetworkingConnectionState.k_ESteamNetworkingConnectionState_None;
 
-    public virtual int Id { get; }
-    public UserData User { get; }
+    public virtual int Id => _id;
+    public UserData User { get; private set; }
+
+    private int _id;
+
+    /// <summary>
+    ///     Local udp debug sessions: several instances on one Steam account, told apart by the identity
+    ///     they mix into the connection fingerprint, see SteamNetManager.AcceptIfHost
+    /// </summary>
+    internal void UseDevIdentity(int identity)
+    {
+        User = DevIdentityBase + (ulong)identity;
+
+        if (!_peerIdHistory.TryGetValue(User, out var id)) {
+            id = _peerIdHistory[User] = Interlocked.Increment(ref _nextId);
+        }
+
+        _id = id;
+    }
+
+    internal const ulong DevIdentityBase = 76561190000000000UL;
 
     public virtual bool IsConnected =>
         ConnectionState is

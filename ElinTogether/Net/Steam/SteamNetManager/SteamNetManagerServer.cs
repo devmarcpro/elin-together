@@ -19,6 +19,18 @@ public partial class SteamNetManager
     public bool IsLocalUdp { get; private set; }
 
     /// <summary>
+    ///     Accepted local debug connections -> identity, applied once the peer exists
+    /// </summary>
+    private readonly Dictionary<HSteamNetConnection, int> _devIdentities = [];
+
+    /// <summary>
+    ///     Debug: one extra local udp listen socket per test identity, port = local port + identity
+    /// </summary>
+    private readonly Dictionary<HSteamListenSocket, int> _devListenSockets = [];
+
+    private const int DevIdentityPorts = 8;
+
+    /// <summary>
     ///     Start server on valve SDR
     /// </summary>
     public void StartServerSdr()
@@ -52,6 +64,19 @@ public partial class SteamNetManager
             throw new InvalidOperationException("Failed to create listen socket via UDP");
         }
 
+#if DEBUG
+        for (var identity = 1; identity <= DevIdentityPorts; identity++) {
+            var address = new SteamNetworkingIPAddr();
+            address.Clear();
+            address.m_port = (ushort)(port + identity);
+
+            var socket = SteamNetworkingSockets.CreateListenSocketIP(ref address, options.Length, options);
+            if (socket != HSteamListenSocket.Invalid) {
+                _devListenSockets[socket] = identity;
+            }
+        }
+#endif
+
         IsLocalUdp = true;
         SetupSteamCallback();
     }
@@ -62,6 +87,14 @@ public partial class SteamNetManager
 
         EmpLog.Debug("Received connection request from {RemoteIdentity}",
             user);
+
+        // local udp connections never go through the steam lobby that issues the keys
+        var isLocalDebug = IsLocalUdp && info.m_addrRemote.IsLocalHost();
+
+        // debug instance sharing the Steam account, see SteamNetPeer.UseDevIdentity
+        if (isLocalDebug && _devListenSockets.TryGetValue(info.m_hListenSocket, out var devIdentity)) {
+            _devIdentities[connection] = devIdentity;
+        }
 
         var connectionKey = BuildVersionIntegrity.VersionStringToLong();
         if (info.m_nUserData != connectionKey) {
@@ -78,8 +111,6 @@ public partial class SteamNetManager
             return;
         }
 
-        // local udp connections never go through the steam lobby that issues the keys
-        var isLocalDebug = IsLocalUdp && info.m_addrRemote.IsLocalHost();
         if (!isLocalDebug && !ConnectionKeys.ContainsKey(user)) {
             // only connect if host allows it in the lobby
             SteamNetworkingSockets.CloseConnection(connection, 0, "emp_not_allowed", false);
@@ -101,6 +132,13 @@ public partial class SteamNetManager
             SteamNetworkingSockets.CloseListenSocket(_listenSocket);
             _listenSocket = HSteamListenSocket.Invalid;
         }
+
+        foreach (var socket in _devListenSockets.Keys) {
+            SteamNetworkingSockets.CloseListenSocket(socket);
+        }
+
+        _devListenSockets.Clear();
+        _devIdentities.Clear();
 
         IsHost = false;
         IsListening = false;

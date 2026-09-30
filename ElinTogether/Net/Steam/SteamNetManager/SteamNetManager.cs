@@ -190,6 +190,10 @@ public partial class SteamNetManager(ISteamNetSerializer? serializer = null) : I
         }
 
         var peer = new SteamNetPeer(connection, _serializer);
+        if (_devIdentities.Remove(connection, out var devIdentity)) {
+            peer.UseDevIdentity(devIdentity);
+        }
+
         if (!peer.IsConnected) {
             SteamNetworkingSockets.CloseConnection(peer.Connection, 0, EmpDisconnectInfo.RemoteClosed, true);
             return FakePeer;

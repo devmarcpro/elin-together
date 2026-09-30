@@ -121,12 +121,23 @@ internal partial class EmpConfig
             "为 scripts/mcp 打开本机调试监听（仅 Debug 构建）\n" +
             "它会执行任意 C#，不要在共用机器上开启");
 
+        Dev.Identity = config.Bind(
+            "Dev",
+            "Identity",
+            0,
+            new ConfigDescription(
+                "Local udp test identity (Debug builds only), 0 uses the Steam account\n" +
+                "Lets several game instances on one Steam account join a local session as different players\n" +
+                "本地UDP测试身份（仅 Debug 构建），0 为使用 Steam 账号",
+                new AcceptableValueRange<int>(0, 999)));
+
         Reload();
     }
 
     internal static class Dev
     {
         internal static ConfigEntry<bool> Listener { get; set; } = null!;
+        internal static ConfigEntry<int> Identity { get; set; } = null!;
     }
 
     internal static class Policy

@@ -46,6 +46,11 @@ public partial class SteamNetManager
     /// </summary>
     public void Connect(ushort port = EmpConstants.LocalPort)
     {
+#if DEBUG
+        // instances sharing one Steam account are told apart by the port they use, see StartServerUdp
+        port += (ushort)EmpConfig.Dev.Identity.Value;
+#endif
+
         // a cleared address is [::], which windows does not route to the local listen socket
         var localhost = new SteamNetworkingIPAddr();
         localhost.ParseString($"127.0.0.1:{port}");
