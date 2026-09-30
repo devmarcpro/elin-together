@@ -32,7 +32,7 @@ internal class LayerElinTogether : YKLayer<LayerCreationData>
             _tabs.Add(CreateTab<TabSessionInfo>("emp_ui_session", "emp_tab_session"));
         }
 
-        if (NetSession.Instance.Connection is ElinNetHost) {
+        if (NetSession.Instance.Transport is ElinNetHost) {
             _tabs.Add(CreateTab<TabServerConfiguration>("emp_ui_tab_server", "emp_tab_server"));
         }
 

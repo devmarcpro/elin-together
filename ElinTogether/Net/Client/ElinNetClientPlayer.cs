@@ -50,6 +50,13 @@ internal partial class ElinNetClient
     {
         EmpLog.Information("Received save data from host");
 
+        if (Session.IsAway) {
+            // back from independent travel, the probe rebuilds the whole game
+            Session.AwayZone = null;
+            _pendingTravel = null;
+            StartWorldStateUpdate();
+        }
+
         // PreparePlayerJoin
         AdvanceHandshake(NetHandshakePhase.Joined);
 

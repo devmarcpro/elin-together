@@ -94,7 +94,7 @@ internal class TabSessionInfo : TabEmpBase
 
     private static void ReconnectPlayer(int peerIndex)
     {
-        switch (NetSession.Instance.Connection) {
+        switch (NetSession.Instance.Transport) {
             case ElinNetHost host:
                 host.RequestClientReconnect(peerIndex);
                 break;
@@ -106,7 +106,7 @@ internal class TabSessionInfo : TabEmpBase
 
     private static void KickPlayer(int peerIndex)
     {
-        NetSession.Instance.Connection?.DisconnectPeer(peerIndex, EmpDisconnectInfo.HostKick);
+        NetSession.Instance.Transport?.DisconnectPeer(peerIndex, EmpDisconnectInfo.HostKick);
         LayerElinTogether.Instance?.Reopen();
     }
 

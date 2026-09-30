@@ -22,7 +22,7 @@ internal static class NetShutdown
         IsQuitting = true;
 
         try {
-            NetSession.Instance.Connection?.Shutdown();
+            NetSession.Instance.Transport?.Shutdown();
         } catch (Exception ex) {
             EmpLog.Warning(ex, "Exception while closing sockets on quit");
             // noexcept

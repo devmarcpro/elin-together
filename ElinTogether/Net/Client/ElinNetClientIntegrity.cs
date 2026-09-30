@@ -29,6 +29,10 @@ internal partial class ElinNetClient
     // copied from Host version
     private bool ShouldReceiveHostPacket(object packet, ISteamNetPeer peer)
     {
+        if (Session.IsAway && !ShouldReceiveWhileAway(packet)) {
+            return false;
+        }
+
         if (_handshakePhase == NetHandshakePhase.Joined) {
             return true;
         }

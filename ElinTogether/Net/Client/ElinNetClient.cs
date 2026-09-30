@@ -85,6 +85,10 @@ internal partial class ElinNetClient : ElinNetBase
         Router.RegisterHandler<SessionPlayersSnapshot>(OnSessionStatesUpdate);
         Router.RegisterHandler<NetSessionRules>(OnSessionRulesUpdate);
         Router.RegisterHandler<SessionReconnectRequest>(OnSessionReconnectRequest);
+
+        // independent travel
+        Router.RegisterHandler<ZoneLeaseGrant>(OnZoneLeaseGrant);
+        Router.RegisterHandler<ZoneLeaseDenied>(OnZoneLeaseDenied);
     }
 
     internal override void Stop()

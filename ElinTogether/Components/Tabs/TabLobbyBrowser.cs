@@ -23,7 +23,7 @@ internal class TabLobbyBrowser : TabEmpBase
             return;
         }
 
-        if (NetSession.Instance.Connection == null) {
+        if (NetSession.Instance.Transport == null) {
             btnGroup.Button("emp_ui_sv_start".lang(), StartServerFromPanel);
         } else {
             btnGroup.Button("emp_ui_sv_invite".lang(), NetSession.Instance.Lobby.InviteSteamOverlay);
@@ -67,7 +67,7 @@ internal class TabLobbyBrowser : TabEmpBase
 
     private void DisconnectFromPanel()
     {
-        var isClient = NetSession.Instance.Connection is ElinNetClient;
+        var isClient = NetSession.Instance.Transport is ElinNetClient;
 
         NetSession.Instance.ResetSession();
         LayerElinTogether.Instance?.Reopen();

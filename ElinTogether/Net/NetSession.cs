@@ -29,7 +29,25 @@ public class NetSession : EClass
     public static NetSession Instance => field ??= new();
 
     public Mode SyncMode { get; private set; } = Mode.None;
-    public ElinNetBase? Connection { get; private set; }
+
+    /// <summary>
+    ///     The connection gameplay code synchronizes through <br />
+    ///     null while the local player simulates an away zone, so the game runs as single player there
+    /// </summary>
+    public ElinNetBase? Connection => IsAway ? null : Transport;
+
+    /// <summary>
+    ///     The network component itself, regardless of away state
+    /// </summary>
+    public ElinNetBase? Transport { get; private set; }
+
+    /// <summary>
+    ///     Zone this client is leased and simulates on its own, away from the host
+    /// </summary>
+    public Zone? AwayZone { get; internal set; }
+
+    public bool IsAway => AwayZone is not null;
+
     public Chara? Player { get; internal set; }
     public int SharedSpeed { get; internal set; }
     public Zone? CurrentZone { get; internal set; }
@@ -43,28 +61,30 @@ public class NetSession : EClass
     public SteamNetLobbyManager Lobby => field ??= new();
     public NetPeerState? Self { get; internal set; }
 
-    public bool HasActiveConnection => Connection != null && Connection.IsConnected;
+    public bool HasActiveConnection => Transport != null && Transport.IsConnected;
     public bool IsHost => Connection?.IsHost is not false;
     public bool IsClient => !IsHost;
     public bool ShouldSimulate => IsHost || SyncMode == Mode.PartialSync;
 
     public void RemoveComponent()
     {
-        if (Connection != null) {
-            if (!Connection.IsHost && core.IsGameStarted) {
+        AwayZone = null;
+
+        if (Transport != null) {
+            if (!Transport.IsHost && core.IsGameStarted) {
                 ui.hud?.SetDragImage(null);
                 ui.RemoveLayers();
                 game.Kill();
                 scene.Init(Scene.Mode.Title);
             }
 
-            Object.Destroy(Connection);
+            Object.Destroy(Transport);
 
             EmpLog.Debug("Removed connection component of {ConnectionType}",
-                Connection.GetType().Name);
+                Transport.GetType().Name);
         }
 
-        Connection = null;
+        Transport = null;
 
         EmpLog.Information("Connection component removed");
     }
@@ -100,12 +120,12 @@ public class NetSession : EClass
 
         Lobby.Reset();
 
-        Connection = EmpMod.Instance.gameObject.AddComponent<T>();
+        Transport = EmpMod.Instance.gameObject.AddComponent<T>();
 
         EmpLog.Debug("Initialized new connection component of {ConnectionType}",
             typeof(T).Name);
 
-        return (Connection as T)!;
+        return (Transport as T)!;
     }
 
     public void SwitchSyncMode(Mode mode)

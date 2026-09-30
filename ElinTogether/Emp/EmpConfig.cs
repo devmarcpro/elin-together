@@ -94,6 +94,14 @@ internal partial class EmpConfig
             "Players take turns in combat\n" +
             "战斗中玩家轮流行动");
 
+        Server.IndependentTravel = config.Bind(
+            "Server",
+            "IndependentTravel",
+            true,
+            "Clients may travel to other zones on their own\n" +
+            "The zone is simulated by that client and sent back to the host when leaving\n" +
+            "客机可以独自前往其他地图，由该客机模拟，离开时回传给主机");
+
         Dev.Listener = config.Bind(
             "Dev",
             "Listener",
@@ -129,5 +137,6 @@ internal partial class EmpConfig
         internal static ConfigEntry<bool> StrictValidationMode { get; set; } = null!;
         internal static ConfigEntry<bool> SharedAverageSpeed { get; set; } = null!;
         internal static ConfigEntry<bool> TurnBasedCombat { get; set; } = null!;
+        internal static ConfigEntry<bool> IndependentTravel { get; set; } = null!;
     }
 }

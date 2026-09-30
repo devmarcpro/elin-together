@@ -106,5 +106,11 @@
     "LangGeneral.emp_ui_unknown_player.text": "玩家 {0}",
     "LangGeneral.emp_ui_reconnect.text": "重新连接",
     "LangGeneral.emp_dc_reconnect_request.text": "重新连接",
-    "LangGeneral.emp_ui_quest_client.text": "此任务类型暂时不可由客机接取。"
+    "LangGeneral.emp_ui_quest_client.text": "此任务类型暂时不可由客机接取。",
+    "LangGeneral.emp_travel_requesting.text": "正在向主机申请独自前往…",
+    "LangGeneral.emp_travel_returning.text": "正在返回主机所在地…",
+    "LangGeneral.emp_travel_disabled.text": "主机未允许独自行动",
+    "LangGeneral.emp_travel_invalid.text": "无法独自前往该地点",
+    "LangGeneral.emp_travel_host_zone.text": "主机已经在那里了",
+    "LangGeneral.emp_travel_occupied.text": "其他玩家已在该地点"
 }

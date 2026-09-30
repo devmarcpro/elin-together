@@ -134,7 +134,7 @@ public class SteamNetLobbyManager : EClass
 
         ELayerCleanup.Cleanup<LayerHelp>();
 
-        if (NetSession.Instance.Connection is not ElinNetClient) {
+        if (NetSession.Instance.Transport is not ElinNetClient) {
             NetSession.Instance.InitializeComponent<ElinNetClient>();
         }
 
@@ -348,7 +348,7 @@ public class SteamNetLobbyManager : EClass
 
             ELayerCleanup.Cleanup<LayerHelp>();
 
-            (NetSession.Instance.Connection as ElinNetClient)?.TryJoinCurrentLobbyGame();
+            (NetSession.Instance.Transport as ElinNetClient)?.TryJoinCurrentLobbyGame();
         }
     }
 

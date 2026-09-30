@@ -210,7 +210,7 @@ internal sealed class EmpDebugListener : MonoBehaviour
 
     private static string RoleName()
     {
-        var connection = NetSession.Instance.Connection;
+        var connection = NetSession.Instance.Transport;
         return connection is null ? "None" : connection.IsHost ? "Host" : "Client";
     }
 
@@ -237,6 +237,8 @@ internal sealed class EmpDebugListener : MonoBehaviour
             ["role"] = RoleName(),
             ["connected"] = session.HasActiveConnection,
             ["syncMode"] = session.SyncMode.ToString(),
+            ["awayZone"] = session.AwayZone?.ZoneFullName,
+            ["hostZone"] = session.CurrentZone?.ZoneFullName,
             ["sessionId"] = session.SessionId.ToString(),
             ["tick"] = session.Tick,
             ["players"] = new JArray(session.CurrentPlayers.Select(p => new JObject {

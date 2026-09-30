@@ -10,7 +10,8 @@ internal class GameSaveLoad
     [HarmonyPatch(typeof(Game), nameof(Game.Save))]
     internal static bool OnSaveRemoteGame(ref bool __result)
     {
-        if (NetSession.Instance.IsHost) {
+        // an away client reads as host but only holds a copy of the host world
+        if (NetSession.Instance.IsHost && !NetSession.Instance.IsAway) {
             return true;
         }
 

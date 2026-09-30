@@ -64,7 +64,7 @@ internal partial class EmpConfig
                 config.Reload();
                 config.SaveOnConfigSet = true;
 
-                if (NetSession.Instance.Connection is ElinNetHost host) {
+                if (NetSession.Instance.Transport is ElinNetHost host) {
                     host.UpdateRemoteSessionRules();
                 }
             });

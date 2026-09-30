@@ -24,7 +24,7 @@ internal class EmpConsole
     [ConsoleCommand("kick")]
     internal static string KickPlayer(int playerIndex)
     {
-        if (NetSession.Instance.Connection is not ElinNetHost) {
+        if (NetSession.Instance.Transport is not ElinNetHost) {
             return "Only the host can kick players";
         }
 
@@ -32,7 +32,7 @@ internal class EmpConsole
             return "Cannot kick the host";
         }
 
-        NetSession.Instance.Connection.DisconnectPeer(playerIndex, EmpDisconnectInfo.HostKick);
+        NetSession.Instance.Transport.DisconnectPeer(playerIndex, EmpDisconnectInfo.HostKick);
         EmpLog.Information("Kicked player at index {PeerIndex}", playerIndex);
         return $"Kicked player {playerIndex}";
     }
@@ -40,7 +40,7 @@ internal class EmpConsole
     [ConsoleCommand("reconnect")]
     internal static string ReconnectPlayer(int playerIndex)
     {
-        if (NetSession.Instance.Connection is not ElinNetHost host) {
+        if (NetSession.Instance.Transport is not ElinNetHost host) {
             return "Only the host can request a client to reconnect";
         }
 
@@ -56,7 +56,7 @@ internal class EmpConsole
     [ConsoleCommand("reconnect_self")]
     internal static string ReconnectSelf()
     {
-        if (NetSession.Instance.Connection is not ElinNetClient client) {
+        if (NetSession.Instance.Transport is not ElinNetClient client) {
             return "Only a client can manually reconnect";
         }
 

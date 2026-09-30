@@ -41,7 +41,7 @@ internal class TabServerConfiguration : TabEmpBase
                     raw = $"{option},{raw}";
                 }
                 EmpConfig.Server.SourceValidationSet.Value = raw;
-                NetSession.Instance.Connection?.CreateValidation();
+                NetSession.Instance.Transport?.CreateValidation();
             });
         }
     }

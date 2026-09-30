@@ -77,6 +77,10 @@ internal partial class ElinNetHost : ElinNetBase
         Router.RegisterHandler<WorldStateDeltaList>(OnWorldStateDeltaResponse);
         Router.RegisterHandler<CharaStateSnapshot>(OnClientRemoteCharaSnapshot);
 
+        // independent travel
+        Router.RegisterHandler<ZoneLeaseRequest>(OnZoneLeaseRequest);
+        Router.RegisterHandler<ZoneLeaseRelease>(OnZoneLeaseRelease);
+
         // source validation
         Router.RegisterHandler<SourceValidationResponse>(OnSourceValidationResponse);
         Router.RegisterHandler<SourceValidationContinue>(OnSourceValidationContinue);
@@ -139,6 +143,7 @@ internal partial class ElinNetHost : ElinNetBase
 
         _handshakes.Remove(peer.Id);
         PendingRebind.ReleasePeer(peer.Id);
+        ReleaseLeaseOnDisconnect(peer);
 
         if (States.Remove(peer.Id, out var state)) {
             // Fully remove remote chara from the map (saved chara remains via ElinGameIOProperty)
