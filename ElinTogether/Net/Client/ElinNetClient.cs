@@ -16,6 +16,11 @@ internal partial class ElinNetClient : ElinNetBase
     public ISteamNetPeer Host => Socket.FirstPeer;
     public bool IsJoiningLobby { get; private set; }
 
+    /// <summary>
+    ///     Connected through the local udp port instead of a steam lobby, for debugging
+    /// </summary>
+    public bool IsLocalConnection { get; private set; }
+
     protected override void Update()
     {
         base.Update();
@@ -44,12 +49,14 @@ internal partial class ElinNetClient : ElinNetBase
     public void ConnectLocalPort(ushort port = EmpConstants.LocalPort)
     {
         Stop();
+        IsLocalConnection = true;
         Socket.Connect(port);
     }
 
     public void ConnectSteamUser(UserData steamId)
     {
         Stop();
+        IsLocalConnection = false;
         Socket.Connect(steamId);
     }
 

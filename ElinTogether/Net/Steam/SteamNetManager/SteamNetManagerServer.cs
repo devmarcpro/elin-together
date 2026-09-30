@@ -14,6 +14,11 @@ public partial class SteamNetManager
     public static readonly Dictionary<UserData, string> ConnectionKeys = [];
 
     /// <summary>
+    ///     Listening on the local udp port, for debugging
+    /// </summary>
+    public bool IsLocalUdp { get; private set; }
+
+    /// <summary>
     ///     Start server on valve SDR
     /// </summary>
     public void StartServerSdr()
@@ -47,6 +52,7 @@ public partial class SteamNetManager
             throw new InvalidOperationException("Failed to create listen socket via UDP");
         }
 
+        IsLocalUdp = true;
         SetupSteamCallback();
     }
 
@@ -72,7 +78,9 @@ public partial class SteamNetManager
             return;
         }
 
-        if (!ConnectionKeys.TryGetValue(user, out var key)) {
+        // local udp connections never go through the steam lobby that issues the keys
+        var isLocalDebug = IsLocalUdp && info.m_addrRemote.IsLocalHost();
+        if (!isLocalDebug && !ConnectionKeys.ContainsKey(user)) {
             // only connect if host allows it in the lobby
             SteamNetworkingSockets.CloseConnection(connection, 0, "emp_not_allowed", false);
             return;
@@ -96,6 +104,7 @@ public partial class SteamNetManager
 
         IsHost = false;
         IsListening = false;
+        IsLocalUdp = false;
     }
 
     private void DestroyPollGroup()

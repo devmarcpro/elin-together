@@ -128,6 +128,13 @@ internal partial class ElinNetClient
     /// </summary>
     private void OnSteamLobbyRequest(SteamLobbyRequest request)
     {
+        if (IsLocalConnection) {
+            // joining the lobby would reconnect through steam and drop the local connection
+            EmpLog.Debug("Skipping steam lobby {LobbyId} on local connection",
+                request.LobbyId);
+            return;
+        }
+
         EmpLog.Information("Connecting to steam lobby {LobbyId}",
             request.LobbyId);
 

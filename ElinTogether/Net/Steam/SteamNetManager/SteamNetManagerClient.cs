@@ -46,10 +46,9 @@ public partial class SteamNetManager
     /// </summary>
     public void Connect(ushort port = EmpConstants.LocalPort)
     {
+        // a cleared address is [::], which windows does not route to the local listen socket
         var localhost = new SteamNetworkingIPAddr();
-        localhost.Clear();
-        localhost.m_port = port;
-        //localhost.ParseString($"127.0.0.1:{port}");
+        localhost.ParseString($"127.0.0.1:{port}");
 
         Connect(ref localhost);
     }
