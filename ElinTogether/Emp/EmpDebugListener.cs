@@ -238,6 +238,8 @@ internal sealed class EmpDebugListener : MonoBehaviour
             ["connected"] = session.HasActiveConnection,
             ["syncMode"] = session.SyncMode.ToString(),
             ["awayZone"] = session.AwayZone?.ZoneFullName,
+            ["guest"] = session.IsGuest,
+            ["zoneSession"] = session.ZoneSession is null ? null : session.ZoneSession.IsHost ? "Host" : "Client",
             ["hostZone"] = session.CurrentZone?.ZoneFullName,
             ["sessionId"] = session.SessionId.ToString(),
             ["tick"] = session.Tick,

@@ -12,4 +12,10 @@ public class ZoneLeaseDepart
 {
     [Key(0)]
     public required int ZoneUid { get; init; }
+
+    /// <summary>
+    ///     Guest lease: the zone session to join
+    /// </summary>
+    [Key(1)]
+    public ZoneGuestAddress? Guest { get; init; }
 }

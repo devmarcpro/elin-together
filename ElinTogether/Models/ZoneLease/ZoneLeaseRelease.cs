@@ -48,4 +48,10 @@ public class ZoneLeaseRelease
     /// </summary>
     [Key(7)]
     public bool Checkpoint { get; init; }
+
+    /// <summary>
+    ///     Characters of the players visiting the zone, simulated here, by identity
+    /// </summary>
+    [Key(8)]
+    public Dictionary<ulong, LZ4Bytes>? GuestCharas { get; init; }
 }

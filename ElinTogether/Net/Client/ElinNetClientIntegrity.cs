@@ -29,7 +29,13 @@ internal partial class ElinNetClient
     // copied from Host version
     private bool ShouldReceiveHostPacket(object packet, ISteamNetPeer peer)
     {
-        if (Session.IsAway && !ShouldReceiveWhileAway(packet)) {
+        // the host link of an away client, a zone session receives everything
+        if (Session.IsAway && !IsZoneSession && !ShouldReceiveWhileAway(packet)) {
+            return false;
+        }
+
+        // off the host map already, we are no longer in its list nor its snapshots
+        if (IsAwaitingDeparture && packet is SessionPlayersSnapshot or WorldStateSnapshot) {
             return false;
         }
 

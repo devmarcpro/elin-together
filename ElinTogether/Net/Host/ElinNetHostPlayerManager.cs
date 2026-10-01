@@ -194,8 +194,9 @@ internal partial class ElinNetHost
             ? host.ActiveRemoteCharas.Values
             : [];
 
+        // not ourselves: a client hosting a zone session is a remote chara in the world it copied
         var currentRemoteCharas = game.cards.globalCharas.Values
-            .Where(c => c.GetBool("remote_chara"));
+            .Where(c => c != pc && c.GetBool("remote_chara"));
 
         foreach (var chara in currentRemoteCharas.Except(excluded)) {
             RemoveRemoteChara(chara);

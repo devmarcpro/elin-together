@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using ElinTogether.Common;
+using ElinTogether.Helper;
 using ElinTogether.Models;
 using UnityEngine.Events;
 
@@ -50,13 +51,18 @@ internal partial class ElinNetClient
     {
         EmpLog.Information("Received save data from host");
 
-        var returning = Session.IsAway;
+        // on the host link: back from independent travel, the probe rebuilds the whole game
+        // on a zone session: joining another player's zone, the probe is its world
+        var returning = Session.IsAway && !IsZoneSession;
         if (returning) {
-            // back from independent travel, the probe rebuilds the whole game
+            // guests of our zone fall back to the host, see OnZoneSessionEnded
+            Session.RemoveZoneSession();
+            Session.IsGuest = false;
             Session.AwayZone = null;
             _pendingTravel = null;
             _pendingGrant = null;
             _rejoining = false;
+            _handoffDeadline = 0;
             _localZones.Clear();
             StartWorldStateUpdate();
         }
@@ -73,7 +79,7 @@ internal partial class ElinNetClient
             }
         }
 
-        if (returning) {
+        if (returning || (IsZoneSession && core.IsGameStarted)) {
             // tear down the away game and its scene like the title screen does before a first join,
             // widgets and actors would otherwise keep reading a game without active zone
             scene.Init(Scene.Mode.None);
@@ -82,7 +88,12 @@ internal partial class ElinNetClient
         var probeGame = probe.MakeGameSave();
 
         core.game = probeGame;
-        Game.id = "world_emp";
+        Game.id = ResourceFetch.EmpSaveId;
+
+        // the away zone of a guest now lives in the world of the zone owner
+        if (IsZoneSession && Session.AwayZone is { } away) {
+            Session.AwayZone = game.spatials.Find(away.uid) ?? away;
+        }
 
         var remoteChara = Session.Player = game.cards.globalCharas.Find(probe.RemoteCharaUid);
 

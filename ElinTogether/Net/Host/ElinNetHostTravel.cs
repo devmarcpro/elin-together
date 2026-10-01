@@ -4,6 +4,7 @@ using System.Linq;
 using ElinTogether.Helper.Extensions;
 using ElinTogether.Models;
 using ElinTogether.Net.Steam;
+using HeathenEngineering.SteamworksIntegration;
 
 namespace ElinTogether.Net;
 
@@ -31,6 +32,13 @@ internal partial class ElinNetHost
     private readonly HashSet<int> _departed = [];
 
     /// <summary>
+    ///     Guest peer id -> zone it joins and the peer holding it, before and after the holder expects it
+    /// </summary>
+    private readonly Dictionary<int, (int ZoneUid, int HolderId)> _pendingGuests = [];
+
+    private readonly Dictionary<int, (int ZoneUid, int HolderId)> _guests = [];
+
+    /// <summary>
     ///     Peer id -> card uid counter of its last checkpoint
     /// </summary>
     private readonly Dictionary<int, int> _checkpointUidNext = [];
@@ -42,7 +50,8 @@ internal partial class ElinNetHost
 
     internal bool IsAway(ISteamNetPeer peer)
     {
-        return _departed.Contains(peer.Id);
+        // zone session: a leaving guest already handed its character to its host link
+        return _departed.Contains(peer.Id) || _leavingGuests.Contains(peer.Id);
     }
 
     /// <summary>
@@ -87,6 +96,13 @@ internal partial class ElinNetHost
             ? CreateClientZone(blueprint)
             : game.spatials.Find(request.ZoneUid);
 
+        // another player simulates the zone: join it as a guest of its zone session
+        if (zone is { IsRegion: false } && GetPeerDenyReason(peer) is null && zone != _zone &&
+            FindZoneHolder(zone.uid, peer) is { } holder) {
+            GrantGuestLease(zone, request, peer, holder);
+            return;
+        }
+
         if ((GetPeerDenyReason(peer) ?? GetLeaseDenyReason(zone, request, peer)) is { } reason) {
             EmpLog.Information("Denied zone lease {ZoneFullName} to {@Peer}: {Reason}",
                 request.ZoneFullName, peer, reason);
@@ -98,15 +114,9 @@ internal partial class ElinNetHost
             return;
         }
 
-        // above the host counter and above any range handed out and still in use
-        var floor = _leases.Values.SelectMany(z => z.Values).DefaultIfEmpty(0).Max();
-        var rangeStart = Math.Max(game.cards.uidNext, floor) + LeaseUidHeadroom;
-
-        if (!_leases.TryGetValue(peer.Id, out var zones)) {
-            zones = _leases[peer.Id] = [];
-        }
-
-        zones[zone!.uid] = rangeStart;
+        // a guest moving on is no longer one, see HandOverZone
+        _guests.Remove(peer.Id);
+        var rangeStart = ReserveLease(peer, zone!);
 
         var map = zone.IsRegion || !zone.isGenerated
             ? null
@@ -130,14 +140,34 @@ internal partial class ElinNetHost
     /// </summary>
     private void OnZoneLeaseAck(ZoneLeaseAck ack, ISteamNetPeer peer)
     {
+        if (_pendingGuests.TryGetValue(peer.Id, out var guest) && guest.ZoneUid == ack.ZoneUid) {
+            DepartFromHostMap(peer);
+            SendGuestRequest(peer, guest.ZoneUid, guest.HolderId);
+            return;
+        }
+
         if (!_leases.TryGetValue(peer.Id, out var zones) || !zones.ContainsKey(ack.ZoneUid)) {
             EmpLog.Warning("Player {@Peer} acknowledged zone {ZoneUid} without holding its lease",
                 peer, ack.ZoneUid);
             return;
         }
 
-        if (!_departed.Add(peer.Id)) {
+        if (!DepartFromHostMap(peer)) {
             return;
+        }
+
+        peer.Send(new ZoneLeaseDepart {
+            ZoneUid = ack.ZoneUid,
+        });
+    }
+
+    /// <summary>
+    ///     Take the player off the host map, false if it already left
+    /// </summary>
+    private bool DepartFromHostMap(ISteamNetPeer peer)
+    {
+        if (!_departed.Add(peer.Id)) {
+            return false;
         }
 
         // apply the player's last actions on the host map now and send their results back
@@ -159,12 +189,188 @@ internal partial class ElinNetHost
 
         Broadcast(SessionPlayersSnapshot.Create());
 
-        peer.Send(new ZoneLeaseDepart {
-            ZoneUid = ack.ZoneUid,
-        });
-
         EmpLog.Information("Player {@Peer} left the host map",
             peer);
+        return true;
+    }
+
+    /// <summary>
+    ///     The client holding the zone, if another connected player
+    /// </summary>
+    private ISteamNetPeer? FindZoneHolder(int zoneUid, ISteamNetPeer asking)
+    {
+        foreach (var (peerId, zones) in _leases) {
+            if (peerId != asking.Id && zones.ContainsKey(zoneUid)) {
+                return Socket.Peers.FirstOrDefault(p => p.Id == peerId);
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    ///     Lease the zone to the player, returns the first card uid it may allocate
+    /// </summary>
+    private int ReserveLease(ISteamNetPeer peer, Zone zone)
+    {
+        // above the host counter and above any range handed out and still in use
+        var floor = _leases.Values.SelectMany(z => z.Values).DefaultIfEmpty(0).Max();
+        var rangeStart = Math.Max(game.cards.uidNext, floor) + LeaseUidHeadroom;
+
+        if (!_leases.TryGetValue(peer.Id, out var zones)) {
+            zones = _leases[peer.Id] = [];
+        }
+
+        zones[zone.uid] = rangeStart;
+        return rangeStart;
+    }
+
+    /// <summary>
+    ///     The owner of a zone left it or dropped: the players visiting it stay, the first one simulates it
+    ///     from now on and the others join its zone session. Unless the host is on its way in, then they come back
+    /// </summary>
+    private void HandOverZone(int zoneUid, int holderId)
+    {
+        var guests = new List<ISteamNetPeer>();
+        foreach (var (guestId, at) in _guests.ToList()) {
+            if (at.ZoneUid != zoneUid || at.HolderId != holderId) {
+                continue;
+            }
+
+            _guests.Remove(guestId);
+            if (_departed.Contains(guestId) && Socket.Peers.FirstOrDefault(p => p.Id == guestId) is { } guest) {
+                guests.Add(guest);
+            }
+        }
+
+        // on their way to the old owner, it will not expect them anymore
+        foreach (var (guestId, at) in _pendingGuests.ToList()) {
+            if (at.ZoneUid == zoneUid && at.HolderId == holderId &&
+                Socket.Peers.FirstOrDefault(p => p.Id == guestId) is { } guest) {
+                RefuseGuest(guest, zoneUid);
+            }
+        }
+
+        if (guests.Count == 0) {
+            return;
+        }
+
+        if (_pendingHostMove?.Zone.uid == zoneUid || game.spatials.Find(zoneUid) is not { } zone) {
+            foreach (var guest in guests) {
+                guest.Send(new ZoneLeaseRecall {
+                    ZoneUid = zoneUid,
+                });
+            }
+
+            return;
+        }
+
+        var heir = guests[0];
+        var rangeStart = ReserveLease(heir, zone);
+
+        EmpLog.Information("Zone {ZoneFullName} handed over to {@Peer}, uid range from {UidRangeStart}",
+            zone.ZoneFullName, heir, rangeStart);
+
+        // its copy of the zone is live, no map
+        heir.Send(new ZoneLeaseGrant {
+            ZoneUid = zoneUid,
+            RequestedUid = zoneUid,
+            UidRangeStart = rangeStart,
+            ZoneState = ZoneLeaseState.GetState(zone),
+            IdCurrentSubset = zone.idCurrentSubset,
+            Handoff = true,
+        });
+
+        foreach (var guest in guests.Skip(1)) {
+            _pendingGuests[guest.Id] = (zoneUid, heir.Id);
+            SendGuestRequest(guest, zoneUid, heir.Id);
+        }
+    }
+
+    private void GrantGuestLease(Zone zone, ZoneLeaseRequest request, ISteamNetPeer peer, ISteamNetPeer holder)
+    {
+        _guests.Remove(peer.Id);
+        _pendingGuests[peer.Id] = (zone.uid, holder.Id);
+
+        EmpLog.Information("Player {@Peer} joins zone {ZoneFullName} held by {@Holder}",
+            peer, zone.ZoneFullName, holder);
+
+        // the guest leaves its current place first (ack or release), then the holder expects it
+        peer.Send(new ZoneLeaseGrant {
+            ZoneUid = zone.uid,
+            RequestedUid = request.ZoneUid,
+            UidRangeStart = 0,
+            ZoneState = ZoneLeaseState.GetState(zone),
+            IdCurrentSubset = zone.idCurrentSubset,
+            Guest = true,
+        });
+    }
+
+    private void SendGuestRequest(ISteamNetPeer guest, int zoneUid, int holderId)
+    {
+        var holder = Socket.Peers.FirstOrDefault(p => p.Id == holderId);
+        var chara = SavedRemoteCharas.TryGetValue(guest.User, out var uid) ? game.cards.globalCharas.Find(uid) : null;
+
+        if (holder is null || chara is null) {
+            RefuseGuest(guest, zoneUid);
+            return;
+        }
+
+        holder.Send(new ZoneGuestRequest {
+            ZoneUid = zoneUid,
+            GuestUser = guest.User,
+            Chara = LZ4Bytes.Create(chara),
+        });
+    }
+
+    /// <summary>
+    ///     Net event: the zone holder expects the guest, or refuses it
+    /// </summary>
+    private void OnZoneGuestReady(ZoneGuestReady ready, ISteamNetPeer holder)
+    {
+        var guest = Socket.Peers.FirstOrDefault(p =>
+            (ulong)p.User == ready.GuestUser &&
+            _pendingGuests.TryGetValue(p.Id, out var pending) && pending.ZoneUid == ready.ZoneUid);
+
+        if (guest is null) {
+            EmpLog.Warning("Zone guest {RemoteIdentity} is gone", ready.GuestUser);
+            return;
+        }
+
+        if (!ready.Accepted) {
+            RefuseGuest(guest, ready.ZoneUid);
+            return;
+        }
+
+        _guests[guest.Id] = _pendingGuests[guest.Id];
+        _pendingGuests.Remove(guest.Id);
+
+        guest.Send(new ZoneLeaseDepart {
+            ZoneUid = ready.ZoneUid,
+            Guest = new() {
+                HostUser = holder.User,
+                Port = ready.Port,
+            },
+        });
+
+        EmpLog.Information("Player {@Peer} joins the zone session of {@Holder}",
+            guest, holder);
+    }
+
+    /// <summary>
+    ///     The guest already left its place, it comes back to the host
+    /// </summary>
+    private void RefuseGuest(ISteamNetPeer guest, int zoneUid)
+    {
+        _pendingGuests.Remove(guest.Id);
+
+        EmpLog.Information("Zone {ZoneUid} refused player {@Peer}, it returns to the host",
+            zoneUid, guest);
+
+        guest.Send(new ZoneLeaseDenied {
+            ZoneUid = zoneUid,
+            Reason = "emp_travel_occupied",
+        });
     }
 
     /// <summary>
@@ -184,7 +390,10 @@ internal partial class ElinNetHost
             return;
         }
 
+        var handedBack = false;
         if (_leases.TryGetValue(peer.Id, out var zones) && zones.Remove(release.ZoneUid, out var rangeStart)) {
+            handedBack = true;
+
             if (game.spatials.Find(release.ZoneUid) is { IsRegion: false } zone) {
                 ApplyLeasedZone(zone, release);
             }
@@ -193,12 +402,20 @@ internal partial class ElinNetHost
             if (release.UidNext > rangeStart) {
                 game.cards.uidNext = Math.Max(game.cards.uidNext, release.UidNext);
             }
-        } else {
+        } else if (release.ZoneUid != -1) {
             EmpLog.Warning("Player {@Peer} released zone {ZoneUid} without holding its lease, ignoring the zone",
                 peer, release.ZoneUid);
         }
 
-        var chara = ReplaceRemoteChara(peer, release.Chara);
+        // a guest hands nothing back, it is only leaving
+        _guests.Remove(peer.Id);
+
+        var chara = ReplaceRemoteChara(peer.User, release.Chara);
+        ReplaceGuestCharas(release, peer);
+
+        if (handedBack) {
+            HandOverZone(release.ZoneUid, peer.Id);
+        }
 
         if (release.Rejoin) {
             if (zones is { Count: > 0 }) {
@@ -244,7 +461,8 @@ internal partial class ElinNetHost
         // the client keeps allocating in its range, the host counter only moves on release or disconnect
         _checkpointUidNext[peer.Id] = checkpoint.UidNext;
 
-        ReplaceRemoteChara(peer, checkpoint.Chara);
+        ReplaceRemoteChara(peer.User, checkpoint.Chara);
+        ReplaceGuestCharas(checkpoint, peer);
 
         EmpLog.Debug("Checkpoint of player {@Peer} in zone {ZoneUid}",
             peer, checkpoint.ZoneUid);
@@ -296,21 +514,30 @@ internal partial class ElinNetHost
     /// <summary>
     ///     Swap the host copy of the player character for the one simulated by the client
     /// </summary>
-    private Chara? ReplaceRemoteChara(ISteamNetPeer peer, LZ4Bytes data)
+    /// <param name="register">zone session: take the uploaded uid as the saved chara of that player</param>
+    private Chara? ReplaceRemoteChara(UserData user, LZ4Bytes data, bool register = false)
     {
-        if (!SavedRemoteCharas.TryGetValue(peer.User, out var uid)) {
-            EmpLog.Warning("Player {@Peer} has no saved remote chara", peer);
+        var uploaded = data.Decompress<Chara>();
+
+        if (register) {
+            SavedRemoteCharas[user] = uploaded.uid;
+        }
+
+        if (!SavedRemoteCharas.TryGetValue(user, out var uid)) {
+            EmpLog.Warning("Player {RemoteIdentity} has no saved remote chara", user);
             return null;
         }
 
         var old = game.cards.globalCharas.Find(uid);
-        var uploaded = data.Decompress<Chara>();
 
         if (uploaded.uid != uid) {
-            EmpLog.Warning("Player {@Peer} uploaded chara {UploadedUid}, expected {Uid}, keeping host copy",
-                peer, uploaded.uid, uid);
+            EmpLog.Warning("Player {RemoteIdentity} uploaded chara {UploadedUid}, expected {Uid}, keeping host copy",
+                user, uploaded.uid, uid);
             return old;
         }
+
+        // stale entries at its uids (copies received earlier) would get it renumbered when cached again
+        ForgetCachedCard(uploaded);
 
         if (old is not null) {
             ForgetCachedCard(old);
@@ -332,10 +559,26 @@ internal partial class ElinNetHost
             }
         }
 
-        EmpLog.Debug("Replaced remote chara {Uid} of player {@Peer}",
-            uid, peer);
+        EmpLog.Debug("Replaced remote chara {Uid} of player {RemoteIdentity}",
+            uid, user);
 
         return uploaded;
+    }
+
+    /// <summary>
+    ///     Players visiting the zone are simulated by its owner, their characters come with its uploads
+    /// </summary>
+    private void ReplaceGuestCharas(ZoneLeaseRelease release, ISteamNetPeer holder)
+    {
+        foreach (var (user, chara) in release.GuestCharas ?? []) {
+            // a guest that left since (back here or elsewhere) brought a newer copy itself
+            if (Socket.Peers.FirstOrDefault(p => (ulong)p.User == user) is { } guest &&
+                (!_guests.TryGetValue(guest.Id, out var at) || at.HolderId != holder.Id)) {
+                continue;
+            }
+
+            ReplaceRemoteChara(user, chara);
+        }
     }
 
     private static void ForgetCachedCard(Card card)
@@ -424,6 +667,8 @@ internal partial class ElinNetHost
     private void ReleaseLeaseOnDisconnect(ISteamNetPeer peer)
     {
         _departed.Remove(peer.Id);
+        _pendingGuests.Remove(peer.Id);
+        _guests.Remove(peer.Id);
 
         // cards of the last checkpoint are in the save now, the host must not allocate their uids
         if (_checkpointUidNext.Remove(peer.Id, out var uidNext)) {
@@ -434,6 +679,10 @@ internal partial class ElinNetHost
             EmpLog.Warning("Player {@Peer} disconnected while away in zones {ZoneUids}, " +
                            "keeping its last checkpoint",
                 peer, zones.Keys);
+
+            foreach (var zoneUid in zones.Keys) {
+                HandOverZone(zoneUid, peer.Id);
+            }
 
             if (!EClass.debug.ignoreAutoSave) {
                 game.Save(isAutoSave: true);

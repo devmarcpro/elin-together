@@ -33,6 +33,11 @@ internal partial class ElinNetHost
             return false;
         }
 
+        // away players keep sending snapshots until their own state catches up, not worth a warning
+        if (state.Phase == NetHandshakePhase.Joined && IsAway(peer) && packet is CharaStateSnapshot) {
+            return false;
+        }
+
         var allowed = state.Phase switch {
             NetHandshakePhase.AwaitingVersion => packet is NetIntegrityResponse,
             NetHandshakePhase.AwaitingIntegrity => packet is SourceValidationResponse or SourceValidationContinue,
@@ -144,9 +149,12 @@ internal partial class ElinNetHost
         }
 
         // and invite to steam lobby if clients aren't already in
-        peer.Send(new SteamLobbyRequest {
-            LobbyId = Session.Lobby.Current,
-        });
+        // (a zone session has none, its guests stay in the lobby of the real host)
+        if (!IsZoneSession) {
+            peer.Send(new SteamLobbyRequest {
+                LobbyId = Session.Lobby.Current,
+            });
+        }
 
         EmpLog.Debug("Requesting source validation from {@Peer} (flags={Flags})",
             peer, ValidFlags);

@@ -81,6 +81,8 @@ internal partial class ElinNetHost : ElinNetBase
         Router.RegisterHandler<ZoneLeaseRequest>(OnZoneLeaseRequest);
         Router.RegisterHandler<ZoneLeaseAck>(OnZoneLeaseAck);
         Router.RegisterHandler<ZoneLeaseRelease>(OnZoneLeaseRelease);
+        Router.RegisterHandler<ZoneGuestReady>(OnZoneGuestReady);
+        Router.RegisterHandler<ZoneGuestLeave>(OnZoneGuestLeave);
 
         // source validation
         Router.RegisterHandler<SourceValidationResponse>(OnSourceValidationResponse);
@@ -119,8 +121,9 @@ internal partial class ElinNetHost : ElinNetBase
         }
 
         // remove all left over chara
+        // (not ourselves: a client hosting a zone session is a remote chara in the world it copied)
         foreach (var chara in _map.charas.ToArray()) {
-            if (chara.GetBool("remote_chara") && !ActiveRemoteCharas.Values.Contains(chara)) {
+            if (chara != pc && chara.GetBool("remote_chara") && !ActiveRemoteCharas.Values.Contains(chara)) {
                 RemoveRemoteChara(chara);
             }
         }
@@ -153,7 +156,12 @@ internal partial class ElinNetHost : ElinNetBase
 
         _handshakes.Remove(peer.Id);
         PendingRebind.ReleasePeer(peer.Id);
-        ReleaseLeaseOnDisconnect(peer);
+
+        if (IsZoneSession) {
+            OnZoneGuestDisconnecting(peer);
+        } else {
+            ReleaseLeaseOnDisconnect(peer);
+        }
 
         if (States.Remove(peer.Id, out var state)) {
             // Fully remove remote chara from the map (saved chara remains via ElinGameIOProperty)
@@ -176,6 +184,10 @@ internal partial class ElinNetHost : ElinNetBase
         if (States.Count == 0) {
             PauseWorldStateUpdate();
             StopDebugGui();
+        }
+
+        if (IsZoneSession) {
+            CloseZoneSessionIfEmpty(peer);
         }
     }
 

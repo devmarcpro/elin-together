@@ -75,7 +75,7 @@ internal partial class ElinNetClient
     /// </summary>
     private void OnWorldStateDeltaResponse(WorldStateDeltaList response)
     {
-        if (Session.IsAway) {
+        if (Session.IsAway && !IsZoneSession) {
             ApplyChatWhileAway(response);
             return;
         }

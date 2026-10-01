@@ -20,6 +20,23 @@ public abstract partial class ElinNetBase : EMono
 
     public bool IsConnected => Socket.IsConnected;
 
+    /// <summary>
+    ///     Session limited to an away zone, next to the link with the host, see NetSession.ZoneSession
+    /// </summary>
+    public bool IsZoneSession { get; internal set; }
+
+    /// <summary>
+    ///     A zone session only closes itself, the host session resets everything
+    /// </summary>
+    protected void EndSession(string reason)
+    {
+        if (IsZoneSession) {
+            Session.EndZoneSession(this, reason);
+        } else {
+            Session.ResetSession();
+        }
+    }
+
     private void Awake()
     {
         Initialize();
@@ -40,8 +57,8 @@ public abstract partial class ElinNetBase : EMono
         Scheduler.Tick();
         Socket.Poll();
 
-        // an away player is alone in its zone, there is nobody to ping
-        if (!Session.IsAway && Input.GetKeyDown(EmpConfig.Client.PingKeybind.Value) && !ui.BlockActions) {
+        // an away player is alone in its zone, there is nobody to ping, unless in a zone session
+        if ((!Session.IsAway || IsZoneSession) && Input.GetKeyDown(EmpConfig.Client.PingKeybind.Value) && !ui.BlockActions) {
             var point = Scene.HitPoint;
             if (point is not null) {
                 Delta.AddRemote(PingPointDelta.Ping(point));

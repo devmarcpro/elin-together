@@ -114,5 +114,7 @@
     "LangGeneral.emp_travel_host_zone.text": "主机已经在那里了",
     "LangGeneral.emp_travel_occupied.text": "其他玩家已在该地点",
     "LangGeneral.emp_travel_recalling.text": "正在等待 {@Peer} 交还该地点…",
-    "LangGeneral.emp_travel_recalled.text": "主机即将到来，正在汇合…"
+    "LangGeneral.emp_travel_recalled.text": "主机即将到来，正在汇合…",
+    "LangGeneral.emp_travel_zone_closed.text": "该地点的主人已离开，正在与主机汇合",
+    "LangGeneral.emp_travel_handoff.text": "你现在是该地点的主人"
 }

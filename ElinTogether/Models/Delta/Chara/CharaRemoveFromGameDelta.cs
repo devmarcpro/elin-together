@@ -17,7 +17,8 @@ public class CharaRemoveFromGameDelta : ElinDelta
             return;
         }
 
-        if (Owner.Find() is not Chara chara) {
+        // the host takes a departing player off its map and tells everyone, that player included
+        if (Owner.Find() is not Chara chara || chara.IsPC) {
             return;
         }
 

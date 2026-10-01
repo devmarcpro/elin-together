@@ -1,0 +1,163 @@
+using System.Collections.Generic;
+using System.Linq;
+using ElinTogether.Models;
+using ElinTogether.Net.Steam;
+using HeathenEngineering.SteamworksIntegration;
+
+namespace ElinTogether.Net;
+
+/// <summary>
+///     Zone session host: a client simulating an away zone hosts the players visiting it,
+///     next to its own link with the real host, see NetSession.ZoneSession
+/// </summary>
+internal partial class ElinNetHost
+{
+    /// <summary>
+    ///     Local udp port of zone sessions, one block of ports per debug identity
+    /// </summary>
+    private const ushort ZoneSessionPortBase = 55600;
+
+    /// <summary>
+    ///     Guests leaving on purpose, their host link uploads their character, see ZoneGuestLeave
+    /// </summary>
+    private readonly HashSet<int> _leavingGuests = [];
+
+    internal static ushort ZoneSessionPort =>
+#if DEBUG
+        (ushort)(ZoneSessionPortBase + 10 * EmpConfig.Dev.Identity.Value);
+#else
+        ZoneSessionPortBase;
+#endif
+
+    internal void StartZoneServer(bool localUdp)
+    {
+        Stop();
+        StopWorldStateUpdate();
+
+        // no Steam lobby: guests are announced by the host, see RegisterGuest
+        if (localUdp) {
+            Socket.StartServerUdp(ZoneSessionPort);
+        } else {
+            Socket.StartServerSdr();
+        }
+
+        Scheduler.Subscribe(DisconnectInactive, 1);
+        Scheduler.Subscribe(RemoveStaleIntegrityCheck, 2);
+
+        var selfState = States[0] = new() {
+            Index = 0,
+            User = UserData.Me,
+            CharaUid = player.uidChara,
+        };
+
+        Session.Player = pc;
+        Session.Self = selfState;
+        Session.CurrentPlayers.Clear();
+        Session.CurrentPlayers.Add(selfState);
+        Session.SharedSpeed = Session.Rules.UseSharedSpeed
+            ? SharedSpeed
+            : -1;
+
+        CardCache.CacheCurrentZone();
+
+        StartWorldStateUpdate();
+
+        EmpLog.Information("Zone session started in {ZoneFullName}",
+            _zone.ZoneFullName);
+    }
+
+    /// <summary>
+    ///     Expect a player announced by the host, with its character as the host knows it
+    /// </summary>
+    internal void RegisterGuest(UserData user, LZ4Bytes chara)
+    {
+        ReplaceRemoteChara(user, chara, true);
+        SteamNetManager.ConnectionKeys[user] = "zone_guest";
+
+        EmpLog.Information("Expecting guest {RemoteIdentity}",
+            user);
+    }
+
+    /// <summary>
+    ///     Characters of the guests, simulated here, uploaded with checkpoints and releases
+    /// </summary>
+    internal Dictionary<ulong, LZ4Bytes> CollectGuestCharas()
+    {
+        var charas = new Dictionary<ulong, LZ4Bytes>();
+
+        foreach (var (peerId, chara) in ActiveRemoteCharas) {
+            if (States.TryGetValue(peerId, out var state)) {
+                charas[state.User] = LZ4Bytes.Create(chara);
+            }
+        }
+
+        return charas;
+    }
+
+    /// <summary>
+    ///     Net event: a guest leaves the zone, apply its last actions and send their results before it goes
+    /// </summary>
+    private void OnZoneGuestLeave(ZoneGuestLeave leave, ISteamNetPeer peer)
+    {
+        if (!IsZoneSession) {
+            return;
+        }
+
+        WorldStateDeltaProcess();
+        Delta.RefreshBuffer();
+        WorldStateDeltaUpdate();
+
+        _leavingGuests.Add(peer.Id);
+        PendingRebind.ReleasePeer(peer.Id);
+
+        if (States.Remove(peer.Id, out var state)) {
+            Session.CurrentPlayers.Remove(state);
+        }
+
+        if (ActiveRemoteCharas.Remove(peer.Id, out var chara)) {
+            RemoveRemoteChara(chara);
+        }
+
+        Broadcast(SessionPlayersSnapshot.Create());
+
+        peer.Send(new ZoneGuestLeft {
+            ZoneUid = leave.ZoneUid,
+        });
+
+        EmpLog.Information("Guest {@Peer} left the zone",
+            peer);
+    }
+
+    /// <summary>
+    ///     A guest dropped: unless it left on purpose, its character only exists here, checkpoint it now
+    /// </summary>
+    private void OnZoneGuestDisconnecting(ISteamNetPeer peer)
+    {
+        if (_leavingGuests.Remove(peer.Id) || !ActiveRemoteCharas.ContainsKey(peer.Id)) {
+            return;
+        }
+
+        // closing on our own, leaving the zone: the release carries the guests
+        if (Session.ZoneSession != this) {
+            return;
+        }
+
+        EmpLog.Warning("Guest {@Peer} dropped, sending its character to the host",
+            peer);
+
+        (Session.Transport as ElinNetClient)?.SendTravelCheckpoint();
+    }
+
+    /// <summary>
+    ///     Last guest gone: back to simulating the zone alone
+    /// </summary>
+    private void CloseZoneSessionIfEmpty(ISteamNetPeer leaving)
+    {
+        if (Socket.Peers.Any(p => p.Id != leaving.Id)) {
+            return;
+        }
+
+        EmpLog.Information("Last guest left, closing the zone session");
+        EndSession("emp_zone_session_empty");
+    }
+}

@@ -38,6 +38,6 @@ public class NetPeerState
 
     public Chara? FindChara()
     {
-        return EClass.pc.party.members.Find(c => c.uid == CharaUid);
+        return EClass.pc?.party?.members.Find(c => c?.uid == CharaUid);
     }
 }

@@ -42,4 +42,16 @@ public class ZoneLeaseGrant
     /// </summary>
     [Key(4)]
     public Dictionary<string, LZ4Bytes>? Map { get; init; }
+
+    /// <summary>
+    ///     Another player simulates the zone, join its zone session instead, see <see cref="ZoneGuestRequest" />
+    /// </summary>
+    [Key(6)]
+    public bool Guest { get; init; }
+
+    /// <summary>
+    ///     The owner of the zone we visit left it: keep playing there, this client simulates it from now on
+    /// </summary>
+    [Key(7)]
+    public bool Handoff { get; init; }
 }

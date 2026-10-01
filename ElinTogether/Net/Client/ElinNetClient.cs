@@ -25,7 +25,18 @@ internal partial class ElinNetClient : ElinNetBase
     {
         base.Update();
 
+        if (IsZoneSession) {
+            // a crashed zone host only shows as a local timeout (no ClosedByPeer), fall back to the host link
+            if (!IsConnected) {
+                EmpLog.Warning("Lost the zone session host");
+                EndSession(EmpDisconnectInfo.RemoteClosed);
+            }
+
+            return;
+        }
+
         UpdateTravelCheckpoint();
+        UpdateHandoffWait();
 
         if (IsConnected) {
             _lastTimeout = DateTime.Now;
@@ -43,7 +54,7 @@ internal partial class ElinNetClient : ElinNetBase
         var elapsed = DateTime.Now - _lastTimeout;
         if (elapsed.TotalSeconds > EmpConfig.Policy.Timeout.Value) {
             EmpPop.Information("emp_ui_timeout".lang());
-            Session.ResetSession();
+            EndSession(EmpDisconnectInfo.Timeout);
         }
 #endif
     }
@@ -93,13 +104,16 @@ internal partial class ElinNetClient : ElinNetBase
         Router.RegisterHandler<ZoneLeaseDepart>(OnZoneLeaseDepart);
         Router.RegisterHandler<ZoneLeaseDenied>(OnZoneLeaseDenied);
         Router.RegisterHandler<ZoneLeaseRecall>(OnZoneLeaseRecall);
+        Router.RegisterHandler<ZoneGuestRequest>(OnZoneGuestRequest);
+        Router.RegisterHandler<ZoneGuestLeft>(OnZoneGuestLeft);
     }
 
     internal override void Stop()
     {
         base.Stop();
 
-        if (!core.IsGameStarted) {
+        // a zone session closes, the game goes on with the host link
+        if (!core.IsGameStarted || IsZoneSession) {
             return;
         }
 
@@ -115,7 +129,7 @@ internal partial class ElinNetClient : ElinNetBase
     {
         if (!host.IsConnected) {
             EmpPop.Information("emp_error_connection".lang());
-            Session.ResetSession();
+            EndSession(EmpDisconnectInfo.RemoteClosed);
             return;
         }
 
@@ -148,6 +162,12 @@ internal partial class ElinNetClient : ElinNetBase
 
         EmpLog.Warning("Disconnected from host: {Reason}",
             disconnectInfo);
+
+        if (IsZoneSession) {
+            // the host link reacts, see ElinNetClient.OnZoneSessionEnded
+            EndSession(disconnectInfo);
+            return;
+        }
 
         Session.ResetSession();
 

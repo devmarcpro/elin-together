@@ -23,8 +23,8 @@ internal class PauseGame
         }
 
         // pause only if all players have no goal
-        __result &= EClass.pc.party.members
-            .Where(c => c.IsRemotePlayer)
+        __result &= (EClass.pc.party?.members ?? [])
+            .Where(c => c?.IsRemotePlayer is true)
             .All(c => c.ai is GoalRemote { child: null });
     }
 

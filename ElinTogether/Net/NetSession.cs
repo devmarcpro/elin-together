@@ -32,14 +32,31 @@ public class NetSession : EClass
 
     /// <summary>
     ///     The connection gameplay code synchronizes through <br />
-    ///     null while the local player simulates an away zone, so the game runs as single player there
+    ///     the zone session while playing with others away from the host, null while alone in an away zone
+    ///     (the game runs as single player there), the host session otherwise
     /// </summary>
-    public ElinNetBase? Connection => IsAway ? null : Transport;
+    public ElinNetBase? Connection => ZoneSession ?? (IsAway ? null : Transport);
 
     /// <summary>
-    ///     The network component itself, regardless of away state
+    ///     The network component linked to the host, regardless of away state
     /// </summary>
     public ElinNetBase? Transport { get; private set; }
+
+    /// <summary>
+    ///     Session limited to the away zone: host of it when other players visit, client of it when visiting
+    ///     the zone of another player
+    /// </summary>
+    public ElinNetBase? ZoneSession { get; private set; }
+
+    /// <summary>
+    ///     Away in the zone of another player, which simulates it (zone session client, or leaving it)
+    /// </summary>
+    public bool IsGuest { get; internal set; }
+
+    /// <summary>
+    ///     This game simulates the away zone: holds its lease, sends its checkpoints
+    /// </summary>
+    public bool IsZoneAuthority => IsAway && !IsGuest;
 
     /// <summary>
     ///     Zone this client is leased and simulates on its own, away from the host
@@ -66,9 +83,58 @@ public class NetSession : EClass
     public bool IsClient => !IsHost;
     public bool ShouldSimulate => IsHost || SyncMode == Mode.PartialSync;
 
+    public T InitializeZoneSession<T>() where T : ElinNetBase
+    {
+        RemoveZoneSession();
+
+        var session = EmpMod.Instance.gameObject.AddComponent<T>();
+        session.IsZoneSession = true;
+        ZoneSession = session;
+
+        EmpLog.Debug("Initialized zone session of {ConnectionType}",
+            typeof(T).Name);
+
+        return session;
+    }
+
+    /// <summary>
+    ///     Close the zone session only, the link with the host stays
+    /// </summary>
+    public void RemoveZoneSession()
+    {
+        if (ZoneSession is not { } session) {
+            return;
+        }
+
+        ZoneSession = null;
+        Object.Destroy(session);
+
+        // players of the zone session go with it
+        Self = null;
+        CurrentPlayers.Clear();
+
+        EmpLog.Debug("Removed zone session of {ConnectionType}",
+            session.GetType().Name);
+    }
+
+    /// <summary>
+    ///     A zone session ended on its own (disconnect, timeout): close it and let the host link react
+    /// </summary>
+    internal void EndZoneSession(ElinNetBase session, string reason)
+    {
+        if (ZoneSession != session) {
+            return;
+        }
+
+        RemoveZoneSession();
+        (Transport as ElinNetClient)?.OnZoneSessionEnded(session, reason);
+    }
+
     public void RemoveComponent()
     {
+        RemoveZoneSession();
         AwayZone = null;
+        IsGuest = false;
 
         if (Transport != null) {
             if (!Transport.IsHost && core.IsGameStarted) {
