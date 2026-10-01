@@ -45,6 +45,10 @@ internal sealed class EmpMod : BaseUnityPlugin
         if (EmpConfig.Dev.Listener.Value) {
             gameObject.AddComponent<EmpDebugListener>();
         }
+
+        if (EmpBot.Requested) {
+            gameObject.AddComponent<EmpBot>();
+        }
 #endif
     }
 

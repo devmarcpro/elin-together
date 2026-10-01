@@ -14,6 +14,11 @@ internal partial class ElinNetHost : ElinNetBase
 
     public override bool IsHost => true;
 
+    /// <summary>
+    ///     Listening on the local udp port: what a second game on this machine can join
+    /// </summary>
+    internal bool IsLocalServer => Socket.IsLocalUdp;
+
     internal void StartServer(bool localUdp = false)
     {
         Stop();

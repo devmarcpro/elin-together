@@ -29,7 +29,43 @@ internal class TabLobbyBrowser : TabEmpBase
             btnGroup.Button("emp_ui_sv_invite".lang(), NetSession.Instance.Lobby.InviteSteamOverlay);
             btnGroup.Button("emp_ui_sv_dc".lang(), DisconnectFromPanel);
         }
+
+#if DEBUG
+        BuildBotButtons();
+#endif
     }
+
+#if DEBUG
+    /// <summary>
+    ///     A second game on this machine, which joins and plays by itself
+    /// </summary>
+    private void BuildBotButtons()
+    {
+        if (NetSession.Instance.Transport is ElinNetClient) {
+            return;
+        }
+
+        var botGroup = Horizontal();
+        botGroup.Layout.childForceExpandWidth = true;
+
+        botGroup.Button("emp_ui_bot_add".lang(), () => {
+            EmpBotLauncher.Launch();
+            LayerElinTogether.Instance?.Reopen();
+        });
+
+        var running = EmpBotLauncher.Running;
+        if (running > 0) {
+            botGroup.Button("emp_ui_bot_stop".Loc(running), () => {
+                EmpBotLauncher.StopAll();
+                LayerElinTogether.Instance?.Reopen();
+            });
+        }
+
+        Toggle("emp_ui_bot_all_actions", EmpConfig.Dev.BotAllActions.Value,
+                value => EmpConfig.Dev.BotAllActions.Value = value)
+            .SetTooltipLang(EmpConfig.Dev.BotAllActions.Description.Description);
+    }
+#endif
 
     private void BuildLobbyList()
     {

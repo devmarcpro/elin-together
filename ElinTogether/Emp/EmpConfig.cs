@@ -147,6 +147,20 @@ internal partial class EmpConfig
                 "本地UDP测试身份（仅 Debug 构建），0 为使用 Steam 账号",
                 new AcceptableValueRange<int>(0, 999)));
 
+        Dev.BotLaunchers = config.Bind(
+            "Dev",
+            "BotLaunchers",
+            "",
+            "Game copies a bot player can be started from (Debug builds only), separated by ';'\n" +
+            "Empty looks for Documents/ElinMods/_lab/Elin*/Elin.exe, made by _tools/make_lab.py");
+
+        Dev.BotAllActions = config.Bind(
+            "Dev",
+            "BotAllActions",
+            false,
+            "Bot players also accept quests and sell through the shipping chest (Debug builds only)\n" +
+            "Leave off on a world you care about");
+
         Reload();
     }
 
@@ -154,6 +168,8 @@ internal partial class EmpConfig
     {
         internal static ConfigEntry<bool> Listener { get; set; } = null!;
         internal static ConfigEntry<int> Identity { get; set; } = null!;
+        internal static ConfigEntry<string> BotLaunchers { get; set; } = null!;
+        internal static ConfigEntry<bool> BotAllActions { get; set; } = null!;
     }
 
     internal static class Policy
