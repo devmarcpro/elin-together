@@ -71,7 +71,8 @@ internal partial class ElinNetHost
             peer);
 
         var roster = RosterOf(peer.User);
-        if (roster.Count > 0 && EmpConfig.Server.ChooseCharacter.Value) {
+        // not for the guests of a zone hosted by a player: they come with the character they are playing
+        if (!IsZoneSession && roster.Count > 0 && EmpConfig.Server.ChooseCharacter.Value) {
             // the player picks who to play, or makes someone new
             peer.Send(new SessionCharaSelectRequest {
                 Charas = roster

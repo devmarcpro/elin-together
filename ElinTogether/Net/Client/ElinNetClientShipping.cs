@@ -26,6 +26,10 @@ internal partial class ElinNetClient
 
         // it is in the box of the host now
         thing.Destroy();
+
+        // and must not be in the bag the host keeps for this player: quitting before the next checkpoint
+        // would leave it sold and kept
+        _nextCheckpoint = 0;
         return true;
     }
 
@@ -94,6 +98,9 @@ internal partial class ElinNetClient
         // see CardModCurrencyEvent)
         AddCurrencyLocal("money", payout.Money);
         AddCurrencyLocal("money2", payout.Bonus);
+
+        // the host forgets what it owed as soon as it pays: the money has to be in the bag it keeps for us
+        _nextCheckpoint = 0;
 
         if (result.items.Count > 0) {
             player.showShippingResult = core.config.game.showShippingResult;

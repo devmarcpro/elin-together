@@ -84,7 +84,8 @@ internal partial class ElinNetClient
 
         // on the host link: back from independent travel, the probe rebuilds the whole game
         // on a zone session: joining another player's zone, the probe is its world
-        var returning = Session.IsAway && !IsZoneSession;
+        // also when refused as a guest right after leaving the host map: not away yet, but coming back all the same
+        var returning = (Session.IsAway || _rejoining) && !IsZoneSession;
         if (returning) {
             // guests of our zone fall back to the host, see OnZoneSessionEnded
             Session.RemoveZoneSession();
