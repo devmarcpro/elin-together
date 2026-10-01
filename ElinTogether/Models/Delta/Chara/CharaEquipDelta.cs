@@ -45,15 +45,22 @@ public class CharaEquipDelta : ElinDelta
             return;
         }
 
-        if (Equip && thing.c_equippedSlot == SlotIndex + 1) {
-            return;
-        }
-
-        if (!Equip && thing.c_equippedSlot == 0) {
-            return;
-        }
-
         var slots = chara.body.slots;
+
+        // the slot tells what is applied here, not c_equippedSlot: a thing added and equipped in the same tick
+        // is serialised after the equip (CardAddThingDelta.OnRefresh) and arrives flagged while no slot holds it
+        var held = slots.Find(s => s.thing == thing);
+
+        if (!Equip) {
+            if (held is not null) {
+                chara.body.Unequip(held);
+            } else if (thing.parent == chara) {
+                thing.c_equippedSlot = 0;
+            }
+
+            return;
+        }
+
         var slot = SlotIndex >= 0 && SlotIndex < slots.Count && slots[SlotIndex].elementId == SlotElementId
             ? slots[SlotIndex]
             : null;
@@ -71,10 +78,16 @@ public class CharaEquipDelta : ElinDelta
             return;
         }
 
-        if (Equip) {
-            chara.body.Equip(thing, slot, false);
-        } else {
-            chara.body.Unequip(slot);
+        // vanilla Equip on the slot already holding the thing is a toggle
+        if (held == slot) {
+            return;
         }
+
+        if (held is null) {
+            // vanilla Equip trusts the flag and would unequip whatever sits in the slot it points to
+            thing.c_equippedSlot = 0;
+        }
+
+        chara.body.Equip(thing, slot, false);
     }
 }
