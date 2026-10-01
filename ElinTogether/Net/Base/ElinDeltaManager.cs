@@ -108,6 +108,13 @@ public class ElinDeltaManager
 #endif
 
         var gameStarted = EClass.core.IsGameStarted;
+        if (gameStarted && _held.Count > 0) {
+            // what the host did to the map while it was loading here, in order, before anything newer
+            batch.InsertRange(0, _held);
+            _held.Clear();
+            _holding = false;
+        }
+
         foreach (var delta in batch) {
             try {
                 if (delta is null) {
@@ -116,6 +123,9 @@ public class ElinDeltaManager
 
                 if (gameStarted || !delta.RequiresGameStarted) {
                     delta.Apply(net);
+                } else if (_holding && _held.Count < MaxHeld) {
+                    // about the map being loaded right now: applied once it is there
+                    _held.Add(delta);
                 }
             } catch (Exception ex) {
                 var deltaType = delta.GetType().Name;
@@ -195,6 +205,31 @@ public class ElinDeltaManager
     {
         _inBuffer.Clear();
         _inBufferDeferred.Clear();
+        _held.Clear();
+        _holding = false;
+    }
+
+    private const int MaxHeld = 20_000;
+
+    private readonly List<ElinDelta> _held = [];
+    private bool _holding;
+
+    /// <summary>
+    ///     A copy of a map just arrived and is about to be loaded. What came before is in that copy; what comes
+    ///     from now on happened after it was taken and is kept until the map is loaded, instead of being thrown
+    ///     away with the game not started (an item dropped by someone meanwhile would never show here)
+    /// </summary>
+    public void HoldForIncomingMap()
+    {
+        // the host only changed map and this game is running: nothing is thrown away, nothing to hold
+        if (EClass.core.IsGameStarted) {
+            return;
+        }
+
+        _inBuffer.Clear();
+        _inBufferDeferred.Clear();
+        _held.Clear();
+        _holding = true;
     }
 
     public void UpdateAverages()

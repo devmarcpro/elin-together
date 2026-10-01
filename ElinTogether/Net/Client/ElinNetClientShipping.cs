@@ -10,7 +10,8 @@ internal partial class ElinNetClient
     /// <summary>
     ///     Travelling alone (or hosting a zone): the shipping box here is a copy, the goods go to the real host
     /// </summary>
-    internal bool ForwardShippingDeposit(Thing thing, int shipperUid)
+    /// <param name="box">see <see cref="ShippingDeposit.Box" />: the bank and the delivery box are the world's too</param>
+    internal bool ForwardShippingDeposit(Thing thing, int shipperUid, int box = 0)
     {
         if (!Session.IsAway || IsZoneSession) {
             return false;
@@ -19,6 +20,7 @@ internal partial class ElinNetClient
         Host.Send(new ShippingDeposit {
             Thing = LZ4Bytes.Create(thing),
             Shipper = shipperUid,
+            Box = box,
         });
 
         EmpLog.Debug("Sent {CardId} x{CardNum} to the shipping box of the host for chara {Uid}",

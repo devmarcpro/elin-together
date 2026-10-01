@@ -17,6 +17,12 @@ public class ShippingDeposit
     /// </summary>
     [Key(1)]
     public required int Shipper { get; init; }
+
+    /// <summary>
+    ///     Which box of the world: 0 the shipping box, 1 the delivery box (parcels), 2 the bank
+    /// </summary>
+    [Key(2)]
+    public int Box { get; set; }
 }
 
 /// <summary>

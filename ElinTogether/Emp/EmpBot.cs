@@ -108,6 +108,11 @@ internal class EmpBot : EMono
             return;
         }
 
+        // a player's input is held while its character changes hands, see ElinNetClient.IsInTransfer
+        if (NetSession.Instance.Transport is ElinNetClient { IsInTransfer: true }) {
+            return;
+        }
+
         // what would wait for a click: a game dialog, a yes/no question
         foreach (var layer in ui.layers.Where(l => l is LayerDrama or Dialog).ToArray()) {
             layer.Close();

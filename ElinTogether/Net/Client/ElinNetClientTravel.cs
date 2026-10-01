@@ -129,15 +129,19 @@ internal partial class ElinNetClient
 
         if (_pendingTravel is not { } travel || travel.Zone.uid != grant.RequestedUid) {
             EmpLog.Warning("Received unexpected lease for zone {ZoneUid}", grant.RequestedUid);
+            Host.Send(new ZoneLeaseDecline {
+                ZoneUid = grant.ZoneUid,
+            });
             return;
         }
 
         AdoptHostUid(travel.Zone, grant.ZoneUid);
 
         if (grant.Guest) {
-            // leave where we are (handing our zone back if we hold one), then the owner of the zone
-            // expects us, see ZoneLeaseDepart
-            if (Session.IsZoneAuthority) {
+            // leave where we are (handing our zone back if we hold one, or only our character when we were
+            // a guest: the host forwards it to the owner of the zone we go to), then that owner expects us,
+            // see ZoneLeaseDepart
+            if (Session.IsAway) {
                 HandBackAwayZone(false);
             } else if (!Session.IsAway) {
                 FlushDeltasNow();
@@ -154,10 +158,9 @@ internal partial class ElinNetClient
         if (Session.IsAway) {
             _pendingTravel = null;
 
-            // hand back the zone we are leaving, while it is still active (a guest that left holds none)
-            if (Session.IsZoneAuthority) {
-                HandBackAwayZone(false);
-            }
+            // hand back the zone we are leaving, while it is still active; a guest holds none and only
+            // brings its character up to date on the host
+            HandBackAwayZone(false);
 
             TravelTo(travel.Zone, travel.Transition, grant);
             return;
@@ -603,6 +606,50 @@ internal partial class ElinNetClient
     /// <summary>
     ///     Leaving the zone: hand it back (our guests stay, the host gives it to one of them, see HandOverZone)
     /// </summary>
+    private const float TransferLockTimeout = 30f;
+
+    private float _transferLockedAt;
+    private bool _transferLocked;
+
+    /// <summary>
+    ///     Between the moment our character and bag were handed over (leaving the host map, coming back to it)
+    ///     and the moment the next world is here. What is done in that window is known to nobody: an item
+    ///     picked up would exist twice, one dropped would be lost
+    /// </summary>
+    /// <remarks>
+    ///     Also while a guest waits to hear what becomes of the map its owner just left: if the host recalls it,
+    ///     the copy the owner handed back is the one kept
+    /// </remarks>
+    internal bool IsInTransfer => _pendingGrant is not null || _rejoining || _handoffDeadline > 0;
+
+    /// <summary>
+    ///     No input during a transfer, it lasts a round trip
+    /// </summary>
+    private void UpdateTransferLock()
+    {
+        if (!IsInTransfer) {
+            if (_transferLocked) {
+                _transferLocked = false;
+                EInput.haltInput = false;
+            }
+
+            return;
+        }
+
+        if (!_transferLocked) {
+            _transferLocked = true;
+            _transferLockedAt = Time.realtimeSinceStartup;
+        }
+
+        // never for good: a transfer that does not end is a bug, not a reason to freeze the player
+        if (Time.realtimeSinceStartup - _transferLockedAt > TransferLockTimeout) {
+            EInput.haltInput = false;
+            return;
+        }
+
+        EInput.haltInput = true;
+    }
+
     private void HandBackAwayZone(bool rejoin)
     {
         Host.Send(CreateLeaseRelease(rejoin));

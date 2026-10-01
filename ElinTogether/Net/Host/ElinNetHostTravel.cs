@@ -185,6 +185,12 @@ internal partial class ElinNetHost
 
     private bool CanEnterNow(Zone zone, ZoneTransition transition)
     {
+        // going somewhere else than the zone being recalled: the host gave up on it, and must not be pulled
+        // there when it comes back later
+        if (_pendingHostMove is { } waiting && waiting.Zone != zone) {
+            _pendingHostMove = null;
+        }
+
         if (zone.IsRegion) {
             return true;
         }
@@ -610,6 +616,25 @@ internal partial class ElinNetHost
 
         EmpLog.Debug("Checkpoint of player {@Peer} in zone {ZoneUid}",
             peer, checkpoint.ZoneUid);
+    }
+
+    /// <summary>
+    ///     Net event: the player does not take the lease it was granted
+    /// </summary>
+    private void OnZoneLeaseDecline(ZoneLeaseDecline decline, ISteamNetPeer peer)
+    {
+        _pendingGuests.Remove(peer.Id);
+
+        if (!_leases.TryGetValue(peer.Id, out var zones) || !zones.Remove(decline.ZoneUid)) {
+            return;
+        }
+
+        if (zones.Count == 0) {
+            _leases.Remove(peer.Id);
+        }
+
+        EmpLog.Information("Player {@Peer} declined the lease of zone {ZoneUid}", peer, decline.ZoneUid);
+        ResumePendingHostMove();
     }
 
     private void ResumePendingHostMove()

@@ -253,6 +253,7 @@ internal sealed class EmpDebugListener : MonoBehaviour
             ["syncMode"] = session.SyncMode.ToString(),
             ["awayZone"] = session.AwayZone?.ZoneFullName,
             ["guest"] = session.IsGuest,
+            ["inTransfer"] = (session.Transport as ElinNetClient)?.IsInTransfer ?? false,
             ["zoneSession"] = session.ZoneSession is null ? null : session.ZoneSession.IsHost ? "Host" : "Client",
             ["hostZone"] = session.CurrentZone?.ZoneFullName,
             ["sessionId"] = session.SessionId.ToString(),

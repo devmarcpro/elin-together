@@ -21,6 +21,21 @@ internal static class ShippingHelper
     /// </summary>
     internal static bool Enabled => ElinTogether.Net.NetSession.Instance.Rules.UsePlayerShipping;
 
+    internal const int BoxDelivery = 1;
+    internal const int BoxBank = 2;
+
+    /// <summary>
+    ///     The bank and the delivery box are one for the world, like the shipping box: 0 for any other card
+    /// </summary>
+    internal static int OtherWorldBox(Card? card)
+    {
+        if (card is null || EClass.game?.cards is not { } cards) {
+            return 0;
+        }
+
+        return card == cards.container_deliver ? BoxDelivery : card == cards.container_deposit ? BoxBank : 0;
+    }
+
     internal static bool IsShippingBox(Card? card)
     {
         return card is not null && card == EClass.game?.cards?.container_shipping;

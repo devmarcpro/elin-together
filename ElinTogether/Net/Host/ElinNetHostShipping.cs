@@ -71,11 +71,22 @@ internal partial class ElinNetHost
         CardCache.Add(thing);
         Delta.AddRemote(CardGenDelta.Create(thing));
 
-        ShippingHelper.ShipperOverride = shipper;
-        try {
-            game.cards.container_shipping.AddThing(thing);
-        } finally {
-            ShippingHelper.ShipperOverride = null;
+        switch (deposit.Box) {
+            case ShippingHelper.BoxDelivery:
+                game.cards.container_deliver.AddThing(thing);
+                break;
+            case ShippingHelper.BoxBank:
+                game.cards.container_deposit.AddThing(thing);
+                break;
+            default:
+                ShippingHelper.ShipperOverride = shipper;
+                try {
+                    game.cards.container_shipping.AddThing(thing);
+                } finally {
+                    ShippingHelper.ShipperOverride = null;
+                }
+
+                break;
         }
 
         EmpLog.Debug("Player {@Peer} shipped {CardId} x{CardNum} from afar for chara {Uid}",

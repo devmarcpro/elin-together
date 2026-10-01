@@ -75,6 +75,14 @@ internal static class CardAddThingEvent
             t.SetInt(ShippingHelper.ShipperKey, shipper);
         }
 
+        // the bank and the delivery box: travelling, they are empty copies here, what goes in is sent to the
+        // real ones instead of being lost with the copy
+        if (!ElinDelta.IsRemoteStateLanding && ShippingHelper.OtherWorldBox(__instance) is var box and not 0 &&
+            NetSession.Instance.Connection is not ElinNetClient &&
+            NetSession.Instance.Transport is ElinNetClient travelling && travelling.ForwardShippingDeposit(t, 0, box)) {
+            return false;
+        }
+
         if (NetSession.Instance.Connection is not { } connection || ElinDelta.IsRemoteStateLanding) {
             if (RemoteCraft.ProductReceiver is not null) {
                 EmpLog.Warning("Suppressed add-thing of {Uid} during remote craft, IsApplying guard hit",

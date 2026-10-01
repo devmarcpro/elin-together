@@ -65,6 +65,7 @@ internal partial class ElinNetClient
 
         EmpLog.Information("Received zone state");
 
+        Delta.HoldForIncomingMap();
         response.WriteToTemp();
 
         var spatial = game.spatials;
