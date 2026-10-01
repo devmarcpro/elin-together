@@ -115,19 +115,20 @@ internal static class SharedQuests
                 continue;
             }
 
-            var data = LZ4Bytes.Create(quest);
-            var hash = Hash(data.Bytes);
+            var hash = LZ4Bytes.ToJson(quest).GetHashCode();
             if (_told.TryGetValue(quest, out var told) && told == hash) {
                 continue;
             }
 
             _told[quest] = hash;
+            var data = LZ4Bytes.Create(quest);
 
             if (PersonalQuests.IsPersonal(quest)) {
                 // only its taker holds it, the host keeps it for the next time it joins
                 PersonalQuests.TellHost(new PersonalQuestDelta {
                     Uid = quest.uid,
                     Data = data,
+                    Now = EClass.world.date.GetRaw(),
                 });
                 continue;
             }
@@ -148,7 +149,7 @@ internal static class SharedQuests
     internal static void Remember(Quest quest)
     {
         if (ReferenceEquals(EClass.game, _source)) {
-            _told[quest] = Hash(LZ4Bytes.Create(quest).Bytes);
+            _told[quest] = LZ4Bytes.ToJson(quest).GetHashCode();
         }
     }
 
@@ -175,17 +176,8 @@ internal static class SharedQuests
         foreach (var field in fields) {
             field.SetValue(to, field.GetValue(from));
         }
-    }
 
-    private static int Hash(byte[] bytes)
-    {
-        unchecked {
-            var hash = (int)2166136261;
-            foreach (var value in bytes) {
-                hash = (hash ^ value) * 16777619;
-            }
-
-            return hash;
-        }
+        // the task came along with its copy as owner
+        to.task?.SetOwner(to);
     }
 }

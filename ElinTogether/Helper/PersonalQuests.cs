@@ -13,11 +13,14 @@ namespace ElinTogether.Helper;
 /// </summary>
 internal static class PersonalQuests
 {
+    private static readonly HashSet<int> _taken = [];
+    private static readonly HashSet<int> _turnedIn = [];
     private static List<Quest> _mine = [];
     private static Game? _source;
     private static bool _hasStanding;
     private static int _fame;
     private static int _karma;
+    private static int _now;
 
     internal static bool Enabled => NetSession.Instance.Rules.UsePersonalQuests;
 
@@ -31,6 +34,8 @@ internal static class PersonalQuests
         var session = NetSession.Instance;
         if (session.Transport is null || !Enabled) {
             _mine = [];
+            _taken.Clear();
+            _turnedIn.Clear();
             _source = null;
             _hasStanding = false;
             return;
@@ -46,9 +51,15 @@ internal static class PersonalQuests
         }
 
         if (!ReferenceEquals(EClass.game, _source)) {
-            _source = EClass.game;
-            Restore();
+            OnWorldLoaded();
             return;
+        }
+
+        // offers of this map someone else already holds
+        foreach (var chara in EClass._map.charas) {
+            if (chara.quest is { } offer && _taken.Contains(offer.uid) && !quests.list.Contains(offer)) {
+                chara.quest = null;
+            }
         }
 
         // nobody else holds these: they expire on this player's clock
@@ -58,13 +69,14 @@ internal static class PersonalQuests
         }
 
         _mine = quests.list.Where(IsPersonal).ToList();
+        _now = EClass.world.date.GetRaw();
 
+        // not before the host said what this player's standing is: until then it shows the host's own
         var player = EClass.player;
-        if (_hasStanding && player.fame == _fame && player.karma == _karma) {
+        if (!_hasStanding || (player.fame == _fame && player.karma == _karma)) {
             return;
         }
 
-        _hasStanding = true;
         _fame = player.fame;
         _karma = player.karma;
         TellHost(new PlayerStandingDelta {
@@ -74,23 +86,59 @@ internal static class PersonalQuests
     }
 
     /// <summary>
+    ///     A client's world was just replaced (joining, travelling alone, coming back, joining someone's map):
+    ///     its own quests and standing go back in place of the host's, with the time they had left
+    /// </summary>
+    internal static void OnWorldLoaded()
+    {
+        if (!Enabled || NetSession.Instance.Transport is not ElinNetClient || EClass.game?.quests is null) {
+            return;
+        }
+
+        if (ReferenceEquals(EClass.game, _source)) {
+            return;
+        }
+
+        _source = EClass.game;
+        Rebase(_now);
+        Restore();
+    }
+
+    /// <summary>
     ///     From the host, when this player settles on its map: what the host kept for it
     /// </summary>
-    internal static void Receive(List<Quest> mine, int[] taken, int fame, int karma)
+    /// <param name="now">the date on the host's clock</param>
+    internal static void Receive(List<Quest> mine, int[] taken, int fame, int karma, int now)
     {
         _mine = mine;
+        _now = now;
         _fame = fame;
         _karma = karma;
         _hasStanding = true;
-        _source = EClass.game;
-        Restore();
 
-        // offers of this map someone else already took
-        foreach (var chara in EClass._map.charas) {
-            if (chara.quest is { } offer && taken.Contains(offer.uid) && !EClass.game.quests.list.Contains(offer)) {
-                chara.quest = null;
-            }
-        }
+        _taken.Clear();
+        _taken.UnionWith(taken);
+
+        // put in place by the next tick, once the world it is for has started
+        _source = null;
+    }
+
+    internal static void MarkTaken(int questUid)
+    {
+        _taken.Add(questUid);
+    }
+
+    /// <summary>
+    ///     A quest taken and turned in with one click: the host's answer to the first half arrives after
+    /// </summary>
+    internal static void MarkTurnedIn(int questUid)
+    {
+        _turnedIn.Add(questUid);
+    }
+
+    internal static bool WasTurnedIn(int questUid)
+    {
+        return _turnedIn.Contains(questUid);
     }
 
     /// <summary>
@@ -122,6 +170,22 @@ internal static class PersonalQuests
         }
     }
 
+    /// <summary>
+    ///     A deadline is a date: the time left is kept, on the clock of the world just loaded
+    /// </summary>
+    private static void Rebase(int before)
+    {
+        var shift = before > 0 ? EClass.world.date.GetRaw() - before : 0;
+        _now = EClass.world.date.GetRaw();
+        if (shift == 0) {
+            return;
+        }
+
+        foreach (var quest in _mine.Where(q => q.deadline > 0)) {
+            quest.deadline += shift;
+        }
+    }
+
     private static void Restore()
     {
         var quests = EClass.game.quests;
@@ -134,6 +198,9 @@ internal static class PersonalQuests
                 quests.list.Insert(0, quest);
             }
 
+            // who it is for is looked up again, in this world
+            quest.person._tempChara = null;
+            quest.person.refChara = new();
             if (quest.chara is { } giver && giver.quest?.uid != quest.uid) {
                 giver.quest = quest;
             }

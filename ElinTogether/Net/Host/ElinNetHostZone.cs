@@ -114,7 +114,6 @@ internal partial class ElinNetHost
         BringCompanions(chara);
         // sales made while it was a guest somewhere or offline
         PayShipping(chara.uid);
-        SendPersonalState(peer, chara.uid);
         SweepStaleCellEntries();
 
         EmpLog.Debug("Assigned zone sync position to player {@Peer} at {@Pos}",
@@ -127,6 +126,7 @@ internal partial class ElinNetHost
         });
 
         MarkSettled(peer);
+        SendPersonalState(peer, chara.uid);
 
         RemoveLeftOverCharas(null);
     }

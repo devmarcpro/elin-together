@@ -27,13 +27,22 @@ public class PersonalStateDelta : ElinDelta
     [Key(3)]
     public required int Karma { get; init; }
 
+    /// <summary>
+    ///     The date on the host's clock, deadlines are dates on it
+    /// </summary>
+    [Key(4)]
+    public int Now { get; set; }
+
+    // it may land before the world it is for has started
+    internal override bool RequiresGameStarted => false;
+
     protected override void OnApply(ElinNetBase net)
     {
         if (net is ElinNetHost) {
             return;
         }
 
-        PersonalQuests.Receive(Quests.Select(data => data.Decompress<Quest>()).ToList(), Taken, Fame, Karma);
+        PersonalQuests.Receive(Quests.Select(data => data.Decompress<Quest>()).ToList(), Taken, Fame, Karma, Now);
     }
 }
 
@@ -49,10 +58,16 @@ public class PersonalQuestDelta : ElinDelta
     [Key(1)]
     public required LZ4Bytes? Data { get; init; }
 
+    /// <summary>
+    ///     The date on the sender's clock
+    /// </summary>
+    [Key(2)]
+    public int Now { get; set; }
+
     protected override void OnApply(ElinNetBase net)
     {
         if (net is ElinNetHost host) {
-            host.StorePersonal(OriginPeer, Uid, Data);
+            host.StorePersonal(OriginPeer, Uid, Data, Now);
         }
     }
 }
@@ -76,7 +91,12 @@ public class QuestTakenDelta : ElinDelta
         }
 
         // not for the one who took it
-        if (Giver?.Find() is Chara { quest: { } offer } giver && offer.uid == Uid && !game.quests.list.Contains(offer)) {
+        if (game.quests.list.Exists(q => q.uid == Uid)) {
+            return;
+        }
+
+        PersonalQuests.MarkTaken(Uid);
+        if (Giver?.Find() is Chara { quest: { } offer } giver && offer.uid == Uid) {
             giver.quest = null;
         }
     }

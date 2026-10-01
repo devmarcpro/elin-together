@@ -54,13 +54,11 @@ internal static class QuestCompleteEvent
     [HarmonyPostfix]
     internal static void OnQuestComplete(Quest __instance)
     {
-        if (ElinDelta.IsApplying) {
-            return;
-        }
-
         if (PersonalQuests.IsPersonal(__instance)) {
-            // on someone's map, that host gives the rewards; the quest is nobody else's business
-            if (NetSession.Instance.Connection is ElinNetClient client) {
+            // on someone's map, that host gives the rewards; the quest is nobody else's business. Also when
+            // it completes while a message from the host is applied: the kill that ends a hunt
+            if (NetSession.Instance.Connection is ElinNetClient client && !PlayerStandIn.IsActive) {
+                PersonalQuests.MarkTurnedIn(__instance.uid);
                 client.Delta.AddRemote(new QuestCompleteDelta {
                     Uid = __instance.uid,
                     Id = __instance.id,
@@ -70,6 +68,11 @@ internal static class QuestCompleteEvent
 
             return;
         }
+
+        if (ElinDelta.IsApplying) {
+            return;
+        }
+
 
         var delta = new QuestCompleteDelta {
             Uid = __instance.uid,

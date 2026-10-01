@@ -106,7 +106,10 @@ internal partial class ElinNetHost
     /// </summary>
     private void OnWorldStateDeltaResponse(WorldStateDeltaList response, ISteamNetPeer peer)
     {
-        var away = IsAway(peer);
+        // a player still loading the world it was sent is not on this map yet either: what it says about cards
+        // is about the world it is leaving, and would land after the copy it was sent (an item dropped then
+        // exists twice)
+        var away = IsAway(peer) || !_settled.Contains(peer.Id);
         foreach (var delta in response.DeltaList) {
             // an away player is not on the host map, only what it shares with the world is relevant here:
             // its chat and the quest log

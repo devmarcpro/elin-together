@@ -115,6 +115,12 @@ internal partial class ElinNetHost
             return;
         }
 
+        // the host of the world gives a reward once, for a quest it knows that player holds
+        if (!IsZoneSession && !PersonalLogOf(taker.uid).ContainsKey(quest.uid)) {
+            EmpLog.Warning("Player {CharaUid} turns in quest {QuestUid} {QuestId} it does not hold", taker.uid, quest.uid, quest.id);
+            return;
+        }
+
         try {
             using (PlayerStandIn.For(this, peerId, taker)) {
                 using (ElinDelta.Simulate()) {
@@ -135,7 +141,8 @@ internal partial class ElinNetHost
     /// <summary>
     ///     A player tells what one of its quests holds now, or that it is gone (completed, failed, given up)
     /// </summary>
-    internal void StorePersonal(int peerId, int questUid, LZ4Bytes? data)
+    /// <param name="now">the date on that player's clock: a deadline is kept as time left, on the host's</param>
+    internal void StorePersonal(int peerId, int questUid, LZ4Bytes? data, int now)
     {
         if (IsZoneSession || PlayerUidOf(peerId) is not (> 0 and var uid)) {
             return;
@@ -143,9 +150,16 @@ internal partial class ElinNetHost
 
         if (data is null) {
             PersonalLogOf(uid).Remove(questUid);
-        } else {
-            PersonalLogOf(uid)[questUid] = data.Bytes;
+            return;
         }
+
+        var shift = now > 0 ? world.date.GetRaw() - now : 0;
+        if (shift != 0 && data.Decompress<Quest>() is { deadline: > 0 } quest) {
+            quest.deadline += shift;
+            data = LZ4Bytes.Create(quest);
+        }
+
+        PersonalLogOf(uid)[questUid] = data.Bytes;
     }
 
     internal void StoreStanding(int peerId, int fame, int karma)
@@ -181,6 +195,7 @@ internal partial class ElinNetHost
             Taken = taken,
             Fame = standing[StandingFame],
             Karma = standing[StandingKarma],
+            Now = world.date.GetRaw(),
         });
     }
 

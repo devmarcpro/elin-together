@@ -1,3 +1,4 @@
+using ElinTogether.Net;
 using System;
 using ElinTogether.Helper;
 using HarmonyLib;
@@ -33,7 +34,16 @@ internal static class CompanionLimboPatch
     [HarmonyPatch(typeof(Chara), nameof(Chara.MoveZone), typeof(Zone), typeof(ZoneTransition))]
     internal static bool OnMoveHomeOnLoad(Chara __instance)
     {
-        return !_loading || __instance.IsPC || __instance.currentZone is not null ||
-               (__instance.CompanionOwnerUid == 0 && !__instance.GetBool("remote_chara"));
+        if (!_loading || __instance.IsPC || __instance.currentZone is not null) {
+            return true;
+        }
+
+        // a client's world is the host's: who is nowhere there (the host itself, when the map it left was
+        // inherited by a player) stays nowhere, instead of standing at home as a ghost only this client sees
+        if (NetSession.Instance.Transport is ElinNetClient) {
+            return false;
+        }
+
+        return __instance.CompanionOwnerUid == 0 && !__instance.GetBool("remote_chara");
     }
 }

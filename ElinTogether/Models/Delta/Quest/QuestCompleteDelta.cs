@@ -25,12 +25,15 @@ public class QuestCompleteDelta : ElinDelta
 
     protected override void OnApply(ElinNetBase net)
     {
-        var quest = SharedQuests.Find(Uid, Id);
+        if (Data is not null) {
+            if (net is ElinNetHost map && !map.IsAwayPeer(OriginPeer)) {
+                map.CompletePersonal(OriginPeer, Data.Decompress<Quest>());
+            }
 
-        if (quest is null && Data is not null && net is ElinNetHost map && !map.IsAwayPeer(OriginPeer)) {
-            map.CompletePersonal(OriginPeer, Data.Decompress<Quest>());
             return;
         }
+
+        var quest = SharedQuests.Find(Uid, Id);
         if (quest is null || quest.isComplete) {
             return;
         }

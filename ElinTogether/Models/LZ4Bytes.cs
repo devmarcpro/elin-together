@@ -33,6 +33,18 @@ public class LZ4Bytes
         };
     }
 
+    /// <summary>
+    ///     The same text as <see cref="Create{T}" /> compresses, to compare cheaply
+    /// </summary>
+    public static string ToJson<T>(T data)
+    {
+        using var sw = new StringWriter();
+        using var jw = new JsonTextWriter(sw);
+        _serializer.Serialize(jw, data, typeof(T));
+        jw.Flush();
+        return sw.ToString();
+    }
+
     public static LZ4Bytes CreateFromFile(string filePath)
     {
         using var input = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);

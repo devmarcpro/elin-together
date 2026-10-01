@@ -74,6 +74,11 @@ public class QuestStartDelta : ElinDelta
             return;
         }
 
+        if (PersonalQuests.WasTurnedIn(Uid)) {
+            // taken and turned in with the same click (goods already in the bag): nothing to keep
+            return;
+        }
+
         var quest = Rebase(Data.Decompress<Quest>());
 
         game.quests.globalList.RemoveAll(q => q.uid == Uid);
@@ -104,7 +109,11 @@ public class QuestStartDelta : ElinDelta
             quest.SetClient(owner, AssignQuest);
         }
 
-        SharedQuests.Remember(quest);
+        if (!PersonalQuests.IsPersonal(quest)) {
+            // a personal one is still to be told to the host of the world, which keeps it for its taker
+            SharedQuests.Remember(quest);
+        }
+
         quest.UpdateJournal();
         if (player.questTracker) {
             WidgetQuestTracker.Show();

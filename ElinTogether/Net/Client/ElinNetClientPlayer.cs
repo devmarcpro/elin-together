@@ -141,6 +141,9 @@ internal partial class ElinNetClient
         probeGame.OnGameInstantiated();
         probeGame.OnLoad();
 
+        // this player's own random quests and standing, in place of the host's
+        PersonalQuests.OnWorldLoaded();
+
         // ability fake card
         try {
             foreach (var (uid, elementId) in equipped) {
