@@ -33,12 +33,13 @@ public class QuestChangePhaseDelta : ElinDelta
             return;
         }
 
-        if (net is not ElinNetHost host) {
-            quest.ChangePhase(Modifier);
+        // already there: what the phase triggers is not to happen twice
+        if (quest.phase == Modifier) {
             return;
         }
 
-        if (quest.phase == Modifier) {
+        if (net is not ElinNetHost host) {
+            quest.ChangePhase(Modifier);
             return;
         }
 

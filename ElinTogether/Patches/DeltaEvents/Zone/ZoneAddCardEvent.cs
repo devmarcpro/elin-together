@@ -1,3 +1,4 @@
+using ElinTogether.Helper;
 using ElinTogether.Models;
 using ElinTogether.Net;
 using HarmonyLib;
@@ -30,6 +31,11 @@ internal static class ZoneAddCardEvent
         }
 
         if (connection.IsClient && !CardCache.Contains(t)) {
+            if (t is Thing gift && LayerDrama.IsActive()) {
+                // put there by a dialog ("drop"): the host creates it
+                StoryGifts.Offer(gift);
+            }
+
             CardCache.DelayDestroy(t);
             return true;
         }

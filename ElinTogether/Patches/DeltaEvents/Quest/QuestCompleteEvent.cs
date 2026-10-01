@@ -1,3 +1,4 @@
+using ElinTogether.Helper;
 using ElinTogether.Models;
 using ElinTogether.Net;
 using HarmonyLib;
@@ -120,6 +121,12 @@ internal static class QuestRewardPatch
         if (_nothing) {
             __result = t;
             return false;
+        }
+
+        if (NetSession.Instance.Connection is ElinNetClient && !ElinDelta.IsApplying) {
+            // a client cannot create things: dropped here for show, created by the host
+            StoryGifts.Offer(t);
+            return true;
         }
 
         if (_receiver is not { isDead: false, IsAliveInCurrentZone: true } receiver) {

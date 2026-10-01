@@ -35,7 +35,7 @@ public class QuestStartDelta : ElinDelta
             // accepted by a player travelling alone, in its copy of the world: the quest log is everyone's
 
             var accepted = Data.Decompress<Quest>();
-            game.quests.globalList.RemoveAll(q => q.uid == Uid);
+            game.quests.globalList.RemoveAll(q => q.uid == Uid || (!accepted.IsRandomQuest && q.id == accepted.id));
             game.quests.list.Insert(0, accepted);
 
             accepted.UpdateJournal();

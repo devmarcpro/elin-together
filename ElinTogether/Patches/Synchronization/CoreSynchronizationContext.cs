@@ -1,3 +1,4 @@
+using ElinTogether.Helper;
 using ElinTogether.Models;
 using ElinTogether.Net;
 using HarmonyLib;
@@ -31,6 +32,7 @@ internal class CoreSynchronizationContext : SynchronizationContext
 
         CardAddThingEvent.FlushPendingAbilityFakeCard();
         ThingRequest.InvalidateDangling();
+        StoryGifts.Flush();
         CardCache.Update();
         CharaSynchronizationContext.Update();
         NetProfileSynchronizationContext.Update();
