@@ -54,4 +54,16 @@ public class ZoneLeaseRelease
     /// </summary>
     [Key(8)]
     public Dictionary<ulong, LZ4Bytes>? GuestCharas { get; init; }
+
+    /// <summary>
+    ///     Companions travelling with the player, see CompanionHelper
+    /// </summary>
+    [Key(9)]
+    public List<LZ4Bytes>? Companions { get; init; }
+
+    /// <summary>
+    ///     Companions of the players visiting the zone, by identity
+    /// </summary>
+    [Key(10)]
+    public Dictionary<ulong, List<LZ4Bytes>>? GuestCompanions { get; init; }
 }

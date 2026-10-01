@@ -24,6 +24,13 @@ public class CardModNumDelta : ElinDelta
         }
 
         if (net.IsHost) {
+            // a character is never a stack: a client copy going away must not destroy the host one
+            if (card is Chara) {
+                EmpLog.Warning("Refusing {DeltaType} on chara {Uid} from peer {PeerIndex}",
+                    nameof(CardModNumDelta), card.uid, OriginPeer);
+                return;
+            }
+
             net.Delta.AddRemote(this);
         }
 

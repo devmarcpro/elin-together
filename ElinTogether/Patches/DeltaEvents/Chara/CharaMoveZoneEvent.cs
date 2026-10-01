@@ -1,3 +1,4 @@
+using ElinTogether.Helper;
 using ElinTogether.Net;
 using HarmonyLib;
 
@@ -35,5 +36,23 @@ internal class CharaMoveZoneEvent
         // remote characters do not trigger scene change
         // clients do not post move zone delta, they lease the zone to travel alone
         return client.TryTravel(z, transition);
+    }
+
+    /// <summary>
+    ///     Elin drags the party along for its leader only (the host): a player travelling alone takes its companions
+    /// </summary>
+    [HarmonyPostfix]
+    internal static void OnTravelWithCompanions(Chara __instance, Zone z, bool __runOriginal)
+    {
+        if (!__runOriginal || !__instance.IsPC || __instance.party is not { } party || party.leader == __instance ||
+            NetSession.Instance is not { IsAway: true, Connection: null }) {
+            return;
+        }
+
+        foreach (var companion in CompanionHelper.CompanionsOf(__instance)) {
+            if (!companion.isDead && companion.parent is Zone && companion.currentZone != z) {
+                companion.MoveZone(z);
+            }
+        }
     }
 }

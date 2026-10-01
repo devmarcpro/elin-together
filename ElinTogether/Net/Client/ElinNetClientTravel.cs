@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ElinTogether.Helper;
 using ElinTogether.Helper.Extensions;
 using ElinTogether.Models;
 using UnityEngine;
@@ -399,9 +400,10 @@ internal partial class ElinNetClient
             }
         }
 
-        // the other players went their own way
+        // the other players went their own way, with their companions (those staying join us again, with theirs)
         foreach (var chara in _map.charas.ToList()) {
-            if (chara != pc && chara.GetBool("remote_chara")) {
+            var otherCompanion = chara.CompanionOwnerUid is var owner and not 0 && owner != pc.uid;
+            if (chara != pc && (chara.GetBool("remote_chara") || otherCompanion)) {
                 pc.party?.RemoveMember(chara);
                 _zone.RemoveCard(chara);
             }
@@ -422,7 +424,7 @@ internal partial class ElinNetClient
 
         if (accepted) {
             var zoneHost = Session.ZoneSession as ElinNetHost ?? StartZoneSession();
-            zoneHost.RegisterGuest(request.GuestUser, request.Chara);
+            zoneHost.RegisterGuest(request.GuestUser, request.Chara, request.Companions);
         }
 
         EmpLog.Information("Guest {RemoteIdentity} for zone {ZoneUid}: {Accepted}",
@@ -573,6 +575,7 @@ internal partial class ElinNetClient
                 ZoneUid = -1,
                 ZoneState = [],
                 Chara = LZ4Bytes.Create(pc),
+                Companions = CollectCompanions(),
                 UidNext = game.cards.uidNext,
                 Rejoin = rejoin,
                 Checkpoint = checkpoint,
@@ -586,11 +589,18 @@ internal partial class ElinNetClient
             // the world map is a local copy for everyone
             Map = zone.IsRegion ? null : ZoneLeaseState.CollectMap(zone),
             Chara = LZ4Bytes.Create(pc),
+            Companions = CollectCompanions(),
             UidNext = game.cards.uidNext,
             Rejoin = rejoin,
             Checkpoint = checkpoint,
             GuestCharas = (Session.ZoneSession as ElinNetHost)?.CollectGuestCharas(),
+            GuestCompanions = (Session.ZoneSession as ElinNetHost)?.CollectGuestCompanions(),
         };
+    }
+
+    private static List<LZ4Bytes> CollectCompanions()
+    {
+        return CompanionHelper.CompanionsOf(pc).Select(c => LZ4Bytes.Create(c)).ToList();
     }
 
     internal void SendChatWhileAway(MsgSayDelta delta)

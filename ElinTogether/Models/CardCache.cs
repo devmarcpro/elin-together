@@ -169,6 +169,14 @@ public static class CardCache
         _invalidCards.Remove(card);
     }
 
+    /// <summary>
+    ///     Forget every card before a world is torn down: what it destroys is no host card anymore
+    /// </summary>
+    internal static void Reset()
+    {
+        ClearCachedRefs();
+    }
+
     private static void ClearCachedRefs()
     {
         _cards.Clear();

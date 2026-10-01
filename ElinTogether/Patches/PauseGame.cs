@@ -1,6 +1,7 @@
 using System.Linq;
 using ElinTogether.Elements;
 using ElinTogether.Helper;
+using ElinTogether.Models;
 using ElinTogether.Net;
 using HarmonyLib;
 
@@ -22,10 +23,11 @@ internal class PauseGame
             return;
         }
 
-        // pause only if all players have no goal
+        // pause only if all players have no goal and none of them just walked:
+        // the world goes on while anyone moves, not only the host (followers, monsters...)
         __result &= (EClass.pc.party?.members ?? [])
             .Where(c => c?.IsRemotePlayer is true)
-            .All(c => c.ai is GoalRemote { child: null });
+            .All(c => c.ai is GoalRemote { child: null } && !CharaMoveDelta.HasRecentMove(c));
     }
 
     [HarmonyPostfix]

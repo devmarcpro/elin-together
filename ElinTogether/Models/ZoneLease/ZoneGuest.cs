@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using MessagePack;
 
 namespace ElinTogether.Models;
@@ -23,6 +24,12 @@ public class ZoneGuestRequest
     /// </summary>
     [Key(2)]
     public required LZ4Bytes Chara { get; init; }
+
+    /// <summary>
+    ///     Its companions, they come along, see CompanionHelper
+    /// </summary>
+    [Key(3)]
+    public List<LZ4Bytes>? Companions { get; init; }
 }
 
 /// <summary>

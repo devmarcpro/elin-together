@@ -1,3 +1,4 @@
+using ElinTogether.Helper;
 using ElinTogether.Net;
 using ElinTogether.Patches;
 using MessagePack;
@@ -15,6 +16,12 @@ public class CharaMakeAllyDelta : ElinDelta
 
     [Key(2)]
     public required string? TemporaryAllyName { get; init; }
+
+    /// <summary>
+    ///     Chara uid of the player the companion follows, 0 for the party leader
+    /// </summary>
+    [Key(3)]
+    public int OwnerUid { get; init; }
 
     protected override void OnApply(ElinNetBase net)
     {
@@ -39,6 +46,7 @@ public class CharaMakeAllyDelta : ElinDelta
         }
 
         chara.c_altName = TemporaryAllyName;
+        chara.SetInt(CompanionHelper.OwnerKey, OwnerUid);
         chara.Stub_MakeAlly(ShowMsg);
     }
 }

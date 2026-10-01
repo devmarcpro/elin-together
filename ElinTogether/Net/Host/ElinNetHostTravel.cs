@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ElinTogether.Helper;
 using ElinTogether.Helper.Extensions;
 using ElinTogether.Models;
 using ElinTogether.Net.Steam;
@@ -185,6 +186,7 @@ internal partial class ElinNetHost
 
         if (ActiveRemoteCharas.Remove(peer.Id, out var remoteChara)) {
             RemoveRemoteChara(remoteChara);
+            TakeCompanionsAlong(remoteChara);
         }
 
         Broadcast(SessionPlayersSnapshot.Create());
@@ -320,6 +322,7 @@ internal partial class ElinNetHost
             ZoneUid = zoneUid,
             GuestUser = guest.User,
             Chara = LZ4Bytes.Create(chara),
+            Companions = CompanionHelper.CompanionsOf(chara).Select(c => LZ4Bytes.Create(c)).ToList(),
         });
     }
 
@@ -411,6 +414,7 @@ internal partial class ElinNetHost
         _guests.Remove(peer.Id);
 
         var chara = ReplaceRemoteChara(peer.User, release.Chara);
+        ReplaceCompanions(release.Companions, SavedRemoteCharas.TryGetValue(peer.User, out var ownerUid) ? ownerUid : 0);
         ReplaceGuestCharas(release, peer);
 
         if (handedBack) {
@@ -462,6 +466,7 @@ internal partial class ElinNetHost
         _checkpointUidNext[peer.Id] = checkpoint.UidNext;
 
         ReplaceRemoteChara(peer.User, checkpoint.Chara);
+        ReplaceCompanions(checkpoint.Companions, SavedRemoteCharas.TryGetValue(peer.User, out var ownerUid) ? ownerUid : 0);
         ReplaceGuestCharas(checkpoint, peer);
 
         EmpLog.Debug("Checkpoint of player {@Peer} in zone {ZoneUid}",
@@ -578,6 +583,11 @@ internal partial class ElinNetHost
             }
 
             ReplaceRemoteChara(user, chara);
+
+            if (release.GuestCompanions?.TryGetValue(user, out var companions) is true &&
+                SavedRemoteCharas.TryGetValue(user, out var ownerUid)) {
+                ReplaceCompanions(companions, ownerUid);
+            }
         }
     }
 

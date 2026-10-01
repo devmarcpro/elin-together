@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using ElinTogether.Helper;
 using ElinTogether.Models;
 using ElinTogether.Net.Steam;
 using HeathenEngineering.SteamworksIntegration;
@@ -69,9 +70,13 @@ internal partial class ElinNetHost
     /// <summary>
     ///     Expect a player announced by the host, with its character as the host knows it
     /// </summary>
-    internal void RegisterGuest(UserData user, LZ4Bytes chara)
+    internal void RegisterGuest(UserData user, LZ4Bytes chara, List<LZ4Bytes>? companions)
     {
-        ReplaceRemoteChara(user, chara, true);
+        if (ReplaceRemoteChara(user, chara, true) is { } guest) {
+            // placed next to it once it stands here, see BringCompanions
+            ReplaceCompanions(companions, guest.uid);
+        }
+
         SteamNetManager.ConnectionKeys[user] = "zone_guest";
 
         EmpLog.Information("Expecting guest {RemoteIdentity}",
@@ -81,6 +86,19 @@ internal partial class ElinNetHost
     /// <summary>
     ///     Characters of the guests, simulated here, uploaded with checkpoints and releases
     /// </summary>
+    internal Dictionary<ulong, List<LZ4Bytes>> CollectGuestCompanions()
+    {
+        var companions = new Dictionary<ulong, List<LZ4Bytes>>();
+
+        foreach (var (peerId, chara) in ActiveRemoteCharas) {
+            if (States.TryGetValue(peerId, out var state)) {
+                companions[state.User] = CompanionHelper.CompanionsOf(chara).Select(c => LZ4Bytes.Create(c)).ToList();
+            }
+        }
+
+        return companions;
+    }
+
     internal Dictionary<ulong, LZ4Bytes> CollectGuestCharas()
     {
         var charas = new Dictionary<ulong, LZ4Bytes>();
@@ -116,6 +134,7 @@ internal partial class ElinNetHost
 
         if (ActiveRemoteCharas.Remove(peer.Id, out var chara)) {
             RemoveRemoteChara(chara);
+            TakeCompanionsAlong(chara);
         }
 
         Broadcast(SessionPlayersSnapshot.Create());

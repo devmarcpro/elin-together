@@ -1,4 +1,5 @@
 using System;
+using ElinTogether.Helper;
 using ElinTogether.Models;
 using ElinTogether.Net;
 using HarmonyLib;
@@ -11,12 +12,19 @@ internal static class CharaMakeAllyEvent
     [HarmonyPrefix]
     internal static bool OnMakeAlly(Chara __instance, bool msg)
     {
+        // recruited on our own (travelling alone, or hosting a zone): ours, not the host's
+        if (NetSession.Instance is { IsAway: true, Connection: not ElinNetClient } && !ElinDelta.IsApplying &&
+            __instance.CompanionOwnerUid == 0) {
+            __instance.SetCompanionOwner(EClass.pc);
+        }
+
         switch (NetSession.Instance.Connection) {
             case ElinNetHost host:
                 host.Delta.AddRemote(new CharaMakeAllyDelta {
                     Owner = __instance,
                     ShowMsg = msg,
                     TemporaryAllyName = __instance.c_altName,
+                    OwnerUid = __instance.CompanionOwnerUid,
                 });
                 return true;
             case ElinNetClient client:

@@ -43,6 +43,13 @@ internal static class CardDestroyEvent
             return;
         }
 
+        // a client copy of a character going away is never authoritative, see CardModNumDelta
+        if (connection.IsClient && __instance is Chara chara) {
+            EmpLog.Warning("Client copy of chara {Uid} destroyed, not synced",
+                chara.uid);
+            return;
+        }
+
         connection.Delta.AddRemote(new CardModNumDelta {
             Card = __instance,
             Num = 0,

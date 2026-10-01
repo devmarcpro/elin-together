@@ -111,6 +111,7 @@ internal partial class ElinNetHost
             chara.SetAI(GoalRemote.Default);
         }
 
+        BringCompanions(chara);
         SweepStaleCellEntries();
 
         EmpLog.Debug("Assigned zone sync position to player {@Peer} at {@Pos}",

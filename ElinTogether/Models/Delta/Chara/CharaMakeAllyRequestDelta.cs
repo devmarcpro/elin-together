@@ -1,3 +1,4 @@
+using ElinTogether.Helper;
 using ElinTogether.Net;
 using MessagePack;
 
@@ -42,6 +43,8 @@ public class CharaMakeAllyRequestDelta : ElinDelta
         }
 
         using var _ = Simulate();
+        // the companion follows the player who recruited it
+        chara.SetCompanionOwner(host.ActiveRemoteCharas.TryGetValue(OriginPeer, out var recruiter) ? recruiter : null);
         chara.MakeAlly(ShowMsg);
     }
 
@@ -56,6 +59,7 @@ public class CharaMakeAllyRequestDelta : ElinDelta
         var copy = CharaGen.Create(LocalCardId);
         _zone.AddCard(copy, receiver.pos.GetNearestPoint());
         copy.isCopy = IsCopy;
+        copy.SetCompanionOwner(receiver == pc ? null : receiver);
         copy.MakeAlly(ShowMsg);
     }
 

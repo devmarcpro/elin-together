@@ -80,6 +80,10 @@ internal partial class ElinNetClient
         }
 
         if (returning || (IsZoneSession && core.IsGameStarted)) {
+            // the cards of the game going away are no host cards: destroying them must not reach the host
+            // (our companions travelled with us, their copies here would destroy the host ones)
+            CardCache.Reset();
+
             // tear down the away game and its scene like the title screen does before a first join,
             // widgets and actors would otherwise keep reading a game without active zone
             scene.Init(Scene.Mode.None);
