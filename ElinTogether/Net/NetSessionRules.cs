@@ -20,10 +20,24 @@ public class NetSessionRules
     [Key(3)]
     public int TravelCheckpointSeconds { get; set; }
 
+    /// <summary>
+    ///     Every player is paid for its own goods in the shipping box, otherwise the host gets everything
+    /// </summary>
+    [Key(4)]
+    public bool UsePlayerShipping { get; set; }
+
+    /// <summary>
+    ///     What fights a player only acts on that player's turns, see PlayerCombatTime
+    /// </summary>
+    [Key(5)]
+    public bool UsePlayerCombatTime { get; set; }
+
     public static NetSessionRules Default => new() {
         UseSharedSpeed = EmpConfig.Server.SharedAverageSpeed.Value,
         UseTurnBasedCombat = EmpConfig.Server.TurnBasedCombat.Value,
         AllowIndependentTravel = EmpConfig.Server.IndependentTravel.Value,
         TravelCheckpointSeconds = EmpConfig.Server.TravelCheckpointSeconds.Value,
+        UsePlayerShipping = EmpConfig.Server.PlayerShipping.Value,
+        UsePlayerCombatTime = EmpConfig.Server.PlayerCombatTime.Value,
     };
 }

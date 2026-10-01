@@ -33,8 +33,17 @@ internal sealed class EmpDebugListener : MonoBehaviour
 
     internal int Port { get; private set; }
 
+    /// <summary>
+    ///     Test instances are started with -empmute: several games side by side are not to be heard
+    /// </summary>
+    private static readonly bool _muted = System.Array.IndexOf(System.Environment.GetCommandLineArgs(), "-empmute") >= 0;
+
     private void Awake()
     {
+        if (_muted) {
+            AudioListener.volume = 0f;
+        }
+
         for (var port = PortStart; port < PortStart + PortCount; port++) {
             var listener = new TcpListener(IPAddress.Loopback, port);
             try {
@@ -59,6 +68,11 @@ internal sealed class EmpDebugListener : MonoBehaviour
 
     private void Update()
     {
+        // the game sets the volume again when its settings load
+        if (_muted && AudioListener.volume != 0f) {
+            AudioListener.volume = 0f;
+        }
+
         while (_queue.TryDequeue(out var request)) {
             Execute(request);
         }

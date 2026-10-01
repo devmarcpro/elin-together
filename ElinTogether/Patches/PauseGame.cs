@@ -23,6 +23,12 @@ internal class PauseGame
             return;
         }
 
+        // turns just granted to what fights a player have to play out
+        if (PlayerCombatTime.HoldsWorld) {
+            __result = false;
+            return;
+        }
+
         // pause only if all players have no goal and none of them just walked:
         // the world goes on while anyone moves, not only the host (followers, monsters...)
         __result &= (EClass.pc.party?.members ?? [])

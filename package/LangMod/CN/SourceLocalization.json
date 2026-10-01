@@ -116,5 +116,8 @@
     "LangGeneral.emp_travel_recalling.text": "正在等待 {@Peer} 交还该地点…",
     "LangGeneral.emp_travel_recalled.text": "主机即将到来，正在汇合…",
     "LangGeneral.emp_travel_zone_closed.text": "该地点的主人已离开，正在与主机汇合",
-    "LangGeneral.emp_travel_handoff.text": "你现在是该地点的主人"
+    "LangGeneral.emp_travel_handoff.text": "你现在是该地点的主人",
+    "LangGeneral.emp_ui_sv_cfg_independent_travel.text": "允许独自行动",
+    "LangGeneral.emp_ui_sv_cfg_player_shipping.text": "出货按玩家结算",
+    "LangGeneral.emp_ui_sv_cfg_combat_time.text": "战斗按各玩家时间进行"
 }

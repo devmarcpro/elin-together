@@ -106,6 +106,7 @@ internal partial class ElinNetClient : ElinNetBase
         Router.RegisterHandler<ZoneLeaseRecall>(OnZoneLeaseRecall);
         Router.RegisterHandler<ZoneGuestRequest>(OnZoneGuestRequest);
         Router.RegisterHandler<ZoneGuestLeft>(OnZoneGuestLeft);
+        Router.RegisterHandler<ShippingPayout>(OnShippingPayout);
     }
 
     internal override void Stop()

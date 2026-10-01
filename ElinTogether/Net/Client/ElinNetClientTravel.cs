@@ -544,6 +544,7 @@ internal partial class ElinNetClient
         StopWorldStateUpdate();
         Delta.ClearOut();
         Delta.ClearIn();
+        EmptyWorldContainers();
 
         // other players stay with the host (party lists may hold empty slots)
         foreach (var member in pc.party?.members.ToList() ?? []) {
@@ -600,7 +601,7 @@ internal partial class ElinNetClient
 
     private static List<LZ4Bytes> CollectCompanions()
     {
-        return CompanionHelper.CompanionsOf(pc).Select(c => LZ4Bytes.Create(c)).ToList();
+        return CompanionHelper.TravellingWith(pc).Select(c => LZ4Bytes.Create(c)).ToList();
     }
 
     internal void SendChatWhileAway(MsgSayDelta delta)
@@ -659,6 +660,7 @@ internal partial class ElinNetClient
             ZoneLeaseDenied or
             ZoneLeaseRecall or
             ZoneGuestRequest or
+            ShippingPayout or
             ZoneDataResponse or
             SaveDataProbe or
             NetSessionRules or

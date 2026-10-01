@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using ElinTogether.Helper;
 using ElinTogether.Models;
 using ElinTogether.Net;
 using HarmonyLib;
@@ -62,6 +63,18 @@ internal static class CardAddThingEvent
     [HarmonyPrefix]
     internal static bool OnCardAddThing(Card __instance, Thing t, bool tryStack, int destInvX, int destInvY)
     {
+        // shipping box: tagged with the player shipping it; travelling, the goods go to the real host
+        var shipper = 0;
+        if (!ElinDelta.IsRemoteStateLanding && ShippingHelper.IsShippingBox(__instance)) {
+            shipper = ShippingHelper.Enabled ? ShippingHelper.ShipperOverride ?? EClass.pc.uid : 0;
+            if (ShippingHelper.ShipperOverride is null && NetSession.Instance.Connection is not ElinNetClient &&
+                NetSession.Instance.Transport is ElinNetClient away && away.ForwardShippingDeposit(t, shipper)) {
+                return false;
+            }
+
+            t.SetInt(ShippingHelper.ShipperKey, shipper);
+        }
+
         if (NetSession.Instance.Connection is not { } connection || ElinDelta.IsRemoteStateLanding) {
             if (RemoteCraft.ProductReceiver is not null) {
                 EmpLog.Warning("Suppressed add-thing of {Uid} during remote craft, IsApplying guard hit",
@@ -109,6 +122,7 @@ internal static class CardAddThingEvent
             TryStack = tryStack,
             DestInvX = destInvX,
             DestInvY = destInvY,
+            Shipper = shipper,
         });
 
         return true;

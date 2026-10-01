@@ -83,6 +83,7 @@ internal partial class ElinNetHost : ElinNetBase
         Router.RegisterHandler<ZoneLeaseRelease>(OnZoneLeaseRelease);
         Router.RegisterHandler<ZoneGuestReady>(OnZoneGuestReady);
         Router.RegisterHandler<ZoneGuestLeave>(OnZoneGuestLeave);
+        Router.RegisterHandler<ShippingDeposit>(OnShippingDeposit);
 
         // source validation
         Router.RegisterHandler<SourceValidationResponse>(OnSourceValidationResponse);

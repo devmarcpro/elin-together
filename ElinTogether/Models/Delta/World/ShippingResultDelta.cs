@@ -30,23 +30,11 @@ public class ShippingResultDelta : ElinDelta
             return;
         }
 
+        // the sale of the host's own goods: its report is its own (ours comes with ShippingPayout),
+        // the shipping total and the base are everyone's
         var result = new ShippingResult {
             ints = [..Ints],
         };
-        foreach (var strs in ItemStrs) {
-            result.items.Add(new() {
-                _strs = strs,
-            });
-        }
-
-        if (player.shippingResults.LastItem() is { } last && last.rawDate == result.rawDate) {
-            return;
-        }
-
-        player.shippingResults.Add(result);
-        while (player.shippingResults.Count > 10) {
-            player.shippingResults.RemoveAt(0);
-        }
 
         player.stats.shipNum = ShipNum;
         player.stats.shipMoney = ShipMoney;
@@ -55,12 +43,6 @@ public class ShippingResultDelta : ElinDelta
         if (BranchLv > 0 && zone?.branch is { } branch) {
             branch.lv = BranchLv;
             branch.exp = BranchExp;
-            branch.statistics.ship += result.GetIncome();
         }
-
-        player.showShippingResult = core.config.game.showShippingResult;
-
-        EmpLog.Debug("Shipping result {ShipIncome} {ShipItemCount} {ZoneUid}",
-            result.GetIncome(), result.items.Count, result.uidZone);
     }
 }

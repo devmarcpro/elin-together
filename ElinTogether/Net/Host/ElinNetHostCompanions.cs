@@ -111,9 +111,14 @@ internal partial class ElinNetHost
             game.cards.globalCharas.Add(uploaded);
 
             // the uploaded copy carries its own copy of the party, rebuild members from the uids
-            uploaded.party = party;
-            if (!party.uidMembers.Contains(uploaded.uid)) {
+            // died on the way: out of the party, dead, until someone revives it
+            var member = !uploaded.isDead && uploaded.party?.uidMembers.Contains(uploaded.uid) is true;
+            uploaded.party = member ? party : null;
+            if (member && !party.uidMembers.Contains(uploaded.uid)) {
                 party.uidMembers.Add(uploaded.uid);
+            } else if (!member && party.uidMembers.Remove(uploaded.uid)) {
+                EmpLog.Information("Companion {Uid} of player {OwnerUid} died while travelling",
+                    uploaded.uid, ownerUid);
             }
 
             party.SetMembers();

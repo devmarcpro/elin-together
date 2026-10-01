@@ -241,7 +241,9 @@ public class ActionModeCombat
 
     private static void HostPhaseUpdate(ElinNetBase net, List<NetPeerState> players)
     {
+        // rounds for everyone, unless every fight runs on its player's own time
         var active = NetSession.Instance.Rules.UseTurnBasedCombat &&
+                     !NetSession.Instance.Rules.UsePlayerCombatTime &&
                      EnemyVisibility.Values.Any(v => v) &&
                      players.Count >= 2;
 
@@ -410,6 +412,11 @@ public class ActionModeCombat
 
     private static void AccumulateRoundTimer(Chara chara, float value)
     {
+        // on a player's clock: only that player's turns give it time, see PlayerCombatTime
+        if (PlayerCombatTime.IsBound(chara)) {
+            return;
+        }
+
         // non remote
         if (Activated && NetSession.Instance.Connection is ElinNetHost && chara is { IsPC: false, ai: not GoalRemote }) {
             return;

@@ -102,6 +102,22 @@ internal partial class EmpConfig
             "The zone is simulated by that client and sent back to the host when leaving\n" +
             "客机可以独自前往其他地图，由该客机模拟，离开时回传给主机");
 
+        Server.PlayerCombatTime = config.Bind(
+            "Server",
+            "PlayerCombatTime",
+            true,
+            "Combat runs on each player's own time: what fights a player only acts when that player takes a turn\n" +
+            "Nobody waits for the others. Takes over the turn-based combat mode when both are on\n" +
+            "战斗按各玩家自己的时间进行：与某位玩家战斗的单位只在该玩家行动时行动，同时开启时优先于回合制战斗");
+
+        Server.PlayerShipping = config.Bind(
+            "Server",
+            "PlayerShipping",
+            true,
+            "Every player is paid for the goods it puts in the shipping box, with its own shipping bonus\n" +
+            "Otherwise the host gets everything\n" +
+            "每位玩家各自获得自己放入出货箱物品的收入与出货奖励，否则全部归主机");
+
         Server.TravelCheckpointSeconds = config.Bind(
             "Server",
             "TravelCheckpointSeconds",
@@ -159,6 +175,8 @@ internal partial class EmpConfig
         internal static ConfigEntry<bool> SharedAverageSpeed { get; set; } = null!;
         internal static ConfigEntry<bool> TurnBasedCombat { get; set; } = null!;
         internal static ConfigEntry<bool> IndependentTravel { get; set; } = null!;
+        internal static ConfigEntry<bool> PlayerShipping { get; set; } = null!;
+        internal static ConfigEntry<bool> PlayerCombatTime { get; set; } = null!;
         internal static ConfigEntry<int> TravelCheckpointSeconds { get; set; } = null!;
     }
 }

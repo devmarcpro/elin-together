@@ -49,6 +49,52 @@ internal static class CompanionHelper
     }
 
     /// <summary>
+    ///     The player a party member belongs to: itself for a player, its owner for a companion
+    /// </summary>
+    internal static Chara? OwnerOf(Chara chara)
+    {
+        if (chara.IsPC || chara.GetBool("remote_chara")) {
+            return chara;
+        }
+
+        if (chara.party is not { } party || !party.members.Contains(chara)) {
+            return null;
+        }
+
+        return chara.CompanionOwnerUid is var uid and not 0 ? EClass.game.cards.globalCharas.Find(uid) : party.leader;
+    }
+
+    /// <summary>
+    ///     Ally slots the player uses, as Party.Count counts them (big allies take more), without the player itself
+    /// </summary>
+    internal static int UsedAllySlots(Chara player)
+    {
+        var used = player.Evalue(1431);
+        foreach (var companion in CompanionsOf(player)) {
+            used += 1 + companion.Evalue(1431);
+        }
+
+        return used;
+    }
+
+    /// <summary>
+    ///     What goes up with a player's checkpoints: its companions, and those that died on the way
+    ///     (Elin takes a dead ally out of the party, it stays dead until revived)
+    /// </summary>
+    internal static List<Chara> TravellingWith(Chara player)
+    {
+        var list = CompanionsOf(player);
+        foreach (var chara in EClass.game.cards.globalCharas.Values) {
+            if (chara is { isDead: true, c_wasInPcParty: true } && chara.CompanionOwnerUid == player.uid &&
+                !list.Contains(chara)) {
+                list.Add(chara);
+            }
+        }
+
+        return list;
+    }
+
+    /// <summary>
     ///     Companions of the player, wherever they are
     /// </summary>
     internal static List<Chara> CompanionsOf(Chara player)

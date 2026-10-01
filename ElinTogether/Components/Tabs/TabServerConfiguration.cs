@@ -57,5 +57,18 @@ internal class TabServerConfiguration : TabEmpBase
         modes.Toggle("emp_ui_sv_cfg_turn_combat", EmpConfig.Server.TurnBasedCombat.Value,
                 value => EmpConfig.Server.TurnBasedCombat.Value = value)
             .SetTooltipLang(EmpConfig.Server.TurnBasedCombat.Description.Description);
+
+        modes.Toggle("emp_ui_sv_cfg_combat_time", EmpConfig.Server.PlayerCombatTime.Value,
+                value => EmpConfig.Server.PlayerCombatTime.Value = value)
+            .SetTooltipLang(EmpConfig.Server.PlayerCombatTime.Description.Description);
+
+        // off: everyone stays on the map of the host, as before
+        modes.Toggle("emp_ui_sv_cfg_independent_travel", EmpConfig.Server.IndependentTravel.Value,
+                value => EmpConfig.Server.IndependentTravel.Value = value)
+            .SetTooltipLang(EmpConfig.Server.IndependentTravel.Description.Description);
+
+        modes.Toggle("emp_ui_sv_cfg_player_shipping", EmpConfig.Server.PlayerShipping.Value,
+                value => EmpConfig.Server.PlayerShipping.Value = value)
+            .SetTooltipLang(EmpConfig.Server.PlayerShipping.Description.Description);
     }
 }

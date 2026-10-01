@@ -23,6 +23,12 @@ public class CardAddThingDelta : ElinDelta
     [Key(4)]
     public required int DestInvY { get; init; }
 
+    /// <summary>
+    ///     Into the shipping box: chara uid of the player shipping it, see ShippingHelper
+    /// </summary>
+    [Key(5)]
+    public int Shipper { get; set; }
+
     protected override void OnApply(ElinNetBase net)
     {
         if (Thing.Find() is not Thing { isDestroyed: false } thing) {
@@ -44,6 +50,21 @@ public class CardAddThingDelta : ElinDelta
                 nameof(CardAddThingDelta), OriginPeer, Thing.Uid, holder.uid);
             Rebind(net, Thing, thing);
             return;
+        }
+
+        if (ShippingHelper.IsShippingBox(parent)) {
+            // the host knows who sent it, everyone tags it before stacking (goods of two players never merge)
+            if (net is ElinNetHost shippingHost && OriginPeer != 0 &&
+                shippingHost.ActiveRemoteCharas.GetValueOrDefault(OriginPeer) is { } sender) {
+                Shipper = ShippingHelper.Enabled ? sender.uid : 0;
+
+                // travelling: the box here is a copy, the goods go to the real host
+                if (shippingHost.ForwardShippingDeposit(thing, Shipper)) {
+                    return;
+                }
+            }
+
+            thing.SetInt(ShippingHelper.ShipperKey, Shipper);
         }
 
         if (net.IsHost) {
