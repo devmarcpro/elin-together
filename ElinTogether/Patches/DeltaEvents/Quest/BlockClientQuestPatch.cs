@@ -11,8 +11,8 @@ internal static class BlockClientQuestPatch
 {
     internal static bool CanClientAccept(Quest quest)
     {
-        // TODO: drama quest (main, home, zone)
-        return quest is { uid: >= 0, IsRandomQuest: true, UseInstanceZone: false } && quest.source.drama.IsEmpty();
+        // quests are everyone's, story quests included; quests with their own zone are not shared yet
+        return quest is { UseInstanceZone: false };
     }
 
     internal static IEnumerable<MethodBase> TargetMethods()

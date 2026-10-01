@@ -57,18 +57,15 @@ internal static class QuestCompleteEvent
             return;
         }
 
+        var delta = new QuestCompleteDelta {
+            Uid = __instance.uid,
+            Id = __instance.id,
+        };
+
         // travelling alone: the quest log is the world's, the host tells everyone
-        QuestAwaySync.Send(new QuestCompleteDelta {
-            Uid = __instance.uid,
-        });
+        QuestAwaySync.Send(delta);
 
-        if (NetSession.Instance.Connection is not { } connection) {
-            return;
-        }
-
-        connection.Delta.AddRemote(new QuestCompleteDelta {
-            Uid = __instance.uid,
-        });
+        NetSession.Instance.Connection?.Delta.AddRemote(delta);
     }
 }
 
@@ -92,15 +89,40 @@ internal static class QuestAwaySync
 [HarmonyPatch(typeof(Player), nameof(Player.DropReward))]
 internal static class QuestRewardPatch
 {
+    private static Chara? _receiver;
+    private static bool _nothing;
+
     /// <summary>
-    ///     Set by the host while it completes a quest for another player
+    ///     While the host runs a quest step for a player on its map: what the step gives is that player's
     /// </summary>
-    internal static Chara? Receiver { get; set; }
+    internal static ScopeExit GiveTo(ElinNetHost host, int peerId)
+    {
+        _receiver = host.ActiveRemoteCharas.TryGetValue(peerId, out var receiver) ? receiver : null;
+        return new() {
+            OnExit = () => _receiver = null,
+        };
+    }
+
+    /// <summary>
+    ///     While the host repeats a quest step a player made in its own copy of the world, where it got the rewards
+    /// </summary>
+    internal static ScopeExit GiveNothing()
+    {
+        _nothing = true;
+        return new() {
+            OnExit = () => _nothing = false,
+        };
+    }
 
     [HarmonyPrefix]
     internal static bool OnDropReward(Thing t, ref Thing __result)
     {
-        if (Receiver is not { isDead: false, IsAliveInCurrentZone: true } receiver) {
+        if (_nothing) {
+            __result = t;
+            return false;
+        }
+
+        if (_receiver is not { isDead: false, IsAliveInCurrentZone: true } receiver) {
             return true;
         }
 

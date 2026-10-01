@@ -6,7 +6,8 @@ internal class QuestSynchronizationContext : SynchronizationContext
 {
     internal static void Update()
     {
-        game.quests.list.RemoveAll(q => q.uid < 0);
+        // not the story quests a dialog just started here, the host is giving them their number
+        game.quests.list.RemoveAll(q => q.uid < 0 && !SharedQuests.IsAwaitingHost(q));
         game.quests.globalList.RemoveAll(q => q.uid < 0);
 
         foreach (var chara in _map.charas) {

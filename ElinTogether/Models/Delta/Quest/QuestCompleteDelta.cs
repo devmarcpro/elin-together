@@ -1,3 +1,4 @@
+using ElinTogether.Helper;
 using ElinTogether.Net;
 using ElinTogether.Patches;
 using MessagePack;
@@ -10,10 +11,15 @@ public class QuestCompleteDelta : ElinDelta
     [Key(1)]
     public required int Uid { get; init; }
 
+    /// <summary>
+    ///     Tells which quest it is while a quest started by a dialog on a client has no number from the host yet
+    /// </summary>
+    [Key(2)]
+    public string? Id { get; init; }
+
     protected override void OnApply(ElinNetBase net)
     {
-        var quest = game.quests.list.Find(q => q.uid == Uid) ??
-                    game.quests.globalList.Find(q => q.uid == Uid);
+        var quest = SharedQuests.Find(Uid, Id);
         if (quest is null || quest.isComplete) {
             return;
         }
@@ -23,18 +29,17 @@ public class QuestCompleteDelta : ElinDelta
                 // completed by a player travelling alone, in its copy of the world: it got the rewards there,
                 // the quest log, fame and karma are the world's
                 QuestCompleteEvent.CompleteQuietly(quest, true);
-                host.SendDeltaToAllExcept(OriginPeer, this);
+                host.SendDeltaToAllExcept(OriginPeer, new QuestCompleteDelta {
+                    Uid = quest.uid,
+                });
                 return;
             }
 
             // the rewards drop at the feet of the player who completed it, not the host's
-            QuestRewardPatch.Receiver = host.ActiveRemoteCharas.TryGetValue(OriginPeer, out var receiver) ? receiver : null;
-            try {
+            using (QuestRewardPatch.GiveTo(host, OriginPeer)) {
                 using (Simulate()) {
                     quest.Complete();
                 }
-            } finally {
-                QuestRewardPatch.Receiver = null;
             }
 
             return;

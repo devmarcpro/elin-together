@@ -8,42 +8,37 @@ namespace ElinTogether.Patches;
 internal class QuestChangePhaseEvent
 {
     [HarmonyPrefix]
-    internal static bool OnClientChangePhase(Quest __instance, int a)
+    internal static bool OnClientChangePhase(Quest __instance, int a, out int __state)
     {
+        __state = __instance.phase;
+
         if (NetSession.Instance.IsHost) {
             return true;
         }
 
         __instance.phase = a;
         __instance.UpdateJournal();
-
         return false;
     }
 
     [HarmonyPostfix]
-    internal static void OnChangePhase(Quest __instance, int a)
+    internal static void OnChangePhase(Quest __instance, int a, int __state)
     {
-        if (ElinDelta.IsApplying) {
+        if (ElinDelta.IsApplying || __state == a) {
             return;
         }
+
+        var delta = new QuestChangePhaseDelta {
+            Uid = __instance.uid,
+            Modifier = a,
+            Id = __instance.id,
+            From = __state,
+        };
 
         // travelling alone: the quest log is the world's, the host tells everyone
-        QuestAwaySync.Send(new QuestChangePhaseDelta {
-            Uid = __instance.uid,
-            Modifier = a,
-        });
+        QuestAwaySync.Send(delta);
 
-        if (NetSession.Instance.Connection is not { } connection) {
-            return;
-        }
-
-        if (connection.IsClient) {
-            return;
-        }
-
-        connection.Delta.AddRemote(new QuestChangePhaseDelta {
-            Uid = __instance.uid,
-            Modifier = a,
-        });
+        // from a client: the host runs what the phase triggers, and tells the others
+        NetSession.Instance.Connection?.Delta.AddRemote(delta);
     }
 }

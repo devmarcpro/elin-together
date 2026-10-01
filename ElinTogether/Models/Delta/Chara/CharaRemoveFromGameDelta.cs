@@ -26,7 +26,13 @@ public class CharaRemoveFromGameDelta : ElinDelta
 
         pc.party.Stub_RemoveMember(chara);
         game.cards.globalCharas.Remove(chara);
-        _zone.RemoveCard(chara);
+        if (chara.currentZone == _zone && _map.charas.Contains(chara)) {
+            _zone.RemoveCard(chara);
+        } else {
+            // not on this map: its position is from another one, which may not exist here
+            chara.parent = null;
+            chara.currentZone = null;
+        }
 
         // gone from this world: a stale cached copy would be reused when it comes back (CardGenDelta)
         // and its later destruction would reach the host

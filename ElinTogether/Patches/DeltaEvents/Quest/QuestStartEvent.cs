@@ -1,3 +1,4 @@
+using ElinTogether.Helper;
 using ElinTogether.Models;
 using ElinTogether.Net;
 using HarmonyLib;
@@ -20,12 +21,29 @@ internal class QuestStartEvent
             return false;
         }
 
-        if (EClass.game.quests.list.Exists(x => x.uid == q.uid)) {
+        if (EClass.game.quests.list.Exists(x => x.uid == q.uid || (q.uid < 0 && x.id == q.id))) {
             return false;
         }
 
-        if (q.uid < 0 || !q.IsRandomQuest || q.UseInstanceZone) {
+        if (q.UseInstanceZone) {
             EmpPop.Information("emp_ui_quest_client".lang());
+            return false;
+        }
+
+        if (q.uid < 0 || !q.IsRandomQuest) {
+            // a story quest, started by a dialog: the host starts it for everyone, the dialog goes on with
+            // this copy in the meantime
+            EClass.game.quests.list.Insert(0, q);
+            SharedQuests.AwaitHost(q);
+            q.UpdateJournal();
+
+            client.Delta.AddRemote(new QuestStartDelta {
+                Uid = q.uid,
+                Owner = q.person.chara,
+                AssignQuest = q.chara?.quest?.uid == q.uid,
+                Data = LZ4Bytes.Create(q),
+            });
+            EmpLog.Debug("Requesting quest start {QuestUid} {QuestId}", q.uid, q.id);
             return false;
         }
 

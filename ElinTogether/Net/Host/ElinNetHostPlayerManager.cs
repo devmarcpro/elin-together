@@ -36,7 +36,14 @@ internal partial class ElinNetHost
         remoteChara.SetNoGoal();
 
         pc.party.RemoveMember(remoteChara);
-        _zone.RemoveCard(remoteChara);
+
+        if (remoteChara.currentZone == _zone && _map.charas.Contains(remoteChara)) {
+            _zone.RemoveCard(remoteChara);
+        } else {
+            // a player on another map keeps its position there, which may not exist on this one
+            remoteChara.parent = null;
+            remoteChara.currentZone = null;
+        }
 
         if (broadcast && NetSession.Instance.Connection is ElinNetHost host) {
             host.Delta.AddRemote(new CharaRemoveFromGameDelta {

@@ -84,6 +84,7 @@ namespace ElinTogether.Models;
 [Union(804, typeof(QuestCompleteDelta))]
 [Union(805, typeof(QuestUpdateDelta))]
 [Union(806, typeof(QuestChangePhaseDelta))]
+[Union(807, typeof(DialogFlagDelta))]
 // Act
 [Union(900, typeof(ActThrowDelta))]
 // Element
