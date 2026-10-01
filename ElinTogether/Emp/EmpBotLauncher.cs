@@ -17,7 +17,16 @@ internal static class EmpBotLauncher
 {
     private const string Window = "-screen-fullscreen 0 -screen-width 1280 -screen-height 720 -empmute -empbot";
 
+    private const string KitKey = "emp_bot_kit";
+    private const float KitWindow = 240f;
+
+    /// <summary>
+    ///     What a bot allowed to do everything needs to try it all: tools, things to place, food
+    /// </summary>
+    private static readonly string[] _kit = ["pickaxe", "shovel", "axe", "chest6", "torch", "log", "plank", "dish_soup"];
+
     private static readonly List<(Process Process, string Exe)> _bots = [];
+    private static float _kitUntil;
 
     internal static int Running
     {
@@ -83,6 +92,9 @@ internal static class EmpBotLauncher
         }
 
         _bots.Add((process, exe));
+        if (EmpConfig.Dev.BotAllActions.Value) {
+            _kitUntil = UnityEngine.Time.unscaledTime + KitWindow;
+        }
         EmpLog.Information("Bot: started {Exe} (pid {Pid})", exe, process.Id);
         EmpPop.Information("emp_ui_bot_started".lang());
         return true;
@@ -104,6 +116,33 @@ internal static class EmpBotLauncher
         }
 
         _bots.Clear();
+    }
+
+    /// <summary>
+    ///     A bot is a new player with empty hands, and a client cannot create things: the host hands the kit to
+    ///     whoever joins in the minutes after a bot was started
+    /// </summary>
+    internal static void Tick()
+    {
+        if (UnityEngine.Time.unscaledTime > _kitUntil || Running == 0 ||
+            NetSession.Instance.Transport is not ElinNetHost { IsZoneSession: false } host) {
+            return;
+        }
+
+        foreach (var chara in host.ActiveRemoteCharas.Values) {
+            if (chara.GetInt(KitKey) != 0 || !chara.IsAliveInCurrentZone) {
+                continue;
+            }
+
+            chara.SetInt(KitKey, 1);
+            foreach (var id in _kit) {
+                if (chara.things.Find(id) is null) {
+                    chara.AddThing(ThingGen.Create(id));
+                }
+            }
+
+            EmpLog.Information("Bot: kit handed to player chara {Uid}", chara.uid);
+        }
     }
 
     private static string? FindLauncher()

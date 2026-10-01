@@ -58,6 +58,9 @@ public abstract partial class ElinNetBase : EMono
         Scheduler.Tick();
         Socket.Poll();
         DialogFlagSync.Tick();
+#if DEBUG
+        EmpBotLauncher.Tick();
+#endif
 
         // an away player is alone in its zone, there is nobody to ping, unless in a zone session
         if ((!Session.IsAway || IsZoneSession) && Input.GetKeyDown(EmpConfig.Client.PingKeybind.Value) && !ui.BlockActions) {

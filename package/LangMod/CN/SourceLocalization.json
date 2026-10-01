@@ -122,7 +122,7 @@
     "LangGeneral.emp_ui_sv_cfg_combat_time.text": "战斗按各玩家时间进行",
     "LangGeneral.emp_ui_bot_add.text": "加入机器人玩家",
     "LangGeneral.emp_ui_bot_stop.text": "停止机器人（{0}）",
-    "LangGeneral.emp_ui_bot_all_actions.text": "机器人也会接任务和出货",
+    "LangGeneral.emp_ui_bot_all_actions.text": "机器人什么都做（任务、出货、挖掘、箱子）",
     "LangGeneral.emp_ui_bot_need_local.text": "机器人需要本地服务器：先断开，再加入机器人",
     "LangGeneral.emp_ui_bot_no_launcher.text": "未找到第二份游戏副本（见 _tools/make_lab.py）",
     "LangGeneral.emp_ui_bot_started.text": "机器人玩家启动中，约一分钟后加入",

@@ -19,7 +19,8 @@ internal class EmpBot : EMono
     internal static readonly bool Requested = HasArg("-empbot");
 
     /// <summary>
-    ///     Also what changes the world for everyone: accepting quests, selling through the shipping chest
+    ///     Also what changes the world for everyone: accepting quests, selling through the shipping chest,
+    ///     digging, cutting, building, taking from chests
     /// </summary>
     private static readonly bool _allActions = HasArg("-empbotall");
 
@@ -44,6 +45,9 @@ internal class EmpBot : EMono
         if (_allActions) {
             _actions.Add(("quest", 2, AcceptQuest));
             _actions.Add(("ship", 1, Ship));
+            _actions.Add(("tool", 4, UseTool));
+            _actions.Add(("build", 2, Build));
+            _actions.Add(("chest", 3, UseChest));
         }
     }
 
@@ -303,6 +307,115 @@ internal class EmpBot : EMono
         var removed = slot.thing.id;
         pc.body.Unequip(slot);
         return $"off {removed}";
+    }
+
+    /// <summary>
+    ///     Takes a tool in hand and uses it on a tile nearby: mine, dig, cut
+    /// </summary>
+    private string UseTool()
+    {
+        var tools = pc.things.Where(t => t.id is "pickaxe" or "shovel" or "axe").ToList();
+        if (tools.Count == 0) {
+            return "no tool";
+        }
+
+        var tool = tools[EClass.rnd(tools.Count)];
+        pc.HoldCard(tool);
+
+        for (var i = 0; i < 60; i++) {
+            var point = pc.pos.GetRandomPoint(3, false, true, true);
+            if (point is null || !point.IsValid) {
+                continue;
+            }
+
+            AIAct? task = tool.id switch {
+                "pickaxe" when TaskMine.CanMine(point, tool) => new TaskMine {
+                    pos = point.Copy(),
+                },
+                "shovel" when !point.HasBlock && !point.HasObj && !point.HasChara => new TaskDig {
+                    pos = point.Copy(),
+                    mode = TaskDig.Mode.RemoveFloor,
+                },
+                "axe" when point.HasObj => TaskHarvest.TryGetAct(pc, point),
+                _ => null,
+            };
+            if (task is null) {
+                continue;
+            }
+
+            pc.SetAI(task);
+            // the time to get somewhere with it
+            _next = Time.unscaledTime + 4f;
+            return $"{tool.id} at {point.x},{point.z}";
+        }
+
+        return $"{tool.id}: nothing to do here";
+    }
+
+    private string Build()
+    {
+        var things = pc.things.Where(t => t.id is "chest6" or "torch" or "log" or "plank").ToList();
+        if (things.Count == 0) {
+            return "nothing to place";
+        }
+
+        var thing = things[EClass.rnd(things.Count)];
+        var name = thing.id;
+
+        var point = pc.pos.GetRandomPoint(2, true, false);
+        if (point is null || point.HasObj || point.HasBlock) {
+            return "no room";
+        }
+
+        pc.HoldCard(thing);
+        if (thing.trait.GetRecipe() is not { } recipe) {
+            return $"{name} cannot be placed";
+        }
+
+        var task = new TaskBuild {
+            recipe = recipe,
+            held = pc.held,
+            pos = point.Copy(),
+        };
+
+        // what the build mode sets before the game places something held
+        var build = ActionMode.Build;
+        build.bridgeHeight = -1;
+        build.recipe = recipe;
+        build.mold = task;
+
+        pc.SetAI(task);
+        _next = Time.unscaledTime + 3f;
+        return $"{name} at {point.x},{point.z}";
+    }
+
+    private static string UseChest()
+    {
+        var chests = _map.things
+            .Where(t => t.IsContainer && t.placeState == PlaceState.installed && !t.isNPCProperty && t.c_lockLv == 0 &&
+                        t.pos.Distance(pc.pos) <= 8)
+            .ToList();
+        if (chests.Count == 0) {
+            return "no chest";
+        }
+
+        var chest = chests[EClass.rnd(chests.Count)];
+        if (chest.things.Count > 0 && EClass.rnd(2) == 0) {
+            var taken = chest.things[EClass.rnd(chest.things.Count)];
+            var name = taken.id;
+            pc.Pick(taken);
+            return $"takes {name} from {chest.id}";
+        }
+
+        var things = Loose();
+        if (things.Count == 0) {
+            return "empty bag";
+        }
+
+        var stored = things[EClass.rnd(things.Count)];
+        var id = stored.id;
+        chest.AddThing(stored);
+        return $"puts {id} in {chest.id}";
     }
 
     private static string AcceptQuest()
