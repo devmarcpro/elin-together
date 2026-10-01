@@ -58,6 +58,19 @@ internal static class QuestCompleteEvent
             return;
         }
 
+        if (PersonalQuests.IsPersonal(__instance)) {
+            // on someone's map, that host gives the rewards; the quest is nobody else's business
+            if (NetSession.Instance.Connection is ElinNetClient client) {
+                client.Delta.AddRemote(new QuestCompleteDelta {
+                    Uid = __instance.uid,
+                    Id = __instance.id,
+                    Data = LZ4Bytes.Create(__instance),
+                });
+            }
+
+            return;
+        }
+
         var delta = new QuestCompleteDelta {
             Uid = __instance.uid,
             Id = __instance.id,

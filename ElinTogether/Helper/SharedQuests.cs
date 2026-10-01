@@ -99,6 +99,14 @@ internal static class SharedQuests
 
         foreach (var gone in _told.Keys.Where(q => !quests.list.Contains(q)).ToArray()) {
             _told.Remove(gone);
+
+            if (PersonalQuests.IsPersonal(gone)) {
+                // completed, failed, given up: the host stops keeping it
+                PersonalQuests.TellHost(new PersonalQuestDelta {
+                    Uid = gone.uid,
+                    Data = null,
+                });
+            }
         }
 
         foreach (var quest in quests.list.ToArray()) {
@@ -114,6 +122,15 @@ internal static class SharedQuests
             }
 
             _told[quest] = hash;
+
+            if (PersonalQuests.IsPersonal(quest)) {
+                // only its taker holds it, the host keeps it for the next time it joins
+                PersonalQuests.TellHost(new PersonalQuestDelta {
+                    Uid = quest.uid,
+                    Data = data,
+                });
+                continue;
+            }
 
             var delta = new QuestUpdateDelta {
                 Uid = quest.uid,

@@ -118,6 +118,14 @@ internal partial class EmpConfig
             "Otherwise the host gets everything\n" +
             "每位玩家各自获得自己放入出货箱物品的收入与出货奖励，否则全部归主机");
 
+        Server.PersonalQuests = config.Bind(
+            "Server",
+            "PersonalQuests",
+            true,
+            "Random quests, fame and karma belong to the player who takes the quest, 5 quests each\n" +
+            "Story quests stay shared. Otherwise there is one quest log and one fame for the whole group\n" +
+            "随机任务、名声与业力归接任务的玩家所有，每人5个；主线任务仍然共享");
+
         Server.TravelCheckpointSeconds = config.Bind(
             "Server",
             "TravelCheckpointSeconds",
@@ -192,6 +200,7 @@ internal partial class EmpConfig
         internal static ConfigEntry<bool> TurnBasedCombat { get; set; } = null!;
         internal static ConfigEntry<bool> IndependentTravel { get; set; } = null!;
         internal static ConfigEntry<bool> PlayerShipping { get; set; } = null!;
+        internal static ConfigEntry<bool> PersonalQuests { get; set; } = null!;
         internal static ConfigEntry<bool> PlayerCombatTime { get; set; } = null!;
         internal static ConfigEntry<int> TravelCheckpointSeconds { get; set; } = null!;
     }

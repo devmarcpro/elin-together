@@ -64,6 +64,12 @@ internal class QuestStartEvent
             return;
         }
 
+        if (PersonalQuests.IsPersonal(q)) {
+            // only its taker holds it: the others just lose the offer, the host is told by the taker
+            PersonalQuests.OnStarted(q);
+            return;
+        }
+
         // travelling alone: the quest log is the world's, the host tells everyone
         QuestAwaySync.Send(new QuestStartDelta {
             Uid = q.uid,

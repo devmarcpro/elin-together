@@ -17,9 +17,20 @@ public class QuestCompleteDelta : ElinDelta
     [Key(2)]
     public string? Id { get; init; }
 
+    /// <summary>
+    ///     A quest only its taker holds (see PersonalQuests): the host needs it to give the rewards
+    /// </summary>
+    [Key(3)]
+    public LZ4Bytes? Data { get; init; }
+
     protected override void OnApply(ElinNetBase net)
     {
         var quest = SharedQuests.Find(Uid, Id);
+
+        if (quest is null && Data is not null && net is ElinNetHost map && !map.IsAwayPeer(OriginPeer)) {
+            map.CompletePersonal(OriginPeer, Data.Decompress<Quest>());
+            return;
+        }
         if (quest is null || quest.isComplete) {
             return;
         }

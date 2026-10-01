@@ -70,5 +70,10 @@ internal class TabServerConfiguration : TabEmpBase
         modes.Toggle("emp_ui_sv_cfg_player_shipping", EmpConfig.Server.PlayerShipping.Value,
                 value => EmpConfig.Server.PlayerShipping.Value = value)
             .SetTooltipLang(EmpConfig.Server.PlayerShipping.Description.Description);
+
+        // off: one quest log and one fame for the whole group
+        modes.Toggle("emp_ui_sv_cfg_personal_quests", EmpConfig.Server.PersonalQuests.Value,
+                value => EmpConfig.Server.PersonalQuests.Value = value)
+            .SetTooltipLang(EmpConfig.Server.PersonalQuests.Description.Description);
     }
 }

@@ -88,6 +88,10 @@ namespace ElinTogether.Models;
 [Union(808, typeof(StoryGiftDelta))]
 [Union(809, typeof(StoryOutcomeDelta))]
 [Union(810, typeof(QuestFailDelta))]
+[Union(811, typeof(PersonalStateDelta))]
+[Union(812, typeof(PersonalQuestDelta))]
+[Union(813, typeof(QuestTakenDelta))]
+[Union(814, typeof(PlayerStandingDelta))]
 // Act
 [Union(900, typeof(ActThrowDelta))]
 // Element

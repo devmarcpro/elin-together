@@ -32,6 +32,13 @@ public class NetSessionRules
     [Key(5)]
     public bool UsePlayerCombatTime { get; set; }
 
+    /// <summary>
+    ///     Random quests (from residents and boards) and what they earn, fame and karma, belong to the player who
+    ///     takes them; story quests stay everyone's. Off: one quest log and one fame for the whole group
+    /// </summary>
+    [Key(6)]
+    public bool UsePersonalQuests { get; set; }
+
     public static NetSessionRules Default => new() {
         UseSharedSpeed = EmpConfig.Server.SharedAverageSpeed.Value,
         UseTurnBasedCombat = EmpConfig.Server.TurnBasedCombat.Value,
@@ -39,5 +46,6 @@ public class NetSessionRules
         TravelCheckpointSeconds = EmpConfig.Server.TravelCheckpointSeconds.Value,
         UsePlayerShipping = EmpConfig.Server.PlayerShipping.Value,
         UsePlayerCombatTime = EmpConfig.Server.PlayerCombatTime.Value,
+        UsePersonalQuests = EmpConfig.Server.PersonalQuests.Value,
     };
 }

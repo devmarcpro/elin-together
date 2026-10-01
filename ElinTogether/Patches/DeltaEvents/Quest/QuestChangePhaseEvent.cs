@@ -1,3 +1,4 @@
+using ElinTogether.Helper;
 using ElinTogether.Models;
 using ElinTogether.Net;
 using HarmonyLib;
@@ -24,7 +25,7 @@ internal class QuestChangePhaseEvent
     [HarmonyPostfix]
     internal static void OnChangePhase(Quest __instance, int a, int __state)
     {
-        if (ElinDelta.IsApplying || __state == a) {
+        if (ElinDelta.IsApplying || __state == a || PersonalQuests.IsPersonal(__instance)) {
             return;
         }
 

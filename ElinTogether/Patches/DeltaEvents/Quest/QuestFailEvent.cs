@@ -1,3 +1,4 @@
+using ElinTogether.Helper;
 using ElinTogether.Models;
 using ElinTogether.Net;
 using HarmonyLib;
@@ -10,7 +11,7 @@ internal static class QuestFailEvent
     [HarmonyPostfix]
     internal static void OnQuestFail(Quest __instance)
     {
-        if (ElinDelta.IsApplying) {
+        if (ElinDelta.IsApplying || PersonalQuests.IsPersonal(__instance)) {
             return;
         }
 

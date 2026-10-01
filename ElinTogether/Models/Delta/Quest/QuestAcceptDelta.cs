@@ -1,3 +1,4 @@
+using ElinTogether.Helper;
 using ElinTogether.Net;
 using MessagePack;
 
@@ -30,6 +31,11 @@ public class QuestAcceptDelta : ElinDelta
 
         if (!quest.IsRandomQuest || quest.UseInstanceZone) {
             EmpLog.Warning("Rejecting quest accept, not client acceptable {QuestUid} {QuestId}", Uid, quest.id);
+            return;
+        }
+
+        if (PersonalQuests.IsPersonal(quest)) {
+            (net as ElinNetHost)?.AcceptPersonal(OriginPeer, quest);
             return;
         }
 

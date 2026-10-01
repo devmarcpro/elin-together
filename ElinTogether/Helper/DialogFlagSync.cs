@@ -61,6 +61,7 @@ internal static class DialogFlagSync
         _next = Time.unscaledTime + Interval;
 
         TellChanges();
+        PersonalQuests.Tick();
         SharedQuests.TellChanges();
     }
 
