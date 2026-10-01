@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using ElinTogether.Helper;
 using ElinTogether.Net;
 using MessagePack;
 
@@ -18,6 +20,19 @@ public class CardTryStackToDelta : ElinDelta
     protected override void OnApply(ElinNetBase net)
     {
         if (Card.Find() is not { isDestroyed: false } card) {
+            return;
+        }
+
+        // picked up by another player a moment before: it stays in that player's bag
+        if (net is ElinNetHost host && OriginPeer != 0 &&
+            card.GetRootCard() is Chara { IsPlayer: true } holder &&
+            holder != host.ActiveRemoteCharas.GetValueOrDefault(OriginPeer)) {
+            EmpLog.Warning("Refusing {DeltaType} from peer {PeerIndex}, uid {Uid} is held by player {HolderUid}",
+                nameof(CardTryStackToDelta), OriginPeer, Card.Uid, holder.uid);
+            if (card is Thing held) {
+                CardAddThingDelta.Rebind(net, Card, held);
+            }
+
             return;
         }
 

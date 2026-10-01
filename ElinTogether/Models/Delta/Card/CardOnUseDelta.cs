@@ -25,6 +25,11 @@ public class CardOnUseDelta : ElinDelta
             return;
         }
 
+        // two players reaching for the same shrine: its power is given once
+        if (net.IsHost && card.trait is TraitPowerStatue && !card.isOn) {
+            return;
+        }
+
         if (net.IsHost) {
             net.Delta.AddRemote(this);
         }

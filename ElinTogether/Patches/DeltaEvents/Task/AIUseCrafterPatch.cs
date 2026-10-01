@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using ElinTogether.Elements;
@@ -214,7 +215,8 @@ internal static class AIUseCrafterPatch
             // InsertAction, OnProgressComplete
             using (ElinDelta.Simulate()) {
                 for (var i = 0; i < targets.Count; i++) {
-                    var ing = targets[i].Split(i < args.Required.Count ? args.Required[i] : 1);
+                    // two players crafting from one stack: never more than it still holds, that would make a copy
+                    var ing = targets[i].Split(Math.Clamp(i < args.Required.Count ? args.Required[i] : 1, 1, targets[i].Num));
                     act.ings.Add(ing);
                     EmpLog.Debug(
                         "Remote craft round {CraftRound} split ing {Uid} num {CardNum}, origin {TargetUid} num left {TargetNum}",

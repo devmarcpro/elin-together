@@ -171,8 +171,19 @@ public class InvOwnerOnProcessDelta : ElinDelta
             net.Delta.AddRemote(this);
         }
 
-        destInv._OnProcess(thing);
+        // the sender already paid the bill from its own purse
+        PaidByRemote = net.IsHost && OriginPeer != 0 && dest.trait is TraitTaxChest;
+        try {
+            destInv._OnProcess(thing);
+        } finally {
+            PaidByRemote = false;
+        }
     }
+
+    /// <summary>
+    ///     Set while the host repeats the payment of a bill another player made
+    /// </summary>
+    internal static bool PaidByRemote { get; private set; }
 
     private void ApplyEffect(ElinNetBase net, Thing thing)
     {

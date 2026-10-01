@@ -1,3 +1,4 @@
+using System;
 using ElinTogether.Net;
 using MessagePack;
 
@@ -32,7 +33,8 @@ public class ActThrowDelta : ElinDelta
             return;
         }
 
-        var t = thing.Split(Thing.Num);
+        // never more than the stack still holds, that would make a copy
+        var t = thing.Split(Math.Clamp(Thing.Num, 1, thing.Num));
         ActThrow.Throw(owner, Point, Target, t, Method);
 
         if (net.IsHost) {

@@ -1,3 +1,4 @@
+using ElinTogether.Helper;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -58,8 +59,25 @@ public class ThingRequest : ElinDelta
             return;
         }
 
+        // seen in a shop or a chest a moment ago, since then in the bag of another player
+        if (net is ElinNetHost host &&
+            thing.GetRootCard() is Chara { IsPlayer: true } holder &&
+            holder != host.ActiveRemoteCharas.GetValueOrDefault(OriginPeer)) {
+            EmpLog.Warning("Rejecting ThingRequest {RequestId} from peer {PeerIndex}, uid {Uid} is held by player {HolderUid}",
+                Id, OriginPeer, thing.uid, holder.uid);
+            Respond(net, null);
+            return;
+        }
+
+        if (Num <= 0) {
+            Respond(net, null);
+            return;
+        }
+
         var origin = thing.parent as Card;
-        var result = thing.Split(Num);
+        // the stack may have shrunk since the requester counted it: asking for more than is left would make
+        // a copy of what was asked for
+        var result = thing.Split(Math.Min(Num, thing.Num));
         result.parent?.RemoveCard(result);
         CardCache.KeepAlive(result);
         RecordDangling(result, origin);
