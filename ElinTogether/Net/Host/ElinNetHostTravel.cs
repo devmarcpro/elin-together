@@ -115,9 +115,14 @@ internal partial class ElinNetHost
             return;
         }
 
+        // GetLeaseDenyReason refuses an unknown zone
+        if (zone is null) {
+            return;
+        }
+
         // a guest moving on is no longer one, see HandOverZone
         _guests.Remove(peer.Id);
-        var rangeStart = ReserveLease(peer, zone!);
+        var rangeStart = ReserveLease(peer, zone);
 
         var map = zone.IsRegion || !zone.isGenerated
             ? null
