@@ -37,6 +37,9 @@ internal static class DialogFlagSync
         nameof(Player.Flags.debugEnabled),
         nameof(Player.Flags.gotMelilithCurse),
         nameof(Player.Flags.gotEtherDisease),
+        // counted by each game on its own clock: the host's count is the one that matters
+        nameof(Player.Flags.daysAfterQuestExploration),
+        nameof(Player.Flags.magicChestSent),
     ];
 
     private static readonly PropertyInfo[] _storyFlags = typeof(Player.Flags)
@@ -57,6 +60,15 @@ internal static class DialogFlagSync
 
         _next = Time.unscaledTime + Interval;
 
+        TellChanges();
+        SharedQuests.TellChanges();
+    }
+
+    /// <summary>
+    ///     Right now, not at the next half second: before a message that builds on it
+    /// </summary>
+    internal static void TellChanges()
+    {
         if (!EClass.core.IsGameStarted || EClass.player is not { } player) {
             return;
         }

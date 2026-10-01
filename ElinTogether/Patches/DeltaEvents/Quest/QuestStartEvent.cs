@@ -42,6 +42,7 @@ internal class QuestStartEvent
                 Owner = q.person.chara,
                 AssignQuest = q.chara?.quest?.uid == q.uid,
                 Data = LZ4Bytes.Create(q),
+                Now = EClass.world.date.GetRaw(),
             });
             EmpLog.Debug("Requesting quest start {QuestUid} {QuestId}", q.uid, q.id);
             return false;
@@ -69,6 +70,7 @@ internal class QuestStartEvent
             Owner = q.person.chara,
             AssignQuest = q.chara?.quest?.uid == q.uid,
             Data = LZ4Bytes.Create(q),
+            Now = EClass.world.date.GetRaw(),
         });
 
         if (NetSession.Instance.Connection is not { } connection) {
@@ -84,6 +86,7 @@ internal class QuestStartEvent
             Owner = q.person.chara,
             AssignQuest = q.chara?.quest?.uid == q.uid,
             Data = LZ4Bytes.Create(q),
+            Now = EClass.world.date.GetRaw(),
         });
     }
 }

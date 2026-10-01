@@ -1,3 +1,4 @@
+using ElinTogether.Helper;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -74,6 +75,10 @@ internal static class StoryOutcomePatch
 
         var name = __originalMethod.Name;
         var target = __instance.manager?.tg?.chara;
+
+        // what the dialog changed so far (the stage of the debt) is to reach the host before this
+        DialogFlagSync.TellChanges();
+        SharedQuests.TellChanges();
 
         if (_hire.Contains(name)) {
             // the player pays here, the resident joins the base on the host

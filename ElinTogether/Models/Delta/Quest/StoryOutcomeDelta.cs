@@ -34,7 +34,7 @@ public class StoryOutcomeDelta : ElinDelta
             return;
         }
 
-        var target = Target?.Find() as Chara;
+        var target = FindTarget();
 
         // travelling alone, the player ran it in its copy of the world and got what it gives there
         using (away ? QuestRewardPatch.GiveNothing() : QuestRewardPatch.GiveTo(host, OriginPeer)) {
@@ -84,5 +84,21 @@ public class StoryOutcomeDelta : ElinDelta
         } finally {
             UnityEngine.Object.Destroy(stage);
         }
+    }
+
+    /// <summary>
+    ///     Who the player was talking to. Not always a card the host handed out: someone waiting to be hired
+    ///     only exists in the list of the base
+    /// </summary>
+    private Chara? FindTarget()
+    {
+        if (Target is null) {
+            return null;
+        }
+
+        return Target.Find() as Chara ??
+               game.cards.globalCharas.Find(Target.Uid) ??
+               _map.charas.Find(c => c.uid == Target.Uid) ??
+               EClass.Branch?.listRecruit.Find(hire => hire.chara?.uid == Target.Uid)?.chara;
     }
 }

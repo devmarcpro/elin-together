@@ -1,8 +1,13 @@
+using ElinTogether.Helper;
 using ElinTogether.Net;
+using ElinTogether.Patches;
 using MessagePack;
 
 namespace ElinTogether.Models;
 
+/// <summary>
+///     What a quest of the shared log holds, besides its phase, changed somewhere
+/// </summary>
 [MessagePackObject]
 public class QuestUpdateDelta : ElinDelta
 {
@@ -10,30 +15,34 @@ public class QuestUpdateDelta : ElinDelta
     public required LZ4Bytes Data { get; init; }
 
     [Key(1)]
-    public required bool AssignQuest { get; init; }
+    public required int Uid { get; init; }
+
+    /// <summary>
+    ///     Tells which quest it is while a quest started by a dialog on a client has no number from the host yet
+    /// </summary>
+    [Key(2)]
+    public string? Id { get; init; }
 
     protected override void OnApply(ElinNetBase net)
     {
-        if (NetSession.Instance.IsHost) {
+        var quest = SharedQuests.Find(Uid, Id);
+        if (quest is null || !game.quests.list.Contains(quest)) {
             return;
         }
 
-        var quest = Data.Decompress<Quest>();
+        SharedQuests.CopyState(Data.Decompress<Quest>(), quest);
+        SharedQuests.Remember(quest);
 
-        var i = game.quests.list.FindIndex(q => q.uid == quest.uid);
-        game.quests.list[i] = quest;
-        if (quest.person.chara is not { } chara) {
+        if (net is not ElinNetHost host) {
             return;
         }
 
-        quest.SetClient(chara, AssignQuest);
-    }
-
-    public static QuestUpdateDelta Create(Quest quest)
-    {
-        return new() {
-            Data = LZ4Bytes.Create(quest),
-            AssignQuest = quest.person.chara?.quest == quest,
-        };
+        host.SendDeltaToAllExcept(OriginPeer, new QuestUpdateDelta {
+            Data = Data,
+            Uid = quest.uid,
+            Id = quest.id,
+        });
+        // hosting a zone as a client: the host of the world has to know too
+        QuestAwaySync.Send(this);
     }
 }

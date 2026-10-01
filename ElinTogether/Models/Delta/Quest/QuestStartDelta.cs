@@ -20,6 +20,13 @@ public class QuestStartDelta : ElinDelta
     [Key(3)]
     public required LZ4Bytes Data { get; init; }
 
+    /// <summary>
+    ///     The date on the sender's clock. A player travelling alone has its own, and a deadline is a date:
+    ///     the receiver keeps the time that was left, on its own clock
+    /// </summary>
+    [Key(4)]
+    public int Now { get; set; }
+
     protected override void OnApply(ElinNetBase net)
     {
         if (net is ElinNetHost host) {
@@ -34,9 +41,28 @@ public class QuestStartDelta : ElinDelta
 
             // accepted by a player travelling alone, in its copy of the world: the quest log is everyone's
 
-            var accepted = Data.Decompress<Quest>();
+            var accepted = Rebase(Data.Decompress<Quest>());
+            if (!accepted.IsRandomQuest && game.quests.list.Exists(q => q.id == accepted.id)) {
+                // a story quest is started once
+                return;
+            }
+
             game.quests.globalList.RemoveAll(q => q.uid == Uid || (!accepted.IsRandomQuest && q.id == accepted.id));
             game.quests.list.Insert(0, accepted);
+            SharedQuests.Remember(accepted);
+
+            if (!accepted.IsRandomQuest) {
+                // what starting a story quest sets up (the next quests, who joins) is the world's
+                try {
+                    using (QuestRewardPatch.GiveNothing()) {
+                        using (Simulate()) {
+                            accepted.Start();
+                        }
+                    }
+                } catch (System.Exception ex) {
+                    EmpLog.Warning(ex, "Quest {QuestId} start failed on the host", accepted.id);
+                }
+            }
 
             accepted.UpdateJournal();
             if (player.questTracker) {
@@ -48,12 +74,24 @@ public class QuestStartDelta : ElinDelta
             return;
         }
 
-        var quest = Data.Decompress<Quest>();
+        var quest = Rebase(Data.Decompress<Quest>());
 
         game.quests.globalList.RemoveAll(q => q.uid == Uid);
-        // the copy a dialog started here, before the host gave the quest its number
-        game.quests.list.RemoveAll(q => q.uid < 0 && q.id == quest.id);
-        SharedQuests.HostAnswered(quest.id);
+
+        if (game.quests.list.Find(q => q.uid < 0 && q.id == quest.id) is { } mine) {
+            // started here by a dialog, which goes on with this copy: it takes its number, and what starting
+            // it changed on the host, but keeps who the dialog said it is for
+            var person = mine.person;
+            SharedQuests.CopyState(quest, mine);
+            if (person?.chara is not null && mine.person?.chara is null) {
+                mine.person = person;
+            }
+
+            mine.uid = Uid;
+            SharedQuests.HostAnswered(mine.id);
+            mine.UpdateJournal();
+            return;
+        }
 
         var i = game.quests.list.FindIndex(q => q.uid == Uid);
         if (i >= 0) {
@@ -66,6 +104,7 @@ public class QuestStartDelta : ElinDelta
             quest.SetClient(owner, AssignQuest);
         }
 
+        SharedQuests.Remember(quest);
         quest.UpdateJournal();
         if (player.questTracker) {
             WidgetQuestTracker.Show();
@@ -90,7 +129,7 @@ public class QuestStartDelta : ElinDelta
             }
 
             // created by the dialog on the player's side, it gets its number here
-            quest = Data.Decompress<Quest>();
+            quest = Rebase(Data.Decompress<Quest>());
             if (game.quests.list.Exists(q => q.id == quest.id)) {
                 return;
             }
@@ -115,5 +154,14 @@ public class QuestStartDelta : ElinDelta
         }
 
         EmpLog.Debug("Started quest {QuestUid} {QuestId} for peer {PeerIndex}", quest.uid, quest.id, OriginPeer);
+    }
+
+    private Quest Rebase(Quest quest)
+    {
+        if (Now > 0 && quest.deadline > 0) {
+            quest.deadline += EClass.world.date.GetRaw() - Now;
+        }
+
+        return quest;
     }
 }

@@ -12,9 +12,14 @@ internal static class StoryGifts
 {
     private static readonly List<Thing> _offered = [];
 
+    /// <summary>
+    ///     Set while the client only shows what the host does for real (a gacha pull)
+    /// </summary>
+    internal static bool HostGives { get; set; }
+
     internal static void Offer(Thing thing)
     {
-        if (!_offered.Contains(thing)) {
+        if (!HostGives && !_offered.Contains(thing)) {
             _offered.Add(thing);
         }
     }

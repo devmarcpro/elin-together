@@ -1,3 +1,4 @@
+using System;
 using ElinTogether.Helper;
 using ElinTogether.Net;
 using ElinTogether.Patches;
@@ -29,36 +30,22 @@ public class QuestChangePhaseDelta : ElinDelta
     protected override void OnApply(ElinNetBase net)
     {
         var quest = SharedQuests.Find(Uid, Id);
-        if (quest is null) {
-            return;
-        }
 
         // already there: what the phase triggers is not to happen twice
-        if (quest.phase == Modifier) {
+        if (quest is null || quest.phase == Modifier) {
             return;
         }
 
         if (net is not ElinNetHost host) {
-            quest.ChangePhase(Modifier);
+            // what the phase triggers happened where the step was made, and on the host: a client, even one
+            // travelling alone in its own copy of the world, only takes note
+            quest.phase = Modifier;
+            quest.UpdateJournal();
             return;
         }
 
-        if (host.IsAwayPeer(OriginPeer)) {
-            // progress made by a player travelling alone, in its copy of the world: what the phase gives
-            // was given there
-            using (QuestRewardPatch.GiveNothing()) {
-                quest.ChangePhase(Modifier);
-            }
-
-            // not back to the player who made it: what a phase triggers already happened there
-            host.SendDeltaToAllExcept(OriginPeer, new QuestChangePhaseDelta {
-                Uid = quest.uid,
-                Modifier = Modifier,
-            });
-            return;
-        }
-
-        if (From >= 0 && quest.phase != From) {
+        var away = host.IsAwayPeer(OriginPeer);
+        if (!away && From >= 0 && quest.phase != From) {
             // someone else moved the quest on in the meantime
             EmpLog.Debug("Ignoring stale quest phase {QuestId} {From}->{Phase}, at {Current}", quest.id, From, Modifier, quest.phase);
             host.SendDeltaTo(OriginPeer, new QuestChangePhaseDelta {
@@ -68,11 +55,22 @@ public class QuestChangePhaseDelta : ElinDelta
             return;
         }
 
-        // progress made by a player on this map: what the phase triggers happens here, for everyone
-        using (QuestRewardPatch.GiveTo(host, OriginPeer)) {
-            using (Simulate()) {
-                quest.ChangePhase(Modifier);
+        try {
+            // what the phase triggers in the world happens here, for everyone; what it gives goes to the player
+            // who made the step, who already has it when travelling alone
+            using (away ? QuestRewardPatch.GiveNothing() : QuestRewardPatch.GiveTo(host, OriginPeer)) {
+                using (Simulate()) {
+                    quest.ChangePhase(Modifier);
+                }
             }
+        } catch (Exception ex) {
+            // the trigger was written for the map of the player who made the step: the phase still is everyone's
+            EmpLog.Warning(ex, "Quest {QuestId} phase {Phase} trigger failed on the host", quest.id, Modifier);
+            quest.phase = Modifier;
+            host.Delta.AddRemote(new QuestChangePhaseDelta {
+                Uid = quest.uid,
+                Modifier = Modifier,
+            });
         }
     }
 }

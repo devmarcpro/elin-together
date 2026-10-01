@@ -704,7 +704,7 @@ internal partial class ElinNetClient
     {
         foreach (var delta in response.DeltaList) {
             // chat and the quest log are the world's, the rest is about the host map
-            if (delta is MsgSayDelta or QuestStartDelta or QuestCompleteDelta or QuestChangePhaseDelta or DialogFlagDelta) {
+            if (delta is MsgSayDelta or QuestStartDelta or QuestCompleteDelta or QuestChangePhaseDelta or DialogFlagDelta or QuestFailDelta or QuestUpdateDelta) {
                 // the regular delta loop does not run while away, see CoreSynchronizationContext
                 delta.Apply(this);
             }
