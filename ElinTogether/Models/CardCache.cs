@@ -38,7 +38,7 @@ public static class CardCache
         if (stored.IsGlobal || !card.IsGlobal) {
             card.uid++;
             Add(card);
-            EClass.game.cards.uidNext = Math.Max(card.uid, EClass.game.cards.uidNext);
+            EClass.game.cards.uidNext = Math.Max(card.uid + 1, EClass.game.cards.uidNext);
             return;
         }
 
@@ -46,7 +46,7 @@ public static class CardCache
 
         stored.uid++;
         Add(stored);
-        EClass.game.cards.uidNext = Math.Max(stored.uid, EClass.game.cards.uidNext);
+        EClass.game.cards.uidNext = Math.Max(stored.uid + 1, EClass.game.cards.uidNext);
     }
 
     internal static void Set(Card card)

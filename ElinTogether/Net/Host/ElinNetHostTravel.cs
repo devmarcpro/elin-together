@@ -26,11 +26,31 @@ internal partial class ElinNetHost
     /// </summary>
     private const int LeaseQuestUidHeadroom = 10_000;
 
+    private const int FloorCards = 0;
+    private const int FloorQuests = 1;
+
+    // Spatial.lv, see the game
+    private const int LvIndex = 7;
+
     private int _questRangeNext;
+
+    /// <summary>
+    ///     The highest ranges handed out, cards and quests, kept in the save: a player travelling alone keeps what
+    ///     it created (its quests, the maps and bags of its last checkpoint) when the host quits, and the numbers
+    ///     in there must not be handed out again by the next session
+    /// </summary>
+    [ElinGameIOProperty("lease_range_floor")]
+    private static int[] LeaseRangeFloor
+    {
+        get => field is { Length: 2 } ? field : field = new int[2];
+        set;
+    }
 
     private int ReserveQuestUids()
     {
-        _questRangeNext = Math.Max(game.quests.uid, _questRangeNext) + LeaseQuestUidHeadroom;
+        _questRangeNext = Math.Max(Math.Max(game.quests.uid, _questRangeNext), LeaseRangeFloor[FloorQuests]) +
+                          LeaseQuestUidHeadroom;
+        LeaseRangeFloor[FloorQuests] = _questRangeNext;
         return _questRangeNext;
     }
 
@@ -329,7 +349,8 @@ internal partial class ElinNetHost
     {
         // above the host counter and above any range handed out and still in use
         var floor = _leases.Values.SelectMany(z => z.Values).DefaultIfEmpty(0).Max();
-        var rangeStart = Math.Max(game.cards.uidNext, floor) + LeaseUidHeadroom;
+        var rangeStart = Math.Max(Math.Max(game.cards.uidNext, floor), LeaseRangeFloor[FloorCards]) + LeaseUidHeadroom;
+        LeaseRangeFloor[FloorCards] = rangeStart;
 
         if (!_leases.TryGetValue(peer.Id, out var zones)) {
             zones = _leases[peer.Id] = [];
@@ -517,6 +538,11 @@ internal partial class ElinNetHost
             // only a range the client allocated in pushes the host counter
             if (release.UidNext > rangeStart) {
                 game.cards.uidNext = Math.Max(game.cards.uidNext, release.UidNext);
+            }
+
+            // every range came back with what was used of it: nothing above the counter is in use anymore
+            if (_leases.Values.All(z => z.Count == 0)) {
+                LeaseRangeFloor[FloorCards] = 0;
             }
         } else if (release.ZoneUid != -1) {
             EmpLog.Warning("Player {@Peer} released zone {ZoneUid} without holding its lease, ignoring the zone",
@@ -706,7 +732,10 @@ internal partial class ElinNetHost
 
     private static void ForgetCachedCard(Card card)
     {
-        CardCache.Remove(card.uid);
+        // not a newer card that took that place meanwhile (an item given to a guest who went back to the host)
+        if (CardCache.Find(card.uid) is not { } cached || ReferenceEquals(cached, card)) {
+            CardCache.Remove(card.uid);
+        }
 
         foreach (var thing in card.things) {
             ForgetCachedCard(thing);
@@ -737,6 +766,16 @@ internal partial class ElinNetHost
             EmpLog.Warning("Cannot create client zone {ZoneId}, parent {ParentUid} unknown",
                 blueprint.Id, blueprint.ParentUid);
             return null;
+        }
+
+        // the copy of the world that player left with may be older than a zone created since (the next floor
+        // of a dungeon another player already went down to): the same place is the same zone
+        var lv = blueprint.ZoneState.Length > LvIndex ? blueprint.ZoneState[LvIndex] : 0;
+        if (parent.children.Find(c => c is Zone && c.id == blueprint.Id && c.x == blueprint.X && c.y == blueprint.Y &&
+                                      c.lv == lv) is Zone existing) {
+            EmpLog.Information("Client zone {ZoneFullName} already exists as uid {ZoneUid}",
+                existing.ZoneFullName, existing.uid);
+            return existing;
         }
 
         if (SpatialGen.Create(blueprint.Id, parent, true, blueprint.X, blueprint.Y, blueprint.Icon) is not Zone zone) {

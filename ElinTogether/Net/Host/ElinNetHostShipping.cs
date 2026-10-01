@@ -100,7 +100,7 @@ internal partial class ElinNetHost
             return;
         }
 
-        var players = SavedRemoteCharas.Values.ToHashSet();
+        var players = SavedRemoteCharas.Values.Concat(PlayerRosters.Values.SelectMany(roster => roster)).ToHashSet();
         var goods = box.things
             .Where(t => t.trait.CanBeShipped && players.Contains(t.ShipperUid))
             .GroupBy(t => t.ShipperUid)

@@ -240,6 +240,14 @@ internal partial class ElinNetClient
         EmpLog.Debug("Zone {ZoneFullName} created locally as {LocalUid}, host uid {ZoneUid}",
             zone.ZoneFullName, zone.uid, uid);
 
+        // what led there (stairs, a tent) points at the zone by number
+        var local = zone.uid;
+        foreach (var thing in _map.things.Concat(pc.things.Flatten().OfType<Thing>())) {
+            if (thing.c_uidZone == local) {
+                thing.c_uidZone = uid;
+            }
+        }
+
         spatials.map.Remove(zone.uid);
         zone.uid = uid;
         spatials.map[uid] = zone;
