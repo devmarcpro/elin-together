@@ -1,4 +1,5 @@
 using ElinTogether.Net;
+using ElinTogether.Patches;
 using MessagePack;
 
 namespace ElinTogether.Models;
@@ -17,14 +18,29 @@ public class QuestCompleteDelta : ElinDelta
             return;
         }
 
-        if (net.IsHost) {
-            using (Simulate()) {
-                quest.Complete();
+        if (net is ElinNetHost host) {
+            if (host.IsAwayPeer(OriginPeer)) {
+                // completed by a player travelling alone, in its copy of the world: it got the rewards there,
+                // the quest log, fame and karma are the world's
+                QuestCompleteEvent.CompleteQuietly(quest, true);
+                host.SendDeltaToAllExcept(OriginPeer, this);
+                return;
+            }
+
+            // the rewards drop at the feet of the player who completed it, not the host's
+            QuestRewardPatch.Receiver = host.ActiveRemoteCharas.TryGetValue(OriginPeer, out var receiver) ? receiver : null;
+            try {
+                using (Simulate()) {
+                    quest.Complete();
+                }
+            } finally {
+                QuestRewardPatch.Receiver = null;
             }
 
             return;
         }
 
-        quest.Complete();
+        // not Quest.Complete: an away client reads as host there and would drop the rewards again
+        QuestCompleteEvent.CompleteQuietly(quest, false);
     }
 }

@@ -23,7 +23,17 @@ internal class QuestChangePhaseEvent
     [HarmonyPostfix]
     internal static void OnChangePhase(Quest __instance, int a)
     {
-        if (NetSession.Instance.Connection is not { } connection || ElinDelta.IsApplying) {
+        if (ElinDelta.IsApplying) {
+            return;
+        }
+
+        // travelling alone: the quest log is the world's, the host tells everyone
+        QuestAwaySync.Send(new QuestChangePhaseDelta {
+            Uid = __instance.uid,
+            Modifier = a,
+        });
+
+        if (NetSession.Instance.Connection is not { } connection) {
             return;
         }
 

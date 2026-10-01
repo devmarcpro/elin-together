@@ -54,4 +54,11 @@ public class ZoneLeaseGrant
     /// </summary>
     [Key(7)]
     public bool Handoff { get; init; }
+
+    /// <summary>
+    ///     First quest uid the client may allocate: the quests it meets in its zone are created there,
+    ///     and reach the one quest log of the world when it accepts them
+    /// </summary>
+    [Key(8)]
+    public int QuestUidRangeStart { get; init; }
 }

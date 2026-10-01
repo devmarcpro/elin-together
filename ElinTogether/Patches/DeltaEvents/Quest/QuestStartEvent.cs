@@ -41,7 +41,19 @@ internal class QuestStartEvent
     [HarmonyPostfix]
     internal static void OnStart(Quest q)
     {
-        if (NetSession.Instance.Connection is not { } connection || ElinDelta.IsApplying) {
+        if (ElinDelta.IsApplying) {
+            return;
+        }
+
+        // travelling alone: the quest log is the world's, the host tells everyone
+        QuestAwaySync.Send(new QuestStartDelta {
+            Uid = q.uid,
+            Owner = q.person.chara,
+            AssignQuest = q.chara?.quest?.uid == q.uid,
+            Data = LZ4Bytes.Create(q),
+        });
+
+        if (NetSession.Instance.Connection is not { } connection) {
             return;
         }
 

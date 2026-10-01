@@ -22,6 +22,19 @@ internal partial class ElinNetHost
     private const int LeaseUidHeadroom = 50_000;
 
     /// <summary>
+    ///     Same for quest uids: a zone simulated by a client creates the quests of its residents there
+    /// </summary>
+    private const int LeaseQuestUidHeadroom = 10_000;
+
+    private int _questRangeNext;
+
+    private int ReserveQuestUids()
+    {
+        _questRangeNext = Math.Max(game.quests.uid, _questRangeNext) + LeaseQuestUidHeadroom;
+        return _questRangeNext;
+    }
+
+    /// <summary>
     ///     Peer id -> leased zone uid -> first card uid reserved for it <br />
     ///     Two zones while moving between them: the next one is granted before the previous one is handed back
     /// </summary>
@@ -40,6 +53,12 @@ internal partial class ElinNetHost
     private readonly Dictionary<int, (int ZoneUid, int HolderId)> _guests = [];
 
     /// <summary>
+    ///     Peers standing on the host map: they finished replicating it. Not those still loading it
+    ///     (joining, coming back): these follow the host if it moves on meanwhile, see LeavePlayersBehind
+    /// </summary>
+    private readonly HashSet<int> _settled = [];
+
+    /// <summary>
     ///     Peer id -> card uid counter of its last checkpoint
     /// </summary>
     private readonly Dictionary<int, int> _checkpointUidNext = [];
@@ -48,6 +67,19 @@ internal partial class ElinNetHost
     ///     Host move into a leased zone, performed once the client hands it back
     /// </summary>
     private (Zone Zone, ZoneTransition Transition)? _pendingHostMove;
+
+    /// <summary>
+    ///     The player finished replicating the host map and stands on it
+    /// </summary>
+    private void MarkSettled(ISteamNetPeer peer)
+    {
+        _settled.Add(peer.Id);
+    }
+
+    internal bool IsAwayPeer(int peerId)
+    {
+        return _departed.Contains(peerId);
+    }
 
     internal bool IsAway(ISteamNetPeer peer)
     {
@@ -60,6 +92,78 @@ internal partial class ElinNetHost
     ///     Returns true to let the move happen now, otherwise the zone is recalled from the client holding it
     /// </summary>
     internal bool TryEnterZone(Zone zone, ZoneTransition transition)
+    {
+        if (!CanEnterNow(zone, transition)) {
+            return false;
+        }
+
+        LeavePlayersBehind(zone);
+        return true;
+    }
+
+    /// <summary>
+    ///     The host leaves its map: with independent travel the players on it stay where they are instead of
+    ///     being dragged along. The first one simulates the map from now on, as it stands on its screen,
+    ///     the others join its zone session (on the world map everyone has its own copy) <br />
+    ///     To follow the host, a player takes the same way out
+    /// </summary>
+    private void LeavePlayersBehind(Zone destination)
+    {
+        if (IsZoneSession || !Session.Rules.AllowIndependentTravel || _zone is not { } zone || destination == zone) {
+            return;
+        }
+
+        // only those standing here: a player still loading this map (it was called back for this very move,
+        // or just joined) comes along as before
+        var staying = Socket.Peers.Where(p => ActiveRemoteCharas.ContainsKey(p.Id) && _settled.Contains(p.Id)).ToList();
+        _settled.Clear();
+        if (staying.Count == 0) {
+            return;
+        }
+
+        // their last actions here are applied and answered, their characters and companions leave the host map
+        // (the party of the host must not drag them along)
+        foreach (var peer in staying) {
+            DepartFromHostMap(peer);
+        }
+
+        ISteamNetPeer? heir = null;
+        foreach (var peer in staying) {
+            if (zone.IsRegion || heir is null) {
+                heir ??= peer;
+
+                var rangeStart = ReserveLease(peer, zone);
+
+                EmpLog.Information("Host leaves {ZoneFullName}, {@Peer} keeps it, uid range from {UidRangeStart}",
+                    zone.ZoneFullName, peer, rangeStart);
+
+                peer.Send(new ZoneLeaseGrant {
+                    ZoneUid = zone.uid,
+                    RequestedUid = zone.uid,
+                    UidRangeStart = rangeStart,
+                    QuestUidRangeStart = ReserveQuestUids(),
+                    ZoneState = ZoneLeaseState.GetState(zone),
+                    IdCurrentSubset = zone.idCurrentSubset,
+                    Handoff = true,
+                });
+                continue;
+            }
+
+            // stays too, as a guest of the one keeping the map, see ElinNetClient.StayAsGuest
+            _pendingGuests[peer.Id] = (zone.uid, heir.Id);
+            peer.Send(new ZoneLeaseGrant {
+                ZoneUid = zone.uid,
+                RequestedUid = zone.uid,
+                UidRangeStart = 0,
+                ZoneState = ZoneLeaseState.GetState(zone),
+                IdCurrentSubset = zone.idCurrentSubset,
+                Guest = true,
+                Handoff = true,
+            });
+        }
+    }
+
+    private bool CanEnterNow(Zone zone, ZoneTransition transition)
     {
         if (zone.IsRegion) {
             return true;
@@ -135,6 +239,7 @@ internal partial class ElinNetHost
             ZoneUid = zone.uid,
             RequestedUid = request.ZoneUid,
             UidRangeStart = rangeStart,
+            QuestUidRangeStart = ReserveQuestUids(),
             ZoneState = ZoneLeaseState.GetState(zone),
             IdCurrentSubset = zone.idCurrentSubset,
             Map = map,
@@ -172,6 +277,8 @@ internal partial class ElinNetHost
     /// </summary>
     private bool DepartFromHostMap(ISteamNetPeer peer)
     {
+        _settled.Remove(peer.Id);
+
         if (!_departed.Add(peer.Id)) {
             return false;
         }
@@ -283,6 +390,7 @@ internal partial class ElinNetHost
             ZoneUid = zoneUid,
             RequestedUid = zoneUid,
             UidRangeStart = rangeStart,
+            QuestUidRangeStart = ReserveQuestUids(),
             ZoneState = ZoneLeaseState.GetState(zone),
             IdCurrentSubset = zone.idCurrentSubset,
             Handoff = true,
@@ -681,6 +789,7 @@ internal partial class ElinNetHost
 
     private void ReleaseLeaseOnDisconnect(ISteamNetPeer peer)
     {
+        _settled.Remove(peer.Id);
         _departed.Remove(peer.Id);
         _pendingGuests.Remove(peer.Id);
         _guests.Remove(peer.Id);

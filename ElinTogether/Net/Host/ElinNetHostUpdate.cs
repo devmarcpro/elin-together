@@ -108,8 +108,9 @@ internal partial class ElinNetHost
     {
         var away = IsAway(peer);
         foreach (var delta in response.DeltaList) {
-            // an away player is not on the host map, only its chat is relevant here
-            if (away && delta is not MsgSayDelta) {
+            // an away player is not on the host map, only what it shares with the world is relevant here:
+            // its chat and the quest log
+            if (away && delta is not (MsgSayDelta or QuestStartDelta or QuestCompleteDelta or QuestChangePhaseDelta)) {
                 continue;
             }
 

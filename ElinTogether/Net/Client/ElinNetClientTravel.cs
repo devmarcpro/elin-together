@@ -51,6 +51,11 @@ internal partial class ElinNetClient
     private float _handoffDeadline;
 
     /// <summary>
+    ///     Zone the host moved to while we were leaving its map to stay behind, see StayAsGuest
+    /// </summary>
+    private int? _hostZoneAfterDeparture;
+
+    /// <summary>
     ///     The local player moves to a zone other than the one it replicates from the host <br />
     ///     Returns true to let the move happen now
     /// </summary>
@@ -259,6 +264,7 @@ internal partial class ElinNetClient
 
         // cards created here get uids the host does not use
         game.cards.uidNext = Math.Max(game.cards.uidNext, grant.UidRangeStart);
+        AdoptQuestUidRange(grant);
 
         EnterAway(zone);
         Session.IsGuest = false;
@@ -267,6 +273,16 @@ internal partial class ElinNetClient
             zone.ZoneFullName, grant.UidRangeStart, grant.Map is not null);
 
         pc.MoveZone(zone, transition);
+    }
+
+    /// <summary>
+    ///     Quests created here (residents of the zone we simulate) get uids the host does not use
+    /// </summary>
+    private static void AdoptQuestUidRange(ZoneLeaseGrant grant)
+    {
+        if (grant.QuestUidRangeStart > 0) {
+            game.quests.uid = Math.Max(game.quests.uid, grant.QuestUidRangeStart);
+        }
     }
 
     /// <summary>
@@ -372,15 +388,43 @@ internal partial class ElinNetClient
     /// </summary>
     private void TakeOverZone(ZoneLeaseGrant grant)
     {
-        if (!Session.IsGuest || Session.AwayZone is not { } zone || zone.uid != grant.ZoneUid ||
-            _zone != zone || _rejoining) {
+        // either we visit the zone of a player who left it, or we stand on the host map and the host leaves it
+        var visiting = Session.IsGuest && Session.AwayZone is { } away && away.uid == grant.ZoneUid && _zone == away;
+        var withHost = !Session.IsAway && _zone?.uid == grant.ZoneUid;
+
+        if (withHost && grant.Guest) {
+            StayAsGuest(grant);
+            return;
+        }
+
+        if ((!visiting && !withHost) || _rejoining) {
             // gone meanwhile, the host drops that lease when we rejoin
             EmpLog.Warning("Handed zone {ZoneUid} while not in it", grant.ZoneUid);
             return;
         }
 
-        // still open if the owner has not closed it yet
-        Session.RemoveZoneSession();
+        if (_zone is not { } zone) {
+            return;
+        }
+
+        // everyone else leaves this copy of the map: the players (with the host), their companions,
+        // those staying join us again with theirs. Listed while the party and the player list still stand
+        var players = Session.CurrentPlayers.Where(p => p is not null).Select(p => p.CharaUid).ToHashSet();
+        var leaving = _map.charas
+            .Where(c => c != pc && (players.Contains(c.uid) || c.GetBool("remote_chara") ||
+                                    (c.party is not null && c.party == pc.party && !c.IsCompanionOf(pc)) ||
+                                    (c.CompanionOwnerUid != 0 && c.CompanionOwnerUid != pc.uid)))
+            .ToList();
+
+        if (withHost) {
+            // the results of our last actions on the host map arrived right before this packet
+            WorldStateDeltaProcess();
+            EnterAway(zone);
+        } else {
+            // still open if the owner has not closed it yet
+            Session.RemoveZoneSession();
+        }
+
         Session.IsGuest = false;
         _pendingTravel = null;
         _handoffDeadline = 0;
@@ -388,6 +432,7 @@ internal partial class ElinNetClient
 
         // cards created here get uids the host does not use, those still waiting for one from the owner too
         game.cards.uidNext = Math.Max(game.cards.uidNext, grant.UidRangeStart);
+        AdoptQuestUidRange(grant);
         foreach (var card in _map.things.Concat<Card>(_map.charas).ToList()) {
             if (PendingUid.IsPending(card.uid)) {
                 game.cards.AssignUID(card);
@@ -400,18 +445,40 @@ internal partial class ElinNetClient
             }
         }
 
-        // the other players went their own way, with their companions (those staying join us again, with theirs)
-        foreach (var chara in _map.charas.ToList()) {
-            var otherCompanion = chara.CompanionOwnerUid is var owner and not 0 && owner != pc.uid;
-            if (chara != pc && (chara.GetBool("remote_chara") || otherCompanion)) {
-                pc.party?.RemoveMember(chara);
-                _zone.RemoveCard(chara);
+        foreach (var chara in leaving) {
+            if (chara.party is { } party && party.members.Contains(chara)) {
+                party.RemoveMember(chara);
+            }
+
+            if (chara.parent is Zone) {
+                zone.RemoveCard(chara);
             }
         }
 
-        EmpLog.Information("Took over zone {ZoneFullName}, uid range from {UidRangeStart}",
-            zone.ZoneFullName, grant.UidRangeStart);
+        EmpLog.Information("Took over zone {ZoneFullName}, uid range from {UidRangeStart}, from the host {WithHost}",
+            zone.ZoneFullName, grant.UidRangeStart, withHost);
         EmpPop.Information("emp_travel_handoff".lang());
+    }
+
+    /// <summary>
+    ///     The host leaves the map we stand on and another player takes it over: we stay, as its guest.
+    ///     Same path as asking to join a zone someone simulates, see OnZoneLeaseDepart
+    /// </summary>
+    private void StayAsGuest(ZoneLeaseGrant grant)
+    {
+        if (_pendingTravel is not null || _rejoining) {
+            return;
+        }
+
+        WorldStateDeltaProcess();
+
+        _pendingTravel = (_zone, new ZoneTransition());
+        _pendingGrant = grant;
+        StopWorldStateUpdate();
+
+        Host.Send(new ZoneLeaseAck {
+            ZoneUid = grant.ZoneUid,
+        });
     }
 
     /// <summary>
@@ -452,6 +519,15 @@ internal partial class ElinNetClient
     {
         EmpLog.Information("Zone lease {ZoneUid} denied: {Reason}",
             denied.ZoneUid, denied.Reason);
+
+        // the host stands there (we had not heard yet that it moved): going there is rejoining it
+        if (denied.Reason == "emp_travel_host_zone" && Session.IsAway && _pendingGrant is null && !_rejoining) {
+            _pendingTravel = null;
+            _hostZoneUid = denied.ZoneUid;
+            SendRejoin();
+            EmpPop.Debug("emp_travel_returning".lang());
+            return;
+        }
 
         _pendingTravel = null;
         EmpPop.Information(denied.Reason.lang());
@@ -539,7 +615,9 @@ internal partial class ElinNetClient
             return;
         }
 
-        _hostZoneUid = Session.CurrentZone?.uid ?? -1;
+        // the host may already have told us where it went (it left the map we stay on)
+        _hostZoneUid = _hostZoneAfterDeparture ?? Session.CurrentZone?.uid ?? -1;
+        _hostZoneAfterDeparture = null;
         _nextCheckpoint = Time.realtimeSinceStartup + Session.Rules.TravelCheckpointSeconds;
         StopWorldStateUpdate();
         Delta.ClearOut();
@@ -606,6 +684,14 @@ internal partial class ElinNetClient
 
     internal void SendChatWhileAway(MsgSayDelta delta)
     {
+        SendWhileAway(delta);
+    }
+
+    /// <summary>
+    ///     What an away player still shares with the world: chat, the quest log
+    /// </summary>
+    internal void SendWhileAway(ElinDelta delta)
+    {
         Host.Send(new WorldStateDeltaList {
             DeltaList = [delta],
         });
@@ -617,7 +703,8 @@ internal partial class ElinNetClient
     private void ApplyChatWhileAway(WorldStateDeltaList response)
     {
         foreach (var delta in response.DeltaList) {
-            if (delta is MsgSayDelta) {
+            // chat and the quest log are the world's, the rest is about the host map
+            if (delta is MsgSayDelta or QuestStartDelta or QuestCompleteDelta or QuestChangePhaseDelta) {
                 // the regular delta loop does not run while away, see CoreSynchronizationContext
                 delta.Apply(this);
             }

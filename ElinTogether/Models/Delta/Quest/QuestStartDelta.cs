@@ -20,7 +20,23 @@ public class QuestStartDelta : ElinDelta
 
     protected override void OnApply(ElinNetBase net)
     {
-        if (net.IsHost) {
+        if (net is ElinNetHost host) {
+            // accepted by a player travelling alone, in its copy of the world: the quest log is everyone's
+            if (!host.IsAwayPeer(OriginPeer) || game.quests.list.Exists(q => q.uid == Uid)) {
+                return;
+            }
+
+            var accepted = Data.Decompress<Quest>();
+            game.quests.globalList.RemoveAll(q => q.uid == Uid);
+            game.quests.list.Insert(0, accepted);
+
+            accepted.UpdateJournal();
+            if (player.questTracker) {
+                WidgetQuestTracker.Show();
+            }
+
+            // not back to the player who accepted it: its copy is the live one
+            host.SendDeltaToAllExcept(OriginPeer, this);
             return;
         }
 

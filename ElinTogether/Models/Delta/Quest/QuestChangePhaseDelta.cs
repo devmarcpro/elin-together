@@ -14,8 +14,14 @@ public class QuestChangePhaseDelta : ElinDelta
 
     protected override void OnApply(ElinNetBase net)
     {
-        if (net.IsHost) {
-            // TODO: disable client quest progress
+        if (net is ElinNetHost host) {
+            // progress made by a player travelling alone, in its copy of the world
+            if (host.IsAwayPeer(OriginPeer) && game.quests.list.Find(q => q.uid == Uid) is { } advanced) {
+                advanced.ChangePhase(Modifier);
+                // not back to the player who made it: what a phase triggers already happened there
+                host.SendDeltaToAllExcept(OriginPeer, this);
+            }
+
             return;
         }
 

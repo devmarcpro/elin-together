@@ -56,6 +56,13 @@ internal partial class ElinNetClient
             return;
         }
 
+        if (IsAwaitingDeparture && !IsZoneSession) {
+            // we are leaving its map (it left, we stay behind): do not follow it
+            EmpLog.Debug("Host moved to {ZoneFullName} while we stay behind", response.ZoneFullName);
+            _hostZoneAfterDeparture = response.ZoneUid;
+            return;
+        }
+
         EmpLog.Information("Received zone state");
 
         response.WriteToTemp();

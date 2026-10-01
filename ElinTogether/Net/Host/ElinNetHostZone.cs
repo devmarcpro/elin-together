@@ -125,6 +125,8 @@ internal partial class ElinNetHost
             Pos = pos,
         });
 
+        MarkSettled(peer);
+
         RemoveLeftOverCharas(null);
     }
 }
