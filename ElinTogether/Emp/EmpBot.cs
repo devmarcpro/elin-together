@@ -86,6 +86,15 @@ internal class EmpBot : EMono
         }
 
         if (!core.IsGameStarted) {
+            // which character to play: the first one
+            if (NetSession.Instance.Transport is ElinNetClient &&
+                ui.layers.OfType<Dialog>().LastOrDefault() is { } choice &&
+                choice.GetComponentsInChildren<Button>(true).FirstOrDefault(b => b.name.StartsWith("ButtonGeneral(Clone)")) is { } first) {
+                first.onClick.Invoke();
+                EmpLog.Information("Bot: plays {Chara}", Label(first));
+                return;
+            }
+
             Join();
             return;
         }

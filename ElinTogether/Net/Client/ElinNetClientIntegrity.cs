@@ -59,6 +59,7 @@ internal partial class ElinNetClient
                 SourceValidationFailed or
                 SteamLobbyRequest or
                 SessionNewPlayerRequest or
+                SessionCharaSelectRequest or
                 NetSessionRules or
                 SaveDataProbe, // ok
             _ => false,

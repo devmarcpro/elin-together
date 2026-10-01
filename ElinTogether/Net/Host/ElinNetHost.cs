@@ -76,6 +76,7 @@ internal partial class ElinNetHost : ElinNetBase
         Router.RegisterHandler<NetIntegrityResponse>(OnNetHandshakeResponse);
 
         Router.RegisterHandler<SessionNewPlayerResponse>(OnSessionNewPlayerResponse);
+        Router.RegisterHandler<SessionCharaSelectResponse>(OnSessionCharaSelectResponse);
         Router.RegisterHandler<MapDataRequest>(OnMapDataRequest);
         Router.RegisterHandler<ZoneDataReceivedResponse>(OnZoneDataReceivedResponse);
         Router.RegisterHandler<WorldStateRequest>(OnWorldStateRequest);

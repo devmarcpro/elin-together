@@ -27,6 +27,16 @@ internal partial class ElinNetHost
         set;
     }
 
+    /// <summary>
+    ///     Every character a player made in this world. <see cref="SavedRemoteCharas" /> holds the one it plays
+    /// </summary>
+    [ElinGameIOProperty("remote_chara_roster")]
+    private static Dictionary<ulong, List<int>> PlayerRosters
+    {
+        get => field ??= [];
+        set;
+    }
+
     public static void RemoveRemoteChara(Chara remoteChara, bool broadcast = true)
     {
         if (!core.IsGameStarted) {
@@ -60,6 +70,20 @@ internal partial class ElinNetHost
         EmpLog.Information("Preparing player {@Peer} for joining",
             peer);
 
+        var roster = RosterOf(peer.User);
+        if (roster.Count > 0 && EmpConfig.Server.ChooseCharacter.Value) {
+            // the player picks who to play, or makes someone new
+            peer.Send(new SessionCharaSelectRequest {
+                Charas = roster
+                    .Select(c => new SessionCharaEntry {
+                        Uid = c.uid,
+                        Label = $"{c.Name} - {c.race.GetName()} {c.job.GetName()}, Lv {c.LV}",
+                    })
+                    .ToList(),
+            });
+            return;
+        }
+
         if (!SavedRemoteCharas.TryGetValue(peer.User, out var charaUid) ||
             game.cards.globalCharas.Find(charaUid) is not { } chara) {
             EmpLog.Debug("Remote character does not exist, request for new character generation");
@@ -68,6 +92,51 @@ internal partial class ElinNetHost
             // remote character exists
             SendSaveProbe(chara, peer);
         }
+    }
+
+    /// <summary>
+    ///     The characters of a player in this world nobody is playing right now
+    /// </summary>
+    private List<Chara> RosterOf(ulong user)
+    {
+        if (!PlayerRosters.TryGetValue(user, out var uids)) {
+            uids = PlayerRosters[user] = [];
+        }
+
+        // worlds from before the roster only know the one character
+        if (SavedRemoteCharas.TryGetValue(user, out var current) && !uids.Contains(current)) {
+            uids.Add(current);
+        }
+
+        return uids
+            .Select(uid => game.cards.globalCharas.Find(uid))
+            .Where(c => c is not null && !ActiveRemoteCharas.ContainsValue(c))
+            .ToList();
+    }
+
+    /// <summary>
+    ///     Net event: the player picked a character, or asks for a new one
+    /// </summary>
+    private void OnSessionCharaSelectResponse(SessionCharaSelectResponse response, ISteamNetPeer peer)
+    {
+        if (ActiveRemoteCharas.ContainsKey(peer.Id)) {
+            return;
+        }
+
+        if (response.Uid == 0) {
+            EmpLog.Debug("Player {@Peer} asks for a new character", peer);
+            peer.Send(new SessionNewPlayerRequest());
+            return;
+        }
+
+        if (RosterOf(peer.User).Find(c => c.uid == response.Uid) is not { } chara) {
+            EmpLog.Warning("Player {@Peer} picked chara {Uid} which is not one of its own", peer, response.Uid);
+            PreparePlayerJoin(peer);
+            return;
+        }
+
+        SavedRemoteCharas[peer.User] = chara.uid;
+        SendSaveProbe(chara, peer);
     }
 
     /// <summary>
@@ -153,6 +222,8 @@ internal partial class ElinNetHost
         }
 
         SavedRemoteCharas[peer.User] = chara.uid;
+        // adds the character now played to the roster
+        RosterOf(peer.User);
 
         SendSaveProbe(chara, peer);
     }

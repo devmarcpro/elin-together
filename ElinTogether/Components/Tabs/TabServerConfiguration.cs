@@ -75,5 +75,10 @@ internal class TabServerConfiguration : TabEmpBase
         modes.Toggle("emp_ui_sv_cfg_personal_quests", EmpConfig.Server.PersonalQuests.Value,
                 value => EmpConfig.Server.PersonalQuests.Value = value)
             .SetTooltipLang(EmpConfig.Server.PersonalQuests.Description.Description);
+
+        // off: a player always gets the character it played last
+        modes.Toggle("emp_ui_sv_cfg_choose_chara", EmpConfig.Server.ChooseCharacter.Value,
+                value => EmpConfig.Server.ChooseCharacter.Value = value)
+            .SetTooltipLang(EmpConfig.Server.ChooseCharacter.Description.Description);
     }
 }

@@ -1,3 +1,4 @@
+using System.Linq;
 using System;
 using System.Collections.Generic;
 using ElinTogether.Common;
@@ -12,6 +13,36 @@ internal partial class ElinNetClient
     /// <summary>
     ///     Net event: Local character creation requested
     /// </summary>
+    /// <summary>
+    ///     Net event: this player already has characters in that world, which one to play?
+    /// </summary>
+    private void OnSessionCharaSelectRequest(SessionCharaSelectRequest request)
+    {
+        EmpLog.Information("Received character choice, {Count} character(s)", request.Charas.Count);
+
+        // PreparePlayerJoin
+        AdvanceHandshake(NetHandshakePhase.Joined);
+
+        var labels = request.Charas
+            .Select(c => c.Label)
+            .Append("emp_ui_chara_new".lang())
+            .ToList();
+
+        var chosen = false;
+        var dialog = Dialog.List("emp_ui_chara_pick".lang(), labels, label => label, (index, _) => {
+            chosen = true;
+            Host.Send(new SessionCharaSelectResponse {
+                Uid = index < request.Charas.Count ? request.Charas[index].Uid : 0,
+            });
+            return true;
+        });
+        dialog.SetOnKill(() => {
+            if (!chosen) {
+                Socket.Disconnect(Host, EmpDisconnectInfo.ClientCancel);
+            }
+        });
+    }
+
     private void OnSessionNewPlayerRequest(SessionNewPlayerRequest request)
     {
         EmpLog.Information("Received new player creation request");

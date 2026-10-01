@@ -126,5 +126,8 @@
     "LangGeneral.emp_ui_bot_need_local.text": "机器人需要本地服务器：先断开，再加入机器人",
     "LangGeneral.emp_ui_bot_no_launcher.text": "未找到第二份游戏副本（见 _tools/make_lab.py）",
     "LangGeneral.emp_ui_bot_started.text": "机器人玩家启动中，约一分钟后加入",
-    "LangGeneral.emp_ui_sv_cfg_personal_quests.text": "随机任务和名声按玩家计算"
+    "LangGeneral.emp_ui_sv_cfg_personal_quests.text": "随机任务和名声按玩家计算",
+    "LangGeneral.emp_ui_sv_cfg_choose_chara.text": "玩家加入时选择角色",
+    "LangGeneral.emp_ui_chara_pick.text": "你想扮演谁？",
+    "LangGeneral.emp_ui_chara_new.text": "新角色"
 }

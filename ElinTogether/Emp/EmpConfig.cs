@@ -126,6 +126,14 @@ internal partial class EmpConfig
             "Story quests stay shared. Otherwise there is one quest log and one fame for the whole group\n" +
             "随机任务、名声与业力归接任务的玩家所有，每人5个；主线任务仍然共享");
 
+        Server.ChooseCharacter = config.Bind(
+            "Server",
+            "ChooseCharacter",
+            true,
+            "A player joining picks one of the characters it already has in this world, or makes a new one\n" +
+            "Otherwise it always gets the character it played last\n" +
+            "加入的玩家可以选择自己在这个世界已有的角色或新建角色，否则总是使用上次的角色");
+
         Server.TravelCheckpointSeconds = config.Bind(
             "Server",
             "TravelCheckpointSeconds",
@@ -201,6 +209,7 @@ internal partial class EmpConfig
         internal static ConfigEntry<bool> IndependentTravel { get; set; } = null!;
         internal static ConfigEntry<bool> PlayerShipping { get; set; } = null!;
         internal static ConfigEntry<bool> PersonalQuests { get; set; } = null!;
+        internal static ConfigEntry<bool> ChooseCharacter { get; set; } = null!;
         internal static ConfigEntry<bool> PlayerCombatTime { get; set; } = null!;
         internal static ConfigEntry<int> TravelCheckpointSeconds { get; set; } = null!;
     }
