@@ -39,6 +39,12 @@ public class NetSessionRules
     [Key(6)]
     public bool UsePersonalQuests { get; set; }
 
+    /// <summary>
+    ///     Two players next to each other can trade items and gold through a window both confirm
+    /// </summary>
+    [Key(7)]
+    public bool AllowPlayerTrade { get; set; }
+
     public static NetSessionRules Default => new() {
         UseSharedSpeed = EmpConfig.Server.SharedAverageSpeed.Value,
         UseTurnBasedCombat = EmpConfig.Server.TurnBasedCombat.Value,
@@ -47,5 +53,6 @@ public class NetSessionRules
         UsePlayerShipping = EmpConfig.Server.PlayerShipping.Value,
         UsePlayerCombatTime = EmpConfig.Server.PlayerCombatTime.Value,
         UsePersonalQuests = EmpConfig.Server.PersonalQuests.Value,
+        AllowPlayerTrade = EmpConfig.Server.PlayerTrade.Value,
     };
 }

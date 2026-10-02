@@ -80,5 +80,9 @@ internal class TabServerConfiguration : TabEmpBase
         modes.Toggle("emp_ui_sv_cfg_choose_chara", EmpConfig.Server.ChooseCharacter.Value,
                 value => EmpConfig.Server.ChooseCharacter.Value = value)
             .SetTooltipLang(EmpConfig.Server.ChooseCharacter.Description.Description);
+
+        modes.Toggle("emp_ui_sv_cfg_player_trade", EmpConfig.Server.PlayerTrade.Value,
+                value => EmpConfig.Server.PlayerTrade.Value = value)
+            .SetTooltipLang(EmpConfig.Server.PlayerTrade.Description.Description);
     }
 }

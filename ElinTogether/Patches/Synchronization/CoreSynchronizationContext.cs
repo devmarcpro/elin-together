@@ -33,6 +33,7 @@ internal class CoreSynchronizationContext : SynchronizationContext
         CardAddThingEvent.FlushPendingAbilityFakeCard();
         ThingRequest.InvalidateDangling();
         StoryGifts.Flush();
+        PlayerTrade.Update();
         CardCache.Update();
         CharaSynchronizationContext.Update();
         NetProfileSynchronizationContext.Update();

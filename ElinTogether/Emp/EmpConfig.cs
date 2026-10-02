@@ -126,6 +126,14 @@ internal partial class EmpConfig
             "Story quests stay shared. Otherwise there is one quest log and one fame for the whole group\n" +
             "随机任务、名声与业力归接任务的玩家所有，每人5个；主线任务仍然共享");
 
+        Server.PlayerTrade = config.Bind(
+            "Server",
+            "PlayerTrade",
+            true,
+            "Players next to each other can trade items and gold through a window both confirm\n" +
+            "Otherwise the game's own menu opens the other player's bag, as for an ally\n" +
+            "相邻的玩家可以通过双方确认的窗口交换物品和金币");
+
         Server.ChooseCharacter = config.Bind(
             "Server",
             "ChooseCharacter",
@@ -210,6 +218,7 @@ internal partial class EmpConfig
         internal static ConfigEntry<bool> PlayerShipping { get; set; } = null!;
         internal static ConfigEntry<bool> PersonalQuests { get; set; } = null!;
         internal static ConfigEntry<bool> ChooseCharacter { get; set; } = null!;
+        internal static ConfigEntry<bool> PlayerTrade { get; set; } = null!;
         internal static ConfigEntry<bool> PlayerCombatTime { get; set; } = null!;
         internal static ConfigEntry<int> TravelCheckpointSeconds { get; set; } = null!;
     }

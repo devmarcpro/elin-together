@@ -78,6 +78,8 @@ namespace ElinTogether.Models;
 [Union(703, typeof(InvPlaceAbilityDelta))]
 // Quest
 [Union(226, typeof(CharaAffinityDelta))]
+[Union(704, typeof(TradeIntentDelta))]
+[Union(705, typeof(TradeStateDelta))]
 [Union(800, typeof(QuestCreateDelta))]
 [Union(801, typeof(QuestSetClientDelta))]
 [Union(802, typeof(QuestStartDelta))]
