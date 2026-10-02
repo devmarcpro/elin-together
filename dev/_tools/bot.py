@@ -287,6 +287,10 @@ def settle(read_a, read_b, timeout=8):
         time.sleep(1)
 
 
+# verifications de suite pendant lesquelles un jeu peut etre entre deux cartes (un chargement dure 3 a 10 s)
+BUSY_CHECKS = 6
+
+
 class Watch:
     def __init__(self, bot, other, names):
         self.bot, self.other, self.names = bot, other, names
@@ -295,6 +299,7 @@ class Watch:
         self.logs = {"journal du host": LOCALLOW / "Player.log", "journal du client": SHOTS / "elin2-player.log"}
         self.offsets = {k: (p.stat().st_size if p.exists() else 0) for k, p in self.logs.items()}
         self.mod_seen = 0
+        self.busy = 0
 
     def problem(self, text, last):
         self.problems.append((text, last))
@@ -332,6 +337,23 @@ class Watch:
             self.problem(f'journal du mod : {d["@l"]} {d["@mt"][:160]}', last)
         self.mod_seen = len(mod)
 
+        # un jeu entre deux cartes (voyage, retour chez l'host) n'a pas de carte a comparer : on repasse au tour
+        # suivant. Mais pas sans fin : un joueur qui reste sans carte est un vrai defaut (vu le 2026-10-02)
+        try:
+            self.compare(sb, so, last)
+            self.busy = 0
+        except RuntimeError as ex:
+            self.busy += 1
+            if self.busy > BUSY_CHECKS:
+                self.problem(f"un jeu reste sans carte depuis {self.busy} verifications ({str(ex)[:120]})", last)
+                return False
+        return True
+
+    def compare(self, sb, so, last):
+        for s in (sb, so):
+            if not s.get("gameStarted") or s.get("sceneMode") != "Zone" or s.get("inTransfer"):
+                raise RuntimeError("en chargement")
+
         for port, name in ((self.bot, self.names[0]), (self.other, self.names[1])):
             twice = doubles(port)
             if twice:
@@ -351,7 +373,6 @@ class Watch:
             same, a, b = settle(lambda: ev(self.bot, count), lambda: ev(self.other, count))
             if not same:
                 self.problem(f"objets sur la carte : {a} chez {self.names[0]}, {b} chez {self.names[1]}", last)
-        return True
 
 
 def main():

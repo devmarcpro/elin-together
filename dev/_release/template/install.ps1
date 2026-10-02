@@ -75,7 +75,9 @@ if (Test-Path -LiteralPath $expectedFile) { $expected = (Get-Content -LiteralPat
 if ($version) { Write-Host "Version d'Elin : $version" }
 if ($expected -and $version -and $expected -ne $version) {
     Write-Host "Attention : ce mod a ete prepare pour Elin $expected." -ForegroundColor Yellow
-    Write-Host 'Les deux joueurs doivent avoir la meme version du jeu : mets Elin a jour sur Steam.' -ForegroundColor Yellow
+    Write-Host 'Tous les joueurs doivent avoir la meme version du jeu, sur le canal Nightly :' -ForegroundColor Yellow
+    Write-Host '  Steam, clic droit sur Elin, Proprietes, Betas, choisir "nightly", laisser Steam mettre a jour,' -ForegroundColor Yellow
+    Write-Host '  puis relancer cet installateur. Avec une autre version, la connexion sera refusee.' -ForegroundColor Yellow
 }
 
 # dependance : YK Framework (Workshop)

@@ -932,6 +932,25 @@ entrées s'ajoutent **ici, à la fin du fichier**.
   Corrigé dans l'outil (`IsSettled`). Même fenêtre pour tout ce que l'host ferait au personnage d'un joueur en
   train de charger ; rien d'autre que ce matériel n'y touche aujourd'hui.
 
+- **Deuxième passage, sur `449c5fa` : 35 minutes, 1 066 actions du bot, 148 + ~80 vérifications, 0 problème,
+  0 exception** dans les journaux des deux jeux (le bot est rentré plusieurs fois chez l'host avec des quêtes).
+  Le surveillant s'était arrêté seul à la 13ᵉ minute : il interrogeait un jeu pile pendant un changement de carte
+  (`EClass._map` vide). `bot.py` : un jeu entre deux cartes fait sauter la comparaison, six fois de suite au plus
+  (`BUSY_CHECKS`), après quoi c'est signalé comme un vrai problème. Relancé 20 minutes sur les mêmes fenêtres.
+
+### Zip pour l'ami (13h55)
+- `make_release.ps1` sur le commit `d2ae52e` (les corrections en cours, pas testées, étaient mises de côté par
+  `git stash`) : `_release/ElinTogether-independance.zip`, 1 Mo, Elin EA 23.350 Patch 1, mod 0.26.292.
+  Contenu vérifié : pas de `.pdb`, pas de fichier du jeu.
+- Installateur essayé ici comme chez l'ami (zip décompressé ailleurs, `install.ps1`) : jeu trouvé, ancienne
+  copie mise de côté, `loadorder.txt` corrigé. Le build Release se charge sans exception (écran titre, entrée
+  de menu « Elin Together »). **Pas testé en partie** : le build Release n'a pas de pont de test ; c'est le même
+  code que le Debug qui a passé les suites. Message de l'installateur précisé quand la version d'Elin diffère
+  (canal Nightly).
+- Le jeu de cette machine a maintenant **le build Release du zip** (pour jouer avec l'ami). Avant de reprendre
+  les tests : `build.ps1`. Avant de rejouer avec l'ami après des tests : relancer `Installer.bat` du zip, sinon
+  les numéros de version ne correspondent plus et la connexion est refusée.
+
 ### Page Workshop d'Elin Together, lue le 2026-10-02 (67 commentaires) — pistes, à proposer à l'utilisateur
 Rien de neuf côté code d'origine : `upstream/main` n'a aucun commit depuis la base du fork (`4a487d1`).
 Ce que les joueurs demandent ou signalent, du plus fréquent au plus rare :
@@ -969,7 +988,13 @@ Ce que les joueurs demandent ou signalent, du plus fréquent au plus rare :
   À proposer : un README du fork (ce qu'il ajoute, les cases de l'host, comment l'installer, limites).
 
 ### À faire ensuite (ordre demandé par l'utilisateur)
-1. Série de bots de 30 minutes (menu, « tout faire », `bot.py --watch`) : deuxième passage en cours sur `449c5fa`.
+1. Série de bots de 30 minutes : faite (voir plus haut). Zip : fait.
+   **En cours, mis de côté à la demande de l'utilisateur (`git stash`, « en cours : retours des joueurs »)** :
+   `PLAN_retours_joueurs.md`. Écrit, pas testé : état « posé » joint aux effets d'une pose
+   (`CardSetPlacedStateEvent`), mur cassé par un monstre (`CharaDestroyPathDelta`, union 227), matériel du bot
+   donné seulement à un joueur installé (`IsSettled`). Tests prêts : `build_suite.py` (B1–B5, B3 ; rouges
+   attendus sur `d2ae52e` : B5 « roaming » et B3), `player_suite.py` F1 (à refaire : l'host arrête une tâche
+   injectée quand le client se dit inactif, il faut partir du jeu du client).
 2. Nouveau zip (`make_release.ps1`), puis remettre le build Debug.
 3. Suite de `DOCUMENTATION.md` section 7. **Pas le « temps du monde commun » sans l'utilisateur.**
 4. Demande de l'utilisateur (2026-10-02) : lire la page Workshop d'Elin Together et surtout ses commentaires
