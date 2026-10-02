@@ -79,6 +79,39 @@ internal static class AIFishPatch
             .InstructionEnumeration();
     }
 
+    /// <summary>
+    ///     The catch is rolled by the host, where another player's character is not "the player": it fished with
+    ///     the odds of a resident, 20 times fewer bonus catches and 50 times fewer starred fish. It stands in as
+    ///     the player for the roll
+    /// </summary>
+    [HarmonyPrefix]
+    [HarmonyPriority(Priority.First)]
+    [HarmonyPatch(typeof(AI_Fish), nameof(AI_Fish.Makefish))]
+    internal static void OnMakefishAsPlayer(Chara c, out ScopeExit? __state)
+    {
+        __state = null;
+        if (NetSession.Instance.Connection is not ElinNetHost || !c.IsRemotePlayer) {
+            return;
+        }
+
+        // the catches of the day counted by the game are the host's own
+        var fished = EClass.player.fished;
+        var standIn = RemoteCraft.AsCrafter(c);
+        __state = new() {
+            OnExit = () => {
+                standIn.Dispose();
+                EClass.player.fished = fished;
+            },
+        };
+    }
+
+    [HarmonyFinalizer]
+    [HarmonyPatch(typeof(AI_Fish), nameof(AI_Fish.Makefish))]
+    internal static void OnMakefishAsPlayerEnd(ScopeExit? __state)
+    {
+        __state?.Dispose();
+    }
+
     [HarmonyPrefix]
     [HarmonyPatch(typeof(AI_Fish), nameof(AI_Fish.Makefish))]
     internal static bool OnMakefish(ref Thing? __result)
@@ -88,8 +121,11 @@ internal static class AIFishPatch
 
     [HarmonyPostfix]
     [HarmonyPatch(typeof(AI_Fish), nameof(AI_Fish.Makefish))]
-    internal static void OnMakefishEnd(Chara c, Thing? __result)
+    internal static void OnMakefishEnd(Chara c, Thing? __result, ScopeExit? __state)
     {
+        // the stand-in ends with the roll: below, the bait is looked up as another player's
+        __state?.Dispose();
+
         if (!TaskProduct.Publish(nameof(AI_Fish.Makefish), __result)) {
             return;
         }
