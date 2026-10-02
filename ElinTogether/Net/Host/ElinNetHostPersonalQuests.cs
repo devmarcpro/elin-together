@@ -115,7 +115,8 @@ internal partial class ElinNetHost
     /// <summary>
     ///     A player on this map turns in one of its quests: only that player holds it, it comes with the request
     /// </summary>
-    internal void CompletePersonal(int peerId, Quest quest)
+    /// <param name="lastWave">for a defense quest: the wave its player reached, and the bonus it earned</param>
+    internal void CompletePersonal(int peerId, Quest quest, int lastWave = 0, int bonus = 0)
     {
         if (!ActiveRemoteCharas.TryGetValue(peerId, out var taker)) {
             return;
@@ -127,6 +128,12 @@ internal partial class ElinNetHost
             return;
         }
 
+        var (hostWave, hostBonus) = (QuestDefenseGame.lastWave, QuestDefenseGame.bonus);
+        if (quest is QuestDefenseGame) {
+            QuestDefenseGame.lastWave = lastWave;
+            QuestDefenseGame.bonus = bonus;
+        }
+
         try {
             using (PlayerStandIn.For(this, peerId, taker)) {
                 using (ElinDelta.Simulate()) {
@@ -135,6 +142,9 @@ internal partial class ElinNetHost
             }
         } catch (Exception ex) {
             EmpLog.Warning(ex, "Quest {QuestId} completion failed for player {CharaUid}", quest.id, taker.uid);
+        } finally {
+            QuestDefenseGame.lastWave = hostWave;
+            QuestDefenseGame.bonus = hostBonus;
         }
 
         if (!IsZoneSession) {
@@ -174,7 +184,82 @@ internal partial class ElinNetHost
             return;
         }
 
+        var before = PlayerStandings.TryGetValue(uid, out var standing) && standing.Length >= 2 ? standing[StandingKarma] : 0;
         PlayerStandings[uid] = [fame, karma];
+
+        if (ActiveRemoteCharas.TryGetValue(peerId, out var chara)) {
+            OnKarmaChanged(chara, before, karma);
+        }
+    }
+
+    /// <summary>
+    ///     A deed of a player on this map costs or earns it karma: its game keeps the count, this one follows
+    /// </summary>
+    internal void GiveKarma(Chara player, int karma)
+    {
+        var peerId = 0;
+        foreach (var (id, chara) in ActiveRemoteCharas) {
+            if (chara == player) {
+                peerId = id;
+                break;
+            }
+        }
+
+        if (peerId == 0 || karma == 0) {
+            return;
+        }
+
+        SendDeltaTo(peerId, new PlayerStandingDelta {
+            Fame = 0,
+            Karma = karma,
+            Relative = true,
+        });
+
+        if (IsZoneSession || !PlayerStandings.TryGetValue(player.uid, out var standing) || standing.Length < 2) {
+            return;
+        }
+
+        var before = standing[StandingKarma];
+        standing[StandingKarma] = Math.Clamp(before + karma, -100, 100);
+        OnKarmaChanged(player, before, standing[StandingKarma]);
+
+        EmpLog.Debug("Player {CharaUid} karma {Karma} for its deed, now {Total}", player.uid, karma, standing[StandingKarma]);
+    }
+
+    /// <summary>
+    ///     Whether the guards of this map are after that player: the game only knows about the local one
+    /// </summary>
+    internal bool IsCriminal(Chara player)
+    {
+        return !IsZoneSession &&
+               PlayerStandings.TryGetValue(player.uid, out var standing) && standing.Length >= 2 &&
+               standing[StandingKarma] < 0 &&
+               !player.HasCondition<ConIncognito>();
+    }
+
+    internal bool HasCriminalHere()
+    {
+        foreach (var chara in ActiveRemoteCharas.Values) {
+            if (chara.IsAliveInCurrentZone && IsCriminal(chara)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static void OnKarmaChanged(Chara player, int before, int after)
+    {
+        if (before < 0 == after < 0 || !player.IsAliveInCurrentZone) {
+            return;
+        }
+
+        // as the game does for the local player
+        if (after < 0) {
+            player.pos.TryWitnessCrime(player);
+        }
+
+        _zone.RefreshCriminal();
     }
 
     /// <summary>

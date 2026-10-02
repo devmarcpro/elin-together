@@ -48,6 +48,7 @@ internal static class QuestCompleteEvent
             EClass.player.ModFame(EClass.rndHalf(quest.FameOnComplete));
         }
 
+        using var _ = PlayerKarma.Own();
         EClass.player.ModKarma(1);
     }
 
@@ -63,6 +64,8 @@ internal static class QuestCompleteEvent
                     Uid = __instance.uid,
                     Id = __instance.id,
                     Data = LZ4Bytes.Create(__instance),
+                    LastWave = __instance is QuestDefenseGame ? QuestDefenseGame.lastWave : 0,
+                    Bonus = __instance is QuestDefenseGame ? QuestDefenseGame.bonus : 0,
                 });
             }
 

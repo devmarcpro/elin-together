@@ -23,11 +23,21 @@ public class QuestCompleteDelta : ElinDelta
     [Key(3)]
     public LZ4Bytes? Data { get; init; }
 
+    /// <summary>
+    ///     A defense quest is paid by the wave reached, which the game keeps outside of the quest, in the game of
+    ///     the player who fought
+    /// </summary>
+    [Key(4)]
+    public int LastWave { get; set; }
+
+    [Key(5)]
+    public int Bonus { get; set; }
+
     protected override void OnApply(ElinNetBase net)
     {
         if (Data is not null) {
             if (net is ElinNetHost map && !map.IsAwayPeer(OriginPeer)) {
-                map.CompletePersonal(OriginPeer, Data.Decompress<Quest>());
+                map.CompletePersonal(OriginPeer, Data.Decompress<Quest>(), LastWave, Bonus);
             }
 
             return;

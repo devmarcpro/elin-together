@@ -128,6 +128,11 @@ internal partial class ElinNetHost
         MarkSettled(peer);
         SendPersonalState(peer, chara.uid);
 
+        // the guards of this map may be after that one
+        if (IsCriminal(chara)) {
+            _zone.RefreshCriminal();
+        }
+
         RemoveLeftOverCharas(null);
     }
 }

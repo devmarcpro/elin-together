@@ -104,7 +104,7 @@ public class QuestTakenDelta : ElinDelta
 
 /// <summary>
 ///     A player to the host: its fame and karma, to keep. <br />
-///     The host to a player: what a quest step the host ran for it earned
+///     The host to a player: what a quest step the host ran for it earned, or what a deed of its cost
 /// </summary>
 [MessagePackObject]
 public class PlayerStandingDelta : ElinDelta
@@ -131,6 +131,8 @@ public class PlayerStandingDelta : ElinDelta
         if (!Relative) {
             return;
         }
+
+        using var _ = PlayerKarma.Own();
 
         if (Fame != 0) {
             player.ModFame(Fame);
