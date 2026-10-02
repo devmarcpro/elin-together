@@ -17,6 +17,7 @@ P1-P4, P11 remplacent Q1-Q4, Q11 quand l'option "quetes aleatoires et renommee p
     P2  A la termine la-bas : recompenses et renommee pour A, rien chez l'host
     P3  l'host prend une quete : A ne l'a pas
     P4  A prend une quete chez l'host, voyage, revient, la rend : tout est a A, la quete le suit partout
+    P5  A prend une quete en ville aupres d'un habitant de cette carte, rentre chez l'host avec, y retourne, la rend
     P11 A rate une quete : sa renommee baisse, pas celle de l'host
 Q11 une quete ratee l'est pour tout le monde ; le delai d'une quete prise en voyage est le meme chez l'host
 Q10 drapeaux d'histoire, objets cles et dette communs ; les reglages personnels restent personnels
@@ -349,6 +350,37 @@ def p4(ctx):
     ev(H, f'EClass.game.quests.list.Find(q => q.uid == {ctx["p3"]}).Complete(); "ok"')
 
 
+def p5(ctx):
+    """quete prise en ville aupres d'un habitant de cette carte, encore en cours quand A rentre chez l'host"""
+    move(A, LUMIEST)
+    wait(client_settled(A, LUMIEST, True), "A seul a Lumiest")
+    time.sleep(3)
+    uid, qid = offer(A)
+    log(f"quete de Lumiest : {qid} uid {uid}")
+    accept(A, uid)
+    check("A prend une quete a Lumiest", eventually(lambda: in_log(A, uid), timeout=10))
+    check("celui qui la donne est un habitant de cette carte, pas un personnage connu partout",
+          ev(A, f'EClass.game.quests.list.Find(q => q.uid == {uid}).chara.IsGlobal.ToString()') == "False")
+    check("l'host la garde pour A", eventually(lambda: str(uid) in kept(ctx["a"]).split(","), timeout=15))
+    # le monde recu au retour n'a pas encore de carte active : chercher l'habitant y plantait, A restait sans jeu
+    move(A, HOME)
+    both_joined(H, A, HOME)
+    time.sleep(3)
+    check("A rentre chez l'host avec cette quete en cours : il arrive, elle est dans son journal", in_log(A, uid))
+    move(A, LUMIEST)
+    wait(client_settled(A, LUMIEST, True), "A de retour a Lumiest")
+    time.sleep(3)
+    check("de retour a Lumiest : la quete est la, et celui qui l'a donnee la porte toujours",
+          in_log(A, uid) and ev(A, f'var q = EClass.game.quests.list.Find(x => x.uid == {uid}); '
+                                   '(q.chara != null && q.chara.quest != null && q.chara.quest.uid == q.uid).ToString()') == "True")
+    fa = fame(A)
+    complete(A, uid)
+    check("A la rend la-bas : sa renommee monte, l'host ne la garde plus",
+          eventually(lambda: fame(A) > fa and str(uid) not in kept(ctx["a"]).split(","), timeout=15))
+    move(A, HOME)
+    both_joined(H, A, HOME)
+
+
 def p11(ctx):
     move(A, LUMIEST)
     wait(client_settled(A, LUMIEST, True), "A seul a Lumiest")
@@ -374,7 +406,7 @@ def main():
     ctx = {"a": state(A)["pc"]["uid"]}
     personal = ev(H, 'ElinTogether.Net.NetSession.Instance.Rules.UsePersonalQuests.ToString()') == "True"
     log("quetes aleatoires et renommee : " + ("par joueur" if personal else "communes"))
-    steps = ([p1, p2, p3, p4] if personal else [q1, q2, q3, q4]) + [q5, q6, q7, q8, q9, q10] + [p11 if personal else q11]
+    steps = ([p1, p2, p3, p4, p5] if personal else [q1, q2, q3, q4]) + [q5, q6, q7, q8, q9, q10] + [p11 if personal else q11]
     if a.only:
         steps = [s for s in steps if s.__name__ in a.only.split(",")]
     for step in steps:

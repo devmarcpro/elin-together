@@ -297,10 +297,15 @@ internal static class PersonalQuests
                 quests.list.Insert(0, quest);
             }
 
-            // who it is for is looked up again, in this world
+            // who it is for is looked up again, in this world. An inhabitant of a map (no global character) is
+            // looked for on the active map, and a world just received has none yet: the game would throw.
+            // It is found the next time this runs, standing on a map (see Receive, Tick)
             quest.person._tempChara = null;
             quest.person.refChara = new();
-            if (quest.chara is { } giver && giver.quest?.uid != quest.uid) {
+            var giver = EClass.game.activeZone?.map is null
+                ? EClass.game.cards.globalCharas.TryGetValue(quest.person.uidChara)
+                : quest.chara;
+            if (giver is not null && giver.quest?.uid != quest.uid) {
                 giver.quest = quest;
             }
 
