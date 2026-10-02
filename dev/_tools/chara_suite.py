@@ -4,7 +4,8 @@
     python _tools/chara_suite.py      # ~3 minutes, finit avec le client en jeu sur son premier personnage
 
 C1  le client se deconnecte et revient : l'ecran propose son personnage, il le reprend (meme personnage)
-C2  il revient et choisit "nouveau personnage" : creation, un autre personnage, l'host en garde deux
+C2  il revient et choisit "nouveau personnage" : creation (avec un objet detruit sous le pointeur, voir
+    CharaMakerHoverPatch), un autre personnage, l'host en garde deux
 C3  il revient : l'ecran propose les deux, il reprend le premier, avec sa renommee
 """
 import sys
@@ -22,6 +23,12 @@ H, A = 27551, 27552
 CHOICES = ('var d = EClass.ui.layers.OfType<Dialog>().LastOrDefault(); if (d == null) return ""; '
            'return string.Join("|", d.GetComponentsInChildren<UnityEngine.UI.Button>(true).Where(x => x.name.StartsWith("ButtonGeneral(Clone)"))'
            '.Select(x => x.GetComponentsInChildren<UnityEngine.UI.Text>(true).Last().text));')
+
+
+# un objet detruit parmi ceux que le pointeur survole, et l'ecran de creation qui les relit, dans la meme image
+# (a la suivante le jeu refait sa liste si la fenetre a le focus)
+STALE_HOVER = ('var go = new UnityEngine.GameObject("emp_test_hover"); InputModuleEX.GetPointerEventData().hovered.Add(go); '
+               'UnityEngine.Object.DestroyImmediate(go); EClass.ui.GetLayer<LayerEditBio>().maker.RefreshPortraitZoom(); "ok"')
 
 
 def click(index):
@@ -97,6 +104,13 @@ def main():
         leave()
         choices = connect()
         click(-1)
+        # ce que le pointeur survolait a ete detruit entre-temps (une fenetre sans le focus garde ses anciens
+        # objets survoles) : l'ecran de creation du jeu trebuchait dessus en s'ouvrant, le bouton gardait
+        # l'action du jeu et le joueur restait bloque sur les reglages du monde
+        wait(lambda: ev(A, '(EClass.ui.GetLayer<LayerEditBio>() != null).ToString()') == "True", "ecran de creation", timeout=60)
+        hover = emp.call(A, "eval", {"code": STALE_HOVER}, timeout=180)
+        check(f"un objet detruit sous le pointeur ne casse pas l'ecran de creation ({hover.get('error') or 'ok'})"[:200],
+              hover.get("ok"))
         second = in_game()
         check("\"nouveau personnage\" : il joue un autre personnage", second != first)
         check("l'host garde les deux", eventually(lambda: sorted(roster().split(",")) == sorted([str(first), str(second)]), timeout=10))
