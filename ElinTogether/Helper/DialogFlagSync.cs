@@ -10,7 +10,7 @@ namespace ElinTogether.Helper;
 
 /// <summary>
 ///     What the story remembers is the same for every player, like the quest log: dialog flags, story flags,
-///     key items, the debt. These are written all over the game, so they are compared with what was last shared
+///     key items, the debt, guild memberships. These are written all over the game, so they are compared with what was last shared
 ///     instead of being caught where they change
 /// </summary>
 internal static class DialogFlagSync
@@ -21,6 +21,7 @@ internal static class DialogFlagSync
     private const string Story = "f:";
     private const string KeyItem = "k:";
     private const string Debt = "p:debt";
+    private const string Guild = "g:";
 
     /// <summary>
     ///     Flags about one player's screen or body, not about the story
@@ -115,6 +116,24 @@ internal static class DialogFlagSync
             player.keyItems[item] = value;
         } else if (id == Debt) {
             player.debt = value;
+        } else if (id.StartsWith(Guild)) {
+            // g:<guild>:<t|r|e>
+            var parts = id.Split(':');
+            if (parts.Length != 3 || Guilds().FirstOrDefault(g => g.id == parts[1])?.relation is not { } relation) {
+                return;
+            }
+
+            switch (parts[2]) {
+                case "t":
+                    relation.type = (FactionRelation.RelationType)value;
+                    break;
+                case "r":
+                    relation.rank = value;
+                    break;
+                case "e":
+                    relation.exp = value;
+                    break;
+            }
         } else if (id.StartsWith(Story) && _storyFlags.FirstOrDefault(p => p.Name == id[Story.Length..]) is { } flag) {
             flag.SetValue(player.flags, flag.PropertyType == typeof(bool) ? value != 0 : value);
         } else {
@@ -123,6 +142,19 @@ internal static class DialogFlagSync
 
         if (ReferenceEquals(player, _source)) {
             _shared[id] = value;
+        }
+    }
+
+    private static IEnumerable<Faction> Guilds()
+    {
+        if (EClass.game?.factions is not { } factions) {
+            yield break;
+        }
+
+        foreach (var guild in new Faction?[] { factions.Fighter, factions.Mage, factions.Thief, factions.Merchant }) {
+            if (guild is not null) {
+                yield return guild;
+            }
         }
     }
 
@@ -147,6 +179,18 @@ internal static class DialogFlagSync
         }
 
         values[Debt] = player.debt;
+
+        // one membership for the group: who joined a guild, its rank and what it contributed
+        foreach (var guild in Guilds()) {
+            if (guild.relation is not { } relation) {
+                continue;
+            }
+
+            values[$"{Guild}{guild.id}:t"] = (int)relation.type;
+            values[$"{Guild}{guild.id}:r"] = relation.rank;
+            values[$"{Guild}{guild.id}:e"] = relation.exp;
+        }
+
         return values;
     }
 }
