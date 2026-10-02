@@ -65,6 +65,12 @@ if ($ElinGame -and (Test-Path -LiteralPath (Join-Path $ElinGame 'Elin.exe'))) {
     if (-not (Test-Path -LiteralPath (Join-Path $ElinGame 'Package\Mod_ElinTogether\ElinTogether.dll'))) {
         $todo += "compiler le mod : powershell -ExecutionPolicy Bypass -File dev\build.ps1 (SETUP.md, etape 4.5)"
     }
+    # les copies du jeu recopient ces deux fichiers, que le jeu et le mod creent a leur premier lancement
+    if (-not (Test-Path -LiteralPath (Join-Path $ElinGame 'loadorder.txt')) -or
+        -not (Test-Path -LiteralPath (Join-Path $ElinGame 'BepInEx\config\dk.elinplugins.elintogether.cfg'))) {
+        $todo += "lancer Elin une fois avec le mod, le fermer (SETUP.md, etape 4.6), puis relancer ce script pour les copies du jeu"
+        $NoLab = $true
+    }
 } else {
     $todo += "installer Elin par Steam, ou regler ELIN_GAME_PATH sur le dossier du jeu (SETUP.md, etape 4)"
     $NoLab = $true
