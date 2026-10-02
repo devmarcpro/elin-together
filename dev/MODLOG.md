@@ -1115,6 +1115,15 @@ Pièges de test notés ce jour-là :
   converti, vu dans le code), M5 pièges, M6 graines, M8 arrosoir, M9 carte au trésor, M10 vœu, M11 bénédiction,
   M13 grimoires, M14 réglages de la base, et les points mineurs.
 
+### Nuit du 2 au 3 octobre
+- Passe « nuit » (0h05 → 1h22) sur les deux lots : 18 suites sur 19 vertes, `guest_suite` 96/96. `combat` 20/22 :
+  F4/F5 encore (le monstre de A agit pendant les tours de l'host, +11), alors que les joueurs sont écartés. Échoue
+  par intermittence depuis le 2 à 15h08, avant toutes les corrections du soir. Cause pas trouvée : à creuser,
+  sans conclure que c'est le mod ni le test.
+- Troisième lot : rouge 42/59, vert 53/53. Commits `8e1c7ee` (identification), `8925eea` (arrosoir), `ed51490`
+  (livres), `453a5f0` (graines), `c0ab2e2` (vœu). Détail dans `PLAN_egalite_invites.md`.
+- Pas de passe complète depuis le troisième lot. Rien de tout cela dans le zip 0.26.309.
+
 ### À faire ensuite
 1. Fait à 18h : vitesse en combat d'un joueur surchargé. `PlayerCombatTime` prenait la vitesse de la copie chez
    l'host (105) au lieu de celle du jeu du joueur (52) : ses monstres recevaient la moitié du temps dû, être

@@ -45,9 +45,20 @@ Tests : `guest_suite.py` (G1 à G5), journal rouge `_shots/guest_suite-red.log` 
 H5 `88f1241` (sert aussi à la teinture et à la viande sur une tombe, pas jouées), H3 `7aa1cc6`, H2 `94b7b56`,
 H1 et H4 `a9fe6ee`. Pas dans le zip 0.26.309. Passe complète à refaire avec ces cinq corrections.
 
+**Troisième lot, 2026-10-03 vers 1h30**, `guest_suite.py` G10 à G16 : rouge 42/59
+(`_shots/guest_suite-lot3-red.log`), vert 53/53 (`_shots/guest_suite-lot3-green.log`). Corrigés : L3 parchemin
+d'identification `8e1c7ee` ; M8 arrosoir `8925eea` (plus une exception à chaque usage, dans les deux sens) ; M4 livres
+anciens et livres d'un dieu `ed51490` ; M6 graines `453a5f0` ; M10 vœu `c0ab2e2`. Conception détaillée (avec M3, M5,
+M9) : rapport d'agent, pas dans le dépôt.
+**À décider par l'utilisateur** : M3 (deux joueurs du même dieu : un seul familier et un seul artefact par monde,
+qui les reçoit ?), M5 (pièges : le jeu de l'invité ne tirerait plus ; prix, l'invité ne gagne plus d'expérience
+de désamorçage), M9 (carte au trésor : correction simple, mais le vrai test demande les deux joueurs sur la carte
+du monde).
+
 Vu en testant, pas corrigé : **premier clic de pêche d'un invité déjà au bord de l'eau** — le jeu dit « pas
 d'appât », l'appât s'équipe un instant après (l'équiper est une demande à l'host), il faut recliquer. Chez l'host
-l'appât s'équipe tout de suite.
+l'appât s'équipe tout de suite. (G11, écrit pour le montrer, passe sans correction : pas reproduit à la demande ;
+correction écrite puis retirée faute de preuve.)
 
 Laissé de côté, noté dans les commits :
 - une baguette ou un parchemin qui fait choisir un objet (identification…) : appliqué deux fois pour un invité
