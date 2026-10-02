@@ -56,9 +56,10 @@ Requires [YK Framework](https://steamcommunity.com/sharedfiles/filedetails/?id=3
 **Nightly** branch (the fork is built against EA 23.350). **Every player must run the same build of this fork**;
 it does not talk to the Workshop version.
 
-There is no download yet: build it (below), or get the zip from someone who did
-(`dev/make_release.ps1` makes `ElinTogether-independance.zip`, with an `Installer.bat` that switches from the
-Workshop version to this one, and a `Desinstaller.bat` that switches back).
+Download `ElinTogether-independance.zip` from the
+[Releases page](https://github.com/devmarcpro/elin-together/releases), unzip it and run `Installer.bat`: it
+switches from the Workshop version to this one (`Desinstaller.bat` switches back). The installer and its notes are
+in French; the steps are also on the release page. `dev/make_release.ps1` builds that zip from the sources.
 
 To host: launch Elin through Steam, load a save that has a claimed land, then Esc → Mods → Elin Together.
 

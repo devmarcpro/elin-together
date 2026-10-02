@@ -56,9 +56,10 @@ Il faut [YK Framework](https://steamcommunity.com/sharedfiles/filedetails/?id=34
 **Nightly** (cette version est compilée pour EA 23.350). **Tous les joueurs doivent avoir la même version de ce
 fork** ; elle ne se connecte pas à la version du Workshop.
 
-Il n'y a pas encore de téléchargement : il faut la compiler (ci-dessous), ou recevoir le zip de quelqu'un qui l'a
-fait (`dev/make_release.ps1` fabrique `ElinTogether-independance.zip`, avec `Installer.bat` qui remplace la version
-Workshop par celle-ci et `Desinstaller.bat` qui fait l'inverse).
+Télécharger `ElinTogether-independance.zip` sur la
+[page des versions](https://github.com/devmarcpro/elin-together/releases), le décompresser et lancer
+`Installer.bat` : il remplace la version Workshop par celle-ci (`Desinstaller.bat` fait l'inverse). La notice
+`LISEZMOI.txt` du zip explique tout. `dev/make_release.ps1` refabrique ce zip à partir des sources.
 
 Pour héberger : lancer Elin par Steam, charger une partie qui a un terrain revendiqué, puis Échap → Mods →
 Elin Together.
