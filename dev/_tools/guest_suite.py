@@ -423,6 +423,199 @@ def g8(ctx):
     check("la pierre de l'invite est usee", gone == "True")
 
 
+def give_made(ctx, who, make):
+    """Comme give, pour un objet que l'host fabrique par du C# (il doit laisser l'objet dans `t`)."""
+    port, uid = ctx[who]
+    made = ev(H, f'var c = {chara(H, uid)}; {make} var r = c.AddThing(t, false); return r.uid.ToString();')
+    eventually(lambda: ev(port, f'(EClass.pc.things.Find(x => x.uid == {made}) != null).ToString()') == "True", timeout=10)
+    return int(made)
+
+
+def close_layers():
+    for p in (H, A):
+        ev(p, 'foreach (var l in EClass.ui.layers.ToList()) l.Close(); "ok"')
+
+
+def g10(ctx):
+    """parchemin d'identification : rien n'est identifie avant que le joueur choisisse, puis l'objet choisi, lui seul"""
+    for who, key in both(ctx):
+        port, uid = ctx[key]
+        other = H if port == A else A
+        close_layers()
+        items = [give_made(ctx, key, 'var t = ThingGen.CreateFromCategory("armor"); t.c_IDTState = 5;') for _ in range(3)]
+        # 8230 : l'identification ; ni beni (plusieurs choix) ni maudit (oubli)
+        scroll = give_made(ctx, key, 'var t = ThingGen.CreateScroll(8230); t.c_IDTState = 0; t.SetBlessedState(BlessedState.Normal);')
+        unknown = lambda p, u=uid: int(ev(p, f'{chara(p, u)}.things.Count(t => !t.IsIdentified).ToString()'))  # noqa: E731
+        time.sleep(1)
+        before = unknown(H)
+        awake(port)
+        ev(port, f'var t = EClass.pc.things.Find(x => x.uid == {scroll}); EClass.pc.SetAI(new AI_Read {{ target = t }}); "ok"')
+        opened = eventually(lambda: "LayerDragGrid" in ev(port, LAYERS), timeout=15)
+        check(f"{who} lit : la fenetre de choix s'ouvre chez lui ({ev(port, LAYERS) or 'rien'})", opened)
+        check(f"{who} : rien ne s'ouvre chez l'autre joueur ({ev(other, LAYERS) or 'rien'})", "LayerDragGrid" not in ev(other, LAYERS))
+        time.sleep(2)
+        check(f"{who} : rien n'est identifie avant son choix (inconnus chez l'host : {before} -> {unknown(H)})", unknown(H) == before)
+        pick = items[1]
+        r = ev(port, f'var g = LayerDragGrid.Instance; var t = EClass.pc.things.Find(x => x.uid == {pick}); '
+                     'if (g == null || t == null || !EClass.ui.layers.Contains(g)) return "fenetre ou objet absent"; '
+                     'var b = g.owner.buttons[g.currentIndex]; b.SetCardGrid(t, b.invOwner); g.owner.OnProcess(t); return "ok";')
+        known = lambda p: ev(p, f'var t = {chara(p, uid)}.things.Find(x => x.uid == {pick}); return t == null ? "absent" : t.IsIdentified.ToString();')  # noqa: E731
+        check(f"{who} choisit un objet ({r}) : il est identifie chez l'host", eventually(lambda: known(H) == "True", timeout=10))
+        check(f"{who} : un seul objet identifie en tout (inconnus : {before} -> {unknown(H)})", unknown(H) == before - 1)
+        check(f"{who} : son propre jeu dit pareil", eventually(lambda: unknown(port) == unknown(H), timeout=10))
+        close_layers()
+        ev(H, f'var c = {chara(H, uid)}; foreach (var u in new[] {{ {", ".join(map(str, items))} }}) {{ var t = c.things.Find(x => x.uid == u); if (t != null) t.Destroy(); }} "ok"')
+
+
+def g11(ctx):
+    """appat : au bord de l'eau, le premier clic de peche de l'invite equipe l'appat et lance la peche, comme pour l'host"""
+    spot = water_spot(ctx)
+    rod = ev(H, 'var r = EClass.sources.things.rows.FirstOrDefault(x => x.elements != null && x.elements.Length > 0 && x.elements[0] == 245); return r == null ? "" : r.id;')
+    bait = first_id("Bait")
+    if not check(f"de quoi pecher (eau : {spot or 'non'}, canne : {rod}, appat : {bait})", bool(spot and rod and bait)):
+        return
+    wx, wz, sx, sz = (int(v) for v in spot.split(","))
+    port, uid = ctx["a"]
+    stand(port, uid, sx, sz)
+    tool = give(ctx, "a", rod)
+    b = give(ctx, "a", bait, 10)
+    worn = lambda: ev(H, f'{chara(H, uid)}.things.Any(t => t.trait is TraitBait x && x.EQ == t).ToString()')  # noqa: E731
+    # appat pas encore equipe : c'est le premier clic qui doit l'equiper et lancer la peche
+    ev(port, 'if (EClass.player.eqBait != null) EClass.player.eqBait.trait.OnUse(EClass.pc); "ok"')
+    time.sleep(2)
+    awake(port)
+    r = use_held(port, tool, at=(wx, wz))
+    time.sleep(2)
+    doing = ev(port, 'EClass.pc.ai.GetType().Name')
+    check(f"l'invite se met a pecher des le premier clic ({r} ; il fait : {doing})", doing == "AI_Fish")
+    check("son appat est equipe chez lui tout de suite", ev(port, '(EClass.player.eqBait != null).ToString()') == "True")
+    check("et chez l'host", eventually(lambda: worn() == "True", timeout=5))
+    ev(port, 'EClass.pc.SetNoGoal(); "ok"')
+    for want in ("False", "True"):
+        ev(port, f'EClass.pc.things.Find(x => x.uid == {b}).trait.OnUse(EClass.pc); "ok"')
+        check(f"l'invite {'remet' if want == 'True' else 'retire'} son appat : pareil chez l'host",
+              eventually(lambda: worn() == want and ev(port, '(EClass.player.eqBait != null).ToString()') == want, timeout=5))
+
+
+def g12(ctx):
+    """arrosoir : l'invite le remplit au bord de l'eau puis arrose une case, pour de vrai chez l'host"""
+    can = first_id("ToolWaterCan")
+    spot = water_spot(ctx)
+    if not check(f"un arrosoir et de l'eau (arrosoir : {can}, eau : {spot or 'non'})", bool(can and spot)):
+        return
+    wx, wz, sx, sz = (int(v) for v in spot.split(","))
+    for who, key in both(ctx):
+        port, uid = ctx[key]
+        other = H if port == A else A
+        if not check(f"{who} se place au bord de l'eau", stand(port, uid, sx, sz)):
+            continue
+        c = give(ctx, key, can, extra="t.c_charges = 0;")
+        left = lambda p, u=uid, t=c: ev(p, f'var x = {chara(p, u)}.things.Find(y => y.uid == {t}); return x == null ? "absent" : x.c_charges + "/" + (x.trait as TraitToolWaterCan).MaxCharge;')  # noqa: E731
+        awake(port)
+        log(f"{who} : {use_held(port, c, at=(wx, wz), pick='i.act is ActDrawWater')}")
+        is_full = lambda v: "/" in v and v.split("/")[0] == v.split("/")[1] != "0"  # noqa: E731
+        full = eventually(lambda: is_full(left(H)), timeout=6)
+        check(f"{who} puise : l'arrosoir est plein chez l'host ({left(H)})", full)
+        check(f"{who} : et chez l'autre joueur ({left(other)}), comme chez lui ({left(port)})",
+              eventually(lambda: left(A) == left(H) == left(port), timeout=6))
+        dry = ev(H, f'var c = {chara(H, uid)}; for (var dx = -1; dx <= 1; dx++) for (var dz = -1; dz <= 1; dz++) {{ var p = new Point(c.pos.x + dx, c.pos.z + dz); '
+                    'if (p.IsValid && !p.cell.IsTopWater && !p.cell.isWatered && !p.HasChara && !p.IsFarmField) return p.x + "," + p.z; } return "";')
+        if not check(f"{who} : une case seche a cote ({dry or 'aucune'})", bool(dry)):
+            continue
+        x, z = (int(v) for v in dry.split(","))
+        n0 = int(left(H).split("/")[0] or 0) if "/" in left(H) else 0
+        log(f"{who} : {use_held(port, c, at=(x, z), pick='i.act is ActWater')}")
+        wet = lambda p: ev(p, f'new Point({x}, {z}).cell.isWatered.ToString()')  # noqa: E731
+        check(f"{who} arrose : la case est mouillee chez l'host", eventually(lambda: wet(H) == "True", timeout=6))
+        check(f"{who} : et chez l'autre joueur ({wet(other)})", eventually(lambda: wet(other) == "True", timeout=6))
+        check(f"{who} : l'arrosoir a perdu de l'eau chez l'host ({n0} -> {left(H)})", int(left(H).split("/")[0]) < n0)
+        ev(H, f'new Point({x}, {z}).cell.isWatered = false; "ok"')
+        ev(port, 'EClass.pc.Teleport(EClass.pc.pos.GetNearestPoint(false, false, false, true), true, true); "ok"')
+
+
+def read_book(ctx, key, book, timeout=90):
+    port, uid = ctx[key]
+    awake(port)
+    ev(port, f'var t = EClass.pc.things.Find(x => x.uid == {book}); EClass.pc.SetAI(new AI_Read {{ target = t }}); "ok"')
+    time.sleep(2)
+    return eventually(lambda: awake(port) and ev(port, 'EClass.pc.ai is AI_Read && EClass.pc.ai.IsRunning ? "lit" : "libre"') == "libre", timeout=timeout)
+
+
+def g14(ctx):
+    """livres : le livre ancien dechiffre reste a celui qui l'a lu ; le livre d'un dieu ne le convertit pas"""
+    for who, key in both(ctx):
+        port, uid = ctx[key]
+        ev(port, 'EClass.pc.elements.SetBase(285, 100); EClass.pc.RemoveCondition<ConConfuse>(); "ok"')
+        eventually(lambda: int(ev(H, f'{chara(H, uid)}.Evalue(285).ToString()')) >= 100, timeout=10)
+        seen = lambda p, b, u=uid: ev(p, f'var t = {chara(p, u)}.things.Find(x => x.uid == {b}); return t == null ? "disparu" : (t.isOn ? "dechiffre" : "intact") + "/" + t.c_charges;')  # noqa: E731
+
+        book = give_made(ctx, key, 'var t = ThingGen.Create("book_ancient"); t.refVal = 0; t.c_charges = 3; t.SetBlessedState(BlessedState.Normal);')
+        check(f"{who} lit un livre ancien jusqu'au bout", read_book(ctx, key, book))
+        check(f"{who} : il le garde, dechiffre (chez l'host : {seen(H, book)})", seen(H, book).startswith("dechiffre"))
+        check(f"{who} : chez lui aussi ({seen(port, book)})", eventually(lambda: seen(port, book).startswith("dechiffre"), timeout=10))
+
+        faith = lambda p, u=uid: ev(p, f'{chara(p, u)}.faith.id')  # noqa: E731
+        god = faith(H)
+        dojin = give_made(ctx, key, 'var t = ThingGen.CreateUsuihon(EClass.game.religions.Healing); t.c_charges = 3; t.SetBlessedState(BlessedState.Normal);')
+        book_god = ev(H, f'var t = {chara(H, uid)}.things.Find(x => x.uid == {dojin}); return t.c_idRefName;')
+        if not check(f"{who} n'est pas deja du dieu du livre ({god} / {book_god})", god != book_god):
+            continue
+        check(f"{who} lit le livre d'un dieu jusqu'au bout", read_book(ctx, key, dojin))
+        check(f"{who} : il garde son dieu (chez l'host : {god} -> {faith(H)})", faith(H) == god)
+        check(f"{who} : son jeu et l'host disent le meme dieu ({faith(port)})", faith(port) == faith(H))
+        check(f"{who} : le livre a perdu une charge, pas toutes ({seen(H, dojin)})", seen(H, dojin).endswith("/2"))
+        # le livre rend fou et assomme : on remet le joueur sur pied, et son dieu si le test etait rouge
+        ev(H, f'var c = {chara(H, uid)}; c.RemoveCondition<ConInsane>(); c.RemoveCondition<ConFaint>(); '
+              f'if (c.faith.id != "{god}" && !c.IsPC) EClass.game.religions.Find("{god}").JoinFaith(c); '
+              f'foreach (var u in new[] {{ {book}, {dojin} }}) {{ var t = c.things.Find(x => x.uid == u); if (t != null) t.Destroy(); }} "ok"')
+
+
+SEEDS = ('var row = EClass.sources.objs.rows.First(o => o.HasTag(CTAG.seed) && o.growth != null && o.growth.CanLevelSeed); '
+         'var seed = TraitSeed.MakeSeed(row); var plant = new PlantData { seed = seed }; var up = 0; '
+         'for (var i = 0; i < 1000; i++) { var s = TraitSeed.MakeSeed(row, plant); if (s.encLV > seed.encLV) up++; s.Destroy(); } '
+         'seed.Destroy(); return up.ToString();')
+AS_TASK_OF = ('var prop = HarmonyLib.AccessTools.Property(HarmonyLib.AccessTools.TypeByName("ElinTogether.Patches.CharaProgressCompleteEvent"), "Chara"); '
+              'prop.SetValue(null, c); try { %s } finally { prop.SetValue(null, null); }')
+
+
+def g15(ctx):
+    """graines : sur 1000 graines recoltees, celles de l'invite montent de niveau selon son Agriculture, pas celle de l'host"""
+    if not check("la carte est une base (ailleurs les graines ne montent pas de niveau)", ev(H, 'EClass._zone.IsPCFactionOrTent.ToString()') == "True"):
+        return
+    port, uid = ctx["a"]
+    mine = ev(H, 'EClass.pc.elements.Base(286).ToString()')
+    theirs = ev(port, 'EClass.pc.elements.Base(286).ToString()')
+    try:
+        # l'invite bon fermier, l'host debutant
+        ev(port, 'EClass.pc.elements.SetBase(286, 50); "ok"')
+        ev(H, 'EClass.pc.elements.SetBase(286, 1); "ok"')
+        eventually(lambda: int(ev(H, f'{chara(H, uid)}.Evalue(286).ToString()')) >= 50, timeout=10)
+        guest = int(ev(H, f'var c = {chara(H, uid)}; ' + AS_TASK_OF % SEEDS, timeout=120))
+        ev(H, 'EClass.pc.elements.SetBase(286, 50); "ok"')
+        host = int(ev(H, SEEDS, timeout=120))
+    finally:
+        ev(H, f'EClass.pc.elements.SetBase(286, {mine}); "ok"')
+        ev(port, f'EClass.pc.elements.SetBase(286, {theirs}); "ok"')
+    log(f"graines montees de niveau sur 1000 : l'invite {guest}, l'host a talent egal {host}")
+    check(f"l'invite a au moins la moitie de ce qu'a l'host a talent egal ({guest} contre {host})", guest >= host / 2)
+
+
+def g16(ctx):
+    """voeu : ce qui est souhaite tombe aux pieds de celui qui fait le voeu, pour de vrai"""
+    at_feet = 'var c = {who}; return EClass._map.things.Where(t => t.id == "medal" && t.pos.Equals(c.pos)).Sum(t => t.Num).ToString();'
+    for who, key in both(ctx):
+        port, uid = ctx[key]
+        close_layers()
+        medals = lambda p, u=uid: int(ev(p, at_feet.replace("{who}", chara(p, u))))  # noqa: E731
+        before = medals(H)
+        # la reponse au voeu : ce que fait le bouton OK de la fenetre
+        ev(port, 'ActEffect.Wish(EClass.sources.cards.map["medal"].GetName(), EClass.pc.NameTitled, 100, BlessedState.Normal); "ok"')
+        ok = eventually(lambda: medals(H) > before, timeout=10)
+        check(f"{who} souhaite des medailles : elles sont a ses pieds chez l'host ({before} -> {medals(H)})", ok)
+        check(f"{who} : et dans son propre jeu ({medals(port)})", eventually(lambda: medals(port) == medals(H), timeout=10))
+        ev(H, f'var c = {chara(H, uid)}; foreach (var t in EClass._map.things.Where(t => t.id == "medal" && t.pos.Equals(c.pos)).ToList()) t.Destroy(); "ok"')
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--only")
@@ -432,9 +625,9 @@ def main():
 
     ctx = {"a": (A, state(A)["pc"]["uid"]), "h": (H, state(H)["pc"]["uid"])}
     # G8 en dernier : l'invite y quitte la carte
-    steps = [g5, g3, g2, g1, g4, g6, g7, g9, g8]
+    steps = [g5, g3, g2, g11, g1, g4, g6, g7, g9, g10, g12, g14, g15, g16, g8]
     if a.only:
-        steps = [s for s in (g1, g2, g3, g4, g5, g6, g7, g9, g8) if s.__name__ in a.only.split(",")]
+        steps = [s for s in (g1, g2, g3, g4, g5, g6, g7, g9, g10, g11, g12, g14, g15, g16, g8) if s.__name__ in a.only.split(",")]
     for step in steps:
         log(f"--- {step.__name__.upper()} : {step.__doc__}")
         try:

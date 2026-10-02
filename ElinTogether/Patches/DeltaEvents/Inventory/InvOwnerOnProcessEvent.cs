@@ -185,3 +185,23 @@ internal static class TraitTryRefuelEvent
         return NetSession.Instance.Connection is not { IsClient: true } || ElinDelta.IsApplying;
     }
 }
+
+/// <summary>
+///     An effect that makes its user pick an item (identify, uncurse, enchant...) picks one at random for anyone
+///     but the local player. For another player that was one item too many: its own game opens the window, and
+///     what it picks there arrives through InvOwnerOnProcessDelta
+/// </summary>
+[HarmonyPatch(typeof(LayerDragGrid), nameof(LayerDragGrid.TryProc))]
+internal static class LayerDragGridTryProcPatch
+{
+    [HarmonyPrefix]
+    internal static bool OnTryProc(Chara cc, ref LayerDragGrid? __result)
+    {
+        if (cc is not { IsPC: false, IsRemotePlayer: true }) {
+            return true;
+        }
+
+        __result = null;
+        return false;
+    }
+}
