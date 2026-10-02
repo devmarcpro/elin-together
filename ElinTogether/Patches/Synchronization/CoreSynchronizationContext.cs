@@ -26,6 +26,8 @@ internal class CoreSynchronizationContext : SynchronizationContext
     [HarmonyPostfix]
     internal static void OnCoreUpdateEnd()
     {
+        PlayerTrade.WatchSession();
+
         if (NetSession.Instance.Connection is not { } connection || !core.IsGameStarted) {
             return;
         }

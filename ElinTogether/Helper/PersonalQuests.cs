@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using ElinTogether.Models;
 using ElinTogether.Net;
+using ElinTogether.Patches;
 
 namespace ElinTogether.Helper;
 
@@ -18,6 +19,8 @@ internal static class PersonalQuests
     private static List<Quest> _mine = [];
     private static Game? _source;
     private static bool _hasStanding;
+    private static object? _transport;
+    private static bool _dropInstances;
     private static int _fame;
     private static int _karma;
     private static int _now;
@@ -96,6 +99,7 @@ internal static class PersonalQuests
             _turnedIn.Clear();
             _source = null;
             _hasStanding = false;
+            _dropInstances = false;
             _outcome = null;
             return;
         }
@@ -176,6 +180,12 @@ internal static class PersonalQuests
         _fame = fame;
         _karma = karma;
         _hasStanding = true;
+
+        // the first word of the host on this connection
+        if (!ReferenceEquals(NetSession.Instance.Transport, _transport)) {
+            _transport = NetSession.Instance.Transport;
+            _dropInstances = true;
+        }
 
         _taken.Clear();
         _taken.UnionWith(taken);
@@ -272,6 +282,19 @@ internal static class PersonalQuests
         if (_hasStanding) {
             EClass.player.fame = _fame;
             EClass.player.karma = _karma;
+        }
+
+        if (!_dropInstances) {
+            return;
+        }
+
+        // connected anew: the zone of a quest is gone with the connection of the player who held it (dropped
+        // out or crashed inside), and so is the quest, at no cost
+        _dropInstances = false;
+        foreach (var quest in _mine.Where(q => q.UseInstanceZone).ToArray()) {
+            EmpLog.Information("Quest {QuestUid} {QuestId} lost its zone with the last connection, dropping it", quest.uid, quest.id);
+            QuestFailEvent.FailQuietly(quest);
+            _mine.Remove(quest);
         }
     }
 }

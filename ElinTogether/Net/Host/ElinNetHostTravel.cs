@@ -573,6 +573,10 @@ internal partial class ElinNetHost
             if (zones is { Count: > 0 }) {
                 EmpLog.Warning("Player {@Peer} rejoins while still holding zones {ZoneUids}, dropping them",
                     peer, zones.Keys);
+
+                foreach (var zoneUid in zones.Keys.ToArray()) {
+                    DestroyQuestZone(zoneUid);
+                }
             }
 
             _leases.Remove(peer.Id);
@@ -637,6 +641,7 @@ internal partial class ElinNetHost
         }
 
         EmpLog.Information("Player {@Peer} declined the lease of zone {ZoneUid}", peer, decline.ZoneUid);
+        DestroyQuestZone(decline.ZoneUid);
         ResumePendingHostMove();
     }
 
@@ -837,6 +842,22 @@ internal partial class ElinNetHost
     }
 
     /// <summary>
+    ///     Destroying a zone destroys its floors without asking: one of them may be where a player is
+    /// </summary>
+    internal bool HasLeasedFloor(Zone top)
+    {
+        foreach (var zones in _leases.Values) {
+            foreach (var zoneUid in zones.Keys) {
+                if (game.spatials.Find(zoneUid) is { } leased && leased != top && leased.GetTopZone() == top) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
     ///     The zone of a quest a player took: only a place holder here, so the lease has something to hold.
     ///     Never reused (two players each get their own), not on the world map (it sits on the tile of the town
     ///     the quest comes from), not announced to the other players
@@ -856,6 +877,12 @@ internal partial class ElinNetHost
         }
 
         ZoneLeaseState.ApplyState(zone, blueprint.ZoneState, blueprint.IdCurrentSubset);
+
+        // as in the game: a zone with an instance is not a place of the world map, destroying it leaves the
+        // town it sits on alone, and one nobody holds anymore is cleaned up by the next save
+        zone.instance = new() {
+            uidZone = scene.elomap.GetZone(blueprint.X, blueprint.Y)?.uid ?? 0,
+        };
         _questZones.Add(zone.uid);
 
         EmpLog.Information("Created quest zone {ZoneFullName} as uid {ZoneUid}", zone.ZoneFullName, zone.uid);

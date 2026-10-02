@@ -37,6 +37,13 @@ public class CharaEquipDelta : ElinDelta
             return;
         }
 
+        // what sits in someone else's bag is not this player's to put on (it may have just been traded away)
+        if (net is ElinNetHost && Equip && thing.GetRootCard() is Chara holder && holder != chara) {
+            EmpLog.Warning("Refusing {DeltaType} from peer {PeerIndex}, thing {Uid} is held by {HolderUid}",
+                nameof(CharaEquipDelta), OriginPeer, thing.uid, holder.uid);
+            return;
+        }
+
         if (net.IsHost) {
             net.Delta.AddRemote(this);
         }

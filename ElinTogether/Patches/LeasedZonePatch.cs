@@ -13,7 +13,11 @@ internal static class LeasedZonePatch
     [HarmonyPostfix]
     internal static void OnCanDestroy(Zone __instance, ref bool __result)
     {
-        if (__result && NetSession.Instance.Transport is ElinNetHost host && host.IsLeased(__instance.uid)) {
+        if (!__result || NetSession.Instance.Transport is not ElinNetHost host) {
+            return;
+        }
+
+        if (host.IsLeased(__instance.uid) || host.HasLeasedFloor(__instance)) {
             __result = false;
         }
     }

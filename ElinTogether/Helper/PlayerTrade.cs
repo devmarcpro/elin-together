@@ -36,6 +36,8 @@ public static class PlayerTrade
     private static readonly List<TradeItem> _myItems = [];
     private static int _myGold;
     private static int _nextId = 1;
+    private static object? _connection;
+    private static Game? _game;
     private static float _nextCheck;
 
     /// <summary>
@@ -131,6 +133,13 @@ public static class PlayerTrade
                $"ready={view.ReadyB} {view.Reason}";
     }
 
+    private static void AnswerInvitation(int tradeId, int kind)
+    {
+        if (View is { Phase: Invited } view && view.TradeId == tradeId) {
+            Answer(kind);
+        }
+    }
+
     private static void Answer(int kind)
     {
         if (View is not { Phase: Invited or Open } view) {
@@ -184,10 +193,15 @@ public static class PlayerTrade
         View = state;
 
         switch (state.Phase) {
-            case Invited when state.UidB == mine && before?.TradeId != state.TradeId:
+            case Invited when state.UidB == mine && (before is not { Phase: Invited } || before.TradeId != state.TradeId):
                 _myItems.Clear();
                 _myGold = 0;
-                Dialog.YesNo("emp_trade_invite".Loc(NameOf(state.UidA)), Accept, Decline);
+
+                // the answer is for this invitation, whatever trade is going on by the time it is clicked
+                var invitation = state.TradeId;
+                Dialog.YesNo("emp_trade_invite".Loc(NameOf(state.UidA)),
+                    () => AnswerInvitation(invitation, Accept_),
+                    () => AnswerInvitation(invitation, Decline_));
                 break;
             case Open:
                 LayerPlayerTrade.Refresh();
@@ -270,12 +284,6 @@ public static class PlayerTrade
     /// </summary>
     internal static void Update()
     {
-        // alone again (travelling, back at the title screen): whatever trade was going on is over
-        if (NetSession.Instance.Connection is null && (View is not null || _sessions.Count > 0)) {
-            Clear();
-            return;
-        }
-
         if (_sessions.Count == 0 || Time.unscaledTime < _nextCheck) {
             return;
         }
@@ -293,6 +301,27 @@ public static class PlayerTrade
             } else if (session.A.pos.Distance(session.B.pos) > Reach) {
                 End(session, host, Cancelled, "emp_trade_far");
             }
+        }
+    }
+
+    /// <summary>
+    ///     Every frame, connected or not: a trade is between two players on one map, simulated by one game.
+    ///     Another connection (travelling alone, the holder of the map changed, back at the title screen) or
+    ///     another world (any map change of a client) and whatever trade was going on is over
+    /// </summary>
+    internal static void WatchSession()
+    {
+        var connection = NetSession.Instance.Connection;
+        var game = EClass.core.IsGameStarted ? EClass.game : null;
+        if (ReferenceEquals(connection, _connection) && ReferenceEquals(game, _game)) {
+            return;
+        }
+
+        _connection = connection;
+        _game = game;
+
+        if (View is not null || _sessions.Count > 0) {
+            Clear();
         }
     }
 
@@ -394,7 +423,9 @@ public static class PlayerTrade
     private static void Move(Chara from, Chara to, List<(Thing Thing, int Num)> items, int gold)
     {
         foreach (var (thing, num) in items) {
-            to.AddThing(thing.Num == num ? thing : thing.Split(num));
+            // not stacked: the receiver's game would stack it into a pile inside one of its bags, where this
+            // game does not look, and lose it
+            to.AddThing(thing.Num == num ? thing : thing.Split(num), false);
         }
 
         if (gold > 0) {
