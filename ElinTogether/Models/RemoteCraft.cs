@@ -21,6 +21,21 @@ internal static class RemoteCraft
         return _selections.TryGetValue(act, out args);
     }
 
+    /// <summary>
+    ///     The game asks "the player" for the feats, skills and level that shape what is crafted and how long it
+    ///     takes. While the host crafts for another player, that player stands in as the local one: without it
+    ///     its potions were not doubled by its own feat, and the quality came from the host's skills
+    /// </summary>
+    internal static ScopeExit AsCrafter(Chara crafter)
+    {
+        var self = EClass.player.chara;
+        EClass.player.chara = crafter;
+
+        return new() {
+            OnExit = () => EClass.player.chara = self,
+        };
+    }
+
     internal static bool IsHostRun(AIAct? act)
     {
         return act is AI_UseCrafter crafter && _selections.TryGetValue(crafter, out _);

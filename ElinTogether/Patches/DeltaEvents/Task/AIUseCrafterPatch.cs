@@ -128,7 +128,8 @@ internal static class AIUseCrafterPatch
     [HarmonyPatch(typeof(Card), nameof(Card.AddCard))]
     internal static bool OnAddProduct(Card __instance, Card c, ref Card __result)
     {
-        if (RemoteCraft.ProductReceiver is not { } receiver || !__instance.IsPC) {
+        // the receiver itself is "the player" while it stands in, see RemoteCraft.AsCrafter
+        if (RemoteCraft.ProductReceiver is not { } receiver || !__instance.IsPC || __instance == receiver) {
             return true;
         }
 
@@ -246,7 +247,10 @@ internal static class AIUseCrafterPatch
             }
 
             var cost = crafter.GetCostSp(act);
-            var duration = crafter.GetDuration(act, cost);
+            int duration;
+            using (RemoteCraft.AsCrafter(act.owner)) {
+                duration = crafter.GetDuration(act, cost);
+            }
 
             var progress = new Progress_Custom {
                 canProgress = () => {
@@ -299,6 +303,7 @@ internal static class AIUseCrafterPatch
                         RemoteCraft.ProductReceiver = act.owner;
                         try {
                             using var _ = MsgRelayContext.RedirectTo(act.owner);
+                            using var standIn = RemoteCraft.AsCrafter(act.owner);
                             for (var i = 0; i < act.num; i++) {
                                 recipe.Craft(blessed, i == 0, act.ings, crafter);
                             }
@@ -316,7 +321,8 @@ internal static class AIUseCrafterPatch
                         recipe.TryGetFirstTimeBonus();
                     } else {
                         Thing? t;
-                        using (MsgRelayContext.RedirectTo(act.owner)) {
+                        using (MsgRelayContext.RedirectTo(act.owner))
+                        using (RemoteCraft.AsCrafter(act.owner)) {
                             t = crafter.Craft(act);
                         }
 
