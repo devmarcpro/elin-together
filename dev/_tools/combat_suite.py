@@ -6,6 +6,7 @@
 F1  un monstre qui attaque A vit sur l'horloge de A ; un PNJ sans combat reste en temps normal
 F2  A ne fait rien, B se promene (le monde tourne) : le monstre de A n'agit pas, le PNJ libre si
 F3  A passe des tours : son monstre agit
+F6  A surcharge : son monstre joue au rythme de la vraie vitesse de A (celle de son jeu)
 F4  un monstre qui attaque l'host : il n'agit que quand l'host joue, pas quand A joue
 F5  option decochee (et tour par tour decoche) : le monstre de A agit pendant que B se promene, comme avant
 """
@@ -108,6 +109,46 @@ def f3(ctx):
     check("A joue : son monstre agit", ok)
 
 
+def f6(ctx):
+    """A surcharge : son monstre recoit le temps de la vraie vitesse de A, pas de celle de sa copie chez l'host
+    (la copie n'est pas "le joueur" pour le jeu : surchargee elle perd toute sa vitesse, le joueur la moitie)"""
+    a, n = ctx.setdefault("a", state(A)["pc"]["uid"]), 12
+    mine = spawn(a)
+    heavy = ev(H, f'var c = {FIND}({a}); var t = ThingGen.Create("log"); t.SetNum(5000); c.AddThing(t); return t.uid.ToString();')
+
+    def clock():
+        """Temps de jeu recu par le monstre, en tours : ceux qu'il a joues, plus ce qui lui reste a jouer."""
+        turn, timer, act = ev(H, f'var m = EClass._map.charas.Find(c => c.uid == {mine}); var inv = System.Globalization.CultureInfo.InvariantCulture; '
+                                 'return m.turn + "|" + m.roundTimer.ToString(inv) + "|" + m.actTime.ToString(inv);').split("|")
+        return int(turn) + float(timer) / float(act)
+
+    try:
+        check("A est surcharge au maximum", eventually(lambda: ev(A, 'EClass.pc.burden.GetPhase().ToString()') == "4", timeout=10))
+        keep_fighting(mine, a)
+        check("le nouveau monstre vit sur l'horloge de A", eventually(lambda: owner(mine) == a, timeout=10))
+        time.sleep(3)
+        real = int(ev(A, 'EClass.pc.Speed.ToString()'))
+        copy = int(ev(H, f'{FIND}({a}).Speed.ToString()'))
+        monster = int(ev(H, f'EClass._map.charas.Find(c => c.uid == {mine}).Speed.ToString()'))
+        log(f"vitesses : A chez lui {real}, sa copie chez l'host {copy}, le monstre {monster}")
+        check("le test distingue les deux calculs (les deux vitesses different nettement)", abs(real - copy) >= 10)
+        # un tour de A, tel que l'host le traite a l'arrivee de son message, et le temps que le monstre en recoit,
+        # lus dans la meme image : compter des tours joues depend trop du rythme des deux jeux
+        used = ev(H, f'var m = EClass._map.charas.Find(c => c.uid == {mine}); var p = {FIND}({a}); '
+                     'var inv = System.Globalization.CultureInfo.InvariantCulture; var before = m.roundTimer; '
+                     'HarmonyLib.AccessTools.Method("ElinTogether.Patches.PlayerCombatTime:OnPlayerTurn").Invoke(null, new object[] { p }); '
+                     'var grant = m.roundTimer - before; if (grant <= 0f) return "rien"; '
+                     'var t = HarmonyLib.Traverse.Create(HarmonyLib.AccessTools.TypeByName("ElinTogether.Patches.SynchronizationContext")); '
+                     'var rs = System.Convert.ToSingle(t.Property("RefSpeed").PropertyExists() ? t.Property("RefSpeed").GetValue() : t.Field("RefSpeed").GetValue()); '
+                     'return (EClass.player.baseActTime * rs / grant).ToString("0.0", inv);')
+        check(f"un tour de A donne a son monstre le temps de la vitesse {used} (celle de A : {real} ; celle de sa copie : {copy})",
+              used != "rien" and abs(float(used) - real) <= 2)
+    finally:
+        ev(H, f'var t = {FIND}({a}).things.Find({heavy}); if (t != null) t.Destroy(); '
+              f'EClass._map.charas.Find(c => c.uid == {mine})?.Destroy(); "ok"')
+        time.sleep(2)
+
+
 def f4(ctx):
     ctx["mh"] = spawn(None)
     time.sleep(2)
@@ -164,7 +205,7 @@ def main():
         subprocess.run([sys.executable, str(ROOT / "_tools" / "mp_test.py"), "--clients", "2"], check=True)
 
     ctx = {}
-    steps = [f1, f2, f3, f4, f5]
+    steps = [f1, f2, f3, f4, f5, f6]
     if a.only:
         steps = [s for s in steps if s.__name__ in a.only.split(",")]
     for step in steps:

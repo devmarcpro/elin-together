@@ -76,8 +76,13 @@ internal static class PlayerCombatTime
             return;
         }
 
+        // the speed its own game computes. The copy kept here is no local player for the game and does not pay
+        // what only the player pays: measured on an overloaded player, 52 at home and 105 here, so its monsters
+        // got half the time they were due
+        var speed = !player.IsPC && player.RemoteState is { Speed: > 0 } reported ? reported.Speed : player.Speed;
+
         var grant = EClass.player.baseActTime *
-                    Mathf.Max(0.1f, (float)SynchronizationContext.RefSpeed / Mathf.Max(1, player.Speed));
+                    Mathf.Max(0.1f, (float)SynchronizationContext.RefSpeed / Mathf.Max(1, speed));
 
         var granted = false;
         foreach (var chara in map.charas) {
