@@ -12,6 +12,9 @@ internal class NoApplicationPausePatch
     internal static void OnOverrideBackgroundRunning()
     {
         Application.runInBackground = true;
-        EMono.core.config.other.runBackground = true;
+        // very first launch of the game: no config yet when the patches are installed
+        if (EMono.core?.config?.other is { } other) {
+            other.runBackground = true;
+        }
     }
 }
