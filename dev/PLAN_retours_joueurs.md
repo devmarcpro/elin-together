@@ -7,6 +7,32 @@ qui existe encore dans le fork. **Rien de ce qui suit n'est vérifié en jeu tan
 Règle : un défaut = un test qui le montre (rouge) = une correction = le test vert = un commit. Ce qui change la
 façon de jouer est proposé à l'utilisateur avant d'être codé, et devient une case de l'host.
 
+## État (2026-10-02, 14h35)
+
+| Fait, testé en jeu, commité | Commit | Test |
+|---|---|---|
+| Objet posé par un autre joueur vu « au sol » | `b4bd4f4` | `build_suite.py` B5 (rouge → vert) ; B1, B2, B4 : les cas normaux marchaient déjà (dont le ticket 9) |
+| Mur cassé par un monstre | `5ea85b9` | `build_suite.py` B3 (rouge → vert) |
+| Dons et talents de fabrication d'un invité | `af546f2` | `player_suite.py` F1 (rouge → vert), F2 |
+| Apparence changée au miroir | `6d8223e` | `player_suite.py` F3, F4 (rouges → verts) |
+
+Reste, dans l'ordre : gènes du slime, vitesse d'un joueur surchargé, après une mort chez l'host (repartir, objets
+fantômes), petits restes (point 8), tests seuls (point 9). Puis les deux choix de jeu (mort, reconnexion) : pas
+encore de réponse de l'utilisateur.
+
+Ce que la lecture annonçait et que le jeu a démenti : en mode construction de l'host (rien en main), l'objet posé
+arrive bien « posé » chez l'invité ; le défaut ne se voit que quand le jeu de l'invité ne peut pas rejouer la pose.
+
+Pièges de test notés en route :
+- Sans clic de son joueur, le monde de l'host est en pause : une tâche donnée par le pont (`pc.SetAI`) n'y avance
+  pas. Pour l'host, appeler la fin de l'action (`task.OnProgressComplete()`) ; pour un client, `SetAI` marche.
+- L'host arrête une tâche qu'on lui injecte pour le personnage d'un client quand ce client se dit inactif
+  (« Halting abandoned act ») : une fabrication se teste depuis le jeu du client, par sa fenêtre de fabrication
+  (`LayerCraft` : `SetFactory`, `recipe`, `inputNum.Num`, `OnClickCraft`).
+- Une recette trop dure tue d'épuisement un personnage tout neuf : prendre la plus facile et remettre l'endurance.
+- Le mod corrige de lui-même une position fausse (« Reconcile force move ») : on ne simule pas un retard de
+  position en déplaçant un personnage à la main chez le client.
+
 ## A. Combat tour par tour
 
 | Retour | Verdict de la lecture | À faire |
