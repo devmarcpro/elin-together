@@ -22,6 +22,24 @@ git remote add upstream https://github.com/ElinTogether/ElinTogether.git
 `upstream` est le projet d'origine : on y lit, **on n'y pousse jamais**. Ouvrir la session Claude dans le dossier
 du dépôt (le fichier `CLAUDE.md` à la racine lui dit comment travailler).
 
+### Autre façon : emporter tout le dossier de travail
+
+Ne **pas** copier le dossier `ElinMods` tel quel : il contient une centaine de raccourcis vers le jeu (les copies
+de test), que Windows recopierait comme autant de jeux entiers. À la place, sur l'ancienne machine :
+
+```
+python ElinTogether\dev\_tools\make_transfer.py        # fabrique Documents\ElinMods-transfert.zip
+```
+
+Copier ce zip, le décompresser sur la nouvelle machine (dans `Documents` de préférence), puis lancer une fois :
+
+```
+powershell -ExecutionPolicy Bypass -File ElinMods\ElinTogether\devpres-deplacement.ps1
+```
+
+Ce script remet les raccourcis entre dossiers, refait les copies du jeu et liste ce qui manque encore (jeu,
+Python, SDK…). Avec cette façon, l'étape 2 ci-dessous est déjà faite, et l'étape 5 aussi si le script a tout trouvé.
+
 ## 2. Ce qui n'est pas dans le dépôt (à copier à la main depuis l'ancienne machine)
 
 | Quoi | D'où (ancienne machine) | Où (nouvelle machine) | Obligatoire |
