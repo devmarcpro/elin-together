@@ -37,6 +37,12 @@ EMBARK = ('var layer = EClass.ui.GetLayer<LayerEditBio>(); if (layer == null) re
           '.GetComponentInChildren<UIButton>().onClick.Invoke(); "embark clicked"')
 
 
+# question a deux reponses posee au chargement ("Mods missing from current save") : la deuxieme, continuer
+CONTINUE = ('var d = EClass.ui.layers.OfType<Dialog>().LastOrDefault(); if (d == null) return "no dialog"; '
+            'var b = d.GetComponentsInChildren<UnityEngine.UI.Button>(true).Where(x => x.name.StartsWith("ButtonGeneral(Clone)")).ToList(); '
+            'if (b.Count != 2) return "other dialog"; b[1].onClick.Invoke(); return "continued";')
+
+
 def log(msg):
     print(f"[{time.strftime('%H:%M:%S')}] {msg}", flush=True)
 
@@ -168,6 +174,11 @@ def main():
         ok(emp.call(host_port, "eval", {"code": 'Game.TryLoad("world_lab", false, () => Game.Load("world_lab", false)).ToString()'}, timeout=180))
         wait(lambda: state(host_port)["gameStarted"] and state(host_port)["sceneMode"] == "Zone", "chargement du host", timeout=600)
         log("host : world_lab charge")
+        # world_lab vient d'une machine qui avait un mod de plus : sans lui le jeu demande "quitter sans
+        # sauvegarder / continuer" et reste en pause derriere la question
+        r = emp.call(host_port, "eval", {"code": CONTINUE}, timeout=180)
+        if r.get("result") == "continued":
+            log("host : question \"mods manquants\" passee (continuer)")
 
         client_ports = []
         for exe, logname in CLIENTS[:a.clients]:
