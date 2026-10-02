@@ -193,11 +193,11 @@ public static class PlayerTrade
                 LayerPlayerTrade.Refresh();
                 break;
             case Done:
-                LayerPlayerTrade.Close();
+                LayerPlayerTrade.Dismiss();
                 EmpPop.Information("emp_trade_done".lang());
                 break;
             case Cancelled:
-                LayerPlayerTrade.Close();
+                LayerPlayerTrade.Dismiss();
                 EmpPop.Information((string.IsNullOrEmpty(state.Reason) ? "emp_trade_cancelled" : state.Reason).lang());
                 break;
         }
@@ -302,7 +302,7 @@ public static class PlayerTrade
         _myItems.Clear();
         _myGold = 0;
         View = null;
-        LayerPlayerTrade.Close();
+        LayerPlayerTrade.Dismiss();
     }
 
     private static bool Present(Chara chara)

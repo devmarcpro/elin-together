@@ -40,11 +40,11 @@ internal class LayerPlayerTrade : YKLayer<object>
 
     internal static void Refresh()
     {
-        Close();
+        Dismiss();
         YK.CreateLayer<LayerPlayerTrade>();
     }
 
-    internal static void Close()
+    internal static void Dismiss()
     {
         if (Instance is not { } layer) {
             return;
