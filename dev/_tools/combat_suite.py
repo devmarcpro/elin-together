@@ -77,6 +77,13 @@ def f1(ctx):
                  'foreach (var c in list) c.Destroy(); list.Count.ToString()')
     log(f"{gone} habitants retires de la carte de test")
     time.sleep(2)
+    # chacun dans son coin : cote a cote, un monstre change de cible pour le joueur d'a cote et passe sur son
+    # horloge au milieu d'une mesure (F4 et F5 echouaient une fois sur deux pour ca)
+    for port, uid, dx, dz in ((A, ctx["a"], 9, 0), (B, ctx["b"], 0, 9)):
+        ev(port, f'var p = new Point(EClass.pc.pos.x + {dx}, EClass.pc.pos.z + {dz}).GetNearestPoint(allowBlock: false, allowChara: false); '
+                 'EClass.pc.Teleport(p, true, true); "ok"')
+        far = lambda u=uid: int(ev(H, f'var c = {FIND}({u}); return c.pos.Distance(EClass.pc.pos).ToString();')) >= 6  # noqa: E731
+        check(f"le joueur {uid} se met a l'ecart de l'host", eventually(far, timeout=10))
     ctx["ma"] = spawn(ctx["a"])
     ctx["free"] = spawn(ctx["b"], hostile=False)
     log(f"monstre de A : {ctx['ma']}, PNJ libre : {ctx['free']}")
@@ -205,7 +212,8 @@ def main():
         subprocess.run([sys.executable, str(ROOT / "_tools" / "mp_test.py"), "--clients", "2"], check=True)
 
     ctx = {}
-    steps = [f1, f2, f3, f4, f5, f6]
+    # F5 en dernier : option decochee, le monstre frappe A en temps reel et finit par le tuer
+    steps = [f1, f2, f3, f6, f4, f5]
     if a.only:
         steps = [s for s in steps if s.__name__ in a.only.split(",")]
     for step in steps:

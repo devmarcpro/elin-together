@@ -1040,6 +1040,24 @@ Pièges de test notés ce jour-là :
 - Règle retenue (demande de l'utilisateur) : quand il demande le zip, le faire **tout de suite** à partir des
   commits testés, mettre de côté ce qui n'est pas prouvé, tester après.
 
+### Elin s'est mis à jour pendant la passe complète (2026-10-02, 19h02) — EA 23.351
+- Passe « soir » sur `f4b3e30`, lancée à 18h10 : travel 55/55, shared 26/26, trio 24/24, companion 30/30,
+  party 28/28, economy 25/25, **combat 16/20**, quest 61/61, chara 13/13, parity 17/17, trade 32/32,
+  build 21/21, player 31/31. Puis `instance_suite` : le client ne se connecte plus, « invalid version ».
+- Cause : Steam a mis Elin à jour (canal Nightly, `buildid 25680002`, EA 23.351) à 19h02. Les lanceurs de
+  `_lab` gardaient une partie de l'ancienne version : le journal du mod dit
+  `game 0.23.350.1 -> 0.23.351.0`. Remède : refaire `make_lab.py Elin2 2` (3, 4), comme le dit SETUP.md.
+  **Piège** : `mp_test.py` attend alors 5 minutes par essai sans dire pourquoi ; lire
+  `ElinMP/Logs/Session_<date>.log` (« Version mismatch with host »).
+- Le mod (`26ad8d9`) se compile contre 23.351 sans erreur et sans avertissement ; host + 1 client se connectent,
+  aucune exception au chargement. Le zip publié (0.26.304) a été compilé contre 23.350 Patch 1 : pas essayé
+  tel quel sur 23.351. `dev/_decomp` est toujours le code de 23.350.
+- `instance`, `leave`, `transfer`, `death`, `sleep` : **pas passées** ce soir. Toute la passe est à refaire sur 23.351.
+- Combat 16/20 : F4 et F5 échouaient déjà à 15h08, avant la correction de vitesse (le monstre de A agit pendant
+  les tours de l'host). Les trois joueurs du banc sont côte à côte : un monstre change de cible pour le joueur
+  d'à côté et passe sur son horloge. `combat_suite.py` écarte maintenant les joueurs au début (F1).
+  Mesuré à deux joueurs sur 23.351 : l'invité a la même vitesse chez lui et chez l'host (105), pas d'inégalité.
+
 ### À faire ensuite
 1. Fait à 18h : vitesse en combat d'un joueur surchargé. `PlayerCombatTime` prenait la vitesse de la copie chez
    l'host (105) au lieu de celle du jeu du joueur (52) : ses monstres recevaient la moitié du temps dû, être
