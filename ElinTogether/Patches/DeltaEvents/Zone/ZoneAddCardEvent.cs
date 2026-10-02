@@ -31,8 +31,8 @@ internal static class ZoneAddCardEvent
         }
 
         if (connection.IsClient && !CardCache.Contains(t)) {
-            if (t is Thing gift && LayerDrama.IsActive()) {
-                // put there by a dialog ("drop"): the host creates it
+            if (t is Thing gift && (LayerDrama.IsActive() || ActEffectWishPatch.IsWishing)) {
+                // put there by a dialog ("drop") or by a wish: the host creates it
                 StoryGifts.Offer(gift);
             }
 
