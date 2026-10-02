@@ -247,6 +247,21 @@ internal class SleepSynchronizationContext : SynchronizationContext
         }
     }
 
+    /// <summary>
+    ///     Waking up away from a base, the game walks the player through each of its bases and back, to catch
+    ///     them up on the hours slept: zone changes one after the other, in one frame. For the host of a session
+    ///     these are real moves to everything else here. The players asleep next to it were handed the map, the
+    ///     way back waited for that map to be recalled while the game went on without waiting, and the host woke
+    ///     up looking at a map its character was not on, unable to do anything <br />
+    ///     Not done while others are connected: a base catches up when someone enters it
+    /// </summary>
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(Player), nameof(Player.SimulateFaction))]
+    internal static bool OnSimulateFaction()
+    {
+        return NetSession.Instance.Connection is not ElinNetHost || NetSession.Instance.CurrentPlayers.Count < 2;
+    }
+
     [HarmonyPrefix]
     [HarmonyPatch(typeof(LayerSleep), nameof(LayerSleep.Advance))]
     internal static bool OnClientAdvance(LayerSleep __instance)
