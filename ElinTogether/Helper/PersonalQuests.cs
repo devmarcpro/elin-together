@@ -3,6 +3,7 @@ using System.Linq;
 using ElinTogether.Models;
 using ElinTogether.Net;
 using ElinTogether.Patches;
+using UnityEngine;
 
 namespace ElinTogether.Helper;
 
@@ -33,7 +34,12 @@ internal static class PersonalQuests
     /// </summary>
     internal static bool InstancesEnabled => Enabled && NetSession.Instance.Rules.AllowIndependentTravel;
 
-    private static (Quest Quest, int Giver, bool Failed)? _outcome;
+    private const float StateWait = 10f;
+
+    private static readonly HashSet<int> _gone = [];
+    private static (int QuestUid, int Giver, bool Failed)? _outcome;
+    private static bool _stateFresh;
+    private static float _settleDeadline;
 
     /// <summary>
     ///     A client leaves the zone of its quest. The game settles the quest when the player walks into the place
@@ -54,7 +60,9 @@ internal static class PersonalQuests
         zone.events.OnLeaveZone();
         zone.events.list.RemoveAll(e => e is ZoneEventQuest);
 
-        _outcome = (quest, instance.uidClient, instance.status != ZoneInstance.Status.Success);
+        _outcome = (quest.uid, instance.uidClient, instance.status != ZoneInstance.Status.Success);
+        _stateFresh = false;
+        _settleDeadline = 0f;
 
         // the game's own settling, queued when moving, finds nothing to do
         instance.uidQuest = 0;
@@ -67,12 +75,27 @@ internal static class PersonalQuests
             return;
         }
 
+        // on the host's map, what the host kept for this player (its quests, its fame) lands when it settles
+        // there, sometimes a moment after the game started: settling before would be undone by it
+        if (!NetSession.Instance.IsAway && !_stateFresh) {
+            if (_settleDeadline == 0f) {
+                _settleDeadline = Time.unscaledTime + StateWait;
+            }
+
+            if (Time.unscaledTime < _settleDeadline) {
+                return;
+            }
+        }
+
         _outcome = null;
 
-        var quest = outcome.Quest;
-        if (!EClass.game.quests.list.Contains(quest)) {
+        // by its number: the quest in the log may be another copy by now
+        var quest = EClass.game.quests.list.Find(q => q.uid == outcome.QuestUid && IsPersonal(q));
+        if (quest is null) {
             return;
         }
+
+        _gone.Add(quest.uid);
 
         if (outcome.Failed) {
             quest.Fail();
@@ -175,6 +198,10 @@ internal static class PersonalQuests
     /// <param name="now">the date on the host's clock</param>
     internal static void Receive(List<Quest> mine, int[] taken, int fame, int karma, int now)
     {
+        // settled here a moment ago, the host does not know yet
+        mine.RemoveAll(q => _gone.Contains(q.uid));
+
+        _stateFresh = true;
         _mine = mine;
         _now = now;
         _fame = fame;
@@ -185,6 +212,7 @@ internal static class PersonalQuests
         if (!ReferenceEquals(NetSession.Instance.Transport, _transport)) {
             _transport = NetSession.Instance.Transport;
             _dropInstances = true;
+            _gone.Clear();
         }
 
         _taken.Clear();
@@ -295,6 +323,11 @@ internal static class PersonalQuests
             EmpLog.Information("Quest {QuestUid} {QuestId} lost its zone with the last connection, dropping it", quest.uid, quest.id);
             QuestFailEvent.FailQuietly(quest);
             _mine.Remove(quest);
+            _gone.Add(quest.uid);
+            TellHost(new PersonalQuestDelta {
+                Uid = quest.uid,
+                Data = null,
+            });
         }
     }
 }
