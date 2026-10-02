@@ -842,3 +842,136 @@ côtés et enregistre `_shots/mp-host.png` / `mp-client.png`. `--reuse` pour rep
 
 Retour complet à l'état d'origine : `use-workshop.ps1`, recopier `config.original.txt` vers `Save/config.txt`,
 supprimer `steam_appid.txt` et `Package/Mod_ElinTogether/`, supprimer `Save/world_lab`.
+
+## Nouvelle machine (Steam Deck sous Windows) — 2026-10-02, à partir de 10h30 — reprendre ici
+
+Entrée la plus récente du journal (la précédente est « Nuit du 2026-10-01 au 02 », plus haut). Les prochaines
+entrées s'ajoutent **ici, à la fin du fichier**.
+
+### Installation (10h30 → 11h10)
+- Machine : Steam Deck (Valve Jupiter, 15 Go de mémoire) sous Windows 11, écran 1920×1080, utilisateur
+  `steamdeckwin`. Le dossier de travail est venu par `ElinMods-transfert.zip` dans `Documents\ElinMods` : pas de
+  fausses copies du jeu, `_decomp`, `_shots`, `_backup`, `_lab\saves\world_lab.pristine`, `dev\_tools\pylib`
+  (Python 3.12) et `ilspycmd` étaient dedans.
+- Déjà fait par l'utilisateur : Steam connecté, Elin installé (canal Nightly, EA 23.350 Patch 1, emplacement
+  habituel), abonnements Workshop YK Framework et Elin Together. Elin n'avait **jamais été lancé**.
+- Installé avec winget : git 2.55, Python 3.12.10, SDK .NET 11.0.100-preview.5.26302.115. Le SDK et git demandent
+  chacun un clic « Oui » à l'écran (sans personne devant, l'installation s'annule : deux essais perdus pour git).
+- `apres-deplacement.ps1` : raccourcis `dev\_lab`, `_shots`, `_decomp`, `_backup` vers `Documents\ElinMods\…`,
+  et `ElinMods\_tools`, `_release` vers `dev\…`. `ELIN_GAME_PATH` pas nécessaire (emplacement habituel).
+  `ELINTOGETHER_LAB` = `dev\_lab`. Copies du jeu `Elin2`, `Elin3`, `Elin4` (identités 2, 3, 4).
+- Dans le jeu : `steam_appid.txt`, build Debug, `loadorder.txt` (build de dev actif, version Workshop inactive),
+  `Save\config.txt` = `_backup\config.test-fenetre.txt` (fenêtre 1280×720) + `Save\version.txt`,
+  `[Dev] Listener = true` dans le jeu et les trois copies.
+- Git : identité du dépôt = celle des commits précédents ; l'adresse d'envoi de `upstream` est neutralisée
+  (`git remote set-url --push upstream …`) ; connexion GitHub faite par l'utilisateur, `git push` marche.
+- Universal Modder (extension Claude Code, 0.2.0) réinstallé par l'utilisateur à 11h38 : `um` n'est pas dans le
+  PATH, le lancer avec `PYTHONPATH=<dossier de l'extension> python -m um …`. Les anciens instantanés
+  `um backup` de l'ancienne machine ne sont pas ici.
+
+### Ce qui diffère de l'ancienne machine
+- Démarrage bien plus rapide : host chargé en 45 s, client en jeu 1 min 30 plus tard (`mp_test.py` < 2 min).
+- Pas de `Save` de l'utilisateur : ses parties sont dans `Cloud Save` (Steam Cloud), `Save` ne contient que
+  `world_lab` et les mondes des clients de test. Pas de mod « Specific Portraits Settings », pas de
+  `VisibleEquipment` dans `Package` (les fenêtres s'ouvrent plus vite).
+- Réglages du mod remis à neuf (premier lancement) : `[Server] TurnBasedCombatMode = true` (valeur par défaut ;
+  l'ancienne sauvegarde `_backup\elintogether.cfg.original` avait `false`). Les suites passent ainsi.
+- Les suites comptent une vérification de plus par journal `elin3`/`elin4-player.log` de moins de deux heures :
+  d'où 16 et 31 au lieu de 17 et 32 pour `parity_suite` et `trade_suite` (rien ne manque).
+- Mise en veille : 15 min sur secteur. Aucun réglage changé ; `dev\_tools\keep-awake.ps1` (nouveau) empêche la
+  veille tant qu'il tourne.
+
+### Pièges rencontrés
+- **Elin jamais lancé + build Debug = mod qui plante au démarrage.** Pas de `config` tant que la langue n'est pas
+  choisie ; `NoApplicationPausePatch` lisait `core.config` pendant la pose des patches → exception, plus aucun
+  patch, pas de pont de test (7 minutes d'attente pour rien). Corrigé (`388fae3`). Le build Release n'est pas
+  touché : il pose ses patches à l'ouverture d'une session.
+- Le jeu ignore `Save\config.txt` s'il n'y a pas `Save\version.txt` à côté, et affiche le choix de la langue.
+- Au tout premier lancement, le mod remet son `.cfg` à neuf : `Listener = true` écrit avant est perdu (d'où
+  l'ordre « lancer, fermer, puis régler »). Les copies du jeu faites avant ce réglage ont `Listener = false`.
+- PowerShell 5.1 abîme les guillemets passés à `python` ou `git` : envoyer le C# au pont par un fichier ou
+  l'entrée standard, et les messages de commit par `git commit -F fichier`.
+- `SETUP.md` avait un chemin cassé (`dev` + caractère « cloche » + `pres-deplacement.ps1`).
+- Les fenêtres de test **avec la souris de l'utilisateur dessus** : voir ci-dessous.
+
+### Vérification (11h07 → 12h08)
+- `mp_test.py` OK, `parity_suite` **16/16**, `trade_suite` **31/31** (étape 7 de SETUP.md).
+- **G5 et S15 : scénarios périmés, pas des défauts** (analyse d'un agent sur les journaux d'hier, puis en jeu).
+  G5 ne demandait qu'une fois à A et B de rejoindre l'host ; la demande de B, faite pendant que la Prairie
+  changeait de mains, était perdue. S15 attendait que le client suive l'host dans sa zone. S10 (jamais repassé
+  depuis le choix du personnage) ne répondait pas à « avec quel personnage jouer ? ». Corrigés (`e27bbbd`) :
+  **`shared_suite` 26/26, `travel_suite` 55/55**, premier passage vert de leurs fins depuis `1e1be22`.
+  Les quatre changements de `36eccb3` étaient bien dans le build d'hier ; aucun de leurs avertissements dans ces
+  deux passes, mais ils n'ont toujours pas de test à eux.
+- Limite notée, pas corrigée : un invité qui demande à voyager juste quand la carte change de mains perd sa
+  demande (`TakeOverZone` efface `_pendingTravel`), il doit recliquer.
+- **Vrai défaut trouvé par hasard** : pendant que l'utilisateur se servait du PC, un client de test est resté
+  bloqué sur « World Law » à la création du personnage (72 clics du test pour rien). L'écran de création du jeu
+  relit les objets sous le pointeur et plante sur un objet détruit (une fenêtre sans le focus garde ses anciens
+  objets survolés) ; l'exception coupait `OnSessionNewPlayerRequest` avant la pose du bouton du mod. Corrigé
+  par `CharaMakerHoverPatch` (`a6819f1`), test dans `chara_suite.py` C2 : rouge avant
+  (`_shots/chara_suite-hover-red.log`), **12/12** après. Le blocage complet n'a pas été rejoué de bout en bout
+  (il dépend du focus des fenêtres), le test appelle la même fonction du jeu.
+- `SETUP.md` et `apres-deplacement.ps1` corrigés (`95ce7f6`).
+
+### Série de bots (12h08 → …)
+- Lancement sans cliquer dans le menu : `mp_test.py --clients 0`, puis par le pont (les types du mod sont
+  `internal`, il faut passer par `HarmonyLib.AccessTools`) : `EmpConfig+Dev.BotAllActions.Value = true`,
+  `EmpBotLauncher.Launch()` ; attendre un `Client` en jeu ; `bot.py --watch --minutes 30` ; à la fin
+  `EmpBotLauncher.StopAll()` et `BotAllActions = false` (la valeur est écrite dans le `.cfg` du jeu).
+- **Premier passage, 23 minutes, 165 vérifications, 710 actions du bot, puis un vrai défaut** : le bot a pris une
+  quête auprès d'un habitant de Mysilia (carte visitée seul), puis est rentré chez l'host avec cette quête en
+  cours → `PersonalQuests.Restore` cherchait l'habitant alors que le monde tout juste reçu n'a pas encore de carte
+  active → exception du jeu (`EClass._map`), `OnSaveDataProbe` coupé en deux, **le joueur reste connecté sans jeu
+  (écran vide)**. Tout joueur qui prend une quête en ville et rentre avec y avait droit. Corrigé (`449c5fa`) :
+  hors carte active, seuls les personnages connus partout sont cherchés ; l'habitant est relié au passage
+  suivant. Test `quest_suite.py` P5 : rouge avant (`_shots/quest_suite-p5-red.log`), **`quest_suite` 60/60** après.
+- Au début du même passage, pendant 80 s : le sac du bot comptait 7 objets de plus chez l'host que chez lui.
+  Cause dans l'outil, pas dans le jeu : `EmpBotLauncher.Tick` donnait le matériel 2 s après l'envoi du monde au
+  bot, avant que son jeu ait fini de charger (`_settled`) ; le personnage qu'il avait reçu n'avait pas le matériel.
+  Corrigé dans l'outil (`IsSettled`). Même fenêtre pour tout ce que l'host ferait au personnage d'un joueur en
+  train de charger ; rien d'autre que ce matériel n'y touche aujourd'hui.
+
+### Page Workshop d'Elin Together, lue le 2026-10-02 (67 commentaires) — pistes, à proposer à l'utilisateur
+Rien de neuf côté code d'origine : `upstream/main` n'a aucun commit depuis la base du fork (`4a487d1`).
+Ce que les joueurs demandent ou signalent, du plus fréquent au plus rare :
+1. **Ne pas être forcé de suivre l'host** (4 commentaires, dont « l'host cultive, moi je veux les donjons ») ; les
+   auteurs répondent que c'est impossible avec leur conception. C'est exactement ce que fait ce fork.
+2. Le temps quand on voyage seul (un joueur propose une option) → « temps du monde commun », à voir avec l'utilisateur.
+3. Listes de mods différentes (« Act Mapping Mismatch », déconnexion immédiate, « personne ne peut manger ») →
+   `PLAN_profil_mods.md` (déjà en file d'attente) ; au minimum, un message clair qui dit quels mods diffèrent.
+4. Combat tour par tour : les monstres jouent 20 fois de suite, l'esquive d'un client ne marche pas → à vérifier
+   avec « combat au rythme de chaque joueur » (case du fork).
+5. Recommencer son personnage / supprimer celui d'un ami → « nouveau personnage » existe ici ; manque : supprimer.
+6. Garder sa progression hors de la partie de l'host (jouer seul puis revenir) → importer / emporter un personnage
+   (point 7 de la liste « Reste à faire »).
+7. Défauts signalés, à vérifier un par un dans le fork : apparence changée au miroir par un client pas gardée ;
+   objet posé par l'host (panneau) vu comme un objet au sol par le client, qui peut le ramasser ; dons (feats)
+   d'un client sans effet (rêve lucide, potions de sorcière) ; race slime qui perd gènes et dons en mourant ;
+   objets fabriqués par un client tous « en granit » (matières pas synchronisées) ; apparence personnalisée (PCC).
+
+### Page GitHub du projet d'origine (ElinTogether/ElinTogether), lue le 2026-10-02
+10 étoiles, 13 tickets en tout, 3 ouverts, pas de discussions, dernier envoi le 2026-09-27 (= la base du fork).
+- Ouverts : #9 un client qui pose un objet tenu (mur pris d'une pile) le voit tomber au sol au lieu d'être
+  installé ; #10 le message « vous avez fabriqué… » d'un client s'affiche chez l'host (idem feu de camp) ;
+  #2 la liste TODO des auteurs.
+- TODO des auteurs, pas fait : la mort (« une façon adaptée au multijoueur », aujourd'hui on choisit où
+  revenir) ; proposition de reconnexion automatique ; quêtes avancées par un client (« pas pour tous les
+  types ») ; changements d'apparence en cours de jeu (priorité basse) ; connexion par adresse IP.
+- Fermés sans suite : #8 un client fée esquive et joue comme l'host en tour par tour (même plainte que sur le
+  Workshop) ; #4 demande d'un tour par tour qui ne bloque pas ceux qui construisent pendant qu'un autre se bat ;
+  #7 (liste) : boss de donjon qui casse un mur pas vu par le client, objets en plus d'un squelette nommé pas vus,
+  tenue changée à la coiffeuse pas gardée. Réponse des auteurs à « un client ne gagne pas de karma » : « le
+  monde est celui de l'host, le client n'est qu'un coéquipier » — l'inverse du but de ce fork.
+- Leur règle pour contribuer : expliquer le changement, le relier à un ticket, « pas de code d'IA non relu ni testé ».
+- **Notre page (devmarcpro/elin-together)** : pas de description, pas reliée au projet d'origine comme « fork »,
+  et le README est encore celui d'origine (il dit « un client ne peut pas changer de carte, c'est voulu »).
+  À proposer : un README du fork (ce qu'il ajoute, les cases de l'host, comment l'installer, limites).
+
+### À faire ensuite (ordre demandé par l'utilisateur)
+1. Série de bots de 30 minutes (menu, « tout faire », `bot.py --watch`) : deuxième passage en cours sur `449c5fa`.
+2. Nouveau zip (`make_release.ps1`), puis remettre le build Debug.
+3. Suite de `DOCUMENTATION.md` section 7. **Pas le « temps du monde commun » sans l'utilisateur.**
+4. Demande de l'utilisateur (2026-10-02) : lire la page Workshop d'Elin Together et surtout ses commentaires
+   (https://steamcommunity.com/sharedfiles/filedetails/?id=3773298709) pour des pistes d'amélioration, **après**
+   le reste ; lui proposer la liste avant de coder.

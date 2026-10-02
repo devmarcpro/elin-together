@@ -208,10 +208,14 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
 - Conflits connus, rares, non corrigés : deux achats au même instant chez le même marchand (un seul payé), deux
   joueurs qui construisent sur la même case (deux objets consommés), monture qui existe en double au retour
   d'un voyage, plantage du joueur qui tient une carte avec des invités (retour à sa dernière sauvegarde).
-- **Pas retesté sur le dernier build** (le PC s'est mis en veille à 05h10 le 2026-10-02) : la quête à donjon
-  abandonnée après une déconnexion dans sa zone (`instance_suite.py` I4), `shared_suite.py`, la fin de
-  `travel_suite.py` (S15 à S17, S9 à S11), et les séries de bots. Dernier passage vert de ces suites : avant les
-  commits `f247883` et `4edfd63`.
+  Un invité qui demande à voyager à l'instant où la carte qu'il visite change de mains perd sa demande : il
+  doit recliquer.
+- **État des tests au 2026-10-02 (nouvelle machine)** : `shared_suite` 26/26, `travel_suite` 55/55,
+  `quest_suite` 60/60, `chara_suite` 12/12, `parity_suite` 16/16, `trade_suite` 31/31. Pas repassés sur le
+  dernier build : `instance_suite`, `economy_suite`, `combat_suite`, `companion_suite`, `party_suite`,
+  `trio_suite`, `leave_suite`, `transfer_suite` (verts la nuit du 1er au 2 octobre, avant les trois corrections du 2).
+  Les quatre changements de `36eccb3` (banque en voyage, rappel abandonné, bail refusé, entrées bloquées pendant
+  une passation) n'ont toujours pas de test à eux.
 - Jamais testé entre deux PC par Steam ; tout a été vérifié en local.
 - Le temps du monde suit encore l'host.
 
@@ -256,3 +260,7 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
 | `b730280`, `a50f081` | fenêtre d'échange entre joueurs |
 | `f247883` | karma et crime par joueur, prime des quêtes de défense |
 | `4edfd63` | corrections de la relecture (échange, zone de quête, étages loués) |
+| `307f897`, `853018f` | règlement des quêtes à donjon, écran « Server Setting » en sections |
+| `388fae3` | build de développement sur un jeu jamais lancé |
+| `a6819f1` | nouveau joueur bloqué à la création du personnage (objet détruit sous le pointeur) |
+| `449c5fa` | joueur sans jeu en rentrant chez l'host avec une quête prise en ville |

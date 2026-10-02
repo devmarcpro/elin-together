@@ -3,12 +3,14 @@ ElinTogether - version "independance"
 
 Ce que c'est
 ------------
-Une version modifiee du mod multijoueur Elin Together : chaque joueur peut aller ou il veut sans suivre
-l'hote, garder ses compagnons, vendre pour lui dans le coffre d'expedition et combattre a son propre rythme.
+Une version modifiee du mod multijoueur Elin Together : en jeu, aucune difference entre l'hote et les autres
+joueurs. Chacun va ou il veut sans suivre l'hote, avec ses compagnons, ses quetes, sa renommee et son argent ;
+l'histoire, la base et les guildes restent communes.
 
 Avant d'installer
 -----------------
-1. Avoir Elin sur Steam, a jour (les deux joueurs doivent avoir la meme version du jeu).
+1. Avoir Elin sur Steam, a jour, sur le canal Nightly (Steam, clic droit sur Elin, Proprietes, Betas).
+   Tous les joueurs doivent avoir la meme version du jeu : celle de version-elin.txt, dans ce dossier.
 2. Etre abonne au mod "YK Framework" sur le Workshop Steam :
    https://steamcommunity.com/sharedfiles/filedetails/?id=3400020753
    Le plus simple : s'abonner a "Elin Together" sur le Workshop, il l'amene avec lui :
@@ -22,16 +24,20 @@ Installer
    Il trouve Elin, copie le mod, active cette version et desactive la version Workshop (c'est le meme mod).
 3. Lancer Elin par Steam.
 
-Les DEUX joueurs doivent installer ce meme dossier.
+TOUS les joueurs doivent installer ce meme dossier : cette version ne se connecte pas a celle du Workshop.
 
 Jouer
 -----
-- Ecran titre : bouton Elin Together. L'hote charge sa partie puis ouvre la session, l'autre le rejoint.
+- Ecran titre : bouton Elin Together. L'hote charge sa partie puis ouvre la session, les autres le rejoignent.
 - L'hote doit avoir une base (un terrain revendique) dans sa partie.
-- Reglages de l'hote, onglet "Configuration du serveur", trois cases a cocher :
-    * Voyage independant          decoche : tout le monde reste sur la carte de l'hote (mod d'origine)
-    * Expedition par joueur       decoche : tout l'argent du coffre d'expedition va a l'hote
-    * Combat au rythme de chacun  decoche : comportement d'origine
+- Reglages de l'hote, onglet "Server Setting" : une case a cocher par nouveaute, avec une ligne d'explication.
+  Decochee, le mod se comporte comme l'original.
+    * Independent travel                          chacun va ou il veut ; decoche : tout le monde suit l'hote
+    * Players choose their character when joining en rejoignant : reprendre un de ses personnages ou en creer un
+    * Shipping per player                         l'argent d'une vente va a celui qui a depose l'objet
+    * Random quests, fame and karma per player    chacun ses quetes d'habitants, sa renommee, son karma
+    * Trade window between players                clic sur un autre joueur, "Echanger"
+    * Combat on each player's time                un monstre agit quand le joueur qu'il combat agit
 
 Revenir en arriere
 ------------------
@@ -40,6 +46,10 @@ Rien n'est supprime : les anciennes versions sont gardees dans Elin\_ElinTogethe
 
 A savoir
 --------
-- C'est une premiere version de test. Faites une copie de vos sauvegardes avant de jouer :
-  %USERPROFILE%\AppData\LocalLow\Lafrontier\Elin\Save
-- Les quetes prises pendant un voyage sans l'hote ne sont pas encore partagees.
+- C'est une version de test, verifiee sur un seul PC avec plusieurs fenetres du jeu, pas encore entre deux PC.
+  Faites une copie de vos sauvegardes avant de jouer :
+  %USERPROFILE%\AppData\LocalLow\Lafrontier\Elin
+- Le temps du monde suit encore l'hote.
+- Quetes a donjon : seul celui qui prend la quete entre dans sa zone.
+- Un probleme ? Envoyez Player.log et ElinMP\Logs\Session_<date>.log (meme dossier que les sauvegardes),
+  ceux des deux joueurs : https://github.com/devmarcpro/elin-together/issues

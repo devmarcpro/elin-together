@@ -1,125 +1,105 @@
-# Eternal League of Networking (EMP)
+# Elin Together — "independence" fork
 
-[![Elin Together CI Deploy](https://github.com/ElinTogether/ElinTogether/actions/workflows/emp_ci.yml/badge.svg)](https://github.com/ElinTogether/ElinTogether/actions/workflows/emp_ci.yml) [![GitHub tag](https://img.shields.io/github/tag/ElinTogether/ElinTogether.svg)](https://GitHub.com/ElinTogether/ElinTogether/tags/) [![.NET SDK 11.0.x](https://img.shields.io/badge/11-green?logoColor=blue&label=dotnet%20SDK&labelColor=blue)](https://dotnet.microsoft.com/en-us/download/dotnet/11.0)
+English | [Français](README_fr.md)
 
+A fork of [Elin Together](https://github.com/ElinTogether/ElinTogether), the multiplayer mod for
+[Elin](https://store.steampowered.com/app/2135150/Elin/), with one goal: **in game, no difference between the host
+and the other players**. Everyone goes where they want, with their own companions, quests, fame and money, while
+the world (story, home base, guilds) stays shared.
 
-English | [中文](README_zh.md) | [日本語](README_ja.md)
+The original mod keeps the whole party on the host's map and treats the other players as teammates of the host.
+Its authors consider separate maps out of scope; this fork is where that is tried. All credit for the mod itself
+goes to them (see [Credits](#credits)).
 
-Adventure through the world of [Elin](https://store.steampowered.com/app/2135150/Elin/) with your friends — build a home, dive into nefias, and watch error popups together.
+> **Status: experimental.** Everything below is tested on one PC with several game windows (automated in-game
+> test suites, see `dev/`). It has **not yet been played between two PCs over Steam**. Back up your saves first:
+> `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
 
-After months of development, this mod is now in public beta. Please report any bugs you run into.
+## What the fork adds
 
-## Play
+| Feature | What it changes |
+|---|---|
+| Independent travel | A player leaves for another map without the host. The map and what was done there are kept. Progress is saved regularly while away; chat works across maps. |
+| Shared maps | A player can join another player on their map, without the host. If the one holding the map leaves, another takes over. |
+| The host drags nobody along | When the host changes map, the players who stayed behind stay. |
+| Companions per player | Companions follow the player who recruited them, travel with them, and count in that player's ally limit only. |
+| Shipping per player | One shipping chest; the money of a sale goes to whoever put the item in. |
+| Combat at each player's pace | A monster acts at the pace of the player it fights, not the host's. |
+| Random quests per player | Quests from inhabitants and boards belong to the player who takes them, with the reward, fame and karma. They follow the player everywhere. |
+| Shared story | Story quests are in one log: anyone starts, advances and finishes them. Dialog memory, key items and debt are shared. |
+| Dungeon quests for everyone | A player who is not the host can take a quest that has its own zone and settle it alone. |
+| Trade between players | Click another player → "Trade": both put items and gold, both confirm. |
+| Character choice | When joining, a player picks one of their characters in that world or makes a new one. |
+| Karma and crime per player | The player who did it loses the karma; guards only chase that player. |
+| Shared affinity and guilds | An inhabitant's affinity is the same for all; joining a guild counts for the group. |
 
-Requires [YK Framework](https://steamcommunity.com/sharedfiles/filedetails/?id=3400020753). Make sure it's placed above Elin Together in the mod viewer.
+Every one of these is a **checkbox on the host's side** (Esc → Mods → Elin Together → *Server Setting*).
+Unchecked, the mod behaves like the original.
 
-You can install this mod package via [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3773298709) or the automated builds from [GitHub Releases](https://github.com/ElinTogether/ElinTogether/releases).
+## Known limits
 
-### Version
+- Never tested between two PCs over Steam.
+- The world's clock still follows the host.
+- Story dialogs played by a non-host player are covered by tests that call the game's code directly, not yet by
+  clicking through the real dialogs.
+- Dungeon quests: only the taker enters the quest's zone.
+- Trade: no equipped items, no check for a full bag.
+- A few rare conflicts are known and not fixed (two purchases at the same instant from the same shop, two players
+  building on the same tile, a mount existing twice after a trip).
+- Mod compatibility is the original's: keep the mod list short and identical for every player.
 
-The workshop release always tracks the latest Nightly build; if you run into compatibility issues with the stable game version, you can download the Stable build from GitHub instead.
+The full list, and what is planned, is in [`dev/DOCUMENTATION.md`](dev/DOCUMENTATION.md) (French).
 
-### To host
+## Install
 
-- Launch the game **via Steam**, load a save or create a new game (recommended)
-- Press **Esc** → **Mods** → **Elin Together** to open the multiplayer panel
-- Start hosting there
-- Invite players from the panel or use your Steam friends list
+Requires [YK Framework](https://steamcommunity.com/sharedfiles/filedetails/?id=3400020753) and Elin on the
+**Nightly** branch (the fork is built against EA 23.350). **Every player must run the same build of this fork**;
+it does not talk to the Workshop version.
 
-![Elin Together panel](https://i.postimg.cc/vHqQLbV0/Pix-Pin-2026-07-28-09-25-19.png)
+There is no download yet: build it (below), or get the zip from someone who did
+(`dev/make_release.ps1` makes `ElinTogether-independance.zip`, with an `Installer.bat` that switches from the
+Workshop version to this one, and a `Desinstaller.bat` that switches back).
 
-To play with friends, keep the mod list as small as possible and identical for every player — Steam Workshop Collections make this easy to share.
-
-## FAQ
-
-### How to communicate with other players?
-
-You can ping by `P` key or press `Return` to chat.
-
-### How does the turn-based world work?
-
-Each player acts at their own speed, and the host's world advances accordingly. Player actions are concurrent and do not block one another. You can also configure a shared average speed.
-
-### How does combat work?
-
-On top of the fluid turn sync system, you can also enable classic turn-based combat in the config, where each player decides their action before the world continues.
-
-### Client players can't change map.
-
-It's intended. Only the host player can change maps.
-
-### Client players can't advance some quests.
-
-It's intended. You may get errors as a client player. Only the host player can actually advance quests.
-
-### Client players may see ghost items that can't be interacted with.
-
-If items are out of sync, try resyncing — a quick resync can be initiated from the Elin Together panel on either the host or the client side.
-
-### Connection froze; not responding; can't rejoin...
-
-Restart the game to clean up the Steam connections.
-
-### Is this compatible with X mod?
-
-We are not providing mod compatibility support right now. If issues occur, try removing the mod in question first.
-
-## Report Bugs & Feature Requests
-
-Use the [issue template here](https://github.com/ElinTogether/ElinTogether/issues/new/choose).
-
-Reports left in the Steam Workshop comments section are ignored.
+To host: launch Elin through Steam, load a save that has a claimed land, then Esc → Mods → Elin Together.
 
 ## Build
 
-This project requires 2 environment variables:
+Environment variables: `ElinGamePath` (root folder of the game) and `SteamContentPath`
+(`steamapps/workshop/content`, for `YKFramework.dll`). .NET SDK 11.0 preview, see `global.json`.
 
-`ElinGamePath` set to the root folder of the Elin game installation.
-```
-ElinGamePath/
-├─ BepInEx/
-│  ├─ core/
-│  │  ├─ *.dll
-├─ Elin_Data/
-│  ├─ Managed/
-│  │  ├─ *.dll
-```
-
-`SteamContentPath` set to your `steamapps/workshop/content` directory so `YKFramework.dll` can be referenced.
-
-This project uses [.NET SDK 11.0](https://dotnet.microsoft.com/en-us/download/dotnet/11.0) to compile correctly.
-
-Clone the project:
 ```ps
-git clone https://github.com/ElinTogether/ElinTogether.git
-cd ElinTogether
-```
-
-Install the deps:
-```ps
+git clone https://github.com/devmarcpro/elin-together
+cd elin-together
 dotnet restore ./ElinTogether --locked-mode
+dotnet build ./ElinTogether -c ReleaseNightly
 ```
 
-Build the project:
-```ps
-dotnet build ./ElinTogether -c Debug -o ./out --no-restore
-```
+The development setup (several game windows on one PC, the in-game test suites, the debug bridge) is described in
+[`dev/SETUP.md`](dev/SETUP.md) (French).
 
-## Contributing
+## How it works, in short
 
-Please explain the changes and link any related issues. Be responsible for any AI-generated codes and do not push slop without reviewing and testing.
+The original design: the host simulates the world, every change goes to the clients as a delta, clients send
+their actions to the host. The fork adds **zone leases**: a player leaving the host's map asks the host for a lease
+on the map it goes to, loads its own copy of the world and simulates that map itself. It sends the map back when it
+returns and at regular checkpoints; the host stays the reference. The holder of a lease can host that map for
+other players, and hands it over when leaving.
+
+## Reporting
+
+Problems with this fork: [issues here](https://github.com/devmarcpro/elin-together/issues), with both players'
+`Player.log` and `ElinMP/Logs/Session_<date>.log` from `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
+Please do not report fork problems to the original project.
 
 ## Credits
 
-- [DK](https://github.com/gottyduke) - code, framework
-- [Redgeioz](https://github.com/Redgeioz) - code, framework
-- [105gun](https://github.com/105gun) - code
-- [Han](https://github.com/chuahan) - testing, a lot of
-- [Omega](https://steamcommunity.com/profiles/76561198004587603) - testing
-- [InuiDame](https://github.com/InuiDame) - testing
-- [Drakeny](https://github.com/Drakeny) - testing
-- [Overlord](https://github.com/overlord-99) - testing
-- noa - supporting the project and modding community
+The mod is the work of the Elin Together team: [DK](https://github.com/gottyduke) and
+[Redgeioz](https://github.com/Redgeioz) (code, framework), [105gun](https://github.com/105gun) (code),
+[Han](https://github.com/chuahan), Omega, [InuiDame](https://github.com/InuiDame),
+[Drakeny](https://github.com/Drakeny) (testing), noa (Elin). MIT license, see [LICENSE](LICENSE).
 
----
-<p align="center">MIT License, 2025-present</p>
+The fork's changes were written with an AI coding assistant (Claude Code), directed by the fork's owner; each change comes with an in-game test, listed in its commit message. No game file and no decompiled game
+code is in this repository.
+
+The original project's README is kept in [中文](README_zh.md) and [日本語](README_ja.md); they describe the original
+mod, not this fork.
