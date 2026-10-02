@@ -1,4 +1,5 @@
 using ElinTogether.Net;
+using ElinTogether.Patches;
 using MessagePack;
 
 namespace ElinTogether.Models;
@@ -66,8 +67,26 @@ public class CardOnUseDelta : ElinDelta
             return;
         }
 
+        // a box the game opens for "the player": on the host that is the host, who got what was inside
+        // the one who asked stands in for the opening; what it gets travels as usual, nothing to replay
+        if (net is ElinNetHost host && OpensForPlayer(card.trait) &&
+            host.ActiveRemoteCharas.TryGetValue(OriginPeer, out var sender) && sender == user) {
+            using var simulate = Simulate();
+            using var told = MsgRelayContext.RedirectTo(user);
+            using var standIn = RemoteCraft.AsCrafter(user);
+            card.trait.OnUse(user);
+            return;
+        }
+
         Relay(net);
         card.trait.OnUse(user);
+    }
+
+    private static bool OpensForPlayer(Trait trait)
+    {
+        var type = trait.GetType();
+        return type == typeof(TraitParcel) || type == typeof(TraitGiftPack) || type == typeof(TraitPlamoBox) ||
+               type == typeof(TraitGachaBall);
     }
 
     private void Relay(ElinNetBase net)
