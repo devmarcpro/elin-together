@@ -74,6 +74,9 @@ internal partial class ElinNetClient
         // leaving an instance, Elin sends the player back where it started, see Chara.MoveZone
         if (pc.currentZone?.instance is { } instance) {
             zone = game.spatials.Find(instance.uidZone) ?? pc.homeZone;
+
+            // how the quest went is settled now: where we arrive may be someone else's map
+            PersonalQuests.LeaveInstance(pc.currentZone);
         }
 
         if (!Session.Rules.AllowIndependentTravel) {
@@ -255,7 +258,8 @@ internal partial class ElinNetClient
         zone.uid = uid;
         spatials.map[uid] = zone;
 
-        if (zone.parent is Region region) {
+        // the zone of a quest sits on the tile of the town it comes from, without taking its place on the map
+        if (zone.parent is Region region && !zone.IsInstance) {
             region.elomap.SetZone(zone.x, zone.y, zone, true);
         }
     }
@@ -531,6 +535,13 @@ internal partial class ElinNetClient
         EmpLog.Information("Zone lease {ZoneUid} denied: {Reason}",
             denied.ZoneUid, denied.Reason);
 
+        // out of the zone of a quest there is no staying: it is over, back to the host
+        if (Session.IsAway && pc.currentZone?.IsInstance == true && _pendingGrant is null && !_rejoining) {
+            _pendingTravel = null;
+            SendRejoin();
+            return;
+        }
+
         // the host stands there (we had not heard yet that it moved): going there is rejoining it
         if (denied.Reason == "emp_travel_host_zone" && Session.IsAway && _pendingGrant is null && !_rejoining) {
             _pendingTravel = null;
@@ -720,8 +731,8 @@ internal partial class ElinNetClient
             ZoneUid = zone.uid,
             ZoneState = ZoneLeaseState.GetState(zone),
             IdCurrentSubset = zone.idCurrentSubset,
-            // the world map is a local copy for everyone
-            Map = zone.IsRegion ? null : ZoneLeaseState.CollectMap(zone),
+            // the world map is a local copy for everyone; the zone of a quest is gone once left
+            Map = zone.IsRegion || zone.IsInstance ? null : ZoneLeaseState.CollectMap(zone),
             Chara = LZ4Bytes.Create(pc),
             Companions = CollectCompanions(),
             UidNext = game.cards.uidNext,

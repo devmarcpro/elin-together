@@ -15,6 +15,11 @@ internal static class SpatialGenEvent
 {
     internal static readonly Dictionary<int, Zone> HeldRefZones = [];
 
+    /// <summary>
+    ///     Set while the host creates a zone nobody else is to hear about (the zone of a quest a player took)
+    /// </summary>
+    internal static bool Quiet { get; set; }
+
     internal static Zone? TryPop(int uid)
     {
         if (!HeldRefZones.Remove(uid, out var card)) {
@@ -44,7 +49,7 @@ internal static class SpatialGenEvent
             return;
         }
 
-        if (NetSession.Instance.Connection is not ElinNetHost host) {
+        if (NetSession.Instance.Connection is not ElinNetHost host || Quiet) {
             return;
         }
 

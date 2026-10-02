@@ -91,6 +91,12 @@ internal partial class ElinNetHost
             EmpLog.Warning(ex, "Quest {QuestId} start failed for player {CharaUid}", quest.id, taker.uid);
         }
 
+        if (quest.UseInstanceZone) {
+            // the taker creates the zone of the quest right after, which lifts the deadline (as in the game):
+            // this copy must not bring it back
+            quest.deadline = 0;
+        }
+
         var data = LZ4Bytes.Create(quest);
         log?[quest.uid] = data.Bytes;
 

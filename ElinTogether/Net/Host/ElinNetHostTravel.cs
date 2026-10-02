@@ -1,3 +1,4 @@
+using ElinTogether.Patches;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -537,7 +538,7 @@ internal partial class ElinNetHost
         if (_leases.TryGetValue(peer.Id, out var zones) && zones.Remove(release.ZoneUid, out var rangeStart)) {
             handedBack = true;
 
-            if (game.spatials.Find(release.ZoneUid) is { IsRegion: false } zone) {
+            if (game.spatials.Find(release.ZoneUid) is { IsRegion: false } zone && !_questZones.Contains(zone.uid)) {
                 ApplyLeasedZone(zone, release);
             }
 
@@ -563,6 +564,8 @@ internal partial class ElinNetHost
         ReplaceGuestCharas(release, peer);
 
         if (handedBack) {
+            // before looking for someone to take it over: there is nothing to take over
+            DestroyQuestZone(release.ZoneUid);
             HandOverZone(release.ZoneUid, peer.Id);
         }
 
@@ -757,10 +760,10 @@ internal partial class ElinNetHost
 
     private static void ForgetCachedCard(Card card)
     {
-        // not a newer card that took that place meanwhile (an item given to a guest who went back to the host)
-        if (CardCache.Find(card.uid) is not { } cached || ReferenceEquals(cached, card)) {
-            CardCache.Remove(card.uid);
-        }
+        // by number, whatever object holds it: the copy uploaded by a player replaces the host's under the same
+        // number, and must find the place free (CardCache.Add would renumber it otherwise, and nobody would
+        // recognise that player's character anymore)
+        CardCache.Remove(card.uid);
 
         foreach (var thing in card.things) {
             ForgetCachedCard(thing);
@@ -796,6 +799,10 @@ internal partial class ElinNetHost
         // the copy of the world that player left with may be older than a zone created since (the next floor
         // of a dungeon another player already went down to): the same place is the same zone
         var lv = blueprint.ZoneState.Length > LvIndex ? blueprint.ZoneState[LvIndex] : 0;
+        if (blueprint.Instance) {
+            return CreateQuestZone(blueprint, parent);
+        }
+
         if (parent.children.Find(c => c is Zone && c.id == blueprint.Id && c.x == blueprint.X && c.y == blueprint.Y &&
                                       c.lv == lv) is Zone existing) {
             EmpLog.Information("Client zone {ZoneFullName} already exists as uid {ZoneUid}",
@@ -817,6 +824,55 @@ internal partial class ElinNetHost
             zone.ZoneFullName, zone.uid);
 
         return zone;
+    }
+
+    /// <summary>
+    ///     Zones of quests held by players, see <see cref="LeaseZoneBlueprint.Instance" />
+    /// </summary>
+    private readonly HashSet<int> _questZones = [];
+
+    internal bool IsLeased(int zoneUid)
+    {
+        return _leases.Values.Any(zones => zones.ContainsKey(zoneUid));
+    }
+
+    /// <summary>
+    ///     The zone of a quest a player took: only a place holder here, so the lease has something to hold.
+    ///     Never reused (two players each get their own), not on the world map (it sits on the tile of the town
+    ///     the quest comes from), not announced to the other players
+    /// </summary>
+    private Zone? CreateQuestZone(LeaseZoneBlueprint blueprint, Spatial parent)
+    {
+        Zone? zone;
+        SpatialGenEvent.Quiet = true;
+        try {
+            zone = SpatialGen.Create(blueprint.Id, parent, true, blueprint.X, blueprint.Y, blueprint.Icon) as Zone;
+        } finally {
+            SpatialGenEvent.Quiet = false;
+        }
+
+        if (zone is null) {
+            return null;
+        }
+
+        ZoneLeaseState.ApplyState(zone, blueprint.ZoneState, blueprint.IdCurrentSubset);
+        _questZones.Add(zone.uid);
+
+        EmpLog.Information("Created quest zone {ZoneFullName} as uid {ZoneUid}", zone.ZoneFullName, zone.uid);
+        return zone;
+    }
+
+    /// <summary>
+    ///     The player who held the zone of a quest left it: nothing of it is kept
+    /// </summary>
+    private void DestroyQuestZone(int zoneUid)
+    {
+        if (!_questZones.Remove(zoneUid) || game.spatials.Find(zoneUid) is not { } zone || zone == _zone) {
+            return;
+        }
+
+        EmpLog.Information("Quest zone {ZoneFullName} {ZoneUid} is over", zone.ZoneFullName, zoneUid);
+        zone.Destroy();
     }
 
     private string? GetPeerDenyReason(ISteamNetPeer peer)
@@ -869,6 +925,7 @@ internal partial class ElinNetHost
                 peer, zones.Keys);
 
             foreach (var zoneUid in zones.Keys) {
+                DestroyQuestZone(zoneUid);
                 HandOverZone(zoneUid, peer.Id);
             }
 

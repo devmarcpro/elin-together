@@ -11,8 +11,9 @@ internal static class BlockClientQuestPatch
 {
     internal static bool CanClientAccept(Quest quest)
     {
-        // quests are everyone's, story quests included; quests with their own zone are not shared yet
-        return quest is { UseInstanceZone: false };
+        // quests are everyone's, story quests included. A quest with its own zone belongs to the player who
+        // takes it, who holds that zone like any map it travels to: needs personal quests and independent travel
+        return quest is { UseInstanceZone: false } || PersonalQuests.InstancesEnabled;
     }
 
     internal static IEnumerable<MethodBase> TargetMethods()
@@ -43,7 +44,7 @@ internal static class ClientQuestInstanceZoneGate
     [HarmonyPrefix]
     internal static bool OnClientCreateInstanceZone(Quest __instance, ref Zone? __result)
     {
-        if (!NetSession.Instance.IsClient) {
+        if (!NetSession.Instance.IsClient || PersonalQuests.InstancesEnabled) {
             return true;
         }
 

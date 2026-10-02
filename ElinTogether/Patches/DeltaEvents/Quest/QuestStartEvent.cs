@@ -25,7 +25,7 @@ internal class QuestStartEvent
             return false;
         }
 
-        if (q.UseInstanceZone) {
+        if (q.UseInstanceZone && !PersonalQuests.InstancesEnabled) {
             EmpPop.Information("emp_ui_quest_client".lang());
             return false;
         }

@@ -59,6 +59,13 @@ public class LeaseZoneBlueprint
     [Key(6)]
     public string? IdCurrentSubset { get; init; }
 
+    /// <summary>
+    ///     The zone of a quest: it has no place on the world map, belongs to the player who took the quest, and is
+    ///     gone when that player leaves it
+    /// </summary>
+    [Key(7)]
+    public bool Instance { get; set; }
+
     public static LeaseZoneBlueprint Create(Zone zone)
     {
         return new() {
@@ -69,6 +76,7 @@ public class LeaseZoneBlueprint
             Icon = zone.icon,
             ZoneState = ZoneLeaseState.GetState(zone),
             IdCurrentSubset = zone.idCurrentSubset,
+            Instance = zone.IsInstance,
         };
     }
 }

@@ -29,7 +29,7 @@ public class QuestAcceptDelta : ElinDelta
             return;
         }
 
-        if (!quest.IsRandomQuest || quest.UseInstanceZone) {
+        if (!quest.IsRandomQuest || (quest.UseInstanceZone && !PersonalQuests.InstancesEnabled)) {
             EmpLog.Warning("Rejecting quest accept, not client acceptable {QuestUid} {QuestId}", Uid, quest.id);
             return;
         }

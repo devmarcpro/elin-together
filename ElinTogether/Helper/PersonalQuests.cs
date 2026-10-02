@@ -24,6 +24,64 @@ internal static class PersonalQuests
 
     internal static bool Enabled => NetSession.Instance.Rules.UsePersonalQuests;
 
+    /// <summary>
+    ///     Quests with their own zone, for every player: the zone belongs to the taker, who holds it like any map
+    ///     it travels to
+    /// </summary>
+    internal static bool InstancesEnabled => Enabled && NetSession.Instance.Rules.AllowIndependentTravel;
+
+    private static (Quest Quest, int Giver, bool Failed)? _outcome;
+
+    /// <summary>
+    ///     A client leaves the zone of its quest. The game settles the quest when the player walks into the place
+    ///     it came from, but that place may be the host's or another player's by now, and then our world is
+    ///     replaced on the way: how it went is noted here, and settled once we stand somewhere
+    /// </summary>
+    internal static void LeaveInstance(Zone zone)
+    {
+        if (!InstancesEnabled || zone.instance is not ZoneInstanceRandomQuest { uidQuest: not 0 } instance) {
+            return;
+        }
+
+        if (EClass.game.quests.Get(instance.uidQuest) is not { } quest) {
+            return;
+        }
+
+        // what leaving decides (a harvest is weighed now), once: the game would run it again when moving
+        zone.events.OnLeaveZone();
+        zone.events.list.RemoveAll(e => e is ZoneEventQuest);
+
+        _outcome = (quest, instance.uidClient, instance.status != ZoneInstance.Status.Success);
+
+        // the game's own settling, queued when moving, finds nothing to do
+        instance.uidQuest = 0;
+    }
+
+    private static void SettleOutcome()
+    {
+        if (_outcome is not { } outcome || EClass._zone.IsInstance ||
+            NetSession.Instance.Transport is not ElinNetClient { IsInTransfer: false }) {
+            return;
+        }
+
+        _outcome = null;
+
+        var quest = outcome.Quest;
+        if (!EClass.game.quests.list.Contains(quest)) {
+            return;
+        }
+
+        if (outcome.Failed) {
+            quest.Fail();
+        } else {
+            quest.Complete();
+        }
+
+        if (EClass.pc.IsAliveInCurrentZone && EClass._map.FindChara(outcome.Giver) is { } giver) {
+            giver.ShowDialog("_chara", outcome.Failed ? "quest_fail" : "quest_success");
+        }
+    }
+
     internal static bool IsPersonal(Quest quest)
     {
         return Enabled && quest.IsRandomQuest;
@@ -38,6 +96,7 @@ internal static class PersonalQuests
             _turnedIn.Clear();
             _source = null;
             _hasStanding = false;
+            _outcome = null;
             return;
         }
 
@@ -54,6 +113,8 @@ internal static class PersonalQuests
             OnWorldLoaded();
             return;
         }
+
+        SettleOutcome();
 
         // offers of this map someone else already holds
         foreach (var chara in EClass._map.charas) {
