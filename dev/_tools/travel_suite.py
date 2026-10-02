@@ -29,7 +29,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 import emp  # noqa: E402
-from mp_test import LAB_EXE, ROOT, SAVES, SHOTS, WINDOW, bridge_for, log, ok, shot, state, wait  # noqa: E402
+from mp_test import (LAB_EXE, ROOT, SAVES, SHOTS, WINDOW, bridge_for, join_client, log, ok, shot, state,  # noqa: E402
+                     wait)
 
 HOME, VERNIS, LUMIEST = 7, 16, 42
 LOCALLOW = SAVES.parent
@@ -412,6 +413,9 @@ def s15(ctx):
     check("sortie sur la carte du monde ou est l'host : client rejoint l'host", True)
     enter_at(host, spot)
     wait(lambda: zone_uid(host) == uid, "host entre dans la zone du client", timeout=120)
+    # le client est reste sur la carte du monde quand l'host est parti : il le rejoint de lui-meme
+    time.sleep(3)
+    move(client, uid)
     both_joined(host, client, uid)
     check("host : la pomme du client est dans cette zone", on_map(host, [m]).get(m) == mpos)
     host_goto(host, client, HOME)
@@ -519,15 +523,9 @@ def s10(ctx):
     # like a player at the title screen: connect once the freshly started game stopped loading
     wait(lambda: state(client).get("sceneMode") == "Title", "ecran titre du client", timeout=180)
     time.sleep(20)
-    for attempt in range(3):
-        ok(emp.call(client, "command", {"cmd": "emp.connect_udp"}))
-        try:
-            both_joined(host, client, HOME)
-            break
-        except TimeoutError:
-            log(f"reconnexion {attempt + 1} echouee, nouvel essai")
-    else:
-        raise TimeoutError("reconnexion du client")
+    # l'host demande avec quel personnage jouer : join_client reprend celui d'avant (le premier de la liste)
+    join_client(host, client, "client")
+    both_joined(host, client, HOME)
     check("client reconnecte et de retour chez l'host", True)
     check("apres reconnexion : l'inventaire vient du dernier checkpoint (plus de hache)",
           not client_chara_has(host, ctx["chara"], ctx["axe"]))

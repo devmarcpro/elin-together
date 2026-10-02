@@ -43,17 +43,17 @@ def settled(port, uid, *, away, guest=None, zone_session=None):
     return cond
 
 
-def with_host(*ports):
-    """Tous a la Prairie avec l'host, sessions de zone fermees.
+def with_host(*ports, zone=HOME):
+    """Tous avec l'host sur sa carte (la Prairie par defaut), sessions de zone fermees.
     Depuis que l'host ne traine plus les joueurs, ceux qui sont ailleurs le rejoignent d'eux-memes."""
     def back(p):
         """Le joueur est chez l'host ; sinon on lui redemande d'y aller (sans effet pendant un transfert)."""
         try:
-            if settled(p, HOME, away=False)():
+            if settled(p, zone, away=False)():
                 return True
             s = state(p)
-            if s.get("sceneMode") == "Zone" and not s.get("inTransfer") and (s.get("zone") or {}).get("uid") != HOME:
-                move(p, HOME)
+            if s.get("sceneMode") == "Zone" and not s.get("inTransfer") and (s.get("zone") or {}).get("uid") != zone:
+                move(p, zone)
         except (RuntimeError, OSError):
             pass  # en plein chargement
         return False
@@ -165,13 +165,9 @@ def g5(ctx):
     with_host(A, B)
     move(H, VERNIS)
     wait(lambda: zone_uid(H) == VERNIS, "host a Vernis", timeout=240)
-    # ils sont restes a la Prairie (A la tient, B est son invite) : ils rejoignent l'host d'eux-memes
-    for p in (A, B):
-        move(p, VERNIS)
-        time.sleep(2)
-    with_host_zone = lambda: all(settled(p, VERNIS, away=False)() for p in (A, B))  # noqa: E731
-    wait(with_host_zone, "A et B rejoignent l'host a Vernis", timeout=240)
-    time.sleep(3)
+    # ils sont restes a la Prairie (A la tient, B est son invite) : ils rejoignent l'host d'eux-memes.
+    # Une demande faite pendant que la Prairie change de mains est perdue : comme un joueur, on redemande.
+    with_host(A, B, zone=VERNIS)
     mb, mb_pos = ctx["mb"]
     found = on_map(H, [mb])
     check("host a Vernis : l'objet pose par B (invite) est la", found.get(mb) == mb_pos)
