@@ -11,6 +11,9 @@ tout le monde. Aucune suite ne le couvrait.
 
 Z1  l'invite demande a dormir, l'host se couche : l'ecran de sommeil s'ouvre des deux cotes
 Z2  au reveil : plus d'ecran de sommeil ni de voile, plus personne n'est endormi, chacun peut agir, l'heure a avance
+B1  l'invite dort avec le lit et l'oreiller de son sac : au reveil ils sont revenus dans son sac, des deux cotes
+B2  pareil s'il se couche puis renonce
+B3  un lit deja installe sur la carte, lui, reste ou il est
 """
 import argparse
 import sys
@@ -101,21 +104,26 @@ def z1(ctx):
     check(f"et chez l'invite ({view(A)['layers'] or 'rien'})", ok)
 
 
+def awake(port):
+    v = view(port)
+    if "LayerSleep" in v["layers"]:
+        return False
+    # le rapport d'expedition de 5 h retient le temps tant qu'il est ouvert : le joueur le ferme
+    ev(port, 'foreach (var l in EClass.ui.layers.ToList()) if (l is LayerShippingResult) l.Close(); "ok"')
+    if v["asleep"]:
+        # la nuit est finie mais le personnage somnole encore tant que les autres ne dorment plus : le mod
+        # attend que le joueur bouge (comme une touche de deplacement), ce qui le reveille
+        ev(port, STEP)
+    return not v["asleep"]
+
+
+# une touche de deplacement : un pas vers la case libre la plus proche
+STEP = ('var p = EClass.pc.pos.GetNearestPoint(allowChara: false, ignoreCenter: true); '
+        'if (p != null) EClass.pc.SetAIImmediate(new AI_Goto(p.Copy(), 0)); "ok"')
+
+
 def z2(ctx):
     """au reveil : plus d'ecran de sommeil, plus personne n'est endormi, chacun peut agir"""
-    def awake(port):
-        v = view(port)
-        if "LayerSleep" in v["layers"]:
-            return False
-        # le rapport d'expedition de 5 h retient le temps tant qu'il est ouvert : le joueur le ferme
-        ev(port, 'foreach (var l in EClass.ui.layers.ToList()) if (l is LayerShippingResult) l.Close(); "ok"')
-        if v["asleep"]:
-            # la nuit est finie mais le personnage somnole encore tant que les autres ne dorment plus : le mod
-            # attend que le joueur bouge (comme une touche de deplacement), ce qui le reveille
-            ev(port, 'var p = EClass.pc.pos.GetNearestPoint(allowChara: false, ignoreCenter: true); '
-                     'if (p != null) EClass.pc.SetAIImmediate(new AI_Goto(p.Copy(), 0)); "ok"')
-        return not v["asleep"]
-
     for port, who in ((H, "l'host"), (A, "l'invite")):
         ok = eventually(lambda port=port: awake(port), timeout=180)
         v = view(port)
@@ -129,6 +137,86 @@ def z2(ctx):
         before = ev(port, 'EClass.pc.pos.x + "," + EClass.pc.pos.z')
         ev(port, 'var p = EClass.pc.pos.GetNearestPoint(allowChara: false, ignoreCenter: true); if (p != null) EClass.pc._Move(p); "ok"')
         check(f"{who} fait un pas", eventually(lambda port=port, before=before: ev(port, 'EClass.pc.pos.x + "," + EClass.pc.pos.z') != before, timeout=10))
+
+
+def bedding(ctx):
+    """un lit et un oreiller dans le sac de l'invite (donnes par l'host s'il n'en a pas), l'invite fatigue"""
+    me = state(A)["pc"]["uid"]
+    held = ('var b = EClass.pc.things.Find<TraitBed>(); var p = EClass.pc.things.Find<TraitPillow>(); '
+            'return (b == null ? 0 : b.uid) + "," + (p == null ? 0 : p.uid);')
+    if "0" in ev(A, held).split(","):
+        ev(H, f'var c = EClass._map.charas.Find(x => x.uid == {me}); if (c.things.Find<TraitBed>() == null) c.AddThing(ThingGen.Create("bed")); '
+              'if (c.things.Find<TraitPillow>() == null) c.AddThing(ThingGen.Create("pillow_body")); "ok"')
+        eventually(lambda: "0" not in ev(A, held).split(","), timeout=10)
+    ctx["me"] = me
+    ctx["bedding"] = [int(u) for u in ev(A, held).split(",")]
+    ev(A, 'EClass.pc.sleepiness.Set(EClass.pc.sleepiness.max); "ok"')
+    dismiss_dialogs(A)
+    return ctx["bedding"]
+
+
+def where(ctx, port):
+    """ou sont le lit et l'oreiller, vus par ce jeu : "sol", "sac" (celui de l'invite), ou les deux, ou rien"""
+    holder = "EClass.pc" if port == A else f'EClass._map.charas.Find(x => x.uid == {ctx["me"]})'
+    uids = ", ".join(str(u) for u in ctx["bedding"])
+    return ev(port, f'var h = {holder}; return string.Join(",", new[] {{ {uids} }}.Select(u => '
+                    '(EClass._map.things.Any(t => t.uid == u) ? "sol" : "") + (h.things.Find(t => t.uid == u) != null ? "sac" : "")));')
+
+
+def lie_down(ctx):
+    """l'invite fait « Dormir » depuis sa barre : le jeu pose le lit et l'oreiller du sac a ses pieds"""
+    ev(A, 'new HotItemActionSleep().Perform(); "ok"')
+    ok = eventually(lambda: ev(H, f'(EClass._map.charas.Find(x => x.uid == {ctx["me"]}).conSleep != null).ToString()') == "True", timeout=10)
+    return ok and eventually(lambda: where(ctx, H) == "sol,sol" and where(ctx, A) == "sol,sol", timeout=10)
+
+
+def b1(ctx):
+    """l'invite dort avec le lit et l'oreiller de son sac : au reveil ils sont revenus dans son sac
+    (signale par l'utilisateur le 2026-10-02 : le lit restait pose par terre)"""
+    bedding(ctx)
+    ev(H, 'EClass.pc.sleepiness.Set(EClass.pc.sleepiness.max); "ok"')
+    dismiss_dialogs(H)
+    ok = lie_down(ctx)
+    check(f"l'invite se couche : lit et oreiller poses au sol des deux cotes (host : {where(ctx, H)})", ok)
+    ev(H, 'EClass.pc.Sleep(); "ok"')
+    check("la nuit commence", eventually(lambda: "LayerSleep" in view(H)["layers"], timeout=60))
+    for port, who in ((H, "l'host"), (A, "l'invite")):
+        check(f"{who} se reveille", eventually(lambda port=port: awake(port), timeout=180))
+    ok = eventually(lambda: where(ctx, A) == "sac,sac", timeout=15)
+    check(f"chez l'invite, lit et oreiller sont revenus dans son sac (lit, oreiller : {where(ctx, A)})", ok)
+    ok = eventually(lambda: where(ctx, H) == "sac,sac", timeout=15)
+    check(f"chez l'host aussi, ils sont dans le sac de l'invite et plus au sol ({where(ctx, H)})", ok)
+
+
+def b2(ctx):
+    """l'invite se couche puis renonce (il bouge avant que l'host dorme) : lit et oreiller reviennent aussi"""
+    bedding(ctx)
+    ok = lie_down(ctx)
+    check(f"l'invite se couche : lit et oreiller poses au sol des deux cotes (host : {where(ctx, H)})", ok)
+    ev(A, STEP)
+    check("l'invite n'attend plus le sommeil", eventually(lambda: not view(A)["asleep"], timeout=15))
+    ok = eventually(lambda: where(ctx, A) == "sac,sac", timeout=15)
+    check(f"chez l'invite, lit et oreiller sont revenus dans son sac ({where(ctx, A)})", ok)
+    ok = eventually(lambda: where(ctx, H) == "sac,sac", timeout=15)
+    check(f"chez l'host aussi ({where(ctx, H)})", ok)
+
+
+def b3(ctx):
+    """un lit deja installe sur la carte reste ou il est : l'invite s'y couche, renonce, le lit ne bouge pas"""
+    bed = bedding(ctx)[0]
+    ctx["bedding"] = [bed]
+    ev(A, f'var b = EClass.pc.things.Find(t => t.uid == {bed}); EClass._zone.AddCard(b, EClass.pc.pos).Install(); "ok"')
+    check("le lit est installe sur la carte des deux cotes",
+          eventually(lambda: where(ctx, H) == "sol" and where(ctx, A) == "sol", timeout=10))
+    # comme un clic sur un lit de la carte (AI_Sleep) : dormir dans ce lit, sans le reprendre
+    ev(A, f'EClass.pc.Sleep(EClass._map.things.Find(t => t.uid == {bed})); "ok"')
+    check("l'host note que l'invite veut dormir",
+          eventually(lambda: ev(H, f'(EClass._map.charas.Find(x => x.uid == {ctx["me"]}).conSleep != null).ToString()') == "True", timeout=10))
+    ev(A, STEP)
+    check("l'invite n'attend plus le sommeil", eventually(lambda: not view(A)["asleep"], timeout=15))
+    time.sleep(3)
+    check(f"le lit est reste sur la carte (invite : {where(ctx, A)}, host : {where(ctx, H)})",
+          where(ctx, A) == "sol" and where(ctx, H) == "sol")
 
 
 def z3(ctx):
@@ -164,9 +252,9 @@ def main():
     t0 = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
 
     ctx = {}
-    steps = [z0, z1, z2]
+    steps = [z0, z1, z2, b1, b2, b3]
     if a.only:
-        steps = [s for s in (w0, z0, z1, z2, z3) if s.__name__ in a.only.split(",")]
+        steps = [s for s in (w0, z0, z1, z2, b1, b2, b3, z3) if s.__name__ in a.only.split(",")]
     for step in steps:
         log(f"--- {step.__name__.upper()} : {step.__doc__}")
         try:

@@ -1046,8 +1046,20 @@ Pièges de test notés ce jour-là :
    ralenti lui coûtait moitié moins qu'à l'host. Test `combat_suite.py` F6 (mesure directe : on appelle le
    calcul chez l'host et on relit la vitesse utilisée), rouge 8/9 puis vert 9/9. Seuls F1 et F6 ont tourné sur
    ce build. Ce changement n'est **pas** dans le zip 0.26.304.
-2. **Signalé par l'utilisateur le 2026-10-02 au soir** : un joueur non-host qui dort avec un lit dans son sac
-   retrouve le lit posé par terre au réveil, pas revenu dans le sac.
+2. Fait à 18h10. **Signalé par l'utilisateur le 2026-10-02 au soir** : un joueur non-host qui dort avec un lit
+   dans son sac retrouve le lit posé par terre au réveil, pas revenu dans le sac (l'oreiller aussi).
+   Cause : l'action « Dormir » de la barre pose lit et oreiller puis appelle `Chara.Sleep(lit, oreiller,
+   pickup: true, …)` ; chez un client le mod remplace cet appel par une demande à l'host et jetait ces
+   arguments ; la condition de sommeil venue de l'host n'avait rien à reprendre. Correction, côté client
+   seulement : ce qui a été posé est gardé à la demande et remis sur la condition juste avant qu'elle finisse
+   (`ConSleep.OnRemoved`), le jeu fait le reste. Test `sleep_suite.py` B1 (nuit), B2 (il renonce), B3 (un lit
+   déjà installé reste en place) : rouge 14/18 (`_shots/sleep_suite-bed-red.log`), vert 18/18 ; nuit normale
+   15/15 ensuite. Pas dans le zip 0.26.304.
+   Reste vrai : le lit et l'oreiller d'un invité n'ont **aucun effet** sur sa nuit (c'est la nuit de l'host qui
+   compte), et un second « Dormir » pendant l'attente pose un second lit qui reste par terre.
+   **Demande de l'utilisateur ensuite** : chercher les autres inégalités de ce genre entre invités et host
+   (ce que le jeu ne fait que pour le joueur local). Audit en lecture seule lancé, rapport attendu dans le
+   dossier temporaire de la session (`audit-inegalites.md`) ; lui donner la liste avant de corriger.
 3. Connu, pas corrigé : un joueur seul sur une carte qu'il tient ne peut pas y dormir (sa demande part chez
    l'host, rien ne se passe) ; demande de voyage perdue pendant une passation ; bonus de première fabrication
    compté sur la fiche de l'host ; esquive d'une fée pas vérifiée.

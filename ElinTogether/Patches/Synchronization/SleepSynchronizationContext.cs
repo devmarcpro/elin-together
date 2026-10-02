@@ -14,6 +14,7 @@ internal class SleepSynchronizationContext : SynchronizationContext
     private static readonly HashSet<int> _lastReady = [];
     private static bool _sleepStarted;
     private static bool _cancelSent;
+    private static (Thing? Bed, Thing? Pillow, ItemPosition? PosBed, ItemPosition? PosPillow)? _laidDown;
 
     private static readonly AccessTools.FieldRef<LayerSleep, int> _minRef =
         AccessTools.FieldRefAccess<LayerSleep, int>("min");
@@ -114,7 +115,8 @@ internal class SleepSynchronizationContext : SynchronizationContext
 
     [HarmonyPrefix]
     [HarmonyPatch(typeof(Chara), nameof(Chara.Sleep))]
-    internal static bool OnPcSleep(Chara __instance)
+    internal static bool OnPcSleep(Chara __instance, Thing? bed, Thing? pillow, bool pickup,
+        ItemPosition? posBed, ItemPosition? posPillow)
     {
         if (NetSession.Instance.Connection is not ElinNetClient client || !__instance.IsPC) {
             return true;
@@ -129,11 +131,51 @@ internal class SleepSynchronizationContext : SynchronizationContext
             return false;
         }
 
+        _laidDown = pickup ? (bed, pillow, posBed, posPillow) : null;
+
         EmpLog.Debug("Requesting party sleep");
 
         client.Delta.AddRemote(new SleepRequestDelta());
         WidgetPopText.Say("emp_ui_sleep_request".Loc());
         return false;
+    }
+
+    /// <summary>
+    ///     Sleeping from the hotbar, the game lays the bed and pillow of the bag on the floor and notes on the
+    ///     sleep condition to take them back at wake-up. A client's sleep is only a request: its condition comes
+    ///     from the host, with nothing to take back, and both stayed on the floor <br />
+    ///     What was laid down is kept from the request and put back on the condition as it ends, the game does
+    ///     the rest
+    /// </summary>
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(ConSleep), nameof(ConSleep.OnRemoved))]
+    internal static void OnPcWake(ConSleep __instance, out ElinDelta.PatchScope __state)
+    {
+        __state = default;
+
+        if (__instance.owner is not { IsPC: true } || _laidDown is not { } laid) {
+            return;
+        }
+
+        _laidDown = null;
+
+        // the game's own sleep (no session, or this player simulates the map): it knows what to take back
+        if (__instance.pickup) {
+            return;
+        }
+
+        (__instance.pcBed, __instance.pcPillow, __instance.posBed, __instance.posPillow) = laid;
+        __instance.pickup = true;
+
+        // a sleep given up ends by a delta from the host, yet taking the bed back is this player's own act
+        __state = ElinDelta.PatchScope.Simulate();
+    }
+
+    [HarmonyFinalizer]
+    [HarmonyPatch(typeof(ConSleep), nameof(ConSleep.OnRemoved))]
+    internal static void OnPcWakeEnd(ElinDelta.PatchScope __state)
+    {
+        __state.Exit();
     }
 
     private static bool InSleepWaitWindow(Chara chara)
