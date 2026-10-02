@@ -15,8 +15,20 @@ internal static class CardSetPlacedStateEvent
             return true;
         }
 
-        // avoid duplicate actions sending
+        // avoid duplicate actions sending: a build reaches the others as a whole, see CharaBuildDelta
         if (CharaProgressCompleteEvent.IsHappening && CharaProgressCompleteEvent.Action is TaskBuild) {
+            // on the host the placed state rides along with the other side effects of the build: a build
+            // with nothing held (the host's build mode) sends only those, and a client whose replay stops
+            // early gets the piece through them. Without it the piece lay loose there, free to pick up
+            if (newState != PlaceState.none && CharaProgressCompleteEvent.ShouldPack(false)) {
+                CharaProgressCompleteEvent.Pack(new CardPlacedDelta {
+                    Owner = __instance,
+                    PlaceState = newState,
+                    Dir = __instance.dir,
+                    ByPlayer = byPlayer,
+                });
+            }
+
             return true;
         }
 
