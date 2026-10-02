@@ -49,6 +49,14 @@ internal static class CharaActPerformEvent
             connection.Delta.AddRemote(delta);
             EmpLog.Debug("Act {ActId} by chara {OwnerUid} at {@Pos}, target {TargetUid}",
                 delta.ActId, delta.Owner.Uid, delta.Pos, delta.TargetCard?.Uid);
+
+            // a can is filled by setting its charges, which nothing else sends
+            if (connection.IsHost && delta.Tool?.Find() is { isDestroyed: false } tool) {
+                connection.Delta.AddRemote(new CardChargeDelta {
+                    Card = tool,
+                    Charges = tool.c_charges,
+                });
+            }
         }
     }
 }

@@ -41,31 +41,53 @@ public class CharaActPerformDelta : ElinDelta
     [Key(4)]
     public RemoteCard? Tool { get; init; }
 
+    /// <summary>
+    ///     Which act of the tool: a watering can draws water or waters
+    /// </summary>
+    [Key(5)]
+    public ToolAct ToolKind { get; init; }
+
+    public enum ToolAct : byte
+    {
+        Zap,
+        DrawWater,
+        Water,
+        ClearWater,
+    }
+
     public static CharaActPerformDelta Create(Act act)
     {
         ApplyBuiltInMapping();
 
+        var (tool, kind) = ToolOf(act);
         return new() {
             ActId = act.id,
             Owner = Act.CC,
             TargetCard = Act.TC,
             Pos = Act.TP,
-            Tool = ToolOf(act),
+            Tool = tool,
+            ToolKind = kind,
         };
     }
 
-    private static Card? ToolOf(Act act)
+    private static (Card? tool, ToolAct kind) ToolOf(Act act)
     {
         return act switch {
-            ActZap zap => zap.trait?.owner,
-            _ => null,
+            ActZap zap => (zap.trait?.owner, ToolAct.Zap),
+            ActDrawWater draw => (draw.waterCan?.owner, ToolAct.DrawWater),
+            ActWater water => (water.waterCan?.owner, ToolAct.Water),
+            ActClearWater clear => (clear.waterPot?.owner, ToolAct.ClearWater),
+            _ => (null, ToolAct.Zap),
         };
     }
 
-    private static Act? ActOf(Card? tool)
+    private Act? ActOf(Card? tool)
     {
-        return tool?.trait switch {
-            TraitRod rod => new ActZap { trait = rod },
+        return (ToolKind, tool?.trait) switch {
+            (ToolAct.Zap, TraitRod rod) => new ActZap { trait = rod },
+            (ToolAct.DrawWater, TraitToolWaterCan can) => new ActDrawWater { waterCan = can },
+            (ToolAct.Water, TraitToolWaterCan can) => new ActWater { waterCan = can },
+            (ToolAct.ClearWater, TraitToolWaterPot pot) => new ActClearWater { waterPot = pot },
             _ => null,
         };
     }
@@ -114,9 +136,10 @@ public class CharaActPerformDelta : ElinDelta
             return;
         }
 
-        // the charge left came from the host already, this replay is for show
+        // the charges left come from the host, this replay is for show (and for the watered tiles): the act is
+        // given what its own check asks for, then the host's count is put back
         var charges = tool.c_charges;
-        tool.c_charges = charges + 1;
+        tool.c_charges = ToolKind == ToolAct.DrawWater ? 0 : charges + 1;
         try {
             act.Perform(chara, null, Pos);
         } finally {
