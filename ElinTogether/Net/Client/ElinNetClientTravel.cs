@@ -67,7 +67,9 @@ internal partial class ElinNetClient
         }
 
         if (!Session.IsAway && (pc.isDead || player.deathZoneMove)) {
-            // the host revives remote players where they fell, see CharaReviveEvent
+            // the host revives remote players where they fell, see CharaReviveEvent. Only that move is dropped:
+            // the game clears the mark inside the move we skip, left set it refused every travel that followed
+            player.deathZoneMove = false;
             return false;
         }
 
