@@ -171,7 +171,10 @@ internal static class EmpBotLauncher
             return configured;
         }
 
-        var lab = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "ElinMods", "_lab");
+        // where dev/_tools/make_lab.py put them: told by ELINTOGETHER_LAB, else the place they first lived in
+        var lab = Environment.GetEnvironmentVariable("ELINTOGETHER_LAB") is { Length: > 0 } told
+            ? told
+            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "ElinMods", "_lab");
         return Directory.Exists(lab)
             ? Directory.GetDirectories(lab, "Elin*").OrderBy(dir => dir).Select(dir => Path.Combine(dir, "Elin.exe"))
             : [];

@@ -1,0 +1,13 @@
+# Hors depot : copies du jeu, journaux et captures, code du jeu decompile, sauvegardes, bibliotheques tierces
+/_lab/
+/_shots/
+/_decomp/
+/_backup/
+/_tools/pylib/
+/_tools/ilspycmd.exe
+/_tools/.store/
+__pycache__/
+# ce que make_release.ps1 fabrique ; le modele de l'installateur reste
+/_release/*
+!/_release/template/
+!/_release/check-syntax.ps1

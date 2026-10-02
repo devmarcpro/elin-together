@@ -1,0 +1,258 @@
+# ElinTogether « indépendance » — documentation
+
+Fork du mod multijoueur ElinTogether pour Elin. But : **en jeu, aucune différence entre l'host et les autres
+joueurs**. Chacun va où il veut, avec ses compagnons, et le monde (quêtes, base, argent de la base) reste commun.
+
+- Dépôt : https://github.com/devmarcpro/elin-together (public), branche `feat/independent-travel`. Le code du
+  mod est dans `ElinTogether/`, tout ce qui sert à développer et tester dans `dev/` (ce dossier).
+- Installer une nouvelle machine : `SETUP.md`. Consignes pour une session Claude : `CLAUDE.md` à la racine.
+- Journal détaillé (pièges, essais, dates) : `MODLOG.md`. Ce document-ci dit ce qui existe et comment s'en servir.
+- Les chemins `_tools/`, `_lab/`, `_shots/`, `_release/` de ce document sont relatifs à `dev/`. Le journal parle
+  encore de `Documents\ElinMods\` : c'était leur place avant le 2026-10-02.
+- État : 2026-10-02 matin (après la nuit de tests).
+
+## 1. Ce que le fork apporte, vu du joueur
+
+| Fonction | Ce que ça change | Vérifié par |
+|---|---|---|
+| Voyage indépendant | Un joueur part sur une autre carte sans l'host ; la carte et ce qu'il y fait sont conservés. | `travel_suite.py` |
+| Points de sauvegarde et chat | En voyage, la progression est sauvée régulièrement ; le chat marche entre toutes les cartes. | `travel_suite.py` |
+| Cartes partagées | Un joueur peut rejoindre un autre joueur sur sa carte, sans l'host. Si celui qui « tient » la carte part, un autre la reprend. | `shared_suite.py`, `trio_suite.py` |
+| L'host ne traîne personne | Quand l'host change de carte, les joueurs restés sur l'ancienne y restent. | `leave_suite.py` |
+| Compagnons | Les compagnons suivent le joueur qui les a recrutés, y compris en voyage. Limite d'alliés par joueur. | `companion_suite.py`, `party_suite.py` |
+| Expédition par joueur (option) | Une seule caisse d'expédition ; l'argent de la vente va à celui qui a déposé l'objet. Le reste (rang de la base, total vendu) est commun. | `economy_suite.py` |
+| Combat au rythme du joueur (option) | Un monstre agit au rythme du joueur qu'il combat, au lieu du rythme de l'host. | `combat_suite.py` |
+| Quêtes aléatoires par joueur (option) | Les quêtes des habitants et des tableaux appartiennent à celui qui les prend : lui seul les voit, les rend, touche la récompense, la renommée et le karma. 5 quêtes par joueur. Elles le suivent en voyage et à la reconnexion. | `quest_suite.py` P1–P4, P11 |
+| Quêtes communes | Les quêtes d'histoire sont dans un seul journal : n'importe qui les lance, les avance, les termine. Sans l'option ci-dessus, les quêtes aléatoires aussi, et la récompense va à celui qui rend la quête. | `quest_suite.py` |
+| Quêtes d'histoire | Un joueur qui n'est pas l'host peut lancer et avancer une quête d'histoire. Ce que le dialogue offre lui revient, ce qu'il déclenche dans le monde se produit chez l'host. La mémoire de l'histoire (dialogues déjà vus, drapeaux, objets clés, dette) est commune. | `quest_suite.py` (voir limites) |
+| Quêtes à donjon pour tous (avec les options « voyage » et « quêtes par joueur ») | Un joueur qui n'est pas l'host peut prendre une quête qui a sa propre zone (subjuguer, récolte, escorte…) : la zone est à lui, il y entre seul, et la quête se règle quand il en ressort. | `instance_suite.py` |
+| Échange entre joueurs (option) | Clic sur un autre joueur → « Échanger » : une fenêtre où chacun met des objets et de l'or, puis confirme. Rien ne change de mains tant que les deux n'ont pas confirmé ; s'éloigner annule. | `trade_suite.py` |
+| Choix du personnage (option) | À la connexion, le joueur choisit parmi ses personnages de cette partie ou en crée un nouveau. | `chara_suite.py` |
+| Karma et crime par joueur (avec l'option « quêtes par joueur ») | Tuer un habitant, voler, creuser la rue : c'est le joueur qui l'a fait qui perd du karma, plus l'host ni les autres. Les gardes de l'host ne poursuivent que le joueur criminel. | `parity_suite.py` Y3–Y4 |
+| Affinité et guildes communes | L'affinité d'un habitant est la même pour tous ; rejoindre une guilde ou y monter en grade vaut pour le groupe. | `parity_suite.py` |
+| Mort en voyage | Le joueur choisit où revenir, et retrouve l'host s'il revient à la base. | vu une fois avec le bot |
+
+Limite de quêtes aléatoires : **5 par joueur** avec l'option « par joueur » (décisions du 2026-10-01 : quêtes
+aléatoires, renommée et karma personnels ; histoire commune), 5 pour tout le groupe sans elle.
+
+## 2. Options (host, onglet « Configuration du serveur »)
+
+| Case | Cochée | Décochée |
+|---|---|---|
+| Voyage indépendant (`IndependentTravel`) | chacun va où il veut | tout le monde suit l'host, comme le mod d'origine |
+| Expédition par joueur (`PlayerShipping`) | l'argent va au déposant | tout va à l'host |
+| Combat au rythme du joueur (`PlayerCombatTime`) | chaque monstre suit son adversaire | rythme de l'host |
+| Choix du personnage à la connexion (`ChooseCharacter`) | le joueur choisit parmi ses personnages de cette partie, ou en crée un nouveau | toujours le dernier personnage joué |
+| Quêtes aléatoires et renommée par joueur (`PersonalQuests`) | chacun ses quêtes aléatoires, sa renommée, son karma | un journal et une renommée pour le groupe |
+| Échange entre joueurs (`PlayerTrade`) | « Échanger » apparaît en cliquant sur un autre joueur | pas d'échange |
+
+Les options sont envoyées aux clients à la connexion (`NetSessionRules`). Toute nouvelle fonction doit avoir sa case.
+
+## 3. Installer
+
+**Pour jouer (toi et ton ami, même zip des deux côtés)** : `_release/ElinTogether-independance.zip`, puis
+`Installer.bat`. `Desinstaller.bat` remet le mod du Workshop. Refaire le zip : `make_release.ps1`. Le zip n'est
+pas dans le dépôt : il se fabrique sur chaque machine.
+Le zip actuel date du 2026-10-02 08h32, commit `4edfd63` : il contient tout ce que décrit ce document.
+
+**Pour développer** : `build.ps1` compile en Debug et copie dans `Elin\Package\Mod_ElinTogether`. Le Debug ajoute
+le pont de test (ports 27551+) et permet deux fenêtres sur le même PC. `build.ps1 Release` pour la version joueur.
+Elin doit être fermé pendant la compilation.
+
+## 4. Comment ça marche
+
+**Base (mod d'origine).** L'host simule le monde. Chaque changement part en « delta » vers les clients, qui
+l'appliquent. Les clients envoient leurs actions à l'host.
+
+**Voyage seul.** Quand un client quitte la carte de l'host, il demande un **bail** sur la carte où il va. S'il
+l'obtient, il charge sa propre copie du monde et la simule lui-même. À son retour (ou à chaque point de
+sauvegarde), il renvoie la carte à l'host, qui reste la référence. Le lien avec l'host reste ouvert pour le chat,
+les quêtes et les souvenirs de dialogue.
+
+**Carte partagée.** Celui qui tient le bail ouvre une **session de zone** : il devient host pour cette carte, et
+les autres s'y connectent comme invités, en plus de leur lien avec le vrai host. S'il part, le bail passe à un
+invité (**passation**) et les autres se reconnectent à lui. Quand c'est l'host qui quitte sa carte, le même
+mécanisme sert : le premier joueur resté reçoit le bail.
+
+**Compagnons.** Chaque compagnon porte le numéro de son joueur. Il suit ce joueur, voyage avec lui, et ne compte
+que dans sa limite d'alliés.
+
+**Expédition.** Chaque objet déposé est marqué du numéro du déposant. À 5 h, l'host vend tout, garde les comptes
+par joueur, et envoie à chacun son argent (ou le lui garde s'il est absent).
+
+**Combat.** Avec l'option, un monstre lié à un joueur n'avance que quand ce joueur joue un tour.
+
+**Quêtes aléatoires par joueur.** Chaque jeu ne garde dans son journal que les quêtes aléatoires de son joueur.
+L'host conserve celles de tout le monde dans la sauvegarde, avec la renommée et le karma de chacun, et les
+redonne au joueur quand il arrive sur sa carte. Quand un joueur prend ou rend une quête sur la carte de l'host,
+l'host exécute l'étape « à sa place » : l'objet à livrer, la récompense, la renommée vont à ce joueur.
+
+**Quêtes d'histoire.** L'host tient le seul journal. Sur sa carte, il exécute lui-même ce qu'une étape déclenche, et dépose
+les récompenses aux pieds du joueur concerné. En voyage, le joueur exécute l'étape dans sa copie et prévient
+l'host, qui met le journal à jour sans redonner la récompense. Chaque bail réserve 10 000 numéros de quêtes pour
+éviter les doublons.
+
+**Quêtes à donjon.** Le joueur qui prend la quête demande à l'host un bail sur une zone neuve, créée pour
+l'occasion et jamais réutilisée. Il la simule comme n'importe quelle carte où il voyage seul. En sortant, le
+résultat est noté, puis réglé une fois qu'il est arrivé quelque part ; l'host détruit alors la zone.
+
+**Échange.** Celui qui simule la carte (l'host, ou le joueur qui tient la carte) tient la « table » : il reçoit
+les intentions (inviter, accepter, offrir, confirmer), renvoie l'état aux deux joueurs, et fait le transfert d'un
+seul coup après avoir revérifié que chaque objet et chaque pièce existe encore.
+
+**Karma.** Le jeu retire du karma « au joueur » là où l'action se règle : une mort chez l'host, une fin de tâche
+chez l'host puis rejouée chez chaque client. Chez un client, ce qui est retiré pendant le rejeu d'un message de
+l'host est ignoré ; chez l'host, le coupable est le joueur derrière le tueur ou derrière la tâche, et l'host lui
+envoie la sanction. Quand un garde regarde quelqu'un, la question « le joueur est-il criminel ? » est posée pour
+le joueur regardé.
+
+**Affinité, guildes.** Le jeu du joueur qui agit calcule, l'host garde la valeur et la renvoie à tous.
+
+### Où c'est dans le code (`ElinTogether/ElinTogether/`)
+
+Chemins relatifs au dossier `ElinTogether/` du dépôt (le code du mod).
+
+| Sujet | Fichiers |
+|---|---|
+| Baux, départ, retour, passation | `Net/Host/ElinNetHostTravel.cs`, `Net/Client/ElinNetClientTravel.cs` |
+| Arrivée d'un joueur sur une carte | `Net/Host/ElinNetHostZone.cs`, `Net/Client/ElinNetClientZone.cs` |
+| État de la session (voyage, session de zone) | `Net/NetSession.cs`, `Net/NetSessionRules.cs` |
+| Compagnons | `Helper/CompanionHelper.cs`, `Net/Host/ElinNetHostCompanions.cs`, `Patches/Companion*.cs` |
+| Expédition | `Helper/ShippingHelper.cs`, `Net/Host/ElinNetHostShipping.cs`, `Net/Client/ElinNetClientShipping.cs` |
+| Combat | `Patches/PlayerCombatTime.cs`, `Patches/PauseGame.cs` |
+| Quêtes aléatoires par joueur | `Helper/PersonalQuests.cs`, `Net/Host/ElinNetHostPersonalQuests.cs`, `Models/Delta/Quest/PersonalQuestDeltas.cs` |
+| Quêtes et histoire | `Models/Delta/Quest/`, `Patches/DeltaEvents/Quest/`, `Helper/SharedQuests.cs`, `Helper/DialogFlagSync.cs` (mémoire commune), `Helper/StoryGifts.cs` (objets offerts), `StoryOutcomePatch.cs` (effets sur le monde) |
+| Quêtes à donjon | `Helper/PersonalQuests.cs` (`LeaveInstance`, `SettleOutcome`), `Net/Host/ElinNetHostTravel.cs` (`CreateQuestZone`), `Patches/LeasedZonePatch.cs` |
+| Échange | `Helper/PlayerTrade.cs`, `Components/LayerPlayerTrade.cs`, `Models/Delta/Inv/PlayerTradeDeltas.cs`, `Patches/PlayerTradePatch.cs` |
+| Choix du personnage | `Models/SessionState/SessionCharaSelect.cs`, `Net/Host/ElinNetHostPlayerManager.cs`, `Net/Client/ElinNetClientPlayer.cs` |
+| Karma et crime | `Helper/PlayerKarma.cs`, `Patches/PlayerKarmaPatch.cs`, `Net/Host/ElinNetHostPersonalQuests.cs` (`GiveKarma`, `IsCriminal`) |
+| Affinité, guildes | `Models/Delta/Chara/CharaAffinityDelta.cs`, `Patches/DeltaEvents/Chara/CharaAffinityPatch.cs`, `Helper/DialogFlagSync.cs` |
+| Bot du menu | `Emp/EmpBot.cs`, `Emp/EmpBotLauncher.cs` |
+| Options | `Emp/EmpConfig.cs`, `Components/Tabs/TabServerConfiguration.cs` |
+| Pont de test (Debug) | `Emp/EmpDebugListener.cs` |
+
+Règle à ne pas oublier : chaque type de delta a un numéro (`[Union(n, …)]` dans `Models/Delta/ElinDelta.cs`).
+Deux deltas avec le même numéro cassent toute la communication.
+
+## 5. Tester
+
+Tout se fait sur ce PC, avec plusieurs fenêtres Elin muettes, pilotées par le pont de test. Les commandes se
+lancent depuis `dev/`, avec `PYTHONPATH=_tools/pylib`.
+
+```
+python _tools/mp_test.py                 # lance host + 1 client dans la Prairie (--clients 2 ou 3 pour plus)
+python _tools/launch_client.py           # ajoute un client à un host déjà lancé
+python _tools/quest_suite.py             # un test court, sur les fenêtres déjà ouvertes
+python _tools/bot.py --minutes 5 --seed 1
+```
+
+| Outil | Sert à | Joueurs | Durée |
+|---|---|---|---|
+| `leave_suite.py` | l'host change de carte | 2 | ~1 min |
+| `quest_suite.py` | quêtes (par joueur, histoire), souvenirs de dialogue | 2 | ~4 min |
+| `instance_suite.py` | quêtes à donjon prises par un client | 2 | ~3 min |
+| `trade_suite.py` | échange entre joueurs | 2 | ~2 min |
+| `chara_suite.py` | choix du personnage à la connexion | 2 | ~3 min |
+| `parity_suite.py` | affinité, guildes, karma et gardes | 2 | ~1 min |
+| `transfer_suite.py` | ce qui se passe pendant un changement de carte | 2 | ~3 min |
+| `economy_suite.py` | expédition par joueur | 2 | ~5 min |
+| `combat_suite.py` | combat au rythme du joueur | 2 | ~5 min |
+| `companion_suite.py`, `party_suite.py` | compagnons, limite d'alliés | 2 | ~10 min chacun |
+| `travel_suite.py` | voyage seul, sauvegarde, chat, équipement | 2 | ~15 min |
+| `shared_suite.py`, `trio_suite.py` | cartes partagées, passation | 3 et 4 | ~15 min chacun |
+| `run_all.sh` | tout, à la suite | — | > 1 h, PC libre seulement |
+| `bot.py` | jouer au hasard et surveiller | 2 | au choix |
+
+**Le bot** joue au hasard (marcher, voyager, ramasser, poser, manger, parler, attaquer, quêtes, vendre,
+s'équiper, mourir et revenir). Toutes les 4 actions il vérifie : les deux jeux répondent, pas d'erreur dans les
+journaux, même journal de quêtes, et sur la même carte mêmes joueurs, sacs, or et objets au sol. Il ne sait pas
+si le jeu est « juste », seulement s'il casse ou si les deux jeux ne sont plus d'accord. `--seed N` rejoue la même
+suite, `--who host` fait jouer l'host, `--only a,b` limite les actions. Compte rendu dans `_shots/bot-*.log`.
+
+**Le bot depuis le jeu.** Dans le menu ElinTogether, onglet « Lobby » : **Add a bot player** ouvre une deuxième
+fenêtre Elin (muette), qui rejoint ta partie toute seule en ~30 s et joue au hasard. **Stop the bots** la ferme.
+La case « Bots also take quests and sell » l'autorise à prendre des quêtes et à vendre par la caisse (à laisser
+décochée sur un monde auquel tu tiens ; même sans elle, le bot ramasse et pose ce qui traîne au sol).
+Conditions : version Debug du mod, serveur local (le bouton le démarre si aucun serveur ne tourne ; avec un
+serveur Steam déjà ouvert il faut d'abord se déconnecter), et les copies du jeu `_lab/Elin2…4` (`make_lab.py`).
+Pendant qu'il joue, `python _tools/bot.py --watch --minutes 5` fait les vérifications. Ce que fait le bot est
+écrit dans le journal du mod (lignes « Bot: »). Code : `Emp/EmpBot.cs`, `Emp/EmpBotLauncher.cs`.
+
+Monde de test : `world_lab`, remis à neuf à chaque lancement depuis `_lab/saves/world_lab.pristine`. Les vraies
+sauvegardes ne sont pas touchées (copies dans `_backup/`).
+
+### Règles de travail
+
+- Tests **courts**, sur des fenêtres déjà ouvertes, seulement ce qui a changé. La passe complète : quand le PC est libre.
+- Fenêtres Elin toujours **muettes** (`-empmute`).
+- Ne pas cliquer dans la fenêtre de l'host pendant le chargement (sinon il charge une vraie sauvegarde).
+- Fermer Elin **par numéro de processus exact**. D'autres sessions lancent aussi le jeu sur ce PC : ce travail-ci
+  passe avant (leurs fenêtres peuvent être fermées), mais jamais un jeu lancé par l'utilisateur.
+  `run_all.sh` ferme **tous** les Elin entre deux suites : PC libre seulement.
+- Ne jamais laisser une correction sans test, même venue d'une relecture.
+- Les fenêtres se lancent **une à la fois** (`mp_test.py` le fait) : deux jeux qui démarrent ensemble mettent
+  8 minutes et l'host peut rester figé. Ne pas compiler pendant un lancement.
+- Un changement = un test = un commit, puis une ligne dans `MODLOG.md`.
+
+## 6. Limites connues
+
+- **Dialogues d'histoire joués par un client** : quêtes, objets offerts, effets sur le monde et mémoire de
+  l'histoire sont gérés, mais testés par appels directs, **pas encore en cliquant dans les vrais dialogues**.
+  Restent locaux au joueur : les alliés offerts par un dialogue (animal de Fiama), le mariage. En voyage seul, seuls les effets « sur le monde entier » sont répétés chez l'host.
+- Quêtes à donjon : seul le preneur entre dans la zone de sa quête, les autres joueurs ne peuvent pas encore l'y
+  rejoindre. L'escorte prise par un client n'a été testée que par le code, pas en marchant.
+- Échange : pas d'objets équipés, ni de sacs pleins ; fenêtre simple (liste + boutons).
+- Karma : sur une carte tenue par un joueur (pas l'host), les gardes suivent encore le karma de ce joueur-là.
+  Un habitant attaqué par un invité n'appelle pas à l'aide. Affinité de la tonte et de l'abattage perdue pour un
+  invité. Expérience de guilde : si deux joueurs en gagnent au même instant, un des deux gains est perdu.
+- Conflits connus, rares, non corrigés : deux achats au même instant chez le même marchand (un seul payé), deux
+  joueurs qui construisent sur la même case (deux objets consommés), monture qui existe en double au retour
+  d'un voyage, plantage du joueur qui tient une carte avec des invités (retour à sa dernière sauvegarde).
+- **Pas retesté sur le dernier build** (le PC s'est mis en veille à 05h10 le 2026-10-02) : la quête à donjon
+  abandonnée après une déconnexion dans sa zone (`instance_suite.py` I4), `shared_suite.py`, la fin de
+  `travel_suite.py` (S15 à S17, S9 à S11), et les séries de bots. Dernier passage vert de ces suites : avant les
+  commits `f247883` et `4edfd63`.
+- Jamais testé entre deux PC par Steam ; tout a été vérifié en local.
+- Le temps du monde suit encore l'host.
+
+## 7. Reste à faire
+
+1. Jouer le début de l'histoire en vrai avec un client (Ashland, Fiama, Nymelle) pour vérifier les dialogues.
+2. Enrichir le bot : creuser, récolter, construire, coffres, compagnons, dormir, se déconnecter et revenir.
+3. Retester à 3 joueurs, puis une passe complète.
+4. Refaire le zip, test réel avec un ami par Steam.
+5. Quêtes à donjon : laisser les autres joueurs y rejoindre le preneur.
+6. Temps du monde commun, puis serveur dédié (un monde qui tourne sans joueur host).
+7. Choix du personnage : à décider, pouvoir aussi reprendre le personnage d'un joueur absent, ou importer un
+   personnage d'une partie solo.
+8. Les conflits rares listés dans les limites.
+9. **Profil de mods pour le multijoueur** (idée du 2026-10-02, validée, en file d'attente) : à la connexion, si
+   les mods du joueur diffèrent de ceux de l'host, le jeu propose de redémarrer avec les mods de l'host, puis
+   remet ceux du joueur quand il quitte. Plan : `PLAN_profil_mods.md`.
+10. Plus tard : choisir la partie au lancement ; mod séparé « équipement visible »
+   (`VisibleEquipment/`, autre session).
+
+## 8. Historique du fork
+
+| Commit | Contenu |
+|---|---|
+| `2d68eae`, `c15331f` | voyage indépendant (baux de zone) |
+| `f77c916` | points de sauvegarde et chat en voyage |
+| `1781eea`, `8f73f01` | plusieurs fenêtres de test sur un seul compte Steam |
+| `ae5ab37` | cartes partagées et passation |
+| `573e74b` | compagnons par joueur |
+| `c16ddad`, `fd04af5` | options, expédition et combat par joueur, limite d'alliés |
+| `1e1be22` | l'host ne traîne plus les joueurs, quêtes en voyage |
+| `cde3425` | quêtes d'histoire et souvenirs de dialogue communs, correction 3 joueurs |
+| `dbc7fa4` | équipement ajouté et équipé au même instant |
+| `7dd32ec`, `0a77c9d` | bot lancé depuis le menu |
+| `23f4eee`, `70ff98d` | objets et effets des dialogues d'histoire, échec de quête |
+| `254974c` | quêtes aléatoires, renommée et karma par joueur |
+| `53bd50d` | choix du personnage à la connexion |
+| `85a08db`, `933330b`, `d944576` | objets en double, deux joueurs sur la même chose, numéros en double |
+| `4ca15eb`, `36eccb3` | changements de carte : entrées bloquées, messages gardés, banque en voyage |
+| `596f380` | quêtes à donjon pour tous |
+| `23fd93b` | affinité et guildes communes |
+| `b730280`, `a50f081` | fenêtre d'échange entre joueurs |
+| `f247883` | karma et crime par joueur, prime des quêtes de défense |
+| `4edfd63` | corrections de la relecture (échange, zone de quête, étages loués) |

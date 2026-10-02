@@ -176,7 +176,8 @@ internal partial class EmpConfig
             "BotLaunchers",
             "",
             "Game copies a bot player can be started from (Debug builds only), separated by ';'\n" +
-            "Empty looks for Documents/ElinMods/_lab/Elin*/Elin.exe, made by _tools/make_lab.py");
+            "Empty looks for Elin*/Elin.exe, made by dev/_tools/make_lab.py, in the folder the environment variable\n" +
+            "ELINTOGETHER_LAB names, else in Documents/ElinMods/_lab");
 
         Dev.BotAllActions = config.Bind(
             "Dev",

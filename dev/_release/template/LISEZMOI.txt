@@ -1,0 +1,45 @@
+ElinTogether - version "independance"
+=====================================
+
+Ce que c'est
+------------
+Une version modifiee du mod multijoueur Elin Together : chaque joueur peut aller ou il veut sans suivre
+l'hote, garder ses compagnons, vendre pour lui dans le coffre d'expedition et combattre a son propre rythme.
+
+Avant d'installer
+-----------------
+1. Avoir Elin sur Steam, a jour (les deux joueurs doivent avoir la meme version du jeu).
+2. Etre abonne au mod "YK Framework" sur le Workshop Steam :
+   https://steamcommunity.com/sharedfiles/filedetails/?id=3400020753
+   Le plus simple : s'abonner a "Elin Together" sur le Workshop, il l'amene avec lui :
+   https://steamcommunity.com/sharedfiles/filedetails/?id=3773298709
+3. Lancer Elin une fois apres l'abonnement, puis le fermer.
+
+Installer
+---------
+1. Dezipper tout le dossier.
+2. Double-cliquer sur Installer.bat.
+   Il trouve Elin, copie le mod, active cette version et desactive la version Workshop (c'est le meme mod).
+3. Lancer Elin par Steam.
+
+Les DEUX joueurs doivent installer ce meme dossier.
+
+Jouer
+-----
+- Ecran titre : bouton Elin Together. L'hote charge sa partie puis ouvre la session, l'autre le rejoint.
+- L'hote doit avoir une base (un terrain revendique) dans sa partie.
+- Reglages de l'hote, onglet "Configuration du serveur", trois cases a cocher :
+    * Voyage independant          decoche : tout le monde reste sur la carte de l'hote (mod d'origine)
+    * Expedition par joueur       decoche : tout l'argent du coffre d'expedition va a l'hote
+    * Combat au rythme de chacun  decoche : comportement d'origine
+
+Revenir en arriere
+------------------
+Double-cliquer sur Desinstaller.bat : retire cette version et reactive la version Workshop.
+Rien n'est supprime : les anciennes versions sont gardees dans Elin\_ElinTogether_sauvegarde.
+
+A savoir
+--------
+- C'est une premiere version de test. Faites une copie de vos sauvegardes avant de jouer :
+  %USERPROFILE%\AppData\LocalLow\Lafrontier\Elin\Save
+- Les quetes prises pendant un voyage sans l'hote ne sont pas encore partagees.
