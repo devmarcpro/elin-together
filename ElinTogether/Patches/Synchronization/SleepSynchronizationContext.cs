@@ -109,6 +109,12 @@ internal class SleepSynchronizationContext : SynchronizationContext
             return;
         }
 
+        // a rest dozes off one turn in ten once the player can sleep: only when it is tired for real, or every
+        // rest of a session ended in a sleep within seconds
+        if (AIPassTimePatch.IsResting) {
+            return;
+        }
+
         // are you tired? yes you are
         __result = true;
     }

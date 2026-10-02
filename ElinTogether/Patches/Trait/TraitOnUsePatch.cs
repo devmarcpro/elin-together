@@ -13,6 +13,8 @@ internal class TraitOnUsePatch
     {
         return [
             AccessTools.Method(typeof(TraitRecycle), nameof(TraitRecycle.OnUse), [typeof(Chara)]),
+            // sets the local player to open the chests, whoever asked: the one who asked does it, from its own game
+            AccessTools.Method(typeof(TraitGambleChest), nameof(TraitGambleChest.OnUse), [typeof(Chara)]),
         ];
     }
 
