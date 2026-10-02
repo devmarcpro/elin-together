@@ -53,7 +53,10 @@ Les options sont envoyées aux clients à la connexion (`NetSessionRules`). Tout
 **Pour jouer (toi et ton ami, même zip des deux côtés)** : `_release/ElinTogether-independance.zip`, puis
 `Installer.bat`. `Desinstaller.bat` remet le mod du Workshop. Refaire le zip : `make_release.ps1`. Le zip n'est
 pas dans le dépôt : il se fabrique sur chaque machine.
-Le zip actuel date du 2026-10-02 08h32, commit `4edfd63` : il contient tout ce que décrit ce document.
+Le zip actuel date du 2026-10-02 17h44, commit `9ec9cc8`, mod 0.26.304. Il est aussi sur la page des versions
+du dépôt (https://github.com/devmarcpro/elin-together/releases) : c'est le lien à donner à un ami.
+Après un `build.ps1` (tests), le jeu de cette machine n'a plus la version du zip : relancer `Installer.bat`
+avant de jouer avec quelqu'un, sinon la connexion est refusée (versions différentes).
 
 **Pour développer** : `build.ps1` compile en Debug et copie dans `Elin\Package\Mod_ElinTogether`. Le Debug ajoute
 le pont de test (ports 27551+) et permet deux fenêtres sur le même PC. `build.ps1 Release` pour la version joueur.
@@ -157,6 +160,11 @@ python _tools/bot.py --minutes 5 --seed 1
 | `transfer_suite.py` | ce qui se passe pendant un changement de carte | 2 | ~3 min |
 | `economy_suite.py` | expédition par joueur | 2 | ~5 min |
 | `combat_suite.py` | combat au rythme du joueur | 2 | ~5 min |
+| `build_suite.py` | poser, construire, mur cassé par un monstre | 2 | ~3 min |
+| `player_suite.py` | dons à la fabrication, apparence au miroir, slime | 2 | ~4 min |
+| `death_suite.py` | mourir sur la carte de l'host puis repartir seul | 2 | ~3 min |
+| `sleep_suite.py` | dormir à plusieurs, à la base ou sur une carte sauvage (`--only w0,z0,z1,z2`) | 2 | ~3 min |
+| `run_short.sh` | les suites courtes à la suite, sur un seul lancement | 2 | ~30 min |
 | `companion_suite.py`, `party_suite.py` | compagnons, limite d'alliés | 2 | ~10 min chacun |
 | `travel_suite.py` | voyage seul, sauvegarde, chat, équipement | 2 | ~15 min |
 | `shared_suite.py`, `trio_suite.py` | cartes partagées, passation | 3 et 4 | ~15 min chacun |
@@ -210,13 +218,16 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
   d'un voyage, plantage du joueur qui tient une carte avec des invités (retour à sa dernière sauvegarde).
   Un invité qui demande à voyager à l'instant où la carte qu'il visite change de mains perd sa demande : il
   doit recliquer.
-- **État des tests au 2026-10-02 (nouvelle machine)** : `shared_suite` 26/26, `travel_suite` 55/55,
-  `quest_suite` 60/60, `chara_suite` 12/12, `parity_suite` 16/16, `trade_suite` 31/31. Pas repassés sur le
-  dernier build : `instance_suite`, `economy_suite`, `combat_suite`, `companion_suite`, `party_suite`,
-  `trio_suite`, `leave_suite`, `transfer_suite` (verts la nuit du 1er au 2 octobre, avant les trois corrections du 2).
+- **État des tests au 2026-10-02 (nouvelle machine)** : passe complète sur `6d8223e`, tout vert (travel 54/54,
+  shared 26/26, trio 24/24, companion 30/30, party 28/28, economy 25/25, quest 61/61, chara 13/13, parity 17/17,
+  trade 32/32, build 21/21, instance 34/34, leave 13/13, transfer 11/11). Depuis : slime, mort, sommeil, chacun
+  avec son test court, **mais pas de nouvelle passe complète**.
   Les quatre changements de `36eccb3` (banque en voyage, rappel abandonné, bail refusé, entrées bloquées pendant
   une passation) n'ont toujours pas de test à eux.
-- Jamais testé entre deux PC par Steam ; tout a été vérifié en local.
+- Sommeil : un joueur seul sur une carte qu'il tient ne peut pas y dormir (sa demande part chez l'host, rien ne
+  se passe). Pas testé à trois joueurs.
+- Joué une seule soirée entre deux PC par Steam (2026-10-02) ; elle a trouvé le blocage de l'host après une nuit
+  sur une carte sauvage, corrigé depuis. Le reste a été vérifié en local.
 - Le temps du monde suit encore l'host.
 
 ## 7. Reste à faire

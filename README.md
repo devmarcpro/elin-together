@@ -12,8 +12,8 @@ Its authors consider separate maps out of scope; this fork is where that is trie
 goes to them (see [Credits](#credits)).
 
 > **Status: experimental.** Everything below is tested on one PC with several game windows (automated in-game
-> test suites, see `dev/`). It has **not yet been played between two PCs over Steam**. Back up your saves first:
-> `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
+> test suites, see `dev/`). It has been **played only once between two PCs over Steam**, and that one evening
+> found a bug the tests had missed. Back up your saves first: `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
 
 ## What the fork adds
 
@@ -38,7 +38,7 @@ Unchecked, the mod behaves like the original.
 
 ## Known limits
 
-- Never tested between two PCs over Steam.
+- Barely played between two PCs over Steam (one evening).
 - The world's clock still follows the host.
 - Story dialogs played by a non-host player are covered by tests that call the game's code directly, not yet by
   clicking through the real dialogs.

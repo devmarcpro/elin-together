@@ -12,8 +12,9 @@ Ses auteurs ne prévoient pas les cartes séparées ; cette version est l'endroi
 mod lui-même leur revient (voir [Crédits](#crédits)).
 
 > **État : expérimental.** Tout ce qui suit est testé sur un seul PC avec plusieurs fenêtres du jeu (suites de
-> tests automatiques en jeu, dossier `dev/`). Ce n'est **pas encore joué entre deux PC par Steam**. Faites
-> d'abord une copie de vos sauvegardes : `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
+> tests automatiques en jeu, dossier `dev/`). Ce n'est **joué qu'une seule fois entre deux PC par Steam**, et
+> cette soirée a trouvé un bug que les tests n'avaient pas vu. Faites d'abord une copie de vos sauvegardes :
+> `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
 
 ## Ce que cette version ajoute
 
@@ -38,7 +39,7 @@ se comporte comme l'original.
 
 ## Limites connues
 
-- Jamais testé entre deux PC par Steam.
+- Très peu joué entre deux PC par Steam (une soirée).
 - Le temps du monde suit encore l'host.
 - Les dialogues d'histoire joués par un autre joueur que l'host sont testés par appels directs au code du jeu, pas
   encore en cliquant dans les vrais dialogues.

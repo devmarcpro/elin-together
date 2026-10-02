@@ -987,16 +987,72 @@ Ce que les joueurs demandent ou signalent, du plus fréquent au plus rare :
   et le README est encore celui d'origine (il dit « un client ne peut pas changer de carte, c'est voulu »).
   À proposer : un README du fork (ce qu'il ajoute, les cases de l'host, comment l'installer, limites).
 
-### À faire ensuite (ordre demandé par l'utilisateur)
-1. Série de bots de 30 minutes : faite (voir plus haut). Zip : fait.
-   **En cours, mis de côté à la demande de l'utilisateur (`git stash`, « en cours : retours des joueurs »)** :
-   `PLAN_retours_joueurs.md`. Écrit, pas testé : état « posé » joint aux effets d'une pose
-   (`CardSetPlacedStateEvent`), mur cassé par un monstre (`CharaDestroyPathDelta`, union 227), matériel du bot
-   donné seulement à un joueur installé (`IsSettled`). Tests prêts : `build_suite.py` (B1–B5, B3 ; rouges
-   attendus sur `d2ae52e` : B5 « roaming » et B3), `player_suite.py` F1 (à refaire : l'host arrête une tâche
-   injectée quand le client se dit inactif, il faut partir du jeu du client).
-2. Nouveau zip (`make_release.ps1`), puis remettre le build Debug.
-3. Suite de `DOCUMENTATION.md` section 7. **Pas le « temps du monde commun » sans l'utilisateur.**
-4. Demande de l'utilisateur (2026-10-02) : lire la page Workshop d'Elin Together et surtout ses commentaires
-   (https://steamcommunity.com/sharedfiles/filedetails/?id=3773298709) pour des pistes d'amélioration, **après**
-   le reste ; lui proposer la liste avant de coder.
+### Retours des joueurs corrigés (14h → 17h), plan dans `PLAN_retours_joueurs.md`
+Un commit par correction, chacune avec son test rouge puis vert :
+
+| Commit | Défaut | Test |
+|---|---|---|
+| `b4bd4f4` | pièce posée par un autre joueur vue « au sol », ramassable | `build_suite.py` B5 |
+| `5ea85b9` | mur cassé par un monstre resté debout chez les autres (`CharaDestroyPathDelta`, union 227) | `build_suite.py` B3 |
+| `af546f2` | fabrication d'un joueur non-host faite avec les dons et talents de l'host (`RemoteCraft.AsCrafter`) | `player_suite.py` F1, F2 |
+| `6d8223e` | apparence changée au miroir perdue à la reconnexion (`CharaAppearanceDelta`, union 228) | `player_suite.py` F3, F4 |
+| `9ebcd5a` | slime joué par un non-host : pas de gènes absorbés (`RemoteSlimePatch`) | `player_suite.py` F5 |
+| `ac4546e` | après une mort sur la carte de l'host, plus de voyage seul (`deathZoneMove` jamais remis à zéro) | `death_suite.py` D1–D3 |
+| `1ee6948` | texte de la case « combat tour par tour » : sans effet avec « combat au rythme de chacun » | — (texte) |
+
+Passe complète des 16 suites sur `6d8223e` : tout vert sauf deux tests alors neufs (combat F6, player F5).
+**Aucune passe complète depuis** (slime, mort, texte, sommeil, vitesse) : à refaire.
+
+Pièges de test notés ce jour-là :
+- Le monde de l'host est en pause sans entrée du joueur : un `SetAI` injecté chez l'host n'avance pas, il faut
+  appeler `task.OnProgressComplete()`.
+- L'host arrête une action injectée quand le client se dit inactif : une fabrication se pilote depuis le
+  `LayerCraft` du client.
+- Les dialogues du jeu (`LayerDrama`, `LayerShippingResult`) retiennent le temps : les fermer dans le test.
+- Une recette trop dure tue un personnage neuf par épuisement.
+- PowerShell 5.1 abîme les guillemets passés à un exécutable : C# par fichier (`ev.py <port> -`), messages de
+  commit par `git commit -F`.
+
+### Première vraie partie à deux PC, et le bug du sommeil (2026-10-02 après-midi)
+- L'utilisateur a joué avec son ami (l'ami hébergeait, zip `1ee6948`, mod 0.26.301). Les deux dorment **sur une
+  carte sauvage** : l'host se réveille dans une « vue cinéma », ne peut plus rien faire, l'autre reste endormi.
+- Cause : loin d'une base, le jeu finit la nuit par `Player.SimulateFaction`, qui promène le joueur dans chacune
+  de ses bases et le ramène, changement de carte sur changement de carte dans la même image. Pour le fork ce sont
+  de vrais déplacements de l'host : `LeavePlayersBehind` donne la carte au joueur endormi à côté, le retour doit
+  attendre le rappel de cette carte, le jeu n'attend pas et initialise la scène sur une carte où l'host n'est
+  pas (`AM_ViewZone`).
+- Correction `9ec9cc8` : `SimulateFaction` n'est pas fait chez un host tant que d'autres sont connectés (une base
+  se rattrape quand quelqu'un y entre). Test : `sleep_suite.py`, neuf (le sommeil du mod n'avait aucun test).
+  Carte sauvage (`--only w0,z0,z1,z2`) : rouge avant (`_shots/sleep_suite-wild-red.log`), 16/16 après ; à la
+  base 15/15 avant et après.
+- **Leçon** : les suites ne jouaient jamais une nuit entière. Chaque geste courant d'une soirée (dormir, manger,
+  mourir, vendre) doit avoir son test joué « comme un joueur », sur une carte sauvage aussi.
+- Piège : lancer Elin ici pendant que l'utilisateur joue ailleurs avec le même compte Steam ferme le jeu d'ici
+  (hors ligne) et peut gêner sa partie. Demander avant.
+
+### Zips et page des versions
+- 15h : zip du commit `1ee6948` (mod 0.26.301), publié sur GitHub (`independance-0.26.301`). Avait le bug du sommeil.
+- 17h44 : zip du commit `9ec9cc8` (**mod 0.26.304**, 1 075 446 octets), publié à 18h comme
+  `independance-0.26.304` (préversion) ; fichier public vérifié identique au zip local ; l'ancienne version et son
+  étiquette retirées. Publication par l'API GitHub avec le jeton que git utilise déjà (`git credential fill`
+  appelé par `cmd /c … < fichier`, le tube PowerShell ne marche pas) ; jeton jamais affiché.
+- README et README_fr : pointent vers la page des versions ; disent « joué une seule fois entre deux PC ».
+- Règle retenue (demande de l'utilisateur) : quand il demande le zip, le faire **tout de suite** à partir des
+  commits testés, mettre de côté ce qui n'est pas prouvé, tester après.
+
+### À faire ensuite
+1. Fait à 18h : vitesse en combat d'un joueur surchargé. `PlayerCombatTime` prenait la vitesse de la copie chez
+   l'host (105) au lieu de celle du jeu du joueur (52) : ses monstres recevaient la moitié du temps dû, être
+   ralenti lui coûtait moitié moins qu'à l'host. Test `combat_suite.py` F6 (mesure directe : on appelle le
+   calcul chez l'host et on relit la vitesse utilisée), rouge 8/9 puis vert 9/9. Seuls F1 et F6 ont tourné sur
+   ce build. Ce changement n'est **pas** dans le zip 0.26.304.
+2. **Signalé par l'utilisateur le 2026-10-02 au soir** : un joueur non-host qui dort avec un lit dans son sac
+   retrouve le lit posé par terre au réveil, pas revenu dans le sac.
+3. Connu, pas corrigé : un joueur seul sur une carte qu'il tient ne peut pas y dormir (sa demande part chez
+   l'host, rien ne se passe) ; demande de voyage perdue pendant une passation ; bonus de première fabrication
+   compté sur la fiche de l'host ; esquive d'une fée pas vérifiée.
+4. Passe complète (`run_all.sh` + `run_short.sh`, avec `death_suite` et `sleep_suite`).
+5. Deux choix de conception attendent l'utilisateur (ne pas coder avant) : que faire quand un joueur meurt sur
+   la carte de l'host ; que faire quand la connexion tombe.
+6. Suite de `DOCUMENTATION.md` section 7. **Pas le « temps du monde commun » sans l'utilisateur.**
+7. Le jeu de cette machine a le build Debug : avant de jouer d'ici avec l'ami, relancer `Installer.bat` du zip.
