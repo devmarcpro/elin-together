@@ -8,6 +8,8 @@ Retours de joueurs du mod d'origine (Workshop, depot), voir PLAN_retours_joueurs
 F1  fabrication : le don "vie de sorciere" du client double ses potions (l'host, qui rejoue la fabrication,
     lisait ses propres dons et talents)
 F2  l'inverse : le don de l'host ne double pas les potions du client
+F3  apparence : une couleur changee au miroir par le client est vue par l'host et tient apres une reconnexion
+F4  apparence : une couleur changee par l'host est vue par le client
 """
 import argparse
 import sys
@@ -117,6 +119,46 @@ def f2(ctx):
         set_witch(H, False)
 
 
+RED = "FF0000FF"
+
+# comme au miroir : l'ecran d'apparence, une couleur changee, l'ecran ferme (c'est la fermeture qui applique)
+DYE = ('var l = EClass.ui.AddLayer<LayerEditPCC>("LayerPCC/LayerEditPCC"); l.Activate(EClass.pc, UIPCC.Mode.Body); '
+       'var part = l.uiPCC.pcc.data.map.ContainsKey("hair") ? "hair" : l.uiPCC.pcc.data.map.Keys.First(); '
+       f'l.uiPCC.pcc.data.SetColor(part, "{RED}"); l.Close(); return part;')
+
+
+def colour(port, chara, part):
+    """Couleur de cette partie du personnage, vue par ce jeu."""
+    return ev(port, f'var c = EClass._map.charas.Find(x => x.uid == {chara}); if (c == null) return "absent"; '
+                    f'return c.pccData != null && c.pccData.map.ContainsKey("{part}") ? c.pccData.map["{part}"][2] : "rien";')
+
+
+def f3(ctx):
+    """apparence : le client change une couleur au miroir ; l'host la voit, et elle tient apres une reconnexion"""
+    from chara_suite import click, connect, in_game, leave
+    me = ctx["a"]
+    part = ev(A, DYE)
+    log(f"partie teinte : {part}")
+    check("le client se voit avec la nouvelle couleur", colour(A, me, part) == RED)
+    check(f"l'host voit la nouvelle couleur sur le personnage du client (vu : {colour(H, me, part)})",
+          eventually(lambda: colour(H, me, part) == RED, timeout=10))
+    leave()
+    connect()
+    click(0)
+    back = in_game()
+    check("le client se reconnecte avec le meme personnage", back == me)
+    check(f"il a garde sa couleur (vu : {colour(A, me, part)})", colour(A, me, part) == RED)
+
+
+def f4(ctx):
+    """apparence : dans l'autre sens, l'host change une couleur, le client la voit"""
+    host = state(H)["pc"]["uid"]
+    part = ev(H, DYE)
+    check("l'host se voit avec la nouvelle couleur", colour(H, host, part) == RED)
+    check(f"le client voit la nouvelle couleur sur le personnage de l'host (vu : {colour(A, host, part)})",
+          eventually(lambda: colour(A, host, part) == RED, timeout=10))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--only")
@@ -125,7 +167,7 @@ def main():
     t0 = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
 
     ctx = {"a": state(A)["pc"]["uid"]}
-    steps = [f1, f2]
+    steps = [f1, f2, f3, f4]
     if a.only:
         steps = [s for s in steps if s.__name__ in a.only.split(",")]
     for step in steps:
