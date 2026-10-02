@@ -54,7 +54,7 @@ La liste complète, et ce qui est prévu : [`dev/DOCUMENTATION.md`](dev/DOCUMENT
 ## Installer
 
 Il faut [YK Framework](https://steamcommunity.com/sharedfiles/filedetails/?id=3400020753) et Elin sur le canal
-**Nightly** (cette version est compilée pour EA 23.350). **Tous les joueurs doivent avoir la même version de ce
+**Nightly** (cette version est compilée pour EA 23.351). **Tous les joueurs doivent avoir la même version de ce
 fork** ; elle ne se connecte pas à la version du Workshop.
 
 Télécharger `ElinTogether-independance.zip` sur la

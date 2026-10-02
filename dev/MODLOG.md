@@ -1058,6 +1058,17 @@ Pièges de test notés ce jour-là :
   d'à côté et passe sur son horloge. `combat_suite.py` écarte maintenant les joueurs au début (F1).
   Mesuré à deux joueurs sur 23.351 : l'invité a la même vitesse chez lui et chez l'host (105), pas d'inégalité.
 
+### Zip et version publiée pour EA 23.351 (20h32)
+- L'utilisateur : « Oui dès que tu peux publie la release ». Passe sur 23.351 arrêtée après les 7 suites longues
+  (travel 56/56, shared 27/27, trio 24/24, companion 30/30, party 28/28, economy 25/25, combat 22/22), zip fait
+  tout de suite : commit `f17ad6c`, **mod 0.26.309**, 1 076 004 octets, `version-elin.txt` = EA 23.351.
+  Le build Release se charge sur 23.351 (écran titre, 0 exception). Publié : `independance-0.26.309`
+  (préversion), fichier public identique au zip local, `independance-0.26.304` et son étiquette retirés.
+- Les 11 suites courtes relancées ensuite sur le build Debug du même commit (journaux `_shots/*-351.log`).
+- Les corrections des inégalités H1–H6 sont dans `git stash` (« inegalites invites H1-H6 »), avec
+  `guest_suite.py` : écrites, relues par un agent (3 défauts trouvés et repris), **jamais compilées ni jouées**.
+- `dev/_decomp` est encore le code de 23.350 : à refaire avant de relire du code du jeu.
+
 ### À faire ensuite
 1. Fait à 18h : vitesse en combat d'un joueur surchargé. `PlayerCombatTime` prenait la vitesse de la copie chez
    l'host (105) au lieu de celle du jeu du joueur (52) : ses monstres recevaient la moitié du temps dû, être

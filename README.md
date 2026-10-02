@@ -53,7 +53,7 @@ The full list, and what is planned, is in [`dev/DOCUMENTATION.md`](dev/DOCUMENTA
 ## Install
 
 Requires [YK Framework](https://steamcommunity.com/sharedfiles/filedetails/?id=3400020753) and Elin on the
-**Nightly** branch (the fork is built against EA 23.350). **Every player must run the same build of this fork**;
+**Nightly** branch (the fork is built against EA 23.351). **Every player must run the same build of this fork**;
 it does not talk to the Workshop version.
 
 Download `ElinTogether-independance.zip` from the

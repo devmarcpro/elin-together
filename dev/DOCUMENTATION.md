@@ -53,7 +53,7 @@ Les options sont envoyées aux clients à la connexion (`NetSessionRules`). Tout
 **Pour jouer (toi et ton ami, même zip des deux côtés)** : `_release/ElinTogether-independance.zip`, puis
 `Installer.bat`. `Desinstaller.bat` remet le mod du Workshop. Refaire le zip : `make_release.ps1`. Le zip n'est
 pas dans le dépôt : il se fabrique sur chaque machine.
-Le zip actuel date du 2026-10-02 17h44, commit `9ec9cc8`, mod 0.26.304. Il est aussi sur la page des versions
+Le zip actuel date du 2026-10-02 20h32, commit `f17ad6c`, mod 0.26.309, pour Elin EA 23.351. Il est aussi sur la page des versions
 du dépôt (https://github.com/devmarcpro/elin-together/releases) : c'est le lien à donner à un ami.
 Après un `build.ps1` (tests), le jeu de cette machine n'a plus la version du zip : relancer `Installer.bat`
 avant de jouer avec quelqu'un, sinon la connexion est refusée (versions différentes).
