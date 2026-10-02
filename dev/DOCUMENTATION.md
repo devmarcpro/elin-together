@@ -164,6 +164,7 @@ python _tools/bot.py --minutes 5 --seed 1
 | `player_suite.py` | dons à la fabrication, apparence au miroir, slime | 2 | ~4 min |
 | `death_suite.py` | mourir sur la carte de l'host puis repartir seul | 2 | ~3 min |
 | `sleep_suite.py` | dormir à plusieurs, à la base ou sur une carte sauvage (`--only w0,z0,z1,z2`) | 2 | ~3 min |
+| `guest_suite.py` | le même geste par l'invité puis par l'host : repos, pêche, baguette, coffres de pari, bouteille vide | 2 | ~3 min |
 | `run_short.sh` | les suites courtes à la suite, sur un seul lancement | 2 | ~30 min |
 | `companion_suite.py`, `party_suite.py` | compagnons, limite d'alliés | 2 | ~10 min chacun |
 | `travel_suite.py` | voyage seul, sauvegarde, chat, équipement | 2 | ~15 min |
@@ -218,10 +219,12 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
   d'un voyage, plantage du joueur qui tient une carte avec des invités (retour à sa dernière sauvegarde).
   Un invité qui demande à voyager à l'instant où la carte qu'il visite change de mains perd sa demande : il
   doit recliquer.
-- **État des tests au 2026-10-02 (nouvelle machine)** : passe complète sur `6d8223e`, tout vert (travel 54/54,
-  shared 26/26, trio 24/24, companion 30/30, party 28/28, economy 25/25, quest 61/61, chara 13/13, parity 17/17,
-  trade 32/32, build 21/21, instance 34/34, leave 13/13, transfer 11/11). Depuis : slime, mort, sommeil, chacun
-  avec son test court, **mais pas de nouvelle passe complète**.
+- **État des tests au 2026-10-02 au soir, Elin EA 23.351** : passe complète sur `f17ad6c` (le code du zip
+  0.26.309), les 18 suites vertes : travel 56/56, shared 27/27, trio 24/24, companion 30/30, party 28/28,
+  economy 25/25, combat 22/22, quest 61/61, chara 13/13, parity 17/17, trade 32/32, build 21/21, player 31/31,
+  instance 34/34, leave 13/13, transfer 11/11, death 13/13, sleep 30/30.
+  Après une mise à jour d'Elin par Steam : refaire `make_lab.py` pour les trois copies, sinon le client de test
+  est refusé (« invalid version ») sans que `mp_test.py` dise pourquoi.
   Les quatre changements de `36eccb3` (banque en voyage, rappel abandonné, bail refusé, entrées bloquées pendant
   une passation) n'ont toujours pas de test à eux.
 - Sommeil : un joueur seul sur une carte qu'il tient ne peut pas y dormir (sa demande part chez l'host, rien ne

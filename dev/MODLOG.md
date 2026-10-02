@@ -1064,10 +1064,30 @@ Pièges de test notés ce jour-là :
   tout de suite : commit `f17ad6c`, **mod 0.26.309**, 1 076 004 octets, `version-elin.txt` = EA 23.351.
   Le build Release se charge sur 23.351 (écran titre, 0 exception). Publié : `independance-0.26.309`
   (préversion), fichier public identique au zip local, `independance-0.26.304` et son étiquette retirés.
-- Les 11 suites courtes relancées ensuite sur le build Debug du même commit (journaux `_shots/*-351.log`).
+- Les 11 suites courtes relancées ensuite sur le build Debug du même commit (journaux `_shots/*-351.log`),
+  finies à 21h06 : quest 61/61, chara 13/13, parity 17/17, trade 32/32, build 21/21, player 31/31,
+  instance 34/34, leave 13/13, transfer 11/11, death 13/13, sleep 30/30. **Les 18 suites passent sur 23.351**
+  pour le code du zip 0.26.309. La note de la page de publication le dit.
 - Les corrections des inégalités H1–H6 sont dans `git stash` (« inegalites invites H1-H6 »), avec
   `guest_suite.py` : écrites, relues par un agent (3 défauts trouvés et repris), **jamais compilées ni jouées**.
 - `dev/_decomp` est encore le code de 23.350 : à refaire avant de relire du code du jeu.
+
+### Inégalités invité/host H1–H5 corrigées (21h10 → 21h40), `guest_suite.py` 41/41
+- Rouge sur `3eb0741` (`_shots/guest_suite-red.log`), les cinq défauts vus en jeu : bouteille vide sans effet ;
+  baguette sans effet + exception chez l'autre joueur à chaque coup, dans les deux sens ; pêche 0,6 % de prises
+  bonus contre 7,1 % ; repos +0 point de vie pour l'invité et, pour tous, un repos qui finit en sommeil ;
+  coffres de pari jamais usés, l'invité mort d'épuisement en 15 secondes.
+- H6 (torche) : sans objet, aucun objet du jeu ne porte `TraitToolTorch` en 23.351.
+- Commits : `88f1241` (H5), `7aa1cc6` (H3), `94b7b56` (H2), `a9fe6ee` (H1 + H4, mêmes fichiers).
+- Une relecture par un agent avant tout essai a trouvé trois défauts dans les corrections écrites (pêche : une
+  exception à chaque vraie prise ; baguette : le coup revenait sur le lanceur ; bouteille : l'eau n'arrivait pas
+  chez l'invité). **Faire relire avant de jouer a évité trois cycles.**
+- Pièges de test : `ThingGen.Create("potion")` tire une potion au hasard (compter « ce qui se boit ») ;
+  l'élément 7004 est un modèle sans élément (prendre 50500, flèche de feu) ; un monstre de test laissé en vie tue
+  un personnage neuf pendant le test suivant (`try/finally`, cible neutre) ; une action finie reste dans
+  `pc.ai` jusqu'au prochain geste du joueur (tester `ai.IsRunning`, pas le type) ; `TraitToolTorch` n'existe sur
+  aucun objet : chercher l'objet dans `sources.things` **avant** d'écrire la correction.
+- **Pas de passe complète depuis ces cinq commits** : à faire. Pas dans le zip 0.26.309.
 
 ### À faire ensuite
 1. Fait à 18h : vitesse en combat d'un joueur surchargé. `PlayerCombatTime` prenait la vitesse de la copie chez

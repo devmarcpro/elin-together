@@ -32,12 +32,26 @@ ligne) n'est pas dans le dépôt ; il se refait en relisant les classes citées.
 
 | Id | Ce que voit le joueur | Classes du jeu | État |
 |---|---|---|---|
-| H1 | se reposer / méditer ne rend pas ses points de vie à un invité (seulement le mana) | `AI_PassTime`, `AI_Meditate` | à prouver |
-| H2 | à la pêche, un invité a 20 fois moins de prises bonus et 50 fois moins de poissons étoilés | `AI_Fish.Makefish` | à prouver |
-| H3 | les baguettes d'un invité n'ont aucun effet sur le monde | `TraitRod`, `ActZap` | à prouver (un maillon déduit) |
-| H4 | coffres de pari : l'invité ne reçoit pas l'argent, les coffres ne s'usent pas, l'host est interrompu | `TraitGambleChest`, `AI_OpenGambleChest` | à prouver |
-| H5 | un invité ne peut pas remplir une bouteille vide | `TraitPotionEmpty` | à prouver |
-| H6 | un invité ne peut pas allumer une torche | `TraitToolTorch` | à prouver |
+| H1 | se reposer / méditer ne rend pas ses points de vie à un invité (seulement le mana) | `AI_PassTime`, `AI_Meditate` | **rouge** le 2026-10-02 : +0 pour l'invité, +21 pour l'host. Et pour **tous**, host compris, le repos finit en sommeil en quelques secondes |
+| H2 | à la pêche, un invité a beaucoup moins de prises bonus | `AI_Fish.Makefish` | **rouge** : 0,6 % contre 7,1 % sur 4000 prises. La pêche elle-même marche |
+| H3 | les baguettes d'un invité n'ont aucun effet sur le monde | `TraitRod`, `ActZap` | **rouge** : cible intacte, charge usée chez lui seul, et une exception chez l'autre joueur à chaque coup (dans les deux sens) |
+| H4 | coffres de pari : les coffres d'un invité ne s'usent jamais, il les rouvre sans fin | `TraitGambleChest`, `AI_OpenGambleChest` | **rouge** : 32 points d'endurance perdus en 15 s, le personnage de test en est mort. L'host n'est pas interrompu (la lecture se trompait) |
+| H5 | un invité ne peut pas remplir une bouteille vide | `TraitPotionEmpty` | **rouge** |
+| H6 | un invité ne peut pas allumer une torche | `TraitToolTorch` | **sans objet** : aucun objet du jeu ne porte ce trait en EA 23.351 |
+
+Tests : `guest_suite.py` (G1 à G5), journal rouge `_shots/guest_suite-red.log` sur `3eb0741`.
+
+**Corrigés le 2026-10-02 à 21h35**, `guest_suite.py` 41/41 (`_shots/guest_suite-green.log`) :
+H5 `88f1241` (sert aussi à la teinture et à la viande sur une tombe, pas jouées), H3 `7aa1cc6`, H2 `94b7b56`,
+H1 et H4 `a9fe6ee`. Pas dans le zip 0.26.309. Passe complète à refaire avec ces cinq corrections.
+
+Laissé de côté, noté dans les commits :
+- une baguette ou un parchemin qui fait choisir un objet (identification…) : appliqué deux fois pour un invité
+  (L3, `LayerDragGrid.TryProc`) ;
+- le mécanisme « action de menu rejouée chez l'host » écrit pour la torche (H6) : retiré faute d'objet pour le
+  tester ; il servirait au puits (L4), aux tickets de meuble (L5), aux réglages de la base (M14) ;
+- sons joués chez tout le monde, compteurs de l'host (pêche du jour, coffres ouverts) qui comptent aussi les
+  invités.
 
 ### Moins fréquent
 
