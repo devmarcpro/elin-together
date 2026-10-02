@@ -33,6 +33,14 @@ public class CharaActPerformDelta : ElinDelta
     [Key(3)]
     public required Position? Pos { get; init; }
 
+    /// <summary>
+    ///     The tool of an act the game builds around a held item (a rod and its ActZap). Such an act has no id of
+    ///     its own to be made again from: without the tool the other side performed an empty act, the rod of a
+    ///     client did nothing to the world and kept its charges
+    /// </summary>
+    [Key(4)]
+    public RemoteCard? Tool { get; init; }
+
     public static CharaActPerformDelta Create(Act act)
     {
         ApplyBuiltInMapping();
@@ -42,6 +50,23 @@ public class CharaActPerformDelta : ElinDelta
             Owner = Act.CC,
             TargetCard = Act.TC,
             Pos = Act.TP,
+            Tool = ToolOf(act),
+        };
+    }
+
+    private static Card? ToolOf(Act act)
+    {
+        return act switch {
+            ActZap zap => zap.trait?.owner,
+            _ => null,
+        };
+    }
+
+    private static Act? ActOf(Card? tool)
+    {
+        return tool?.trait switch {
+            TraitRod rod => new ActZap { trait = rod },
+            _ => null,
         };
     }
 
@@ -51,6 +76,11 @@ public class CharaActPerformDelta : ElinDelta
 
         // we do not apply to ourselves
         if (Owner.Find() is not Chara { IsPC: false } chara) {
+            return;
+        }
+
+        if (Tool is not null) {
+            PerformWithTool(net, chara);
             return;
         }
 
@@ -68,6 +98,30 @@ public class CharaActPerformDelta : ElinDelta
         }
 
         act.Perform(chara, target, pos);
+    }
+
+    private void PerformWithTool(ElinNetBase net, Chara chara)
+    {
+        // only with the tool in that character's hands
+        var tool = Tool?.Find();
+        if (tool is null || tool.GetRootCard() != chara || ActOf(tool) is not { } act) {
+            return;
+        }
+
+        // a zap names its user as target while it performs: only the tile aimed at is passed on
+        if (net.IsHost) {
+            act.Perform(chara, null, Pos);
+            return;
+        }
+
+        // the charge left came from the host already, this replay is for show
+        var charges = tool.c_charges;
+        tool.c_charges = charges + 1;
+        try {
+            act.Perform(chara, null, Pos);
+        } finally {
+            tool.c_charges = charges;
+        }
     }
 
     private static void ApplyBuiltInMapping()
