@@ -97,6 +97,14 @@ internal partial class ElinNetHost
         _settled.Add(peer.Id);
     }
 
+    /// <summary>
+    ///     Its game holds the copy of this map it was sent: what happens to its character from now on reaches it
+    /// </summary>
+    internal bool IsSettled(int peerId)
+    {
+        return _settled.Contains(peerId);
+    }
+
     internal bool IsAwayPeer(int peerId)
     {
         return _departed.Contains(peerId);

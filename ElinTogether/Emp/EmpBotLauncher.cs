@@ -129,8 +129,9 @@ internal static class EmpBotLauncher
             return;
         }
 
-        foreach (var chara in host.ActiveRemoteCharas.Values) {
-            if (chara.GetInt(KitKey) != 0 || !chara.IsAliveInCurrentZone) {
+        foreach (var (peerId, chara) in host.ActiveRemoteCharas) {
+            // not while its game is still loading the world: the character it was sent would lack the kit
+            if (chara.GetInt(KitKey) != 0 || !chara.IsAliveInCurrentZone || !host.IsSettled(peerId)) {
                 continue;
             }
 
