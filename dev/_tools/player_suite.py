@@ -10,6 +10,7 @@ F1  fabrication : le don "vie de sorciere" du client double ses potions (l'host,
 F2  l'inverse : le don de l'host ne double pas les potions du client
 F3  apparence : une couleur changee au miroir par le client est vue par l'host et tient apres une reconnexion
 F4  apparence : une couleur changee par l'host est vue par le client
+F5  slime : un gene absorbe par le client sur la carte de l'host est garde, chez l'host aussi, meme reconnecte
 """
 import argparse
 import sys
@@ -159,6 +160,49 @@ def f4(ctx):
           eventually(lambda: colour(A, host, part) == RED, timeout=10))
 
 
+SLIME = 1274
+
+
+def genes(port, chara):
+    """Nombre de genes absorbes par ce personnage, et ses points de don, vus par ce jeu : "genes|points"."""
+    return ev(port, f'var c = EClass._map.charas.Find(x => x.uid == {chara}); if (c == null) return "absent"; '
+                    'return (c.c_genes == null ? 0 : c.c_genes.items.Count) + "|" + c.feat;')
+
+
+def f5(ctx):
+    """slime : le client absorbe un gene sur la carte de l'host ; il le garde, chez l'host aussi, meme reconnecte"""
+    from chara_suite import click, connect, in_game, leave
+    me = ctx["a"]
+    # un slime au bout de son evolution (emplacements de genes ouverts), qui a faim, avec des points de don
+    ev(A, f'EClass.pc.SetFeat({SLIME}, 8); EClass.pc.hunger.Set(60); "ok"')
+    host_copy = f'EClass._map.charas.Find(x => x.uid == {me}).Evalue({SLIME}).ToString()'
+    if not check("l'host sait que le client est un slime", eventually(lambda: ev(H, host_copy) == "8", timeout=10)):
+        return
+    gene = ev(H, f'var c = EClass._map.charas.Find(x => x.uid == {me}); c.hunger.Set(60); '
+                 'var g = DNA.GenerateRandomGene(1, 7); c.AddThing(g); return g.uid + "|" + g.c_DNA.cost + "|" + g.c_DNA.slot;')
+    gene, cost, slot = gene.split("|")
+    log(f"gene {gene}, cout {cost} points de don, {slot} emplacement(s)")
+    check("le client a le gene dans son sac",
+          eventually(lambda: ev(A, f'(EClass.pc.things.Find(x => x.uid == {gene}) != null).ToString()') == "True", timeout=10))
+    before_a, before_h = genes(A, me), genes(H, me)
+    log(f"avant : chez le client {before_a}, chez l'host {before_h} (genes|points de don)")
+    n = int(before_a.split("|")[0])
+    ev(A, f'var g = EClass.pc.things.Find(x => x.uid == {gene}); EClass.pc.SetAI(new AI_Eat {{ target = g }}); "ok"')
+    check(f"le client absorbe le gene (chez lui : {genes(A, me)})",
+          eventually(lambda: int(genes(A, me).split("|")[0]) == n + 1, timeout=40))
+    check(f"l'host le lui connait aussi (chez l'host : {genes(H, me)})",
+          eventually(lambda: int(genes(H, me).split("|")[0]) == n + 1, timeout=10))
+    time.sleep(2)
+    check(f"memes genes et memes points de don des deux cotes (client {genes(A, me)}, host {genes(H, me)})",
+          genes(A, me) == genes(H, me))
+    leave()
+    connect()
+    click(0)
+    back = in_game()
+    check(f"apres reconnexion, le gene est toujours la (client {genes(A, back)}, host {genes(H, back)})",
+          back == me and int(genes(A, me).split("|")[0]) == n + 1 and int(genes(H, me).split("|")[0]) == n + 1)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--only")
@@ -167,7 +211,7 @@ def main():
     t0 = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
 
     ctx = {"a": state(A)["pc"]["uid"]}
-    steps = [f1, f2, f3, f4]
+    steps = [f1, f2, f3, f4, f5]
     if a.only:
         steps = [s for s in steps if s.__name__ in a.only.split(",")]
     for step in steps:
