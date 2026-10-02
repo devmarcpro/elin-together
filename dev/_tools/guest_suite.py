@@ -431,7 +431,8 @@ def main():
     t0 = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
 
     ctx = {"a": (A, state(A)["pc"]["uid"]), "h": (H, state(H)["pc"]["uid"])}
-    steps = [g5, g3, g2, g1, g4]
+    # G8 en dernier : l'invite y quitte la carte
+    steps = [g5, g3, g2, g1, g4, g6, g7, g9, g8]
     if a.only:
         steps = [s for s in (g1, g2, g3, g4, g5, g6, g7, g9, g8) if s.__name__ in a.only.split(",")]
     for step in steps:

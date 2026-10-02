@@ -1087,7 +1087,33 @@ Pièges de test notés ce jour-là :
   un personnage neuf pendant le test suivant (`try/finally`, cible neutre) ; une action finie reste dans
   `pc.ai` jusqu'au prochain geste du joueur (tester `ai.IsRunning`, pas le type) ; `TraitToolTorch` n'existe sur
   aucun objet : chercher l'objet dans `sources.things` **avant** d'écrire la correction.
-- **Pas de passe complète depuis ces cinq commits** : à faire. Pas dans le zip 0.26.309.
+- Passe complète « invites » sur ces cinq commits (21h40 → 22h57) : 17 suites vertes sur 19. `transfer` : le
+  serveur du banc n'a pas démarré (raté de lancement, 11/11 en la rejouant). `guest_suite` : 39/41, irrégulier.
+- Deux causes trouvées à l'irrégularité de `guest_suite` (23h → 23h45, sept essais sur fenêtres neuves) :
+  1. **Un dialogue du jeu (tutoriel) ouvert chez l'invité met son jeu en pause** : sa pêche ne mord jamais
+     (compteur de tours figé à 2). Le test ferme maintenant les dialogues pendant ses attentes (`awake()`).
+     Astuce de l'utilisateur : en jeu, la touche Entrée passe ces tutoriels.
+  2. **Le temps d'un client vient de l'host** (`GameDelta`, envoyé seulement quand l'host n'est pas en pause, et
+     l'host se met en pause dès que plus personne n'est occupé de son point de vue). L'host use le dernier coffre
+     de pari un pas avant que le jeu de l'invité le voie parti : avec un host inactif, le monde s'arrête là et
+     l'invité reste « occupé » à ouvrir du vide, sans pouvoir annuler (`roundTimer` figé, pas de fenêtre, pas de
+     pause affichée). Vrai défaut de `a9fe6ee`. Correction : chez l'host, l'ouverture d'un invité reste active
+     quelques pas après le dernier coffre, jusqu'à ce que l'invité se dise libre.
+     **À retenir pour toute tâche ajoutée à la table : qui finit le premier, l'host ou le client ?**
+- Pas dans le zip 0.26.309.
+
+### Deuxième lot d'inégalités (23h45 → 0h05), `guest_suite.py` G6 à G9 : 58/58
+- Rouge sur le build de `5ab0109` (`_shots/guest_suite-lot2-red.log`, 45/59) : contenu des colis, maquettes et
+  paquets cadeau dans le sac de l'host ; lot de la boule de gacha aux pieds de l'host ; recette trouvée en
+  creusant inconnue de l'host ; fenêtre de la banque, du coffre des impôts et du panneau des politiques ouverte
+  aussi chez l'host ; **corde de l'invité : la question « se pendre ? » chez l'host ; pierre de retour de
+  l'invité : l'host emmené sur la carte du monde**.
+- Commits : `eadeca4` (suite des coffres de pari + mise au point du test), `11ca53d` (boîtes), `3f45072`
+  (fenêtres, corde, pierre), `e3772ef` (recettes). Vert : lot 1 40/40, lot 2 58/58, aucune exception.
+- Pas de passe complète depuis `a9fe6ee` hors `guest_suite`. Pas dans le zip 0.26.309.
+- Reste de la liste : M3 cadeaux du dieu, M4 livres anciens (et livres « dojin » : un invité qui en lit un est
+  converti, vu dans le code), M5 pièges, M6 graines, M8 arrosoir, M9 carte au trésor, M10 vœu, M11 bénédiction,
+  M13 grimoires, M14 réglages de la base, et les points mineurs.
 
 ### À faire ensuite
 1. Fait à 18h : vitesse en combat d'un joueur surchargé. `PlayerCombatTime` prenait la vitesse de la copie chez

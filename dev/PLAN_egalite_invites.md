@@ -45,6 +45,10 @@ Tests : `guest_suite.py` (G1 à G5), journal rouge `_shots/guest_suite-red.log` 
 H5 `88f1241` (sert aussi à la teinture et à la viande sur une tombe, pas jouées), H3 `7aa1cc6`, H2 `94b7b56`,
 H1 et H4 `a9fe6ee`. Pas dans le zip 0.26.309. Passe complète à refaire avec ces cinq corrections.
 
+Vu en testant, pas corrigé : **premier clic de pêche d'un invité déjà au bord de l'eau** — le jeu dit « pas
+d'appât », l'appât s'équipe un instant après (l'équiper est une demande à l'host), il faut recliquer. Chez l'host
+l'appât s'équipe tout de suite.
+
 Laissé de côté, noté dans les commits :
 - une baguette ou un parchemin qui fait choisir un objet (identification…) : appliqué deux fois pour un invité
   (L3, `LayerDragGrid.TryProc`) ;
@@ -57,18 +61,18 @@ Laissé de côté, noté dans les commits :
 
 | Id | Ce que voit le joueur | Classes du jeu | État |
 |---|---|---|---|
-| M1 | colis, boîtes cadeau, maquettes, statue de dieu dorée : le contenu va dans le sac de l'host | `TraitParcel`, `TraitGiftPack`, `TraitPlamoBox`, `TraitGodStatue` | à prouver |
-| M2 | boule de gacha : le lot tombe aux pieds de l'host | `TraitGachaBall`, `Player.DropReward` | à prouver |
+| M1 | colis, boîtes cadeau, maquettes, statue de dieu dorée : le contenu va dans le sac de l'host | `TraitParcel`, `TraitGiftPack`, `TraitPlamoBox`, `TraitGodStatue` | **corrigé** `11ca53d` (G6) pour colis, paquet cadeau, maquette. Restent : paquets du Nouvel An et de Jure (ils donnent aussi un allié), statue de dieu |
+| M2 | boule de gacha : le lot tombe aux pieds de l'host | `TraitGachaBall`, `Player.DropReward` | **corrigé** `11ca53d` (G7) |
 | M3 | un invité ne reçoit jamais les cadeaux de son dieu (familier, artefact) | `ActPray`, `Religion.TryGetGift` | à prouver |
 | M4 | un livre ancien déchiffré par un invité tombe en poussière | `TraitBaseSpellbook.OnRead` | à prouver |
 | M5 | un piège peut toucher un invité deux fois | `TraitFloorSwitch`, `TraitTrap` | à prouver (pas tout suivi) |
 | M6 | les graines récoltées par un invité suivent le talent Agriculture de l'host | `TraitSeed.MakeSeed` | à prouver |
-| M7 | une recette trouvée en récoltant / creusant / minant est oubliée à la reconnexion | `TaskHarvest`, `TaskDig`, `TaskMine`, `AddRecipeEvent` | à prouver |
+| M7 | une recette trouvée en récoltant / creusant / minant est oubliée à la reconnexion | `TaskHarvest`, `TaskDig`, `TaskMine`, `AddRecipeEvent` | **corrigé** `e3772ef` (G9, en creusant ; récolte et mine pas jouées) |
 | M8 | l'arrosoir d'un invité ne se remplit pas pour de vrai | `TraitToolWaterCan`, `ActDrawWater` | à prouver (même maillon que H3) |
 | M9 | carte au trésor d'un invité : pas de coffre en creusant | `TaskDig` | à prouver |
 | M10 | le vœu d'un invité ne donne rien | `ActEffect.Wish` | à prouver |
 | M11 | la bénédiction du dieu d'un invité est calculée comme celle d'un familier | `Chara.GetPietyValue` | à prouver |
-| M12 | banque, coffre des impôts, mannequin, outil du sac… : la fenêtre s'ouvre chez l'host ; le mannequin prend l'équipement de l'host | plusieurs `Trait*.OnUse` | à prouver |
+| M12 | banque, coffre des impôts, mannequin, outil du sac… : la fenêtre s'ouvre chez l'host ; le mannequin prend l'équipement de l'host | plusieurs `Trait*.OnUse` | **corrigé** `3f45072` (G8) pour banque, coffre des impôts, panneau des politiques, **corde** (l'host se voyait proposer de se pendre) et **pierre de retour** (l'host était emmené sur la carte du monde) ; table de blackjack et machine à sous par le même chemin, pas jouées. Restent : mannequin, munitions, outil de fabrication utilisé depuis le sac |
 | M13 | un invité rate deux fois plus souvent la lecture d'un grimoire | `AI_Read`, `TraitBaseSpellbook.TryProgress` | à prouver (pas tout suivi) |
 | M14 | réglages de la base faits par un invité (lit, nom de zone, panneaux, étiquettes de vente…) : seulement sur son écran | lambdas de `TraitBed`, `TraitCoreZone`, `TraitSalesTag`… | à prouver |
 
