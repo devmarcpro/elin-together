@@ -30,6 +30,13 @@ from travel_suite import RESULTS, check, dismiss_dialogs, ev, eventually, scan_l
 H, A = 27551, 27552
 
 
+def awake(port):
+    """Un dialogue du jeu (tutoriel) retient le temps de ce joueur tant qu'on ne clique pas : on le ferme, comme
+    lui le ferait d'un clic. Toujours vrai, pour s'enchainer dans une attente."""
+    dismiss_dialogs(port)
+    return True
+
+
 def chara(port, uid):
     """Le personnage de ce joueur, vu par ce jeu (expression C#)."""
     return f"EClass._map.charas.Find(x => x.uid == {uid})"
@@ -134,13 +141,21 @@ def g4(ctx):
         busy = ev(other, 'EClass.pc.ai.GetType().Name')
         check(f"{who} ouvre ses coffres : l'autre joueur n'est pas mis a l'ouvrage (il fait : {busy})", busy != "AI_OpenGambleChest")
         left = lambda p, u=uid: count(p, u, chest)  # noqa: E731
-        used = eventually(lambda: left(H) == 0, timeout=15)
+        used = eventually(lambda: awake(port) and left(H) == 0, timeout=15)
         # occupe = l'action tourne encore (une action finie reste affichee jusqu'au prochain geste du joueur)
         busy_now = 'return EClass.pc.ai is AI_OpenGambleChest && EClass.pc.ai.IsRunning ? "AI_OpenGambleChest en cours" : "libre";'
         # le dernier coffre use arrive chez lui un instant apres : c'est la qu'il s'arrete
         if used:
-            eventually(lambda: ev(port, busy_now) == "libre", timeout=5)
+            eventually(lambda: awake(port) and ev(port, busy_now) == "libre", timeout=8)
         doing = ev(port, busy_now)
+        if doing != "libre":
+            probe = ('var ai = EClass.pc.ai as AI_OpenGambleChest; return "tour " + EClass.pc.turn + " statut " + EClass.pc.ai.status + '
+                     '(ai == null ? "" : " coffre " + ai.target.Num + " detruit " + ai.target.isDestroyed + " valide " + ai.IsValid()) + '
+                     '" temps " + EClass.pc.roundTimer.ToString("0.00") + "/" + EClass.pc.actTime.ToString("0.00") + '
+                     '" pause " + EClass.scene.paused + " fenetres " + string.Join(",", EClass.ui.layers.Select(l => l.GetType().Name));')
+            log(f"{who} encore occupe : {ev(port, probe)}")
+            time.sleep(3)
+            log(f"{who} 3 s plus tard : {ev(port, probe)}")
         # sans attendre : des coffres qui ne s'usent pas se rouvrent sans fin, et chaque essai fatigue
         ev(port, 'if (EClass.pc.ai is AI_OpenGambleChest) EClass.pc.SetNoGoal(); "ok"')
         tired -= int(ev(port, 'EClass.pc.stamina.value.ToString()'))
@@ -183,11 +198,26 @@ def g2(ctx):
     bag = lambda p: int(ev(p, f'{chara(p, uid)}.things.Sum(t => t.Num).ToString()'))  # noqa: E731
     time.sleep(2)
     before = bag(H)
-    log(f"l'invite : {use_held(port, tool, at=(wx, wz))}")
-    check("l'invite se met a pecher", eventually(lambda: ev(port, 'EClass.pc.ai.GetType().Name') == "AI_Fish", timeout=10))
+    awake(port)
+    # chez un invite l'appat s'equipe par une demande a l'host : au tout premier clic le jeu dit parfois
+    # « pas d'appat » et l'appat arrive un instant apres ; le joueur reclique (petite inegalite, notee au plan)
+    fishing = False
+    for click in (1, 2, 3):
+        log(f"l'invite, clic {click} : {use_held(port, tool, at=(wx, wz))}")
+        time.sleep(3)
+        if ev(port, 'EClass.pc.ai.GetType().Name') == "AI_Fish":
+            fishing = True
+            break
+    check(f"l'invite se met a pecher (au clic {click})", fishing)
     # une prise coute un appat et rapporte au moins un objet : le sac change
-    caught = eventually(lambda: bag(H) != before and ev(H, f'{chara(H, uid)}.things.Find(t => t.id == "{bait}") == null ? "0" : '
-                                                         f'{chara(H, uid)}.things.Find(t => t.id == "{bait}").Num.ToString()') != "10", timeout=150)
+    caught = eventually(lambda: awake(port) and bag(H) != before and
+                        ev(H, f'{chara(H, uid)}.things.Find(t => t.id == "{bait}") == null ? "0" : '
+                              f'{chara(H, uid)}.things.Find(t => t.id == "{bait}").Num.ToString()') != "10", timeout=150)
+    if not caught:
+        log("l'invite n'a rien pris : " + ev(port, 'var ai = EClass.pc.ai; return ai.GetType().Name + " " + ai.status + " enfant " + '
+                                                  '(ai.child == null ? "aucun" : ai.child.GetType().Name + " " + ai.child.status) + " tour " + EClass.pc.turn + '
+                                                  '" appat " + (EClass.player.eqBait == null ? "aucun" : EClass.player.eqBait.Num.ToString()) + '
+                                                  '" fenetres " + string.Join(",", EClass.ui.layers.Select(l => l.GetType().Name));'))
     check(f"l'invite attrape quelque chose (sac chez l'host : {before} -> {bag(H)} objets)", caught)
     ev(port, 'EClass.pc.SetNoGoal(); "ok"')
     time.sleep(2)
@@ -261,6 +291,138 @@ def g3(ctx):
             ev(port, 'EClass.pc.SetNoGoal(); "ok"')
 
 
+def bag_size(port, uid):
+    """Nombre total d'objets dans le sac de ce joueur, vu par ce jeu."""
+    return int(ev(port, f'{chara(port, uid)}.things.Sum(t => t.Num).ToString()'))
+
+
+def g6(ctx):
+    """colis, maquette, paquet cadeau : ce qu'il y a dedans va dans le sac de celui qui ouvre, pas dans celui de l'host"""
+    # (objet, ce que le sac gagne en l'ouvrant : le contenu moins l'objet lui-meme)
+    boxes = (("Parcel", "un colis qui contient une piece de platine", 0, 't.AddCard(ThingGen.Create("plat"));'),
+             ("PlamoBox", "une boite de maquette", 0, ""),
+             ("GiftPack", "un paquet cadeau (3 objets)", 2, ""))
+    for trait, what, gain, extra in boxes:
+        box = first_id(trait)
+        if not check(f"le jeu a un objet {trait} ({box})", bool(box)):
+            continue
+        for who, key in both(ctx):
+            port, uid = ctx[key]
+            okey = "h" if key == "a" else "a"
+            other_port, other_uid = ctx[okey]
+            b = give(ctx, key, box, extra=extra)
+            time.sleep(1)
+            mine, theirs = bag_size(H, uid), bag_size(H, other_uid)
+            ev(port, f'var t = EClass.pc.things.Find(x => x.uid == {b}); t.trait.OnUse(EClass.pc); "ok"')
+            ok = eventually(lambda: bag_size(H, uid) == mine + gain and count(H, uid, box) == 0, timeout=10)
+            check(f"{who} ouvre {what} : son sac passe de {mine} a {bag_size(H, uid)} objets (attendu {mine + gain})", ok)
+            check(f"{who} : rien n'arrive dans le sac de l'autre joueur ({theirs} -> {bag_size(H, other_uid)})",
+                  bag_size(H, other_uid) == theirs)
+            check(f"{who} : son propre jeu voit le meme sac ({bag_size(port, uid)} objets)",
+                  eventually(lambda: bag_size(port, uid) == bag_size(H, uid), timeout=10))
+
+
+def g7(ctx):
+    """boule de gacha : le lot tombe aux pieds de celui qui l'ouvre"""
+    ball = first_id("GachaBall")
+    if not check(f"le jeu a une boule de gacha ({ball})", bool(ball)):
+        return
+    on_tile = lambda u: int(ev(H, f'var c = {chara(H, u)}; return EClass._map.things.Count(t => t.pos.Equals(c.pos)).ToString();'))  # noqa: E731
+    for who, key in both(ctx):
+        port, uid = ctx[key]
+        _, other_uid = ctx["h" if key == "a" else "a"]
+        b = give(ctx, key, ball)
+        time.sleep(1)
+        mine, theirs = on_tile(uid), on_tile(other_uid)
+        ev(port, f'var t = EClass.pc.things.Find(x => x.uid == {b}); t.trait.OnUse(EClass.pc); "ok"')
+        ok = eventually(lambda: on_tile(uid) == mine + 1, timeout=10)
+        check(f"{who} ouvre une boule : un objet de plus a ses pieds ({mine} -> {on_tile(uid)})", ok)
+        check(f"{who} : rien aux pieds de l'autre joueur ({theirs} -> {on_tile(other_uid)})", on_tile(other_uid) == theirs)
+        check(f"{who} : la boule est usee", eventually(lambda: count(H, uid, ball) == 0, timeout=10))
+
+
+KNOWN = 'return string.Join(",", EClass.player.recipes.knownRecipes.Keys.OrderBy(k => k));'
+
+
+def g9(ctx):
+    """recette trouvee en creusant : l'idee qui vient a l'invite est connue de l'host aussi (sinon elle est
+    oubliee a sa prochaine reconnexion, ou le carnet de recettes de l'host remplace le sien)"""
+    port, uid = ctx["a"]
+    shovel = ev(H, 'var r = EClass.sources.things.rows.FirstOrDefault(x => x.elements != null && x.elements.Length > 0 && x.elements[0] == 230); return r == null ? "" : r.id;')
+    if not check(f"le jeu a une pelle ({shovel})", bool(shovel)):
+        return
+    tool = give(ctx, "a", shovel)
+    before = {p: set(ev(p, KNOWN).split(",")) for p in (H, A)}
+    # le jeu tire l'idee au sort (une fois sur dix) : en mode debug du jeu, chez l'invite seulement, elle vient a coup sur
+    ev(port, 'EClass.debug.enable = true; EClass.pc.stamina.Set(EClass.pc.stamina.max); "ok"')
+    try:
+        learnt = set()
+        # les cases autour de lui, jusqu'a en trouver ou le jeu propose de creuser (pas une plante a recolter)
+        around = ev(port, 'var r = new System.Collections.Generic.List<string>(); for (var dx = -1; dx <= 1; dx++) for (var dz = -1; dz <= 1; dz++) { '
+                          'if (dx == 0 && dz == 0) continue; var p = new Point(EClass.pc.pos.x + dx, EClass.pc.pos.z + dz); '
+                          'if (p.IsValid && p.IsInBounds && !p.IsBlocked && !p.HasChara && !p.cell.IsTopWaterAndNoSnow) r.Add(p.x + "," + p.z); } '
+                          'return string.Join(";", r);')
+        for spot in [s for s in around.split(";") if s]:
+            x, z = (int(v) for v in spot.split(","))
+            awake(port)
+            r = use_held(port, tool, at=(x, z), pick="i.act is TaskDig")
+            log(f"l'invite creuse en {spot} : {r}")
+            if not r.startswith("ok"):
+                continue
+            if eventually(lambda: awake(port) and set(ev(port, KNOWN).split(",")) - before[A], timeout=20):
+                learnt = set(ev(port, KNOWN).split(",")) - before[A]
+                break
+            ev(port, 'EClass.pc.SetNoGoal(); "ok"')
+    finally:
+        ev(port, 'EClass.debug.enable = false; EClass.pc.SetNoGoal(); "ok"')
+    if not check(f"une idee de recette vient a l'invite en creusant ({', '.join(sorted(learnt)) or 'aucune'})", bool(learnt)):
+        return
+    ok = eventually(lambda: learnt <= set(ev(H, KNOWN).split(",")), timeout=10)
+    check(f"l'host la connait aussi (il lui manque : {', '.join(sorted(learnt - set(ev(H, KNOWN).split(',')))) or 'rien'})", ok)
+
+
+LAYERS = 'return string.Join(",", EClass.ui.layers.Select(l => l.GetType().Name));'
+
+
+def g8(ctx):
+    """ce qui ouvre une fenetre ou agit sur « le joueur » : chez celui qui s'en sert, pas chez l'autre
+    (banque, coffre des impots, panneau des politiques, corde ; puis la pierre de retour, qui l'emmene, lui)"""
+    for trait, what in (("Bank", "la banque"), ("TaxChest", "le coffre des impots"), ("PolicyBoard", "le panneau des politiques"),
+                        ("Rope", "la corde")):
+        item = first_id(trait)
+        if not check(f"le jeu a un objet {trait} ({item})", bool(item)):
+            continue
+        for who, key in both(ctx):
+            port, uid = ctx[key]
+            other = H if port == A else A
+            for p in (H, A):
+                ev(p, 'foreach (var l in EClass.ui.layers.ToList()) l.Close(); "ok"')
+            t = give(ctx, key, item)
+            time.sleep(1)
+            ev(port, f'var t = EClass.pc.things.Find(x => x.uid == {t}); t.trait.OnUse(EClass.pc); "ok"')
+            time.sleep(2)
+            mine, theirs = ev(port, LAYERS), ev(other, LAYERS)
+            check(f"{who} se sert de {what} : la fenetre s'ouvre chez lui ({mine or 'rien'})", bool(mine))
+            check(f"{who} : rien ne s'ouvre chez l'autre joueur ({theirs or 'rien'})", not theirs)
+            for p in (H, A):
+                ev(p, 'foreach (var l in EClass.ui.layers.ToList()) l.Close(); "ok"')
+            ev(H, f'var t = {chara(H, uid)}.things.Find(x => x.uid == {t}); if (t != null) t.Destroy(); "ok"')
+    # la pierre de retour temporaire, en dernier : l'invite s'en va
+    stone = first_id("Waystone")
+    if not check(f"le jeu a une pierre de retour temporaire ({stone})", bool(stone)):
+        return
+    port, uid = ctx["a"]
+    home = state(H)["zone"]["uid"]
+    t = give(ctx, "a", stone)
+    time.sleep(1)
+    ev(port, f'var t = EClass.pc.things.Find(x => x.uid == {t}); t.trait.OnUse(EClass.pc); "ok"')
+    left = eventually(lambda: (state(A).get("zone") or {}).get("uid") != home and state(A).get("sceneMode") == "Zone", timeout=60)
+    check(f"l'invite se sert de sa pierre : il quitte la carte (il est en : {(state(A).get('zone') or {}).get('uid')})", left)
+    check(f"l'host, lui, reste sur sa carte ({(state(H).get('zone') or {}).get('uid')})", (state(H).get("zone") or {}).get("uid") == home)
+    gone = ev(H, f'(EClass.game.cards.globalCharas.Find({uid}).things.Find(x => x.uid == {t}) == null).ToString()')
+    check("la pierre de l'invite est usee", gone == "True")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--only")
@@ -271,7 +433,7 @@ def main():
     ctx = {"a": (A, state(A)["pc"]["uid"]), "h": (H, state(H)["pc"]["uid"])}
     steps = [g5, g3, g2, g1, g4]
     if a.only:
-        steps = [s for s in steps if s.__name__ in a.only.split(",")]
+        steps = [s for s in (g1, g2, g3, g4, g5, g6, g7, g9, g8) if s.__name__ in a.only.split(",")]
     for step in steps:
         log(f"--- {step.__name__.upper()} : {step.__doc__}")
         try:
