@@ -42,3 +42,31 @@ Comme tout le reste : une case à cocher côté host.
 
 Deux copies du jeu avec des listes de mods différentes (`_lab/Elin2` a son propre dossier `Package`) : le client
 rejoint, accepte, redémarre avec la liste de l'host, arrive en jeu ; il quitte, relance : sa liste est revenue.
+
+## Plan détaillé (agent, lecture seule, 2026-10-03) — rien n'est écrit
+
+Ce que la lecture du jeu (23.350, fonctions revérifiées dans 23.351) a établi :
+- Elin lit `loadorder.txt` (à côté de `Elin.exe`, format `chemin,0|1,id`) **avant** de charger les DLL des mods ;
+  ElinTogether ne peut donc jamais changer la liste du démarrage en cours : écrire la liste de l'host, relancer.
+  Un mod installé mais absent du fichier est **activé** : le fichier écrit doit tout lister.
+- Le jeu a des préréglages officiels (`User/Load Order/*.txt`, `ModManager.ApplyPreset`, `SaveLoadOrder`,
+  `ModLoadOrderPreset.FindMissing` pour les mods manquants) : à réutiliser plutôt qu'écrire le fichier à la main.
+- Les DLL de `BepInEx/plugins` se chargent sans tenir compte de la liste : impossibles à couper.
+- Aujourd'hui aucun message d'ElinTogether ne transporte la liste des mods de l'host (seulement des écarts de
+  DLL, par GUID BepInEx) : à ajouter dans `SourceValidationRequest` (`HostMods`).
+- Relancer : attendre la fin du processus (une seule instance permise), `Elin.exe` direct si `steam_appid.txt`
+  existe, sinon `steam://rungameid/2135150` ; retirer les variables `DOORSTOP*` (sinon le jeu relancé n'a aucun
+  mod, comme pour le bot) ; les informations pour rejoindre (port, lobby, host) dans un fichier, pas en arguments.
+- Remettre la liste du joueur **dès le démarrage relancé** (`EmpMod.Awake`, état `boot` → `session`) : le jeu
+  tourne avec les mods de l'host mais le fichier sur le disque est déjà celui du joueur ; un plantage ne peut donc
+  pas laisser la liste de l'host, sauf plantage avant le chargement d'ElinTogether (réparation : renommer la copie
+  `loadorder.elintogether-player.txt`). Bloquer `SaveLoadOrder` (fermeture du Mod Viewer) pendant une telle session.
+- Ordre : modèle + case host `ModProfile` ; envoi par l'host ; comparaison et question chez le client
+  (« Restart with the host's mods » / « Keep my mods ») ; `Emp/EmpModProfile.cs` (comparer, relancer, remettre,
+  rejoindre) ; fin de session (proposer de relancer avec ses mods, avertir avant de charger une partie solo) ;
+  liste des manquants ; mods tolérés ; textes.
+- Test prévu `modprofile_suite.py` sur le banc (copie `_lab/Elin2` avec une autre liste) ; ne teste pas la relance
+  par Steam ni le retour dans un lobby Steam (il faut un vrai second compte).
+- Risques : boucle de redémarrages (ne jamais reproposer pour la même liste), délai de 15 s de l'host pendant la
+  question (le porter à 120 s), abonnement Workshop ajouté entre-temps (activé par défaut), antivirus et
+  PowerShell caché, Proton/Steam Deck (relance à la main).

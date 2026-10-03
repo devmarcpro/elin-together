@@ -1176,3 +1176,17 @@ Pièges de test notés ce jour-là :
 - Publication faite avec l'identifiant GitHub que git avait déjà enregistré sur ce PC (`gh` n'y est pas connecté).
 - **Pas vérifié ici** : le chargement du build Release en jeu (l'utilisateur était devant le PC, pas de fenêtre
   ouverte sans lui). Le jeu de ce PC a maintenant ce build 0.26.337 dans `Package/Mod_ElinTogether`, prêt à jouer.
+
+### Après-midi du 2026-10-03 (PC d'origine)
+- 15h58 : la version publiée 0.26.337 se charge en jeu sur ce PC (écran titre en 40 s, 0 exception, « Loading
+  [Elin Together 0.26.337] »). Son du jeu coupé dans `Save/config.txt` le temps de l'essai, puis remis à
+  l'identique (copie du fichier).
+- Banc refait pour 23.351 (`build.ps1`, `make_lab.py` ×3). Passe complète lancée, **arrêtée à 16h19** à la
+  demande de l'utilisateur (« je veux jouer avec un ami ») : seul `travel_suite` a fini, **54/54**.
+- Écrit, compile, **pas testé, pas commité** (dans l'arbre de travail) : bonus de première fabrication d'un invité
+  (`CraftFirstTimeDelta`, union 816, `AIUseCrafterArgs.FirstTime`, test `player_suite.py` F6). Nouveau test
+  `sleep_suite.py` Y1 (invité seul sur une carte qu'il tient : peut-il dormir ?), pas encore joué.
+- 16h25 : réinstallé sur ce PC la version 0.26.337 (copie locale du zip publié, identique) pour jouer. Pas de
+  nouvelle version : rien de testé n'a changé depuis 0.26.337. **github.com répondait 503 depuis ce PC**
+  (page d'accueil comprise, alors que le statut GitHub disait « tout va bien ») : téléchargement impossible d'ici.
+- Plan détaillé du profil de mods reçu d'un agent : `PLAN_profil_mods.md`.
