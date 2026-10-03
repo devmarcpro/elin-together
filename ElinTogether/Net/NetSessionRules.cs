@@ -56,6 +56,17 @@ public class NetSessionRules
     [IgnoreMember]
     internal bool OwnClock => UsePlayerClock && UsePlayerCombatTime;
 
+    /// <summary>
+    ///     A player's own turn always lasts the base act time, as in a solo game, instead of being stretched or
+    ///     shortened by the speed of the other players. Only with <see cref="UsePlayerCombatTime" />, which keeps
+    ///     speed meaningful in a fight: what fights a player gets time for each of its turns
+    /// </summary>
+    [Key(9)]
+    public bool UsePlayerStepPace { get; set; }
+
+    [IgnoreMember]
+    internal bool OwnPace => UsePlayerStepPace && UsePlayerCombatTime;
+
     public static NetSessionRules Default => new() {
         UseSharedSpeed = EmpConfig.Server.SharedAverageSpeed.Value,
         UseTurnBasedCombat = EmpConfig.Server.TurnBasedCombat.Value,
@@ -66,5 +77,6 @@ public class NetSessionRules
         UsePersonalQuests = EmpConfig.Server.PersonalQuests.Value,
         AllowPlayerTrade = EmpConfig.Server.PlayerTrade.Value,
         UsePlayerClock = EmpConfig.Server.PlayerClock.Value,
+        UsePlayerStepPace = EmpConfig.Server.PlayerStepPace.Value,
     };
 }

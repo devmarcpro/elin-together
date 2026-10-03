@@ -11,6 +11,11 @@ V1  l'invite marche sur la carte de l'host : ses pas sont reguliers (reference)
 V2  le jeu de l'host tourne mal (5 images par seconde, comme un PC qui rame ou un reseau qui livre par a-coups) :
     les pas de l'invite gardent le meme rythme et la meme regularite
 V3  option decochee : le rythme de l'invite depend de nouveau de l'host (l'ancien comportement)
+V4  l'host devient trois fois plus rapide que l'invite : l'invite marche au meme rythme qu'avant, et l'host au
+    meme rythme que l'invite (case "chaque joueur marche comme en solo")
+V5  case decochee : le pas de l'invite s'allonge avec l'ecart de vitesse (l'ancien comportement)
+
+Limite : la marche est lancee par AI_Goto (le meme deplacement qu'un clic sur une case), pas touche enfoncee.
 """
 import statistics
 import sys
@@ -73,6 +78,20 @@ def back(port):
     time.sleep(2)
 
 
+def option(name, value):
+    """Regle une case de l'host. Sur un build qui n'a pas encore la case : rien, et on le dit."""
+    try:
+        set_option(name, value)
+        return True
+    except Exception as ex:  # noqa: BLE001
+        log(f"case {name} absente de ce build ({type(ex).__name__})")
+        return False
+
+
+def speed(port):
+    return int(ev(port, "EClass.pc.Speed.ToString()"))
+
+
 def host_fps(fps):
     ev(H, f'UnityEngine.QualitySettings.vSyncCount = 0; UnityEngine.Application.targetFrameRate = {fps}; "ok"')
 
@@ -84,6 +103,12 @@ def main():
     try:
         for port in (H, A):
             dismiss_dialogs(port)
+
+        # les cases dont depend ce test, quoi qu'une suite precedente ait laisse
+        option("PlayerCombatTime", True)
+        option("PlayerClock", True)
+        has_pace = option("PlayerStepPace", True)
+        time.sleep(3)
 
         log("--- V1")
         ref = describe(walk(A))
@@ -103,19 +128,60 @@ def main():
         back(A)
 
         log("--- V3")
-        set_option("PlayerClock", False)
-        time.sleep(3)
+        if option("PlayerClock", False):
+            time.sleep(3)
+            try:
+                # d'abord sans gener l'host : la reference de l'ancien comportement (l'host accelere son monde
+                # pour chaque pas d'un invite), puis l'host qui rame
+                base = describe(walk(A))
+                back(A)
+                log(f"option decochee : {show(base)}")
+                host_fps(5)
+                time.sleep(2)
+                old = describe(walk(A))
+                log(f"option decochee, host a 5 images par seconde : {show(old)}")
+                check(f"option decochee : le rythme de l'invite depend de nouveau de l'host ({show(old)})",
+                      old is not None and base is not None and
+                      (old["cv"] >= 0.35 or abs(old["mean"] - base["mean"]) / base["mean"] >= 0.3))
+            finally:
+                host_fps(60)
+                option("PlayerClock", True)
+            back(A)
+            time.sleep(3)
+
+        log("--- V4")
+        before = speed(H), speed(A)
+        # l'host devient bien plus rapide que l'invite (element 79 : vitesse)
+        bonus = max(200, before[1] * 2)
+        ev(H, f'EClass.pc.elements.ModBase(79, {bonus}); EClass.pc.Refresh(); "ok"')
         try:
-            host_fps(5)
-            time.sleep(2)
-            old = describe(walk(A))
-            log(f"option decochee, host a 5 images par seconde : {show(old)}")
-            check(f"option decochee : le rythme de l'invite depend de nouveau de l'host ({show(old)})",
-                  old is not None and ref is not None and (old["cv"] >= 0.35 or abs(old["mean"] - ref["mean"]) / ref["mean"] >= 0.3))
+            time.sleep(6)  # la vitesse de chacun voyage avec l'etat des joueurs
+            log(f"vitesses : host {before[0]} -> {speed(H)}, invite {before[1]} -> {speed(A)}")
+            gap = describe(walk(A))
+            back(A)
+            fast = describe(walk(H))
+            back(H)
+            log(f"host trois fois plus rapide : invite {show(gap)} ; host {show(fast)}")
+            check(f"l'host est bien plus rapide que l'invite ({speed(H)} contre {speed(A)})", speed(H) >= speed(A) * 2)
+            check(f"l'invite marche au meme rythme qu'avant ({show(gap)}, avant {show(ref)})",
+                  gap is not None and ref is not None and abs(gap["mean"] - ref["mean"]) / ref["mean"] < 0.2)
+            check(f"l'host marche au meme rythme que l'invite ({show(fast)})",
+                  gap is not None and fast is not None and abs(fast["mean"] - gap["mean"]) / gap["mean"] < 0.2)
+
+            log("--- V5")
+            if has_pace:
+                option("PlayerStepPace", False)
+                time.sleep(3)
+                try:
+                    stretched = describe(walk(A))
+                    back(A)
+                    log(f"case decochee : invite {show(stretched)}")
+                    check(f"case decochee : le pas de l'invite s'allonge avec l'ecart de vitesse ({show(stretched)})",
+                          stretched is not None and ref is not None and stretched["mean"] > ref["mean"] * 1.3)
+                finally:
+                    option("PlayerStepPace", True)
         finally:
-            host_fps(60)
-            set_option("PlayerClock", True)
-        back(A)
+            ev(H, f'EClass.pc.elements.ModBase(79, {-bonus}); EClass.pc.Refresh(); "ok"')
     except Exception as ex:  # noqa: BLE001
         check(f"interrompu : {type(ex).__name__}: {str(ex)[:300]}", False)
         for name, port in (("host", H), ("A", A)):
