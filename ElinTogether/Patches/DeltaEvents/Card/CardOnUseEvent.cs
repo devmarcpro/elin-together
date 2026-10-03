@@ -36,15 +36,20 @@ internal static class CardOnUseEvent
             return true;
         }
 
+        // bait is equipped at once in the asker's own game, as for the host (the fishing that follows checks it in
+        // the same step): the request says which state is wanted, the game's toggle runs here
+        bool? equip = pos is null && target is null && trait is TraitEquipItem item ? item.EQ != card : null;
+
         client.Delta.AddRemote(new CardOnUseDelta {
             Card = card,
             RootCard = card.GetRootCard(),
             User = user,
             Pos = pos,
             Target = target,
+            Equip = equip,
         });
 
-        return true;
+        return equip is null;
     }
 }
 

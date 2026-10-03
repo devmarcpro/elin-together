@@ -28,6 +28,13 @@ public class CardOnUseDelta : ElinDelta
     [Key(4)]
     public RemoteCard? Target { get; init; }
 
+    /// <summary>
+    ///     Bait: the state its user wants, not a toggle. Its own game equipped it at once; a toggle played again
+    ///     there would undo it
+    /// </summary>
+    [Key(5)]
+    public bool? Equip { get; init; }
+
     protected override void OnApply(ElinNetBase net)
     {
         if (Card.Find() is not { isDestroyed: false } card || User.Find() is not Chara user) {
@@ -35,6 +42,23 @@ public class CardOnUseDelta : ElinDelta
         }
 
         if (RootCard?.Find() != card.GetRootCard()) {
+            return;
+        }
+
+        if (Equip is { } equip && card.trait is TraitEquipItem item) {
+            if (net is ElinNetHost equipHost &&
+                (!equipHost.ActiveRemoteCharas.TryGetValue(OriginPeer, out var holder) || holder != user ||
+                 card.GetRootCard() != user)) {
+                return;
+            }
+
+            Relay(net);
+
+            // the one who asked already has it
+            if (!user.IsPC) {
+                item.EQ = equip ? card.Thing : null;
+            }
+
             return;
         }
 

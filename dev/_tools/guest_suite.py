@@ -491,8 +491,10 @@ def g11(ctx):
     check("son appat est equipe chez lui tout de suite", ev(port, '(EClass.player.eqBait != null).ToString()') == "True")
     check("et chez l'host", eventually(lambda: worn() == "True", timeout=5))
     ev(port, 'EClass.pc.SetNoGoal(); "ok"')
+    # l'appat equipe (il peut en avoir plusieurs paquets) : le retirer, puis le remettre
+    worn_uid = ev(port, 'EClass.player.eqBait == null ? "0" : EClass.player.eqBait.uid.ToString()')
     for want in ("False", "True"):
-        ev(port, f'EClass.pc.things.Find(x => x.uid == {b}).trait.OnUse(EClass.pc); "ok"')
+        ev(port, f'EClass.pc.things.Find(x => x.uid == {worn_uid}).trait.OnUse(EClass.pc); "ok"')
         check(f"l'invite {'remet' if want == 'True' else 'retire'} son appat : pareil chez l'host",
               eventually(lambda: worn() == want and ev(port, '(EClass.player.eqBait != null).ToString()') == want, timeout=5))
 
