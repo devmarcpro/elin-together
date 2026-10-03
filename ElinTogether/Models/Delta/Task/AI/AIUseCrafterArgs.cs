@@ -33,6 +33,12 @@ public class AIUseCrafterArgs : TaskArgsBase
     [Key(7)]
     public required int RecipeMat { get; init; }
 
+    /// <summary>
+    ///     The crafter never made this recipe: which recipes a player made is in its own game, not the host's
+    /// </summary>
+    [Key(8)]
+    public bool FirstTime { get; init; }
+
     public static AIUseCrafterArgs Create(AI_UseCrafter ai)
     {
         var targets = ai.layer?.GetTargets() ?? [];
@@ -49,6 +55,7 @@ public class AIUseCrafterArgs : TaskArgsBase
             Repeat = ai.layer?.RepeatAI ?? false,
             RecipeId = ai.recipe?.id,
             RecipeMat = ai.recipe?.idMat ?? -1,
+            FirstTime = ai.recipe?.HasFirstTimeBonus() ?? false,
         };
     }
 

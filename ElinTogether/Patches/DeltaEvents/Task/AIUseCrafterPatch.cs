@@ -163,6 +163,33 @@ internal static class AIUseCrafterPatch
         TaskCache.RequestCancel(host, owner, act);
     }
 
+    /// <summary>
+    ///     The game's first craft bonus looks at the host's list of recipes made and gives the tickets to the host.
+    ///     For another player it is that player's list, told with the request, and the tickets are its own
+    /// </summary>
+    private static void GiveFirstTimeBonus(AI_UseCrafter act, AIUseCrafterArgs args, Recipe recipe)
+    {
+        if (!args.FirstTime || recipe.IsStaticLV() || NetSession.Instance.Connection is not ElinNetHost host) {
+            return;
+        }
+
+        var num = 1 + recipe.source.GetReqSkill().Value / 20;
+        using (MsgRelayContext.RedirectTo(act.owner)) {
+            Msg.Say("firstTimeCraft", recipe.Name);
+        }
+
+        act.owner.Pick(ThingGen.Create("ticket_fortune").SetNum(num));
+
+        foreach (var (peerId, chara) in host.ActiveRemoteCharas) {
+            if (chara == act.owner) {
+                host.SendDeltaTo(peerId, new CraftFirstTimeDelta {
+                    RecipeId = recipe.id,
+                });
+                break;
+            }
+        }
+    }
+
     private static IEnumerable<AIAct.Status> RunRemote(AI_UseCrafter act, AIUseCrafterArgs args)
     {
         var crafter = act.crafter;
@@ -318,7 +345,7 @@ internal static class AIUseCrafterPatch
                             .SetParticleColor(recipe.GetColorMaterial().GetColor())
                             .Emit(10 + EClass.rnd(10));
                         act.owner.renderer.PlayAnime(AnimeID.JumpSmall);
-                        recipe.TryGetFirstTimeBonus();
+                        GiveFirstTimeBonus(act, args, recipe);
                     } else {
                         Thing? t;
                         using (MsgRelayContext.RedirectTo(act.owner))

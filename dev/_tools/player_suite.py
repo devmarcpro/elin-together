@@ -11,6 +11,7 @@ F2  l'inverse : le don de l'host ne double pas les potions du client
 F3  apparence : une couleur changee au miroir par le client est vue par l'host et tient apres une reconnexion
 F4  apparence : une couleur changee par l'host est vue par le client
 F5  slime : un gene absorbe par le client sur la carte de l'host est garde, chez l'host aussi, meme reconnecte
+F6  premiere fabrication : les tickets de fortune vont au client qui fabrique, la liste de l'host ne bouge pas
 """
 import argparse
 import sys
@@ -120,6 +121,28 @@ def f2(ctx):
         set_witch(H, False)
 
 
+def f6(ctx):
+    """premiere fabrication : le bonus va au client qui fabrique, pas a l'host"""
+    me = ctx["a"]
+    host = state(H)["pc"]["uid"]
+    recipe = ev(H, ALCHEMY + 'return src == null ? "" : src.id;')
+    made = f'EClass.player.recipes.craftedRecipes.Contains("{recipe}").ToString()'
+    for port in (H, A):
+        ev(port, f'EClass.player.recipes.craftedRecipes.Remove("{recipe}"); "ok"')
+    set_witch(A, False)
+    set_witch(H, False)
+    mine, hosts = count(H, me, "ticket_fortune"), count(H, host, "ticket_fortune")
+    r = brew(ctx)
+    if not r:
+        return
+    check("premiere fabrication du client : des tickets de fortune dans son sac, vus des deux jeux",
+          eventually(lambda: count(H, me, "ticket_fortune") > mine and count(A, me, "ticket_fortune") == count(H, me, "ticket_fortune"),
+                     timeout=10))
+    check("l'host n'en recoit pas", count(H, host, "ticket_fortune") == hosts)
+    check("la recette est notee comme faite chez le client", eventually(lambda: ev(A, made) == "True", timeout=10))
+    check("pas chez l'host, qui garde son propre bonus pour plus tard", ev(H, made) == "False")
+
+
 RED = "FF0000FF"
 
 # comme au miroir : l'ecran d'apparence, une couleur changee, l'ecran ferme (c'est la fermeture qui applique)
@@ -211,7 +234,7 @@ def main():
     t0 = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
 
     ctx = {"a": state(A)["pc"]["uid"]}
-    steps = [f1, f2, f3, f4, f5]
+    steps = [f1, f2, f6, f3, f4, f5]
     if a.only:
         steps = [s for s in steps if s.__name__ in a.only.split(",")]
     for step in steps:
