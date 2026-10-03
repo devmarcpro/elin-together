@@ -721,6 +721,13 @@ Pas encore portées dans le bot du menu (`EmpBot.cs`).
   ses propres parties ? choix de la sauvegarde depuis l'écran du mod ?
 - Mod séparé : équipement visible sur les personnages.
 - Serveur dédié (monde sans joueur host), après le temps du monde.
+- **Serveur « dépôt de sauvegarde »** (idée de l'utilisateur, 2026-10-03 au soir, **retenue** : il veut qu'on s'y
+  mette dès que les points 1 à 4 de sa liste sont bons, plan à lui présenter avant de coder). Le serveur est un
+  petit programme, sans Elin : il garde la sauvegarde et dit qui tient quelle carte. Toute la simulation est faite
+  par les joueurs, un joueur par carte (le prêt de carte poussé au bout : plus d'host, tout le monde est invité).
+  Difficile : ce qui n'appartient à aucune carte (heure du monde, quêtes, base, compagnons qui changent de carte,
+  numéros des objets), aujourd'hui tenu par le jeu de l'host ; le mod suppose partout que l'host est le monde ;
+  un joueur qui plante en tenant une carte. Première marche : le temps du monde commun.
 
 ## Options de l'host (onglet Configuration du serveur) — 2026-10-01 après-midi
 Demande de l'utilisateur : chaque nouveauté est une **case à cocher** réglée par l'host (config `Server.*`, règle
@@ -1230,3 +1237,12 @@ Pièges de test notés ce jour-là :
   `PLAN_retours_partie_reelle.md`, pas commencé), autres chemins de recrutement (causes 2 et 3), retour de l'host
   sans rechargement (plan B), profil de mods, puis temps du monde commun et serveur indépendant (réponse donnée :
   niveau 1 « serveur gardien » recommandé, il attend sa décision).
+
+### Reprise sur le Steam Deck (2026-10-03, 21h05)
+- `git pull` (10 commits, jusqu'à `5b54595`), `build.ps1` : 0 erreur, mod 0.26.347 en Debug dans le jeu.
+- **Piège, encore** : Steam avait mis Elin à jour (EA 23.351 **Patch 2**, `game 0.23.351.0 -> 0.23.351.2`). Le
+  client du banc était refusé (« invalid version »), `mp_test.py` a attendu trois fois 5 minutes sans dire
+  pourquoi. Remède habituel : fermer les fenêtres, `make_lab.py Elin2 2` (3, 4). Ensuite host + client connectés
+  en 1 min 30.
+- 21h56 : passe complète lancée sur `5b54595` (journaux `_shots/*-p2.log`, résumé `_shots/p2-long.log`).
+
