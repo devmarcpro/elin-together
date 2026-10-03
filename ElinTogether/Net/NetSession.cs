@@ -3,6 +3,8 @@ using ElinTogether.Helper;
 using ElinTogether.Net.Steam;
 using Object = UnityEngine.Object;
 
+using ElinTogether.Patches;
+
 namespace ElinTogether.Net;
 
 public class NetSession : EClass
@@ -187,6 +189,9 @@ public class NetSession : EClass
         Lobby.Reset();
 
         Transport = EmpMod.Instance.gameObject.AddComponent<T>();
+
+        // every mod is loaded by now
+        OtherModsCompat.Apply();
 
         EmpLog.Debug("Initialized new connection component of {ConnectionType}",
             typeof(T).Name);
