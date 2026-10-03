@@ -110,6 +110,27 @@ internal partial class EmpConfig
             "Nobody waits for the others. Takes over the turn-based combat mode when both are on\n" +
             "战斗按各玩家自己的时间进行：与某位玩家战斗的单位只在该玩家行动时行动，同时开启时优先于回合制战斗");
 
+        Server.PlayerClock = config.Bind(
+            "Server",
+            "PlayerClock",
+            true,
+            "Every player walks and acts on the clock of its own game, as the host does\n" +
+            "Otherwise a guest's steps follow the host's game time as it arrives over the network, which makes them uneven\n" +
+            "Only with combat on each player's time\n" +
+            "每位玩家按自己游戏的时钟移动和行动，与主机一样；否则客机的步伐取决于经网络传来的主机时间，会不均匀。需要开启“战斗按各玩家时间进行”");
+
+        Server.PlayerStepPace = config.Bind(
+            "Server",
+            "PlayerStepPace",
+            true,
+            "Every player walks and acts at the pace of a solo game, whatever the speed of the other players
+" +
+            "Otherwise the length of a step depends on the gap between the fastest and the slowest player
+" +
+            "Speed still counts in a fight. Only with combat on each player's time
+" +
+            "每位玩家按单人游戏的节奏移动和行动，不受其他玩家速度影响；否则每一步的时长取决于最快与最慢玩家的差距。战斗中速度仍然有效。需要开启“战斗按各玩家时间进行”");
+
         Server.PlayerShipping = config.Bind(
             "Server",
             "PlayerShipping",
@@ -221,6 +242,8 @@ internal partial class EmpConfig
         internal static ConfigEntry<bool> ChooseCharacter { get; set; } = null!;
         internal static ConfigEntry<bool> PlayerTrade { get; set; } = null!;
         internal static ConfigEntry<bool> PlayerCombatTime { get; set; } = null!;
+        internal static ConfigEntry<bool> PlayerClock { get; set; } = null!;
+        internal static ConfigEntry<bool> PlayerStepPace { get; set; } = null!;
         internal static ConfigEntry<int> TravelCheckpointSeconds { get; set; } = null!;
     }
 }

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Reflection.Emit;
+using ElinTogether.Helper;
 using ElinTogether.Models;
 using ElinTogether.Net;
 using EModding.Helper;
@@ -49,6 +50,13 @@ internal class CharaSynchronizationContext : SynchronizationContext
 
     private static void SetActTime(Chara chara, float num)
     {
+        // a player steps as in a solo game, whoever else is there: measured against the others, a slow player
+        // walked 1.4 times slower than alone next to one twice as fast, and its pace moved with their speed
+        if (NetSession.Instance.Rules.OwnPace && chara.IsPlayer) {
+            chara.actTime = num;
+            return;
+        }
+
         chara.actTime = num * Mathf.Max(0.1f, (float)RefSpeed / chara.Speed);
     }
 

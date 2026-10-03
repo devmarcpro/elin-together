@@ -16,6 +16,12 @@ internal class GameSynchronizationContext : SynchronizationContext
     internal static void OnGameOnUpdate()
     {
         switch (NetSession.Instance.Connection) {
+            // its own turns on its own clock, as the host's: fed by the network, the host's game time comes in
+            // lumps (none, one or two a frame, in bursts over the Internet) and every step waited for it, while
+            // the sprite and the camera glide on the local clock
+            case ElinNetClient when NetSession.Instance.Rules.OwnClock:
+                GameDelta = 0f;
+                break;
             // apply game delta as clients
             case ElinNetClient:
                 var buffered = Mathf.Min(GameDelta, MaxGameDeltaBuffer);
@@ -58,8 +64,13 @@ internal class GameSynchronizationContext : SynchronizationContext
             return false;
         }
 
+        // a walk (or any act the host only knows as "busy") runs on its player's own clock: no need to speed
+        // the host's world up for it, its own character included
+        var ownClock = NetSession.Instance.Rules.OwnClock;
+
         foreach (var chara in host.ActiveRemoteCharas.Values) {
             if (chara.ai is GoalRemote { child: { status: AIAct.Status.Running } child } &&
+                !(ownClock && child is NoGoal) &&
                 (child.UseTurbo || child.Current is { UseTurbo: true })) {
                 return true;
             }

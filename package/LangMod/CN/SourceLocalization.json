@@ -167,5 +167,9 @@
     "LangGeneral.emp_ui_sv_desc_combat_time.text": "怪物只在与之战斗的玩家行动时行动，无需等待。优先于回合制。",
     "LangGeneral.emp_ui_sv_desc_turn_combat.text": "战斗中玩家轮流行动。",
     "LangGeneral.emp_ui_sv_desc_shared_speed.text": "所有玩家共用平均速度。关：各自保持自己的速度。",
-    "LangGeneral.emp_ui_sv_desc_validation.text": "加入的玩家的游戏必须与主机一致的内容。“无”：任何人。“全部”：数据和模组相同。"
+    "LangGeneral.emp_ui_sv_desc_validation.text": "加入的玩家的游戏必须与主机一致的内容。“无”：任何人。“全部”：数据和模组相同。",
+    "LangGeneral.emp_ui_sv_cfg_player_clock.text": "每位玩家按自己的时钟行动",
+    "LangGeneral.emp_ui_sv_desc_player_clock.text": "客机与主机一样流畅地移动和行动，不受网络节奏影响。需要开启上一项。",
+    "LangGeneral.emp_ui_sv_cfg_step_pace.text": "每位玩家按单人游戏的节奏移动",
+    "LangGeneral.emp_ui_sv_desc_step_pace.text": "每一步的时长不再取决于其他玩家的速度。战斗中速度仍然有效。需要开启“战斗按各玩家时间进行”。"
 }
