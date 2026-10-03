@@ -1190,3 +1190,23 @@ Pièges de test notés ce jour-là :
   nouvelle version : rien de testé n'a changé depuis 0.26.337. **github.com répondait 503 depuis ce PC**
   (page d'accueil comprise, alors que le statut GitHub disait « tout va bien ») : téléchargement impossible d'ici.
 - Plan détaillé du profil de mods reçu d'un agent : `PLAN_profil_mods.md`.
+
+### Soir du 2026-10-03 (PC d'origine) : retours de la première vraie partie de l'utilisateur comme invité
+- Journaux de sa partie (18h11–18h27, 0.26.337, lui client) : aucune exception d'ElinTogether. L'host est sorti et
+  rentré de la carte au moins quatre fois : à chaque retour, « Host recalls zone, rejoining » → rechargement (deux
+  `Scene.Init:Zone` de suite) et invité replacé à côté de l'host. 11 342 `NullReferenceException` après la
+  déconnexion, toutes du mod Workshop **Somewhat Enhanced Display** (sa barre de vie lit le dernier personnage
+  survolé à chaque image, même sans jeu). Deux mods en plus chez l'utilisateur : celui-là (absent de
+  `loadorder.txt`, donc activé d'office) et `Mod_VisibleEquipment`.
+- Corrigé, chacun rouge puis vert, détail dans `PLAN_retours_partie_reelle.md` : `b164dd7` (première
+  fabrication), `1189ac0` (rejoindre le groupe par le dialogue : `PartyJoinEvent`, `JoinOnly`), `23554f2` (place
+  gardée au retour de l'host + second état de zone ignoré), `7238c7a` (`OtherModsCompat`), `09410f4` (test Y1 :
+  un invité seul sur sa carte peut dormir, la limite notée n'existait pas).
+- Pièges : `Party.AddMemeber` appelé directement par le jeu (dialogue d'un habitant, liste des résidents) ne
+  passe pas par `MakeAlly` ; le client reçoit deux `ZoneDataResponse` pour la même carte quand l'host y entre
+  (réponse à sa demande + diffusion de l'entrée) ; `ilspycmd` 9.1 demande `DOTNET_ROLL_FORWARD=LatestMajor`.
+- 19h30 : passe complète lancée sur ce build (`_shots/soir-long.log`, `_shots/soir-short.log`, 21 suites dont
+  `recruit_suite` et `compat_suite`). **Le jeu de ce PC a le build Debug : remettre la version publiée (ou une
+  nouvelle) avant que l'utilisateur rejoue avec son ami.**
+- Demandes en attente : fluidité des déplacements de l'invité (agent en cours), import d'un personnage solo
+  (plan prêt), serveur indépendant (question de l'utilisateur, réponse donnée dans la conversation).
