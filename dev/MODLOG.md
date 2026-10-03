@@ -1258,3 +1258,16 @@ Pièges de test notés ce jour-là :
 - Décisions de l'utilisateur ce soir : rythme des pas = **option A** (chaque joueur marche comme en solo), avec
   sa propre case host ; serveur « dépôt de sauvegarde » retenu pour la suite (voir « Idées »).
 
+### Version 0.26.349 publiée depuis le Steam Deck (2026-10-04, 1h35)
+- `make_release.ps1` sur `17614f7` : **mod 0.26.349**, 1 084 377 octets, pas de `.pdb`. Publié en préversion
+  `independance-0.26.349`, fichier public identique au zip local (SHA-256 `03831336…8a1c78`). Copie gardée :
+  `_release/ElinTogether-independance-0.26.349.zip`. Contenu nouveau : les cinq corrections du 3 au soir.
+- Le build Release se charge en jeu ici : « Loading [Elin Together 0.26.349] », écran titre, 0 exception dans
+  `Player.log`. Son coupé par `volumeMaster` dans `Save/config.txt`, fichier remis à l'identique ensuite.
+  Vu dans la console au lancement (pas dans `Player.log`, le jeu continue) : un bloc « Native Crash Reporting »
+  de mono dans `ReflexCLI.CommandRegistry.LoadAssembly` (Elin Scripting Kit). Pas de notre mod, sans effet visible.
+- `gh` n'est pas installé ici : publication par l'API GitHub avec l'identifiant que git a déjà (`git credential
+  fill`). `target_commitish` veut le numéro de commit **entier** (422 sinon).
+- `independance-0.26.337` et `independance-0.26.309` sont toujours sur la page : à retirer si l'utilisateur le
+  veut (elles ne se connectent pas à la 0.26.349).
+
