@@ -63,6 +63,13 @@ internal partial class ElinNetClient
             return;
         }
 
+        // the host answers our request and tells everyone when it enters a map: coming back to it, both land
+        // moments apart for the same map. The first one is being loaded, a second load would only replay it
+        if (_awaitingActivation == response.ZoneUid && UnityEngine.Time.unscaledTime - _awaitingActivationSince < ActivationWait) {
+            EmpLog.Debug("Zone state of {ZoneFullName} received twice, keeping the first", response.ZoneFullName);
+            return;
+        }
+
         EmpLog.Information("Received zone state");
 
         Delta.HoldForIncomingMap();
@@ -128,9 +135,20 @@ internal partial class ElinNetClient
         // update session remote zone
         Session.CurrentZone = remoteZone;
 
+        _awaitingActivation = response.ZoneUid;
+        _awaitingActivationSince = UnityEngine.Time.unscaledTime;
+
         // respond for replication complete, waiting for position sync
         Host.Send(response.Ready());
     }
+
+    private const float ActivationWait = 10f;
+
+    /// <summary>
+    ///     The map whose state we loaded and told the host about, until the host says where we stand on it
+    /// </summary>
+    private int _awaitingActivation;
+    private float _awaitingActivationSince;
 
     /// <summary>
     ///     Net event: Ready to init scene with new zone state and sync position
@@ -138,6 +156,8 @@ internal partial class ElinNetClient
     private void OnZoneActivateResponse(ZoneActivateResponse response)
     {
         using var _ = LogContext.PushProperty("Zone", new { response.ZoneFullName, response.ZoneUid }, true);
+
+        _awaitingActivation = 0;
 
         EmpLog.Information("Received zone activation");
 

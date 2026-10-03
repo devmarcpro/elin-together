@@ -58,11 +58,21 @@ def l1(ctx):
 
 def l2(ctx):
     m, pos = marker(A)
+    # A s'eloigne de l'entree de la carte : au retour de l'host il doit rester la, pas etre ramene a cote de l'host
+    ev(A, 'var p = EClass.pc.pos.Copy(); p.x += 9; p.z += 4; EClass.pc.Teleport(p.GetNearestPoint(false, false) ?? EClass.pc.pos, true, true); "ok"')
+    time.sleep(2)
+    spot = pc_pos(A)
     move(H, HOME)
     wait(lambda: zone_uid(H) == HOME, "host a la Prairie", timeout=240)
     both_joined(H, A, HOME)
+    time.sleep(3)
     check("l'host revient a la Prairie : A est avec lui", not state(A).get("awayZone") and on_map_chara(H, ctx["a"]))
     check(f"l'host retrouve l'objet pose par A pendant son absence ({pos})", on_map(H, [m]).get(m) == pos)
+    at_host = ev(H, f'var c = EClass._map.charas.Find(x => x.uid == {ctx["a"]}); return c.pos.x + "," + c.pos.z + "|" + c.Dist(EClass.pc);')
+    seen, far = at_host.split("|")
+    check(f"A est reste ou il etait ({spot}), pas ramene a cote de l'host (chez A : {pc_pos(A)}, chez l'host : {seen})",
+          pc_pos(A) == spot and seen == f"{spot[0]},{spot[1]}")
+    check(f"l'host, lui, est ailleurs sur la carte (a {far} cases)", int(far) > 3)
 
 
 def l3(ctx):

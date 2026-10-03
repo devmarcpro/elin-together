@@ -42,14 +42,16 @@ internal partial class ElinNetHost
     /// <summary>
     ///     The player stands on this map again, its companions join it
     /// </summary>
-    private void BringCompanions(Chara player)
+    /// <param name="keepSpot">back on the map they never really left: each where it stood, not around the player</param>
+    private void BringCompanions(Chara player, bool keepSpot = false)
     {
         foreach (var companion in CompanionHelper.CompanionsOf(player)) {
             if (companion.isDead || companion.currentZone is not null) {
                 continue;
             }
 
-            var pos = player.pos.GetNearestPoint(allowChara: false, allowInstalled: false) ?? player.pos.Copy();
+            var near = keepSpot && companion.pos is { IsValid: true, IsInBounds: true } ? companion.pos : player.pos;
+            var pos = near.GetNearestPoint(allowChara: false, allowInstalled: false) ?? near.Copy();
 
             Delta.AddRemote(CardGenDelta.Create(companion));
             _zone.AddCard(companion, pos);

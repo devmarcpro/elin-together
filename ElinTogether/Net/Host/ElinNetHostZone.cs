@@ -95,6 +95,13 @@ internal partial class ElinNetHost
 
         // move instead of add
         var pos = pc.pos.GetNearestPoint(allowChara: false, allowInstalled: false) ?? pc.pos.Copy();
+
+        // the host came back to a map this player held: it stands where it stood, with its companions
+        var keepSpot = _returnSpots.Remove(peer.Id, out var spot) && spot.ZoneUid == _zone.uid &&
+                       spot.Pos.IsInBounds && UnityEngine.Time.unscaledTime < spot.Until;
+        if (keepSpot) {
+            pos = spot.Pos.GetNearestPoint(allowChara: false, allowInstalled: false) ?? spot.Pos.Copy();
+        }
         if (chara.IsInActiveMap && _map.charas.Contains(chara)) {
             if (chara.Stub_Move(pos, Card.MoveType.Force) != Card.MoveResult.Success) {
                 pos = chara.pos.Copy();
@@ -111,7 +118,7 @@ internal partial class ElinNetHost
             chara.SetAI(GoalRemote.Default);
         }
 
-        BringCompanions(chara);
+        BringCompanions(chara, keepSpot);
         // sales made while it was a guest somewhere or offline
         PayShipping(chara.uid);
         SweepStaleCellEntries();

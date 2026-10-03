@@ -571,6 +571,13 @@ internal partial class ElinNetHost
         ReplaceCompanions(release.Companions, SavedRemoteCharas.TryGetValue(peer.User, out var ownerUid) ? ownerUid : 0);
         ReplaceGuestCharas(release, peer);
 
+        // it hands back the map the host is about to enter: it stays where it stood there, not next to the host
+        if (release.Rejoin && handedBack && chara?.pos is { } stood) {
+            _returnSpots[peer.Id] = (release.ZoneUid, stood.Copy(), UnityEngine.Time.unscaledTime + ReturnSpotSeconds);
+        } else {
+            _returnSpots.Remove(peer.Id);
+        }
+
         if (handedBack) {
             // before looking for someone to take it over: there is nothing to take over
             DestroyQuestZone(release.ZoneUid);
@@ -632,6 +639,13 @@ internal partial class ElinNetHost
         EmpLog.Debug("Checkpoint of player {@Peer} in zone {ZoneUid}",
             peer, checkpoint.ZoneUid);
     }
+
+    /// <summary>
+    ///     Peer id -> the map a player just handed back to the host coming in, and where it stood on it
+    /// </summary>
+    private readonly Dictionary<int, (int ZoneUid, Point Pos, float Until)> _returnSpots = [];
+
+    private const float ReturnSpotSeconds = 60f;
 
     /// <summary>
     ///     Net event: the player does not take the lease it was granted
@@ -944,6 +958,7 @@ internal partial class ElinNetHost
 
     private void ReleaseLeaseOnDisconnect(ISteamNetPeer peer)
     {
+        _returnSpots.Remove(peer.Id);
         _settled.Remove(peer.Id);
         _departed.Remove(peer.Id);
         _pendingGuests.Remove(peer.Id);
