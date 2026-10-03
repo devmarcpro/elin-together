@@ -1165,3 +1165,14 @@ Pièges de test notés ce jour-là :
    la carte de l'host ; que faire quand la connexion tombe.
 6. Suite de `DOCUMENTATION.md` section 7. **Pas le « temps du monde commun » sans l'utilisateur.**
 7. Le jeu de cette machine a le build Debug : avant de jouer d'ici avec l'ami, relancer `Installer.bat` du zip.
+
+### Version 0.26.337 publiée depuis le PC d'origine (2026-10-03, 13h05)
+- Demande de l'utilisateur : « prends tout sur le dépôt et fais une nouvelle release ». `git pull` (28 commits de
+  l'autre machine, jusqu'à `a377e4a`), Elin de ce PC déjà en EA 23.351 Patch 1.
+- `make_release.ps1` sur `a377e4a` : **mod 0.26.337**, 1 082 628 octets, pas de `.pdb`. Publié en préversion :
+  `independance-0.26.337`, fichier public identique au zip local. Note de publication : les 26 inégalités
+  invité/host corrigées, l'état des tests de la nuit (18 suites sur 19, `guest_suite` 211/211, munitions testées
+  seules après). `independance-0.26.309` laissée en place (à retirer si l'utilisateur le demande).
+- Publication faite avec l'identifiant GitHub que git avait déjà enregistré sur ce PC (`gh` n'y est pas connecté).
+- **Pas vérifié ici** : le chargement du build Release en jeu (l'utilisateur était devant le PC, pas de fenêtre
+  ouverte sans lui). Le jeu de ce PC a maintenant ce build 0.26.337 dans `Package/Mod_ElinTogether`, prêt à jouer.
