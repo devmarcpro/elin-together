@@ -46,6 +46,8 @@ public class PartyMemberDelta : ElinDelta
         }
 
         using var _ = Simulate();
+        // sent away by a player: whoever takes it again, it is theirs
+        chara.SetCompanionOwner(null);
         party.RemoveMember(chara);
 
         // _leaveParty

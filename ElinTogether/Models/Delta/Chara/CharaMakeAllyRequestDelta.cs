@@ -22,6 +22,12 @@ public class CharaMakeAllyRequestDelta : ElinDelta
     [Key(3)]
     public bool ShowMsg { get; init; }
 
+    /// <summary>
+    ///     Already of the base, only asked to join the party (see PartyJoinEvent)
+    /// </summary>
+    [Key(4)]
+    public bool JoinOnly { get; init; }
+
     protected override void OnApply(ElinNetBase net)
     {
         if (net is not ElinNetHost host) {
@@ -37,6 +43,11 @@ public class CharaMakeAllyRequestDelta : ElinDelta
             return;
         }
 
+        if (JoinOnly) {
+            JoinParty(host, chara);
+            return;
+        }
+
         if (chara.IsPCParty) {
             RefundRecruitCost(host, chara);
             return;
@@ -46,6 +57,25 @@ public class CharaMakeAllyRequestDelta : ElinDelta
         // the companion follows the player who recruited it
         chara.SetCompanionOwner(host.ActiveRemoteCharas.TryGetValue(OriginPeer, out var recruiter) ? recruiter : null);
         chara.MakeAlly(ShowMsg);
+    }
+
+    private void JoinParty(ElinNetHost host, Chara chara)
+    {
+        if (chara.party == pc.party || !host.ActiveRemoteCharas.TryGetValue(OriginPeer, out var recruiter)) {
+            return;
+        }
+
+        using var _ = Simulate();
+        // it follows the player who asked
+        chara.SetCompanionOwner(recruiter);
+
+        // called from the list of residents while it is somewhere else: it comes, as in the game
+        if (chara.currentZone != _zone) {
+            chara.MoveZone(_zone);
+            chara.MoveImmediate(recruiter.pos.GetNearestPoint(false, false) ?? recruiter.pos);
+        }
+
+        pc.party.AddMemeber(chara, ShowMsg);
     }
 
     private void ReplayLocalCopy(ElinNetHost host)

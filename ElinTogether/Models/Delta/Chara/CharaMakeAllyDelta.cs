@@ -23,6 +23,12 @@ public class CharaMakeAllyDelta : ElinDelta
     [Key(3)]
     public int OwnerUid { get; init; }
 
+    /// <summary>
+    ///     Already of the base, it only joins the party (see PartyJoinEvent)
+    /// </summary>
+    [Key(4)]
+    public bool JoinOnly { get; init; }
+
     protected override void OnApply(ElinNetBase net)
     {
         if (net.IsHost) {
@@ -47,6 +53,11 @@ public class CharaMakeAllyDelta : ElinDelta
 
         chara.c_altName = TemporaryAllyName;
         chara.SetInt(CompanionHelper.OwnerKey, OwnerUid);
+        if (JoinOnly) {
+            pc.party.AddMemeber(chara, ShowMsg);
+            return;
+        }
+
         chara.Stub_MakeAlly(ShowMsg);
     }
 }
