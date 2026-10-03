@@ -1210,3 +1210,23 @@ Pièges de test notés ce jour-là :
   nouvelle) avant que l'utilisateur rejoue avec son ami.**
 - Demandes en attente : fluidité des déplacements de l'invité (agent en cours), import d'un personnage solo
   (plan prêt), serveur indépendant (question de l'utilisateur, réponse donnée dans la conversation).
+
+### Arrêt à 19h55 le 2026-10-03 (l'utilisateur met le PC en veille)
+- Passe complète du soir **arrêtée** : seul `travel_suite` a fini (54/54) sur le build des cinq corrections.
+  Les suites propres à chaque correction sont vertes (`recruit` 21/21, `leave` 13/13, `player` 38/38, `compat` 5/5,
+  `sleep` Y1 6/6). **La passe complète reste à faire avant de publier ces corrections.**
+- Le jeu de ce PC a de nouveau la **version publiée 0.26.337** (pour jouer avec l'ami). Les corrections du soir
+  n'y sont pas. Avant de reprendre les tests : `dev/build.ps1`.
+- Fluidité des déplacements d'un invité (demande de l'utilisateur) : cause lue dans le code par un agent — chez
+  un client, `Core.gameDelta` est remplacé par le temps de jeu de l'host reçu par le réseau
+  (`GameSynchronizationContext`), donc chaque pas attend ce temps, qui arrive par paquets, alors que l'animation
+  suit l'horloge locale. **Écrit, compile, jamais lancé** : branche `wip/player-clock` (option host `PlayerClock`,
+  règle `UsePlayerClock` clé 8, active seulement avec `PlayerCombatTime` ; le client garde son horloge locale ;
+  l'host ne passe plus en turbo pour la marche d'un invité ; test `move_suite.py` V1–V3 : pas réguliers même quand
+  l'host tourne à 5 images par seconde). À faire : jouer `move_suite` sur l'ancien build (rouge attendu sur V2),
+  puis sur la branche, puis `combat_suite`, `guest_suite`, `sleep_suite`. Second point de l'agent, pas fait :
+  le rythme des pas dépend de l'écart de vitesse entre joueurs (`SetActTime`, `RefSpeed`).
+- Reste de la liste de l'utilisateur, dans l'ordre : fluidité (ci-dessus), import d'un personnage solo (plan dans
+  `PLAN_retours_partie_reelle.md`, pas commencé), autres chemins de recrutement (causes 2 et 3), retour de l'host
+  sans rechargement (plan B), profil de mods, puis temps du monde commun et serveur indépendant (réponse donnée :
+  niveau 1 « serveur gardien » recommandé, il attend sa décision).
