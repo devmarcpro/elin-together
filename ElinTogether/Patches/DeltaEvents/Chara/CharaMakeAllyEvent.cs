@@ -9,9 +9,27 @@ namespace ElinTogether.Patches;
 [HarmonyPatch(typeof(Chara), nameof(Chara.MakeAlly))]
 internal static class CharaMakeAllyEvent
 {
+    private static Chara? _giftFor;
+
+    /// <summary>
+    ///     An ally given during this scope (a gift pack) follows that player, not the party leader
+    /// </summary>
+    internal static ScopeExit GiftsFor(Chara player)
+    {
+        var previous = _giftFor;
+        _giftFor = player;
+        return new() {
+            OnExit = () => _giftFor = previous,
+        };
+    }
+
     [HarmonyPrefix]
     internal static bool OnMakeAlly(Chara __instance, bool msg)
     {
+        if (_giftFor is { } receiver && __instance != receiver && __instance.CompanionOwnerUid == 0) {
+            __instance.SetCompanionOwner(receiver);
+        }
+
         // recruited on our own (travelling alone, or hosting a zone): ours, not the host's
         if (NetSession.Instance is { IsAway: true, Connection: not ElinNetClient } && !ElinDelta.IsApplying &&
             __instance.CompanionOwnerUid == 0) {

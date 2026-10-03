@@ -98,6 +98,8 @@ public class CardOnUseDelta : ElinDelta
             using var simulate = Simulate();
             using var told = MsgRelayContext.RedirectTo(user);
             using var standIn = RemoteCraft.AsCrafter(user);
+            // the New Year pack's ally follows the one who opened it
+            using var pets = CharaMakeAllyEvent.GiftsFor(user);
             card.trait.OnUse(user);
             return;
         }
@@ -110,7 +112,9 @@ public class CardOnUseDelta : ElinDelta
     {
         var type = trait.GetType();
         return type == typeof(TraitParcel) || type == typeof(TraitGiftPack) || type == typeof(TraitPlamoBox) ||
-               type == typeof(TraitGachaBall);
+               type == typeof(TraitGachaBall) || type == typeof(TraitGiftNewYear) || type == typeof(TraitGiftJure) ||
+               // the machine god's gives a window to choose from: not here
+               (type == typeof(TraitGodStatue) && ((TraitGodStatue)trait).Religion.id != "machine");
     }
 
     private void Relay(ElinNetBase net)
