@@ -722,18 +722,24 @@ def g25(ctx):
         port, uid = ctx[key]
         _, other_uid = ctx["h" if key == "a" else "a"]
         mine = "0" if key == "h" else str(uid)
+        # en fin de suite le sac est plein de ce que les tests precedents ont donne : un sac plein pose a terre ce
+        # qu'un paquet donne. On le vide (monde de test), sauf ce qui est porte
+        ev(H, f'var c = {chara(H, uid)}; foreach (var t in c.things.ToList()) if (!t.isEquipped) t.Destroy(); "ok"')
+        time.sleep(2)
         for trait, gain in (("GiftNewYear", 2), ("GiftJure", 20)):
             box = first_id(trait)
             if not check(f"le jeu a un {trait} ({box})", bool(box)):
                 continue
             b = give(ctx, key, box)
             time.sleep(1)
-            n0, other0 = bag_size(H, uid), bag_size(H, other_uid)
+            n0, other0, own0 = bag_size(H, uid), bag_size(H, other_uid), bag_size(port, uid)
             ev(port, f'EClass.pc.things.Find(x => x.uid == {b}).trait.OnUse(EClass.pc); "ok"')
-            check(f"{who} ouvre {trait} : son sac gagne au moins {gain} objets ({n0} -> {bag_size(H, uid)})",
-                  eventually(lambda: bag_size(H, uid) >= n0 + gain, timeout=10))
+            grew = eventually(lambda: bag_size(H, uid) >= n0 + gain, timeout=10)
+            check(f"{who} ouvre {trait} : son sac gagne au moins {gain} objets ({n0} -> {bag_size(H, uid)})", grew)
             check(f"{who} : rien chez l'autre joueur ({other0} -> {bag_size(H, other_uid)})", bag_size(H, other_uid) == other0)
-            check(f"{who} : son propre jeu voit le meme sac", eventually(lambda: bag_size(port, uid) == bag_size(H, uid), timeout=10))
+            # le gain, pas le total : le sac vide au debut du test l'a ete par l'host
+            same = eventually(lambda: bag_size(port, uid) - own0 == bag_size(H, uid) - n0, timeout=10)
+            check(f"{who} : son propre jeu voit le meme gain ({bag_size(port, uid) - own0} et {bag_size(H, uid) - n0})", same)
             if trait == "GiftNewYear":
                 owners = lambda p: ev(p, 'return string.Join(",", EClass.pc.party.members.Where(m => m != null && m.id == "putty_snow").Select(m => m.GetInt("emp_owner")));')  # noqa: E731
                 check(f"{who} : la boule de neige est dans le groupe, a lui (proprietaires : {owners(H)}, attendu {mine})",
