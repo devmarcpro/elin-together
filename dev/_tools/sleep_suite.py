@@ -14,6 +14,8 @@ Z2  au reveil : plus d'ecran de sommeil ni de voile, plus personne n'est endormi
 B1  l'invite dort avec le lit et l'oreiller de son sac : au reveil ils sont revenus dans son sac, des deux cotes
 B2  pareil s'il se couche puis renonce
 B3  un lit deja installe sur la carte, lui, reste ou il est
+Y1  l'invite, seul sur une carte qu'il tient (voyage seul), y dort : l'ecran de sommeil s'ouvre chez lui, il se
+    reveille et peut agir ; l'host, lui, n'a pas dormi (note dans la documentation comme impossible)
 """
 import argparse
 import sys
@@ -244,6 +246,30 @@ def z3(ctx):
         ctx["faulty"] = True
 
 
+def y1(ctx):
+    """l'invite seul sur une carte qu'il tient y dort ; l'host ne dort pas"""
+    from travel_suite import HOME, VERNIS, both_joined, client_settled, move, wait
+    move(A, VERNIS)
+    wait(client_settled(A, VERNIS, True), "invite seul a Vernis", timeout=180)
+    time.sleep(3)
+    dismiss_dialogs(A)
+    ev(A, 'EClass.pc.sleepiness.Set(EClass.pc.sleepiness.max); "ok"')
+    before = {"H": view(H), "A": view(A)}
+    ev(A, 'EClass.pc.Sleep(); "ok"')
+    ok = eventually(lambda: "LayerSleep" in view(A)["layers"], timeout=60)
+    check(f"l'ecran de sommeil s'ouvre chez l'invite ({view(A)['layers'] or 'rien'}, endormi : {view(A)['asleep']})", ok)
+    if ok:
+        woke = eventually(lambda: awake(A), timeout=180)
+        v = view(A)
+        check(f"l'invite se reveille et peut agir (ecrans : {v['layers'] or 'aucun'}, entrees "
+              f"{'bloquees' if v['halted'] else 'libres'})", woke and not v["halted"])
+        check("chez lui, l'heure a avance", v["now"] > before["A"]["now"])
+    h = view(H)
+    check("l'host n'a pas dormi", not h["asleep"] and "LayerSleep" not in h["layers"])
+    move(A, HOME)
+    both_joined(H, A, HOME)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--only")
@@ -252,9 +278,9 @@ def main():
     t0 = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
 
     ctx = {}
-    steps = [z0, z1, z2, b1, b2, b3]
+    steps = [z0, z1, z2, b1, b2, b3, y1]
     if a.only:
-        steps = [s for s in (w0, z0, z1, z2, b1, b2, b3, z3) if s.__name__ in a.only.split(",")]
+        steps = [s for s in (w0, z0, z1, z2, b1, b2, b3, y1, z3) if s.__name__ in a.only.split(",")]
     for step in steps:
         log(f"--- {step.__name__.upper()} : {step.__doc__}")
         try:
