@@ -57,8 +57,8 @@ du monde).
 
 Vu en testant, pas corrigé : **premier clic de pêche d'un invité déjà au bord de l'eau** — le jeu dit « pas
 d'appât », l'appât s'équipe un instant après (l'équiper est une demande à l'host), il faut recliquer. Chez l'host
-l'appât s'équipe tout de suite. (G11, écrit pour le montrer, passe sans correction : pas reproduit à la demande ;
-correction écrite puis retirée faute de preuve.)
+l'appât s'équipe tout de suite. **Corrigé** `316160e` : G11 passait seul mais échouait dans la suite complète
+(passe « nuit2 ») ; vert ensuite (15/15).
 
 Laissé de côté, noté dans les commits :
 - une baguette ou un parchemin qui fait choisir un objet (identification…) : appliqué deux fois pour un invité

@@ -1122,7 +1122,9 @@ Pièges de test notés ce jour-là :
   sans conclure que c'est le mod ni le test.
 - Troisième lot : rouge 42/59, vert 53/53. Commits `8e1c7ee` (identification), `8925eea` (arrosoir), `ed51490`
   (livres), `453a5f0` (graines), `c0ab2e2` (vœu). Détail dans `PLAN_egalite_invites.md`.
-- Pas de passe complète depuis le troisième lot. Rien de tout cela dans le zip 0.26.309.
+- Passe « nuit2 » (1h35 → 2h49) avec le troisième lot : **18 suites sur 19 vertes, combat 22/22 cette fois**.
+  `guest_suite` 147/151 : seul G11 (premier clic de pêche) échoue, ce qui donne la preuve qui manquait →
+  correction `316160e`, G2 + G11 15/15. Rien de tout cela dans le zip 0.26.309.
 
 ### À faire ensuite
 1. Fait à 18h : vitesse en combat d'un joueur surchargé. `PlayerCombatTime` prenait la vitesse de la copie chez
