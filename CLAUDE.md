@@ -34,6 +34,11 @@ Les commandes de test se lancent depuis `dev/` avec `PYTHONPATH=_tools/pylib`.
 
 ## Règles de travail
 
+- **Tester comme un joueur joue** (retour de l'utilisateur, 2026-10-03 : sa vraie partie a trouvé en un quart
+  d'heure ce que les suites rataient). Un test passe par le vrai chemin du jeu : marcher plutôt que se téléporter,
+  le choix du dialogue ou du menu plutôt que la fonction interne qui « fait pareil ». Un raccourci du pont de test
+  ne prouve que le raccourci. Les suites rapides restent pour prouver une correction (rouge puis vert) et ne rien
+  casser ; les vraies parties et le bot disent ce qu'on n'a pas pensé à tester.
 - **Un changement = un test = un commit.** Ne jamais laisser une correction sans test, même venue d'une relecture.
   Ce qui n'a pas pu être testé est écrit comme tel dans le commit, le journal et le résumé.
 - Tenir `dev/MODLOG.md` (journal daté, pièges, résultats de tests) et `dev/DOCUMENTATION.md` à jour à chaque étape :

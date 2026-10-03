@@ -227,28 +227,44 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
   est refusé (« invalid version ») sans que `mp_test.py` dise pourquoi.
   Les quatre changements de `36eccb3` (banque en voyage, rappel abandonné, bail refusé, entrées bloquées pendant
   une passation) n'ont toujours pas de test à eux.
-- Sommeil : un joueur seul sur une carte qu'il tient ne peut pas y dormir (sa demande part chez l'host, rien ne
-  se passe). Pas testé à trois joueurs.
+- Sommeil : pas testé à trois joueurs. (Un invité seul sur une carte qu'il tient peut y dormir : `sleep_suite` Y1.)
+- Vu dans la vraie partie du 2026-10-03 et pas encore corrigé : le rechargement de l'invité quand l'host revient
+  sur sa carte (une fois au lieu de deux depuis `23554f2`), les déplacements moins fluides d'un invité, les
+  compagnons capturés, domptés, montés ou achetés par un invité.
+- D'autres mods du joueur peuvent mal vivre une session (le jeu d'un client est remplacé à chaque carte) : une
+  garde existe pour Somewhat Enhanced Display (`Patches/Compat/OtherModsCompat.cs`), à étendre au cas par cas.
 - Joué une seule soirée entre deux PC par Steam (2026-10-02) ; elle a trouvé le blocage de l'host après une nuit
   sur une carte sauvage, corrigé depuis. Le reste a été vérifié en local.
 - Le temps du monde suit encore l'host.
 
 ## 7. Reste à faire
 
-1. Jouer le début de l'histoire en vrai avec un client (Ashland, Fiama, Nymelle) pour vérifier les dialogues.
-2. Enrichir le bot : creuser, récolter, construire, coffres, compagnons, dormir, se déconnecter et revenir.
-3. Retester à 3 joueurs, puis une passe complète.
-4. Refaire le zip, test réel avec un ami par Steam.
-5. Quêtes à donjon : laisser les autres joueurs y rejoindre le preneur.
-6. Temps du monde commun, puis serveur dédié (un monde qui tourne sans joueur host).
-7. Choix du personnage : à décider, pouvoir aussi reprendre le personnage d'un joueur absent, ou importer un
-   personnage d'une partie solo.
-8. Les conflits rares listés dans les limites.
-9. **Profil de mods pour le multijoueur** (idée du 2026-10-02, validée, en file d'attente) : à la connexion, si
-   les mods du joueur diffèrent de ceux de l'host, le jeu propose de redémarrer avec les mods de l'host, puis
-   remet ceux du joueur quand il quitte. Plan : `PLAN_profil_mods.md`.
-10. Plus tard : choisir la partie au lancement ; mod séparé « équipement visible »
-   (`VisibleEquipment/`, autre session).
+État au 2026-10-03 au soir. Détail de chaque point : `PLAN_retours_partie_reelle.md` et la fin de `MODLOG.md`.
+
+**D'abord (demandes de l'utilisateur après sa première vraie partie comme invité, dans cet ordre) :**
+1. Passe complète sur les cinq corrections du 3 au soir (`b164dd7`, `1189ac0`, `23554f2`, `7238c7a`, `09410f4`),
+   puis une nouvelle version publiée : elles ne sont pas dans la 0.26.337.
+2. **Fluidité des déplacements d'un invité** : écrit sur la branche `wip/player-clock`, jamais lancé. Jouer
+   `move_suite.py` avant et après, puis `combat_suite`, `guest_suite`, `sleep_suite`.
+3. **Rejoindre avec un personnage d'une sauvegarde solo** : plan prêt, pas commencé.
+4. Compagnons, autres façons de recruter : boule à monstre, brosse, monture, œuf (ils suivent l'host) ; esclave ou
+   animal acheté par un invité (perdu).
+5. Retour de l'host sur une carte tenue par un invité **sans rechargement** (plan B, gros, derrière une case).
+6. **Profil de mods** (validé le 2026-10-02) : `PLAN_profil_mods.md`, plan détaillé prêt.
+
+**Tests plus proches d'une vraie partie (proposé à l'utilisateur le 2026-10-03, il n'a pas encore dit oui) :**
+- une touche « signaler un problème » en jeu (capture d'écran + repère dans le journal) ;
+- un bot qui rejoue une vraie soirée (l'host sort et rentre, l'invité suit, recruter, dormir, se battre) ;
+- un faux réseau lent entre les fenêtres (délai, à-coups) : le banc local n'a aucun délai.
+
+**Ensuite :**
+7. Temps du monde commun (à décider avec l'utilisateur), puis **serveur indépendant** : il a demandé des idées ;
+   réponse donnée : niveau 1 « serveur gardien » recommandé (un Elin sans joueur qui garde le monde et distribue
+   les cartes, tous les joueurs invités), niveau 2 « tout simulé » très lourd. Il n'a pas encore tranché.
+8. Quêtes à donjon : laisser les autres joueurs y rejoindre le preneur (`PLAN_quetes_donjon_phase2.md`).
+9. Inégalités invité/host qui attendent une décision (`PLAN_egalite_invites.md` : M3, M5, M9, L1, L7, M13).
+10. Deux choix de jeu en attente : que faire quand un joueur meurt sur la carte de l'host ; quand la connexion tombe.
+11. Jouer le début de l'histoire en vrai avec un client ; conflits rares listés dans les limites.
 
 ## 8. Historique du fork
 
