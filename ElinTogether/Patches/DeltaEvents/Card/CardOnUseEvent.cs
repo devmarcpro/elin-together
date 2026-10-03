@@ -36,6 +36,12 @@ internal static class CardOnUseEvent
             return true;
         }
 
+        // moves the player's own equipment, which only its game may change: it does it there, as the host does,
+        // and each move goes out as its own
+        if (pos is null && target is null && trait is TraitMannequin) {
+            return false;
+        }
+
         // bait is equipped at once in the asker's own game, as for the host (the fishing that follows checks it in
         // the same step): the request says which state is wanted, the game's toggle runs here
         bool? equip = pos is null && target is null && trait is TraitEquipItem item ? item.EQ != card : null;
