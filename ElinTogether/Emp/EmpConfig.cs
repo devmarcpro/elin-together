@@ -123,12 +123,9 @@ internal partial class EmpConfig
             "Server",
             "PlayerStepPace",
             true,
-            "Every player walks and acts at the pace of a solo game, whatever the speed of the other players
-" +
-            "Otherwise the length of a step depends on the gap between the fastest and the slowest player
-" +
-            "Speed still counts in a fight. Only with combat on each player's time
-" +
+            "Every player walks and acts at the pace of a solo game, whatever the speed of the other players\n" +
+            "Otherwise the length of a step depends on the gap between the fastest and the slowest player\n" +
+            "Speed still counts in a fight. Only with combat on each player's time\n" +
             "每位玩家按单人游戏的节奏移动和行动，不受其他玩家速度影响；否则每一步的时长取决于最快与最慢玩家的差距。战斗中速度仍然有效。需要开启“战斗按各玩家时间进行”");
 
         Server.PlayerShipping = config.Bind(
