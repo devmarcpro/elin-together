@@ -618,6 +618,144 @@ def g16(ctx):
         ev(H, f'var c = {chara(H, uid)}; foreach (var t in EClass._map.things.Where(t => t.id == "medal" && t.pos.Equals(c.pos)).ToList()) t.Destroy(); "ok"')
 
 
+def g19(ctx):
+    """outil de fabrication utilise depuis le sac : la fenetre s'ouvre chez celui qui s'en sert, pas chez l'autre"""
+    tool = ev(H, 'foreach (var r in EClass.sources.things.rows.Where(x => x.trait != null && x.trait.Length > 0 && x.trait[0].StartsWith("Tool"))) { '
+                 'var t = ThingGen.Create(r.id); var ok = t.trait is TraitCrafter c && c.CanUseFromInventory && !c.IsFactory; t.Destroy(); '
+                 'if (ok) return r.id; } return "";')
+    if not check(f"le jeu a un outil de fabrication de sac ({tool})", bool(tool)):
+        return
+    for who, key in both(ctx):
+        port, uid = ctx[key]
+        other = H if port == A else A
+        close_layers()
+        t = give(ctx, key, tool)
+        time.sleep(1)
+        ev(port, f'var t = EClass.pc.things.Find(x => x.uid == {t}); t.trait.OnUse(EClass.pc); "ok"')
+        opened = eventually(lambda: bool(ev(port, LAYERS)), timeout=5)
+        time.sleep(1)
+        check(f"{who} se sert de l'outil : la fenetre s'ouvre chez lui ({ev(port, LAYERS) or 'rien'})", opened)
+        check(f"{who} : rien ne s'ouvre chez l'autre joueur ({ev(other, LAYERS) or 'rien'})", not ev(other, LAYERS))
+        close_layers()
+        ev(H, f'var x = {chara(H, uid)}.things.Find(y => y.uid == {t}); if (x != null) x.Destroy(); "ok"')
+
+
+def g21(ctx):
+    """manger repu : le jeu dit « repu » et la nourriture reste dans le sac, pour l'invite comme pour l'host"""
+    food = ev(H, 'var r = EClass.sources.things.rows.FirstOrDefault(x => x.trait != null && x.trait.Length > 0 && x.trait[0] == "Food" && x.weight > 0 && x.weight < 100); '
+                 'return r == null ? "" : r.id;')
+    if not check(f"le jeu a une nourriture legere ({food})", bool(food)):
+        return
+    for who, key in both(ctx):
+        port, uid = ctx[key]
+        f = give(ctx, key, food, 3)
+        ev(port, 'EClass.pc.hunger.value = 0; "ok"')
+        time.sleep(1)
+        before = count(H, uid, food)
+        awake(port)
+        ev(port, f'var t = EClass.pc.things.Find(x => x.uid == {f}); EClass.pc.SetAI(new AI_Eat {{ target = t, cook = false }}); "ok"')
+        time.sleep(2)
+        done = eventually(lambda: awake(port) and ev(port, 'EClass.pc.ai is AI_Eat && EClass.pc.ai.IsRunning ? "mange" : "libre"') == "libre", timeout=30)
+        time.sleep(2)
+        check(f"{who} repu essaie de manger, puis s'arrete", done)
+        check(f"{who} : la nourriture est toujours la chez l'host ({before} -> {count(H, uid, food)})", count(H, uid, food) == before)
+        check(f"{who} : son propre jeu dit pareil ({count(port, uid, food)})", count(port, uid, food) == count(H, uid, food))
+        ev(H, f'var t = {chara(H, uid)}.things.Find(x => x.uid == {f}); if (t != null) t.Destroy(); "ok"')
+
+
+def g23(ctx):
+    """mannequin : il prend l'equipement de celui qui s'en sert, puis le lui rend ; l'autre joueur garde le sien"""
+    mq = first_id("Mannequin")
+    if not check(f"le jeu a un mannequin ({mq})", bool(mq)):
+        return
+    worn = lambda p, u: int(ev(p, f'{chara(p, u)}.body.slots.Count(s => s.thing != null && s.elementId != 44).ToString()'))  # noqa: E731
+    for who, key in both(ctx):
+        port, uid = ctx[key]
+        _, other_uid = ctx["h" if key == "a" else "a"]
+        armor = give_made(ctx, key, 'var t = ThingGen.CreateFromCategory("armor"); t.SetBlessedState(BlessedState.Normal);')
+        ev(port, f'EClass.pc.body.Equip(EClass.pc.things.Find(x => x.uid == {armor})); "ok"')
+        time.sleep(2)
+        mine0, theirs0 = worn(H, uid), worn(H, other_uid)
+        m = ev(H, f'var c = {chara(H, uid)}; var t = ThingGen.Create("{mq}"); EClass._zone.AddCard(t, c.pos.GetNearestPoint(false, false, false, true)).Install(); return t.uid.ToString();')
+        time.sleep(2)
+        inside = lambda p: int(ev(p, f'var t = EClass._map.things.Find(x => x.uid == {m}); return t == null ? "-1" : t.things.Count.ToString();'))  # noqa: E731
+        use = f'EClass._map.things.Find(x => x.uid == {m}).trait.OnUse(EClass.pc); "ok"'
+        ev(port, use)
+        check(f"{who} : le mannequin prend ce qu'il porte (dedans : {inside(H)}, il portait {mine0}, porte {worn(H, uid)})",
+              eventually(lambda: inside(H) > 0 and worn(H, uid) == mine0 - inside(H), timeout=10))
+        check(f"{who} : l'autre joueur garde tout ({theirs0} -> {worn(H, other_uid)})", worn(H, other_uid) == theirs0)
+        check(f"{who} : son propre jeu dit pareil", eventually(lambda: worn(port, uid) == worn(H, uid) and inside(port) == inside(H), timeout=10))
+        ev(port, use)
+        check(f"{who} : il reprend ses affaires ({worn(H, uid)} sur {mine0})", eventually(lambda: worn(H, uid) == mine0 and inside(H) == 0, timeout=10))
+        ev(H, f'var t = EClass._map.things.Find(x => x.uid == {m}); if (t != null) t.Destroy(); "ok"')
+
+
+TECH = ('var r = EClass.sources.elements.rows.FirstOrDefault(a => a.category == "tech" && a.chance > 0 && a.cost.Length > 0 && a.cost[0] != 0 '
+        '&& !a.tag.Contains("hidden") && !a.tag.Contains("unused") && !EClass.Branch.elements.HasBase(a.id)); return r == null ? "0" : r.id.ToString();')
+
+
+def g24(ctx):
+    """livre de plan : la base apprend le plan et le livre est use, que ce soit l'invite ou l'host qui le lise"""
+    if not check("la carte est une base", ev(H, 'EClass._zone.IsPCFaction.ToString()') == "True"):
+        return
+    for who, key in both(ctx):
+        port, uid = ctx[key]
+        ele = int(ev(H, TECH))
+        if not check(f"un plan que la base ne connait pas ({ele})", ele != 0):
+            continue
+        book = give_made(ctx, key, f'var t = ThingGen.CreatePlan({ele});')
+        check(f"{who} lit le plan jusqu'au bout", read_book(ctx, key, book))
+        check(f"{who} : la base de l'host connait le plan", eventually(lambda: ev(H, f'EClass.Branch.elements.HasBase({ele}).ToString()') == "True", timeout=10))
+        gone = lambda p, u=uid: ev(p, f'({chara(p, u)}.things.Find(x => x.uid == {book}) == null).ToString()')  # noqa: E731
+        check(f"{who} : le livre est use chez l'host", eventually(lambda: gone(H) == "True", timeout=10))
+        check(f"{who} : et dans son propre jeu", eventually(lambda: gone(port) == "True", timeout=10))
+
+
+STATUE = ('foreach (var r in EClass.sources.things.rows.Where(x => x.trait != null && x.trait.Length > 1 && x.trait[0] == "GodStatue")) { '
+          'var gift = r.trait[1] == "wind" ? "blood_angel" : r.trait[1] == "harvest" ? "book_kumiromi" : (r.trait[1] == "earth" || r.trait[1] == "element") ? "mathammer" : ""; '
+          'if (gift != "") return r.id + "," + gift; } return "";')
+
+
+def g25(ctx):
+    """paquets du Nouvel An et de Jure, statue doree d'un dieu : ce qu'ils donnent va a celui qui les ouvre, l'allie du Nouvel An le suit lui"""
+    for who, key in both(ctx):
+        port, uid = ctx[key]
+        _, other_uid = ctx["h" if key == "a" else "a"]
+        mine = "0" if key == "h" else str(uid)
+        for trait, gain in (("GiftNewYear", 2), ("GiftJure", 20)):
+            box = first_id(trait)
+            if not check(f"le jeu a un {trait} ({box})", bool(box)):
+                continue
+            b = give(ctx, key, box)
+            time.sleep(1)
+            n0, other0 = bag_size(H, uid), bag_size(H, other_uid)
+            ev(port, f'EClass.pc.things.Find(x => x.uid == {b}).trait.OnUse(EClass.pc); "ok"')
+            check(f"{who} ouvre {trait} : son sac gagne au moins {gain} objets ({n0} -> {bag_size(H, uid)})",
+                  eventually(lambda: bag_size(H, uid) >= n0 + gain, timeout=10))
+            check(f"{who} : rien chez l'autre joueur ({other0} -> {bag_size(H, other_uid)})", bag_size(H, other_uid) == other0)
+            check(f"{who} : son propre jeu voit le meme sac", eventually(lambda: bag_size(port, uid) == bag_size(H, uid), timeout=10))
+            if trait == "GiftNewYear":
+                owners = lambda p: ev(p, 'return string.Join(",", EClass.pc.party.members.Where(m => m != null && m.id == "putty_snow").Select(m => m.GetInt("emp_owner")));')  # noqa: E731
+                check(f"{who} : la boule de neige est dans le groupe, a lui (proprietaires : {owners(H)}, attendu {mine})",
+                      eventually(lambda: owners(H) == mine, timeout=10))
+                check(f"{who} : son jeu la voit sur la carte", eventually(lambda: ev(port, 'EClass._map.charas.Any(c => c.id == "putty_snow").ToString()') == "True", timeout=10))
+                ev(H, 'foreach (var m in EClass._map.charas.Where(c => c.id == "putty_snow" || c.id == "bell_silver").ToList()) { if (m.IsPCParty) EClass.pc.party.RemoveMember(m); m.Destroy(); } "ok"')
+        found = ev(H, STATUE)
+        if not check(f"le jeu a une statue de dieu qui donne un objet ({found})", bool(found)):
+            continue
+        sid, gift = found.split(",")
+        s = ev(H, f'var c = {chara(H, uid)}; var t = ThingGen.Create("{sid}"); t.ChangeMaterial("gold"); (t.trait as TraitGodStatue).OnChangeMaterial(); '
+                  'EClass._zone.AddCard(t, c.pos.GetNearestPoint(false, false, false, true)).Install(); return t.uid.ToString();')
+        time.sleep(2)
+        g0, other0 = count(H, uid, gift), count(H, other_uid, gift)
+        ev(port, f'EClass._map.things.Find(x => x.uid == {s}).trait.OnUse(EClass.pc); "ok"')
+        check(f"{who} prie la statue : {gift} dans son sac ({g0} -> {count(H, uid, gift)})", eventually(lambda: count(H, uid, gift) == g0 + 1, timeout=10))
+        check(f"{who} : rien chez l'autre joueur", count(H, other_uid, gift) == other0)
+        spent = lambda p: ev(p, f'var t = EClass._map.things.Find(x => x.uid == {s}); return t == null ? "absent" : t.isOn.ToString();')  # noqa: E731
+        check(f"{who} : la statue est eteinte partout ({spent(H)}, {spent(port)})", eventually(lambda: spent(H) == spent(port) == "False", timeout=10))
+        ev(H, f'var t = EClass._map.things.Find(x => x.uid == {s}); if (t != null) t.Destroy(); "ok"')
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--only")
@@ -627,9 +765,10 @@ def main():
 
     ctx = {"a": (A, state(A)["pc"]["uid"]), "h": (H, state(H)["pc"]["uid"])}
     # G8 en dernier : l'invite y quitte la carte
-    steps = [g5, g3, g2, g11, g1, g4, g6, g7, g9, g10, g12, g14, g15, g16, g8]
+    steps = [g5, g3, g2, g11, g1, g4, g6, g7, g9, g10, g12, g14, g15, g16, g19, g21, g23, g24, g25, g8]
     if a.only:
-        steps = [s for s in (g1, g2, g3, g4, g5, g6, g7, g9, g10, g11, g12, g14, g15, g16, g8) if s.__name__ in a.only.split(",")]
+        steps = [s for s in (g1, g2, g3, g4, g5, g6, g7, g9, g10, g11, g12, g14, g15, g16, g19, g21, g23, g24, g25, g8)
+                 if s.__name__ in a.only.split(",")]
     for step in steps:
         log(f"--- {step.__name__.upper()} : {step.__doc__}")
         try:

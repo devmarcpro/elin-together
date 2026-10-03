@@ -28,6 +28,8 @@ internal class TraitOnUsePatch
             AccessTools.Method(typeof(TraitPolicyBoard), nameof(TraitPolicyBoard.OnUse), [typeof(Chara)]),
             AccessTools.Method(typeof(TraitBJTable), nameof(TraitBJTable.OnUse), [typeof(Chara)]),
             AccessTools.Method(typeof(TraitSlotMachine), nameof(TraitSlotMachine.OnUse), [typeof(Chara)]),
+            // a crafting tool used from the bag
+            AccessTools.Method(typeof(TraitCrafter), nameof(TraitCrafter.OnUse), [typeof(Chara)]),
             // the local player, hanged or sent away
             AccessTools.Method(typeof(TraitRope), nameof(TraitRope.OnUse), [typeof(Chara)]),
             AccessTools.Method(typeof(TraitWaystone), nameof(TraitWaystone.OnUse), [typeof(Chara)]),
