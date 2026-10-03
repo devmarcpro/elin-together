@@ -1125,6 +1125,9 @@ Pièges de test notés ce jour-là :
 - Passe « nuit2 » (1h35 → 2h49) avec le troisième lot : **18 suites sur 19 vertes, combat 22/22 cette fois**.
   `guest_suite` 147/151 : seul G11 (premier clic de pêche) échoue, ce qui donne la preuve qui manquait →
   correction `316160e`, G2 + G11 15/15. Rien de tout cela dans le zip 0.26.309.
+- Quatrième lot (3h45 → 3h55) : rouge 46/64, vert 63/63. Commits `9114ca3`, `8a1443b`, `4b1455c`, `5c5d125`,
+  `0fc19ee`. Le plus visible : le mannequin utilisé par un invité déshabillait l'host. Conception des lots 3 et 4
+  par des agents (lecture seule), chaque correction rejouée rouge puis verte.
 
 ### À faire ensuite
 1. Fait à 18h : vitesse en combat d'un joueur surchargé. `PlayerCombatTime` prenait la vitesse de la copie chez

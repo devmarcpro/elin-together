@@ -55,6 +55,16 @@ qui les reçoit ?), M5 (pièges : le jeu de l'invité ne tirerait plus ; prix, l
 de désamorçage), M9 (carte au trésor : correction simple, mais le vrai test demande les deux joueurs sur la carte
 du monde).
 
+**Quatrième lot, 2026-10-03 vers 3h55**, G19 à G25 : rouge 46/64, vert 63/63. Corrigés : outil de fabrication du
+sac `9114ca3` (fin de M12 hors munitions) ; repas d'un invité repu L11 `8a1443b` ; **mannequin** `4b1455c` (il prenait
+l'équipement de l'host) ; livres de plan L2 `5c5d125` ; paquets du Nouvel An et de Jure, statue dorée d'un dieu
+`0fc19ee` (fin de M1 ; l'allié du Nouvel An appartient à celui qui ouvre).
+Préparés, pas faits : M11 bénédiction (touche au drapeau « est le joueur » que le mod enlève exprès aux invités :
+à faire avec prudence), M13 grimoires (l'host tirerait seul ; prix : un échec de lecture ne coûterait plus de mana
+ni de téléportation à l'invité), L4 puits et L5 tickets de meuble (un petit mécanisme nouveau), munitions.
+**À décider par l'utilisateur** en plus : L1 (un invité qui meurt doit-il perdre de l'or, comme le joueur seul
+après le jour 90 ?), L7 (prime de la guilde des guerriers : à celui qui tue, ou au maître du compagnon qui tue).
+
 Vu en testant, pas corrigé : **premier clic de pêche d'un invité déjà au bord de l'eau** — le jeu dit « pas
 d'appât », l'appât s'équipe un instant après (l'équiper est une demande à l'host), il faut recliquer. Chez l'host
 l'appât s'équipe tout de suite. **Corrigé** `316160e` : G11 passait seul mais échouait dans la suite complète
