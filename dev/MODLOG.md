@@ -1128,6 +1128,14 @@ Pièges de test notés ce jour-là :
 - Quatrième lot (3h45 → 3h55) : rouge 46/64, vert 63/63. Commits `9114ca3`, `8a1443b`, `4b1455c`, `5c5d125`,
   `0fc19ee`. Le plus visible : le mannequin utilisé par un invité déshabillait l'host. Conception des lots 3 et 4
   par des agents (lecture seule), chaque correction rejouée rouge puis verte.
+- Passe « nuit3 » (3h58 → 5h13) avec les quatre lots : 18 suites sur 19 vertes (combat 22/22), `guest_suite`
+  210/211 → piège de test (sac plein en fin de suite : un paquet pose à terre ce qu'il donne) ; corrigé dans le
+  test, `guest_suite` complet **211/211** sur fenêtres neuves.
+- Munitions (`1f774e7`, G30) : rouge 8/11 (l'arme de l'host rechargée), vert 11/11.
+- **État à 5h40 : 26 inégalités corrigées et prouvées depuis le 2 au soir, toutes les suites vertes. Rien dans le
+  zip publié (0.26.309).** Attendent l'utilisateur : M3, M5, M9, L1, L7, M13 (prix à accepter), et la publication
+  d'un nouveau zip. Pas encore faits sans décision : M11 (drapeau « est le joueur »), L4/L5 (mécanisme nouveau),
+  M14 (réglages de la base).
 
 ### À faire ensuite
 1. Fait à 18h : vitesse en combat d'un joueur surchargé. `PlayerCombatTime` prenait la vitesse de la copie chez

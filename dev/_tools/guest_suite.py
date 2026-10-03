@@ -801,7 +801,7 @@ def main():
 
     ctx = {"a": (A, state(A)["pc"]["uid"]), "h": (H, state(H)["pc"]["uid"])}
     # G8 en dernier : l'invite y quitte la carte
-    steps = [g5, g3, g2, g11, g1, g4, g6, g7, g9, g10, g12, g14, g15, g16, g19, g21, g23, g24, g25, g8]
+    steps = [g5, g3, g2, g11, g1, g4, g6, g7, g9, g10, g12, g14, g15, g16, g19, g21, g23, g24, g25, g30, g8]
     if a.only:
         steps = [s for s in (g1, g2, g3, g4, g5, g6, g7, g9, g10, g11, g12, g14, g15, g16, g19, g21, g23, g24, g25, g30, g8)
                  if s.__name__ in a.only.split(",")]
