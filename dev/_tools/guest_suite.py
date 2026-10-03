@@ -762,6 +762,36 @@ def g25(ctx):
         ev(H, f'var t = EClass._map.things.Find(x => x.uid == {s}); if (t != null) t.Destroy(); "ok"')
 
 
+PAIR = ('foreach (var g in EClass.sources.things.rows.Where(x => x.trait != null && x.trait.Length > 0 && x.trait[0].StartsWith("ToolRange")).Take(20)) { var gun = ThingGen.Create(g.id); '
+        'foreach (var a in EClass.sources.things.rows.Where(x => x.trait != null && x.trait.Length > 0 && x.trait[0].StartsWith("Ammo")).Take(20)) { var am = ThingGen.Create(a.id); '
+        'var ok = (gun.trait as TraitToolRange)?.IsAmmo(am) ?? false; am.Destroy(); if (ok) { gun.Destroy(); return g.id + "," + a.id; } } gun.Destroy(); } return "";')
+
+
+def g30(ctx):
+    """munitions utilisees depuis le sac : elles rechargent l'arme de celui qui s'en sert, jamais celle de l'autre"""
+    pair = ev(H, PAIR)
+    if not check(f"une arme a distance et ses munitions ({pair})", bool(pair)):
+        return
+    gid, aid = pair.split(",")
+    guns = {}
+    for key in ("a", "h"):
+        port, uid = ctx[key]
+        guns[key] = give(ctx, key, gid, extra="t.c_ammo = 0; t.ammoData = null;")
+        ev(port, f'EClass.pc.body.Equip(EClass.pc.things.Find(x => x.uid == {guns[key]})); "ok"')
+    time.sleep(2)
+    loaded = lambda k: int(ev(H, f'var t = {chara(H, ctx[k][1])}.things.Find(x => x.uid == {guns[k]}); return t == null ? "-1" : t.c_ammo.ToString();'))  # noqa: E731
+    for who, key in both(ctx):
+        port, uid = ctx[key]
+        okey = "h" if key == "a" else "a"
+        ammo = give(ctx, key, aid, 50)
+        ev(H, f'foreach (var k in new[] {{ {guns["a"]}, {guns["h"]} }}) {{ var t = EClass._map.charas.SelectMany(c => c.things).FirstOrDefault(x => x.uid == k); if (t != null) {{ t.c_ammo = 0; t.ammoData = null; }} }} '
+              f'{chara(H, uid)}.RemoveCondition<ConReload>(); "ok"')
+        ev(port, f'EClass.pc.things.Find(x => x.uid == {ammo}).trait.OnUse(EClass.pc); "ok"')
+        check(f"{who} recharge : son arme est chargee chez l'host ({loaded(key)})", eventually(lambda: loaded(key) > 0, timeout=6))
+        check(f"{who} : l'arme de l'autre joueur reste vide ({loaded(okey)})", loaded(okey) == 0)
+        check(f"{who} : des munitions ont quitte son sac ({count(H, uid, aid)} sur 50)", count(H, uid, aid) < 50)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--only")
@@ -773,7 +803,7 @@ def main():
     # G8 en dernier : l'invite y quitte la carte
     steps = [g5, g3, g2, g11, g1, g4, g6, g7, g9, g10, g12, g14, g15, g16, g19, g21, g23, g24, g25, g8]
     if a.only:
-        steps = [s for s in (g1, g2, g3, g4, g5, g6, g7, g9, g10, g11, g12, g14, g15, g16, g19, g21, g23, g24, g25, g8)
+        steps = [s for s in (g1, g2, g3, g4, g5, g6, g7, g9, g10, g11, g12, g14, g15, g16, g19, g21, g23, g24, g25, g30, g8)
                  if s.__name__ in a.only.split(",")]
     for step in steps:
         log(f"--- {step.__name__.upper()} : {step.__doc__}")
