@@ -1245,4 +1245,16 @@ Pièges de test notés ce jour-là :
   pourquoi. Remède habituel : fermer les fenêtres, `make_lab.py Elin2 2` (3, 4). Ensuite host + client connectés
   en 1 min 30.
 - 21h56 : passe complète lancée sur `5b54595` (journaux `_shots/*-p2.log`, résumé `_shots/p2-long.log`).
+- **Passe complète verte sur `5b54595` (code inchangé depuis), Elin EA 23.351 Patch 2, 21 suites sur 21** :
+  travel 54/54, shared 26/26, trio 24/24, companion 30/30, party 28/28, economy 25/25, combat 21/21,
+  quest 61/61, chara 13/13, parity 17/17, trade 32/32, build 21/21, player 40/40, instance 34/34, leave 15/15,
+  transfer 11/11, death 13/13, sleep 34/34, guest 218/218, recruit 23/23, compat 7/7.
+  Interrompue deux fois à la demande de l'utilisateur (reprise à 0h04 puis 0h20 le 4), sans échec.
+- **Piège** : `economy_suite` et `combat_suite` ouvrent elles-mêmes leurs fenêtres (3 joueurs) : elles vont dans
+  `run_all.sh`, pas dans `run_short.sh` (« Elin tourne deja », arrêt immédiat). Série courte = quest, chara,
+  parity, trade, build, player, instance, leave, transfer, death, sleep, guest, recruit, compat.
+- **Piège** : arrêter la tâche de fond ne ferme ni `bash run_all.sh`, ni le python de la suite, ni `mp_test.py`,
+  ni les jeux : les fermer tous par numéro (`Get-CimInstance Win32_Process`), sinon de nouvelles fenêtres s'ouvrent.
+- Décisions de l'utilisateur ce soir : rythme des pas = **option A** (chaque joueur marche comme en solo), avec
+  sa propre case host ; serveur « dépôt de sauvegarde » retenu pour la suite (voir « Idées »).
 

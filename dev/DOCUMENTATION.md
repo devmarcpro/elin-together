@@ -165,7 +165,7 @@ python _tools/bot.py --minutes 5 --seed 1
 | `death_suite.py` | mourir sur la carte de l'host puis repartir seul | 2 | ~3 min |
 | `sleep_suite.py` | dormir à plusieurs, à la base ou sur une carte sauvage (`--only w0,z0,z1,z2`) | 2 | ~3 min |
 | `guest_suite.py` | le même geste par l'invité puis par l'host : repos, pêche, baguette, coffres de pari, bouteille vide | 2 | ~3 min |
-| `run_short.sh` | les suites courtes à la suite, sur un seul lancement | 2 | ~30 min |
+| `run_short.sh` | les suites courtes à la suite, chacune sur un monde neuf (pas `economy` ni `combat`, qui ouvrent leurs fenêtres : `run_all.sh`) | 2 | ~50 min |
 | `companion_suite.py`, `party_suite.py` | compagnons, limite d'alliés | 2 | ~10 min chacun |
 | `travel_suite.py` | voyage seul, sauvegarde, chat, équipement | 2 | ~15 min |
 | `shared_suite.py`, `trio_suite.py` | cartes partagées, passation | 3 et 4 | ~15 min chacun |
@@ -219,10 +219,10 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
   d'un voyage, plantage du joueur qui tient une carte avec des invités (retour à sa dernière sauvegarde).
   Un invité qui demande à voyager à l'instant où la carte qu'il visite change de mains perd sa demande : il
   doit recliquer.
-- **État des tests au 2026-10-02 au soir, Elin EA 23.351** : passe complète sur `f17ad6c` (le code du zip
-  0.26.309), les 18 suites vertes : travel 56/56, shared 27/27, trio 24/24, companion 30/30, party 28/28,
-  economy 25/25, combat 22/22, quest 61/61, chara 13/13, parity 17/17, trade 32/32, build 21/21, player 31/31,
-  instance 34/34, leave 13/13, transfer 11/11, death 13/13, sleep 30/30.
+- **État des tests au 2026-10-04, Elin EA 23.351 Patch 2** : passe complète sur `5b54595`, les 21 suites vertes :
+  travel 54/54, shared 26/26, trio 24/24, companion 30/30, party 28/28, economy 25/25, combat 21/21,
+  quest 61/61, chara 13/13, parity 17/17, trade 32/32, build 21/21, player 40/40, instance 34/34, leave 15/15,
+  transfer 11/11, death 13/13, sleep 34/34, guest 218/218, recruit 23/23, compat 7/7.
   Après une mise à jour d'Elin par Steam : refaire `make_lab.py` pour les trois copies, sinon le client de test
   est refusé (« invalid version ») sans que `mp_test.py` dise pourquoi.
   Les quatre changements de `36eccb3` (banque en voyage, rappel abandonné, bail refusé, entrées bloquées pendant
@@ -242,8 +242,7 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
 État au 2026-10-03 au soir. Détail de chaque point : `PLAN_retours_partie_reelle.md` et la fin de `MODLOG.md`.
 
 **D'abord (demandes de l'utilisateur après sa première vraie partie comme invité, dans cet ordre) :**
-1. Passe complète sur les cinq corrections du 3 au soir (`b164dd7`, `1189ac0`, `23554f2`, `7238c7a`, `09410f4`),
-   puis une nouvelle version publiée : elles ne sont pas dans la 0.26.337.
+1. Fait le 2026-10-04 : passe complète verte sur les cinq corrections du 3 au soir, version publiée ensuite.
 2. **Fluidité des déplacements d'un invité** : écrit sur la branche `wip/player-clock`, jamais lancé. Jouer
    `move_suite.py` avant et après, puis `combat_suite`, `guest_suite`, `sleep_suite`.
 3. **Rejoindre avec un personnage d'une sauvegarde solo** : plan prêt, pas commencé.
