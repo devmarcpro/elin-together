@@ -67,6 +67,13 @@ public class NetSessionRules
     [IgnoreMember]
     internal bool OwnPace => UsePlayerStepPace && UsePlayerCombatTime;
 
+    /// <summary>
+    ///     One date for the world, whoever makes time pass: a player alone on a map it simulates no longer has
+    ///     a date of its own that the host's replaces when it comes back. The most advanced date is the world's
+    /// </summary>
+    [Key(10)]
+    public bool UseSharedWorldTime { get; set; }
+
     public static NetSessionRules Default => new() {
         UseSharedSpeed = EmpConfig.Server.SharedAverageSpeed.Value,
         UseTurnBasedCombat = EmpConfig.Server.TurnBasedCombat.Value,
@@ -78,5 +85,6 @@ public class NetSessionRules
         AllowPlayerTrade = EmpConfig.Server.PlayerTrade.Value,
         UsePlayerClock = EmpConfig.Server.PlayerClock.Value,
         UsePlayerStepPace = EmpConfig.Server.PlayerStepPace.Value,
+        UseSharedWorldTime = EmpConfig.Server.SharedWorldTime.Value,
     };
 }

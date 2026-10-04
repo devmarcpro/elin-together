@@ -56,6 +56,7 @@ namespace ElinTogether.Models;
 // World
 [Union(500, typeof(GameDelta))]
 [Union(501, typeof(WorldDateAdvanceDelta))]
+[Union(504, typeof(WorldTimeReportDelta))]
 [Union(502, typeof(ShippingResultDelta))]
 [Union(503, typeof(BranchResourceModDelta))]
 // Misc

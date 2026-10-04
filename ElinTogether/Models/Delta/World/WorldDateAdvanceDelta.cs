@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Linq;
 using ElinTogether.Net;
+using ElinTogether.Patches;
 using MessagePack;
 
 namespace ElinTogether.Models;
@@ -17,6 +18,16 @@ public class WorldDateAdvanceDelta : ElinDelta
     protected override void OnApply(ElinNetBase net)
     {
         if (net.IsHost) {
+            return;
+        }
+
+        // away from the host: this game simulates its own map and keeps its own date. With one date for the
+        // world it catches up when the world went further without it; a visitor hears it from the map's holder
+        if (NetSession.Instance.IsAway) {
+            if (NetSession.Instance is { IsZoneAuthority: true, Rules.UseSharedWorldTime: true }) {
+                WorldDateAdvanceEvent.CatchUpNextFrame([..GameDate]);
+            }
+
             return;
         }
 

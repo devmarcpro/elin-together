@@ -128,6 +128,14 @@ internal partial class EmpConfig
             "Speed still counts in a fight. Only with combat on each player's time\n" +
             "每位玩家按单人游戏的节奏移动和行动，不受其他玩家速度影响；否则每一步的时长取决于最快与最慢玩家的差距。战斗中速度仍然有效。需要开启“战斗按各玩家时间进行”");
 
+        Server.SharedWorldTime = config.Bind(
+            "Server",
+            "SharedWorldTime",
+            true,
+            "One date for the whole world: time passed by a player alone on another map counts for everyone, the most advanced date is the world's\n" +
+            "Otherwise only the host's date counts, and a player coming back from a map of its own jumps to it\n" +
+            "整个世界共用一个日期：独自在其他地图的玩家所经过的时间对所有人都有效，最靠前的日期就是世界的日期；否则只以主机的日期为准");
+
         Server.PlayerShipping = config.Bind(
             "Server",
             "PlayerShipping",
@@ -250,6 +258,7 @@ internal partial class EmpConfig
         internal static ConfigEntry<bool> PlayerCombatTime { get; set; } = null!;
         internal static ConfigEntry<bool> PlayerClock { get; set; } = null!;
         internal static ConfigEntry<bool> PlayerStepPace { get; set; } = null!;
+        internal static ConfigEntry<bool> SharedWorldTime { get; set; } = null!;
         internal static ConfigEntry<int> TravelCheckpointSeconds { get; set; } = null!;
     }
 }

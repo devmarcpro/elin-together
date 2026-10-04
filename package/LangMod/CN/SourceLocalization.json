@@ -179,5 +179,7 @@
     "LangGeneral.emp_ui_chara_import_back.text": "返回",
     "LangGeneral.emp_ui_chara_import_none.text": "没有找到可读取的存档。",
     "LangGeneral.emp_ui_chara_import_fail.text": "无法带来该角色。",
-    "LangGeneral.emp_ui_chara_import_twice.text": "该存档的角色已经在这个世界中。"
+    "LangGeneral.emp_ui_chara_import_twice.text": "该存档的角色已经在这个世界中。",
+    "LangGeneral.emp_ui_sv_cfg_world_time.text": "整个世界共用一个日期",
+    "LangGeneral.emp_ui_sv_desc_world_time.text": "独自在其他地图的玩家所经过的时间对所有人都有效：最靠前的日期就是世界的日期。关：只以主机的日期为准。"
 }
