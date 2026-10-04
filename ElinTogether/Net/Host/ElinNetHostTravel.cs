@@ -122,6 +122,12 @@ internal partial class ElinNetHost
     /// </summary>
     internal bool TryEnterZone(Zone zone, ZoneTransition transition)
     {
+        // out of the zone of a quest the game goes back to where it came from whatever was asked (Chara.MoveZone):
+        // that town may be held by the player who stayed there
+        if (_zone?.instance is { } leaving) {
+            zone = game.spatials.Find(leaving.uidZone) ?? zone;
+        }
+
         if (!CanEnterNow(zone, transition)) {
             return false;
         }
@@ -139,6 +145,13 @@ internal partial class ElinNetHost
     private void LeavePlayersBehind(Zone destination)
     {
         if (IsZoneSession || !Session.Rules.AllowIndependentTravel || _zone is not { } zone || destination == zone) {
+            return;
+        }
+
+        // nobody stays in the zone of a quest without the one who took it: whoever came along leaves with
+        // the host and arrives where it arrives, as its party does. The quest is settled by the host's own move
+        if (zone.instance is ZoneInstanceRandomQuest) {
+            _settled.Clear();
             return;
         }
 
@@ -188,6 +201,34 @@ internal partial class ElinNetHost
                 IdCurrentSubset = zone.idCurrentSubset,
                 Guest = true,
                 Handoff = true,
+            });
+        }
+    }
+
+    /// <summary>
+    ///     The host stands in the zone of a quest it took: the players it left in the town the quest comes from
+    ///     are asked along, see ElinNetClient.OnQuestFollowInvite. The quest and its reward stay the host's
+    /// </summary>
+    private void InviteToQuestZone(Zone zone)
+    {
+        if (IsZoneSession || !PersonalQuests.InstancesEnabled || zone != _zone ||
+            zone.instance is not ZoneInstanceRandomQuest { uidQuest: not 0 } instance) {
+            return;
+        }
+
+        foreach (var peer in Socket.Peers) {
+            // the one keeping that town since the host left it, a player elsewhere has its own business
+            if (!_departed.Contains(peer.Id) || !_leases.TryGetValue(peer.Id, out var zones) ||
+                !zones.ContainsKey(instance.uidZone)) {
+                continue;
+            }
+
+            EmpLog.Information("Asking player {@Peer} along to quest zone {ZoneFullName}", peer, zone.ZoneFullName);
+
+            SendDeltaTo(peer.Id, new QuestFollowDelta {
+                Kind = QuestFollowDelta.Invite,
+                Name = pc.Name,
+                ZoneUid = zone.uid,
             });
         }
     }
@@ -316,6 +357,31 @@ internal partial class ElinNetHost
 
         if (!_departed.Add(peer.Id)) {
             return false;
+        }
+
+        // walking out of a harvest alone, before the one who took the quest: its bag is searched now, as the
+        // game does on the way out (ZoneEventHarvest.OnLeaveZone), the taker's will be when it leaves
+        if (_zone is { instance: ZoneInstanceRandomQuest } questZone && questZone.events.GetEvent<ZoneEventHarvest>() is not null &&
+            ActiveRemoteCharas.TryGetValue(peer.Id, out var visitor)) {
+            var taken = new List<Thing>();
+            foreach (var member in CompanionHelper.CompanionsOf(visitor).Prepend(visitor)) {
+                member.things.Foreach(t => {
+                    if (t.GetBool(115) && EClass.rnd(2) != 0) {
+                        taken.Add(t);
+                    }
+                });
+            }
+
+            if (taken.Count > 0) {
+                using var told = MsgRelayContext.RedirectTo(visitor);
+                using var standIn = PlayerStandIn.For(this, peer.Id, visitor);
+                Msg.Say("harvest_confiscate", taken.Count.ToString());
+                foreach (var thing in taken) {
+                    thing.Destroy();
+                }
+
+                EClass.player.ModKarma(-1);
+            }
         }
 
         // apply the player's last actions on the host map now and send their results back

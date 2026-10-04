@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using ElinTogether.Helper;
 using ElinTogether.Helper.Extensions;
+using ElinTogether.LangMod;
 using ElinTogether.Models;
 using UnityEngine;
 
@@ -592,6 +593,11 @@ internal partial class ElinNetClient
     {
         _hostZoneUid = zoneUid;
 
+        // the host is already out of the zone it asked us along to
+        if (zoneUid != _questInviteZone) {
+            CloseQuestInvite();
+        }
+
         if (Session.AwayZone?.uid != zoneUid || _pendingTravel is not null) {
             return;
         }
@@ -600,6 +606,105 @@ internal partial class ElinNetClient
             Session.AwayZone.ZoneFullName);
 
         SendRejoin();
+    }
+
+    /// <summary>
+    ///     How long the question "come along?" stays open, no answer is a no
+    /// </summary>
+    private const float QuestInviteSeconds = 15f;
+
+    private Dialog? _questInvite;
+    private float _questInviteDeadline;
+    private int _questInviteZone = -1;
+
+    /// <summary>
+    ///     Net event: the host entered the zone of a quest it took and left us in town, it asks us along
+    /// </summary>
+    internal void OnQuestFollowInvite(QuestFollowDelta invite)
+    {
+        // only the player keeping the town, with nothing else going on: no quest zone of its own, no trade
+        if (!PersonalQuests.InstancesEnabled || !Session.IsZoneAuthority || IsInTransfer || _pendingTravel is not null ||
+            _questInviteDeadline > 0 || invite.ZoneUid != _hostZoneUid ||
+            game.quests.list.Any(q => q.UseInstanceZone && PersonalQuests.IsPersonal(q)) ||
+            PlayerTrade.View is { Phase: PlayerTrade.Invited or PlayerTrade.Open }) {
+            EmpLog.Debug("Not asking to follow the host to quest zone {ZoneUid}", invite.ZoneUid);
+            return;
+        }
+
+        _questInviteZone = invite.ZoneUid;
+        _questInviteDeadline = Time.realtimeSinceStartup + QuestInviteSeconds;
+        _questInvite = Dialog.YesNo("emp_quest_follow_ask".Loc(invite.Name),
+            FollowHost,
+            () => AnswerQuestInvite(QuestFollowDelta.Declined));
+    }
+
+    private void UpdateQuestInvite()
+    {
+        if (_questInviteDeadline <= 0) {
+            return;
+        }
+
+        // we moved on meanwhile (recalled, travelling): the question is void
+        if (!Session.IsZoneAuthority || IsInTransfer || _pendingTravel is not null) {
+            CloseQuestInvite();
+            return;
+        }
+
+        // closed without a click
+        if (_questInvite == null) {
+            AnswerQuestInvite(QuestFollowDelta.Declined);
+            return;
+        }
+
+        if (Time.realtimeSinceStartup >= _questInviteDeadline) {
+            CloseQuestInvite();
+            AnswerQuestInvite(QuestFollowDelta.NoAnswer);
+        }
+    }
+
+    private void AnswerQuestInvite(int kind)
+    {
+        _questInviteDeadline = 0;
+        _questInvite = null;
+
+        SendWhileAway(new QuestFollowDelta {
+            Kind = kind,
+            Name = pc.Name,
+        });
+    }
+
+    private void CloseQuestInvite()
+    {
+        if (_questInviteDeadline <= 0) {
+            return;
+        }
+
+        _questInviteDeadline = 0;
+        if (_questInvite != null) {
+            _questInvite.Close();
+        }
+
+        _questInvite = null;
+    }
+
+    /// <summary>
+    ///     Join the host where it is now (the zone of its quest): the map we kept goes back to it, then the same
+    ///     way in as coming back to the host's map. The quest stays the host's, see QuestZoneVisitorPatch
+    /// </summary>
+    internal void FollowHost()
+    {
+        _questInviteDeadline = 0;
+        _questInvite = null;
+
+        if (!Session.IsZoneAuthority || _pendingTravel is not null || IsInTransfer) {
+            return;
+        }
+
+        EmpLog.Information("Following the host from {AwayZone} to its zone {ZoneUid}",
+            Session.AwayZone!.ZoneFullName, _hostZoneUid);
+
+        SendRejoin();
+        EmpPop.Debug("emp_travel_returning".lang());
     }
 
     /// <summary>
@@ -772,7 +877,7 @@ internal partial class ElinNetClient
     {
         foreach (var delta in response.DeltaList) {
             // chat and the quest log are the world's, the rest is about the host map
-            if (delta is MsgSayDelta or QuestStartDelta or QuestCompleteDelta or QuestChangePhaseDelta or DialogFlagDelta or QuestFailDelta or QuestUpdateDelta or PersonalStateDelta or PlayerStandingDelta or WorldDateAdvanceDelta or WeatherDelta or DayDataDelta) {
+            if (delta is MsgSayDelta or QuestStartDelta or QuestCompleteDelta or QuestChangePhaseDelta or DialogFlagDelta or QuestFailDelta or QuestUpdateDelta or PersonalStateDelta or PlayerStandingDelta or WorldDateAdvanceDelta or WeatherDelta or DayDataDelta or QuestFollowDelta) {
                 // the regular delta loop does not run while away, see CoreSynchronizationContext
                 delta.Apply(this);
             }
