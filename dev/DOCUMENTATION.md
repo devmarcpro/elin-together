@@ -234,7 +234,8 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
   version publiée ensuite), les 23 suites vertes : travel 55/55, shared 26/26, trio 24/24, companion 30/30,
   party 28/28, economy 24/24, combat 21/21, quest 61/61, chara 13/13, parity 17/17, trade 32/32, build 21/21,
   player 40/40, instance 34/34, leave 15/15, transfer 11/11, death 13/13, sleep 34/34, guest 218/218,
-  recruit 41/41, compat 7/7, move 18/18, import 21/21.
+  recruit 41/41, compat 7/7, move 18/18, import 21/21. Puis, sur `1ed724d` (sauvegardes du nuage Steam, seul
+  `CharaImport.cs` change) : import 25/25, chara 13/13, leave 15/15, quest 61/61, compat 7/7.
   Après une mise à jour d'Elin par Steam : refaire `make_lab.py` pour les trois copies, sinon le client de test
   est refusé (« invalid version ») sans que `mp_test.py` dise pourquoi.
   Les quatre changements de `36eccb3` (banque en voyage, rappel abandonné, bail refusé, entrées bloquées pendant
@@ -244,12 +245,13 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
   sur sa carte (une fois au lieu de deux depuis `23554f2`).
 - Déplacements : corrigés et mesurés au banc local, **pas encore joués entre deux PC**. La marche touche
   enfoncée ou souris tenue n'est pas testée (le pont de test ne tient pas de touche).
-- Personnage d'une sauvegarde solo : testé avec un personnage de niveau 1. Pas essayé : une grosse sauvegarde
+- Personnage d'une sauvegarde solo : testé avec un personnage de niveau 1, et une fois avec un vrai personnage
+  de l'utilisateur (niveau 4, sauvegarde du nuage Steam de 1 Mo : en jeu en 8 s). Pas essayé : une grosse sauvegarde
   de fin de partie (gel de quelques secondes attendu à la lecture), une sauvegarde faite avec d'autres mods (objet
   inconnu chez l'host), un personnage qui porte une boule à monstre pleine (le monstre garde son ancien numéro),
   les artefacts uniques en double, les cadeaux du dieu reçus de nouveau. Avec la case cochée et « choix du
-  personnage » décochée, l'écran de choix s'affiche à chaque connexion. Les sauvegardes du nuage Steam ne sont
-  pas listées.
+  personnage » décochée, l'écran de choix s'affiche à chaque connexion. Les sauvegardes du nuage Steam sont
+  listées et lues dans leur archive, sans être déballées.
 - Compagnons d'un invité : le domptage à la brosse n'est pas testé en jeu ; l'achat est testé par ce que fait le
   « oui » du marchand, pas par son vrai dialogue ; l'animal de Fiama perd sa marque (posée après le recrutement,
   sur la copie locale). La laisse et la consigne « ne pas s'éloigner » regardent encore l'host.
@@ -279,7 +281,8 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
 - un faux réseau lent entre les fenêtres (délai, à-coups) : le banc local n'a aucun délai.
 
 **Ensuite :**
-7. Temps du monde commun (à décider avec l'utilisateur), puis **serveur indépendant**. L'utilisateur a tranché
+7. Plan écrit le 2026-10-04 : `PLAN_serveur_depot.md` (six étapes, cinq décisions à prendre avec lui).
+   Temps du monde commun (à décider avec l'utilisateur), puis **serveur indépendant**. L'utilisateur a tranché
    le 2026-10-03 au soir : un serveur « dépôt de sauvegarde » (un petit programme sans Elin qui garde la
    sauvegarde et dit qui tient quelle carte ; toute la simulation est faite par les joueurs, un joueur par
    carte). À commencer quand les points 1 à 4 sont bons, **plan à lui présenter avant de coder**. Première

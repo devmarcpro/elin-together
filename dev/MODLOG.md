@@ -1364,3 +1364,20 @@ Pièges de test notés ce jour-là :
 4. Petits restes : brosse à tester en jeu, animal de Fiama, laisse qui regarde l'host, écran de choix à chaque
    connexion quand seule la case d'import est cochée.
 
+### Sauvegardes du nuage Steam, captures, plan du serveur (2026-10-04, 5h10 → 5h45)
+- Captures des nouveautés (`showcase.py options imported`, `_shots/nouveautes/01`, `14` à `16`). En les
+  regardant : la liste ne montrait que `world_import` et `world_lab`. **Les vraies sauvegardes de l'utilisateur
+  sur cette machine sont dans le nuage Steam** (`Cloud Save/world_1`, `world_3` : `index.txt` à côté de
+  `cloud.zip`, qui contient `game.txt`) ; `Save/world_N` ne contient que des dossiers `Temp` vides. La 0.26.362
+  ne lui aurait donc rien proposé.
+- Corrigé `1ed724d` (voir `git log`, « Steam Cloud saves were missing ») : les deux dossiers sont listés ; une
+  sauvegarde du nuage est lue **dans son archive, en mémoire** (`ZipArchive`, référence
+  `System.IO.Compression.dll` du jeu ajoutée au projet), jamais déballée ni déplacée (le chargement du jeu, lui,
+  déplace `cloud.zip` et vide le dossier). `import_suite` I6 : rouge 21/22 → **25/25**.
+- Essai réel : le personnage Onold de l'utilisateur (`Steam Cloud world_1`, niveau 4, 292 pièces d'or, 32
+  objets) importé dans le monde de test : en jeu en 8 s, même fiche chez l'host, aucun numéro en double,
+  dossier de la sauvegarde inchangé à l'octet près. Capture `_shots/mp-import-reel-onold.png`.
+- Contrôle sur ce build : chara 13/13, import 25/25, leave 15/15, quest 61/61, compat 7/7.
+- Plan du serveur « dépôt de sauvegarde » écrit d'après un recensement en lecture seule de tout ce qui dépend
+  du jeu de l'host : `PLAN_serveur_depot.md`. **Rien de codé, à valider par l'utilisateur.**
+
