@@ -1502,3 +1502,23 @@ Pièges de test notés ce jour-là :
 - À faire avec l'utilisateur : essayer le dépôt entre deux PC (dossier synchronisé), décider s'il faut le
   relais sans coupure et un programme à la place du dossier. Sinon, liste du point 5 (plan B du retour de
   l'host, profil de mods, touche « signaler un problème », bot de soirée, faux réseau lent).
+
+### Serveur « comme un serveur Minecraft » (2026-10-04, 16h → 16h40) — reprendre ici
+- L'utilisateur, après l'explication du dépôt : « ça me dérange pas d'avoir quelque chose qui tourne sur ce pc,
+  c'est mon pc de dev, ça serait pas possible d'héberger un serveur comme un serveur minecraft ».
+- Fait (commit « a server like a Minecraft server ») : `Emp/EmpServer.cs`. `Elin.exe -empserver <sauvegarde>`
+  charge la sauvegarde et ouvre la partie tout seul (port 55556), coupe le son, ferme la question « mods
+  manquants », sauvegarde toutes les 5 minutes tant qu'un joueur est là. `cloud:<id>` pour une sauvegarde du
+  nuage Steam, `world_depot` pour prendre le monde du dépôt. Côté joueur : onglet Lobby, « Join by address »
+  (`ElinNetClient.ConnectAddress`, `IsDirectConnection` : pas de lobby Steam ; les cartes des autres joueurs se
+  rejoignent toujours par Steam). `Serveur.bat` + `serveur.ps1` dans le zip : trouve le jeu, liste les
+  sauvegardes (les deux dossiers), lance, affiche les adresses.
+- Presque tout existait : connexion directe par adresse (le banc), cartes simulées par les joueurs, date commune
+  (c'est elle qui fait qu'un serveur que personne ne joue suit le temps des joueurs : +15 min quand le joueur
+  passe 15 min sur sa carte, sans rien ajouter).
+- `server_suite.py` V1–V5 : **7/7**. Deux faux départs : le serveur attendait une interface « inactive » à
+  l'écran titre (elle ne l'est jamais) ; le test appelait `ElinNetClient` directement (classe interne : par
+  réflexion).
+- **À vérifier par l'utilisateur** : le même compte Steam sur le PC serveur et sur le PC où il joue (Steam
+  peut bloquer) ; la connexion depuis chez son ami (port 55556 UDP ou réseau privé).
+

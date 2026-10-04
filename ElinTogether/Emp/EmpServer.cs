@@ -53,7 +53,9 @@ internal static class EmpServer
             if (_save == SaveDepot.WorldId && SaveDepot.Enabled) {
                 SaveDepot.Take();
             } else {
-                Game.Load(_save, false);
+                // "cloud:<id>" for a Steam Cloud save, as the game's own list loads them
+                var cloud = _save!.StartsWith("cloud:");
+                Game.Load(cloud ? _save.Substring(6) : _save, cloud);
             }
 
             return;

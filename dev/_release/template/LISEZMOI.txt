@@ -47,8 +47,19 @@ Jouer
                                                   equipement, son sac, son or, sa renommee et son karma ; pas
                                                   ses compagnons ni sa base. La sauvegarde n'est jamais modifiee.
 
-Le depot de sauvegarde (un monde qui ne depend de personne)
-----------------------------------------------------------
+Un serveur, comme un serveur Minecraft
+--------------------------------------
+Sur un PC qui reste allume : double-cliquer sur Serveur.bat et choisir la sauvegarde (elle doit avoir une base).
+Une fenetre Elin s'ouvre, charge le monde et ouvre la partie toute seule. Personne n'y joue : c'est le serveur.
+Elle sauvegarde toutes les cinq minutes tant que quelqu'un joue. La fermer arrete le serveur.
+- Pour rejoindre : ecran titre, bouton Elin Together, onglet "Lobby", "Join by address", et donner
+  l'adresse du PC serveur suivie de :55556 (Serveur.bat affiche les adresses possibles).
+- Depuis Internet : ouvrir le port 55556 (UDP) de la box vers le PC serveur, ou utiliser un reseau prive
+  (Tailscale, ZeroTier...) et donner l'adresse que ce reseau attribue au PC serveur.
+- Tout le monde est invite : chacun va ou il veut, le monde continue quand quelqu'un part.
+
+Le depot de sauvegarde (un monde qui ne depend de personne, sans PC allume en permanence)
+---------------------------------------------------------------------------------------
 Un dossier que tout le groupe peut atteindre (dossier partage, ou synchronise par un logiciel de partage de
 fichiers) garde le monde. Dans le jeu : bouton Elin Together, onglet "Client Settings", "Depot folder", et
 donner le chemin de ce dossier. Chaque joueur le regle une fois.
