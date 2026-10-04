@@ -120,6 +120,32 @@ internal static class SaveDepot
     }
 
     /// <summary>
+    ///     "Join by address" given the address of Elin Together Server: it becomes the depot and its world is
+    ///     taken. False when no depot answers there (a game server, or nothing)
+    /// </summary>
+    // ponytail: the game waits up to 5 s when the machine drops the connection without refusing it; a thread
+    // if that wait bothers someone.
+    internal static bool TakeFrom(string address)
+    {
+        var depot = EmpConfig.Client.DepotPath;
+        var before = depot.Value;
+        depot.Value = address;
+        try {
+            if (!Remote) {
+                throw new IOException("not an address");
+            }
+
+            Ask("WHO");
+        } catch (Exception) {
+            depot.Value = before;
+            return false;
+        }
+
+        Take();
+        return true;
+    }
+
+    /// <summary>
     ///     Puts the save being played in the depot, as its world
     /// </summary>
     internal static void Put()

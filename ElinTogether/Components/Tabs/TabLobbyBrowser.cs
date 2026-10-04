@@ -38,7 +38,7 @@ internal class TabLobbyBrowser : TabEmpBase
 
                     last.Value = text.Trim();
                     LayerElinTogether.Instance?.Close();
-                    NetSession.Instance.InitializeComponent<ElinNetClient>().ConnectAddress(last.Value);
+                    JoinAddress(last.Value);
                 });
             });
 
@@ -59,6 +59,17 @@ internal class TabLobbyBrowser : TabEmpBase
 #if DEBUG
         BuildBotButtons();
 #endif
+    }
+
+    /// <summary>
+    ///     One address for both kinds of server: Elin Together Server without a game (its world is taken and
+    ///     hosted here), or a game started with -empserver (joined)
+    /// </summary>
+    internal static void JoinAddress(string address)
+    {
+        if (!SaveDepot.TakeFrom(address)) {
+            NetSession.Instance.InitializeComponent<ElinNetClient>().ConnectAddress(address);
+        }
     }
 
 #if DEBUG

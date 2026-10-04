@@ -7,7 +7,8 @@ Test court (host + 1 client a la Prairie). Finit avec les deux jeux dans le mond
 Idee de l'utilisateur (2026-10-03) : un serveur qui est juste la sauvegarde. Premiere forme : un dossier partage.
 
 D1  l'host depose sa sauvegarde dans le depot
-D2  l'autre joueur, a l'ecran titre, prend le monde du depot : il le charge, le depot dit que c'est lui qui heberge
+D2  l'autre joueur, a l'ecran titre, prend le monde du depot (avec le logiciel : par "Join by address", sans
+    avoir regle de depot) : il le charge, le depot dit que c'est lui qui heberge
 D3  pendant ce temps le premier ne peut pas le prendre (on lui dit qui heberge)
 D4  celui qui heberge change quelque chose et sauvegarde : le monde du depot change
 D5  il quitte : le depot est libre ; le premier joueur le prend a son tour et retrouve le changement (sa copie
@@ -36,7 +37,9 @@ H, A = 27551, 27552
 DEPOT = SHOTS / "depot"
 REMOTE = bool(os.environ.get("DEPOT_SERVER"))
 SERVER_EXE = Path(__file__).resolve().parent.parent / "_release" / "template" / "ElinTogetherServer.exe"
-ADDRESS = "127.0.0.1:55557"
+# pas le port habituel (55557) : un vrai serveur de l'utilisateur peut tourner sur cette machine
+PORT = "55558"
+ADDRESS = "127.0.0.1:" + PORT
 WORLD = DEPOT / "world.zip" if REMOTE else DEPOT / "world" / "game.txt"
 HELD = ('var who = HarmonyLib.AccessTools.Method(' + 'HarmonyLib.AccessTools.TypeByName("ElinTogether.Helper.SaveDepot")' +
         ', "HeldBy").Invoke(null, null); return who == null ? "" : who.ToString();')
@@ -46,6 +49,8 @@ SET = ('var e = HarmonyLib.AccessTools.Property(HarmonyLib.AccessTools.TypeByNam
        'HarmonyLib.AccessTools.Property(e.GetType(), "Value").SetValue(e, @"%s"); "ok"')
 CALL = 'HarmonyLib.AccessTools.Method(' + DEP + ', "%s").Invoke(null, null); "ok"'
 DIALOG = 'var d = EClass.ui.layers.OfType<Dialog>().LastOrDefault(); return d == null ? "" : d.textDetail.text;'
+JOIN = ('HarmonyLib.AccessTools.Method(HarmonyLib.AccessTools.TypeByName("ElinTogether.Components.TabLobbyBrowser"), '
+        '"JoinAddress").Invoke(null, new object[] { "%s" }); "ok"')
 BUCKETS = 'EClass.pc.things.Flatten().Count(t => t.id == "bucket").ToString()'
 
 
@@ -87,12 +92,13 @@ def main():
         if REMOTE:
             # la sauvegarde est choisie dans le logiciel (ici par sa ligne de commande, comme le bouton "Mettre
             # cette sauvegarde sur le serveur") : aucun joueur n'a a la deposer
-            server = subprocess.Popen([str(SERVER_EXE), "--depot", str(DEPOT), "--port", "55557", "--import", str(PRISTINE)])
+            server = subprocess.Popen([str(SERVER_EXE), "--depot", str(DEPOT), "--port", PORT, "--import", str(PRISTINE)])
             log(f"Elin Together Server lance (pid {server.pid}), depot a {ADDRESS}")
             time.sleep(3)
         for port in (H, A):
             dismiss_dialogs(port)
-            ev(port, SET % (ADDRESS if REMOTE else str(DEPOT)))
+            # avec le logiciel, l'autre joueur ne regle rien : il tape l'adresse dans "Join by address"
+            ev(port, SET % ("" if REMOTE and port == A else ADDRESS if REMOTE else str(DEPOT)))
 
         log("--- D1")
         if REMOTE:
@@ -106,7 +112,11 @@ def main():
 
         log("--- D2")
         leave()
-        take(A)
+        if REMOTE:
+            emp.call(A, "eval", {"code": JOIN % ADDRESS}, timeout=180)
+            time.sleep(2)
+        else:
+            take(A)
         wait(loaded(A), "l'autre joueur charge le monde du depot", timeout=180, every=3.0)
         dismiss_dialogs(A)
         check("l'autre joueur prend le monde du depot et le charge", game_id(A) == "world_depot")
