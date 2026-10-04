@@ -1,4 +1,5 @@
 using ElinTogether.Common;
+using ElinTogether.Helper;
 using ElinTogether.LangMod;
 using ElinTogether.Net;
 using HeathenEngineering.SteamworksIntegration;
@@ -19,12 +20,23 @@ internal class TabLobbyBrowser : TabEmpBase
         btnGroup.Layout.childForceExpandWidth = true;
 
         if (!EClass.core.IsGameStarted) {
+            // the world kept in the depot: whoever comes first takes it and hosts it
+            if (SaveDepot.Enabled) {
+                btnGroup.Button(SaveDepot.HeldBy() is { } who ? "emp_ui_depot_held".Loc(who) : "emp_ui_depot_take".lang(), () => {
+                    LayerElinTogether.Instance?.Close();
+                    SaveDepot.Take();
+                });
+            }
+
             btnGroup.Header("emp_ui_unclaimed_zone");
             return;
         }
 
         if (NetSession.Instance.Transport == null) {
             btnGroup.Button("emp_ui_sv_start".lang(), StartServerFromPanel);
+            if (SaveDepot.Enabled && Game.id != SaveDepot.WorldId) {
+                btnGroup.Button("emp_ui_depot_put".lang(), SaveDepot.Put);
+            }
         } else {
             btnGroup.Button("emp_ui_sv_invite".lang(), NetSession.Instance.Lobby.InviteSteamOverlay);
             btnGroup.Button("emp_ui_sv_dc".lang(), DisconnectFromPanel);

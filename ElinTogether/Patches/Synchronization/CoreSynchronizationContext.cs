@@ -27,6 +27,7 @@ internal class CoreSynchronizationContext : SynchronizationContext
     internal static void OnCoreUpdateEnd()
     {
         PlayerTrade.WatchSession();
+        SaveDepot.Update();
 
         if (NetSession.Instance.Connection is not { } connection || !core.IsGameStarted) {
             return;

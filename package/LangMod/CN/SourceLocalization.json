@@ -183,5 +183,13 @@
     "LangGeneral.emp_ui_sv_cfg_world_time.text": "整个世界共用一个日期",
     "LangGeneral.emp_ui_sv_desc_world_time.text": "独自在其他地图的玩家所经过的时间对所有人都有效：最靠前的日期就是世界的日期。关：只以主机的日期为准。",
     "LangGeneral.emp_ui_sv_cfg_world_keeper.text": "时间对世界的影响只发生一次",
-    "LangGeneral.emp_ui_sv_desc_world_keeper.text": "天气、任务过期、税金、工资和信件只由一个游戏处理，所有人相同。关：每个持有地图的玩家的游戏也会各自处理。"
+    "LangGeneral.emp_ui_sv_desc_world_keeper.text": "天气、任务过期、税金、工资和信件只由一个游戏处理，所有人相同。关：每个持有地图的玩家的游戏也会各自处理。",
+    "LangGeneral.emp_ui_depot_take.text": "从仓库取出世界并主持",
+    "LangGeneral.emp_ui_depot_put.text": "将此存档放入仓库",
+    "LangGeneral.emp_ui_depot_held.text": "{0} 正在主持仓库中的世界",
+    "LangGeneral.emp_ui_depot_empty.text": "仓库中还没有世界。请读取一个存档并使用“将此存档放入仓库”。",
+    "LangGeneral.emp_ui_depot_fail.text": "无法读写仓库文件夹。",
+    "LangGeneral.emp_ui_depot_put_done.text": "这个世界已放入仓库：小组中的任何玩家都可以取出并主持。",
+    "LangGeneral.emp_ui_depot_folder.text": "仓库文件夹：{0}",
+    "LangGeneral.emp_ui_depot_folder_ask.text": "存档仓库文件夹（小组所有人都能访问的文件夹；留空则不使用）"
 }

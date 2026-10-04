@@ -25,5 +25,15 @@ internal class TabClientConfiguration : TabEmpBase
             });
             EMono.ui.AddLayer(l);
         }).SetTooltipLang(EmpConfig.Client.PingKeybind.Description.Description);
+
+        var depot = EmpConfig.Client.DepotPath;
+        btnGroup.Button("emp_ui_depot_folder".Loc(depot.Value.Length > 0 ? depot.Value : "-"), () => {
+            Dialog.InputName("emp_ui_depot_folder_ask", depot.Value, (cancel, text) => {
+                if (!cancel) {
+                    depot.Value = text.Trim();
+                    LayerElinTogether.Instance?.Reopen();
+                }
+            });
+        }).SetTooltipLang(depot.Description.Description);
     }
 }
