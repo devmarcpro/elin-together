@@ -47,6 +47,7 @@ internal class CoreSynchronizationContext : SynchronizationContext
                 if (!EMono.scene.paused) {
                     host.Delta.AddRemoteImmediate(new GameDelta {
                         Delta = Core.gameDelta,
+                        Turbo = GameSynchronizationContext.WorldTurbo,
                     });
                 }
 

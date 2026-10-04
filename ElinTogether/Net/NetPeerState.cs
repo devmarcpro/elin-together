@@ -36,6 +36,9 @@ public class NetPeerState
     [Key(9)]
     public float ConnectionQualityRemote { get; set; }
 
+    [Key(10)]
+    public bool Turbo { get; set; }
+
     public Chara? FindChara()
     {
         return EClass.pc?.party?.members.Find(c => c?.uid == CharaUid);

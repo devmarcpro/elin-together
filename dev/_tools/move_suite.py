@@ -14,6 +14,10 @@ V3  option decochee : le rythme de l'invite depend de nouveau de l'host (l'ancie
 V4  l'host devient trois fois plus rapide que l'invite : l'invite marche au meme rythme qu'avant, et l'host au
     meme rythme que l'invite (case "chaque joueur marche comme en solo")
 V5  case decochee : le pas de l'invite s'allonge avec l'ecart de vitesse (l'ancien comportement)
+V6  l'accelere se partage. Une marche lancee par AI_Goto met le jeu de celui qui marche en accelere (x2,2) :
+    les 118 ms par pas ci-dessus sont deja une allure d'accelere. Quand l'invite marche, le monde de l'host
+    accelere avec lui (comme quand c'est l'host qui marche) ; quand l'host marche, le jeu de l'invite immobile a
+    cote de lui suit (lu dans le mod : FollowsHost, pas mesure sur un geste de l'invite) ; tout retombe ensuite
 
 Limite : la marche est lancee par AI_Goto (le meme deplacement qu'un clic sur une case), pas touche enfoncee.
 """
@@ -39,8 +43,31 @@ TARGET = ('var p = EClass.pc.pos.Copy(); var best = p.Copy(); '
 POS = 'EClass.pc.pos.x + "," + EClass.pc.pos.z + "," + EClass.pc.HasNoGoal'
 
 
-def walk(port):
-    """Fait marcher le joueur en ligne droite et releve l'instant de chaque pas. Renvoie les intervalles (s)."""
+TURBO = 'AM_Adv.turbo.ToString(System.Globalization.CultureInfo.InvariantCulture)'
+# a quelle allure tourne ce jeu : 1 normal, 2.2 en accelere (le temps de jeu de la derniere image sur son temps reel)
+PACE = '(Core.gameDelta / Mathf.Max(0.0001f, Core.delta)).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)'
+# un joueur immobile perd l'accelere a chaque image : celui qui accelere marche, trois cases a l'est puis retour
+PACER = ('if (EClass.pc.HasNoGoal) { var p = EClass.pc.pos.Copy(); '
+         'p.x += (EClass.pc.GetInt(990001) == 0 ? 3 : -3); EClass.pc.SetInt(990001, 1 - EClass.pc.GetInt(990001)); '
+         'EClass.pc.SetAIImmediate(new AI_Goto(p, 0)); } ActionMode.Adv.SetTurbo(); "ok"')
+
+
+def calm(port):
+    """Attend que ce jeu tourne a l'allure normale."""
+    for _ in range(40):
+        if float(ev(port, PACE)) < 1.3:
+            return True
+        time.sleep(0.5)
+    return False
+
+
+FOLLOWS = ('((bool)HarmonyLib.Traverse.Create(HarmonyLib.AccessTools.TypeByName('
+           '"ElinTogether.Patches.GameSynchronizationContext")).Property("FollowsHost").GetValue() ? "1" : "0")')
+
+
+def walk(port, turbo=None, watch=None, read=PACE):
+    """Fait marcher le joueur en ligne droite et releve l'instant de chaque pas. Renvoie les intervalles (s).
+    turbo : port du jeu ou l'accelere est tenu pendant la marche ; watch : port dont on releve l'accelere."""
     x, z, n = ev(port, TARGET).split(",")
     if int(n) < 8:
         # pas assez de place vers l'est : on repart du point d'arrivee vers l'ouest
@@ -49,7 +76,12 @@ def walk(port):
         x, z, n = ev(port, TARGET).split(",")
     ev(port, f'EClass.pc.SetAIImmediate(new AI_Goto(new Point({x}, {z}), 0)); "ok"')
     steps, last, end = [], None, time.time() + 25
+    seen = []
     while time.time() < end:
+        if turbo is not None:
+            ev(turbo, PACER if turbo != port else 'ActionMode.Adv.SetTurbo(); "ok"')
+        if watch is not None:
+            seen.append(float(ev(watch, read)))
         px, pz, idle = ev(port, POS).split(",")
         now = time.perf_counter()
         if (px, pz) != last:
@@ -59,6 +91,10 @@ def walk(port):
             break
     # le premier releve n'est pas un pas, le premier pas part tout de suite : on garde les intervalles suivants
     gaps = [b - a for a, b in zip(steps[2:], steps[3:])]
+    if turbo is not None:
+        ev(turbo, 'EClass.pc.SetInt(990001, 0); ActionMode.Adv.EndTurbo(); "ok"')
+    if watch is not None:
+        return gaps, seen
     return gaps
 
 
@@ -100,6 +136,9 @@ def main():
     sys.stdout.reconfigure(encoding="utf-8")
     t0 = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
     saved = ev(H, 'UnityEngine.QualitySettings.vSyncCount + "," + UnityEngine.Application.targetFrameRate')
+    # "courir tout seul" (option du jeu) allume l'accelere selon la distance entre la souris et le personnage :
+    # la mesure dependait de l'endroit ou trainait le pointeur. Coupee le temps du test, l'accelere est mis a la main
+    autorun = {port: ev(port, 'var a = EClass.core.config.input.autorun; EClass.core.config.input.autorun = false; a.ToString()') for port in (H, A)}
     try:
         for port in (H, A):
             dismiss_dialogs(port)
@@ -109,6 +148,13 @@ def main():
         option("PlayerClock", True)
         has_pace = option("PlayerStepPace", True)
         time.sleep(3)
+
+        # echauffement : la premiere marche fait compiler ses commandes par le pont de test, le jeu se fige un
+        # instant puis rattrape (le temps d'image du jeu est lisse) : ses premiers pas partent en rafale
+        for port in (A, H):
+            walk(port)
+            back(port)
+        check("les deux jeux tournent a l'allure normale avant de mesurer", calm(H) and calm(A))
 
         log("--- V1")
         ref = describe(walk(A))
@@ -182,6 +228,29 @@ def main():
                     option("PlayerStepPace", True)
         finally:
             ev(H, f'EClass.pc.elements.ModBase(79, {-bonus}); EClass.pc.Refresh(); "ok"')
+        time.sleep(6)
+
+        log("--- V6")
+        for port in (H, A):
+            ev(port, 'ActionMode.Adv.EndTurbo(); "ok"')
+        time.sleep(1)
+        gaps, seen = walk(A, watch=H)
+        quick = describe(gaps)
+        back(A)
+        share = sum(1 for t in seen if t > 1.5) / max(1, len(seen))
+        log(f"l'invite marche : {show(quick)} ; monde de l'host en accelere {share * 100:.0f} % du temps")
+        check(f"l'invite marche toujours au meme rythme ({show(quick)}, reference {show(ref)})",
+              quick is not None and ref is not None and abs(quick["mean"] - ref["mean"]) / ref["mean"] < 0.2 and quick["cv"] < 0.35)
+        check(f"quand l'invite marche, le monde de l'host accelere avec lui ({share * 100:.0f} % du temps)", share > 0.7)
+        time.sleep(2)
+        check("le monde de l'host reprend l'allure normale quand l'invite s'arrete", calm(H))
+        gaps, seen = walk(H, watch=A, read=FOLLOWS)
+        back(H)
+        share = sum(1 for t in seen if t > 0) / max(1, len(seen))
+        log(f"l'host marche : le jeu de l'invite immobile suit {share * 100:.0f} % du temps")
+        check(f"quand l'host marche, le jeu de l'invite a cote de lui accelere aussi ({share * 100:.0f} % du temps)", share > 0.7)
+        time.sleep(2)
+        check("et tout le monde reprend l'allure normale ensuite", calm(H) and calm(A) and ev(A, FOLLOWS) == "0")
     except Exception as ex:  # noqa: BLE001
         check(f"interrompu : {type(ex).__name__}: {str(ex)[:300]}", False)
         for name, port in (("host", H), ("A", A)):
@@ -190,6 +259,8 @@ def main():
             except Exception:  # noqa: BLE001
                 pass
     finally:
+        for port, value in autorun.items():
+            ev(port, f'EClass.core.config.input.autorun = {value.lower()}; "ok"')
         vsync, fps = saved.split(",")
         ev(H, f'UnityEngine.QualitySettings.vSyncCount = {vsync}; UnityEngine.Application.targetFrameRate = {fps}; "ok"')
 

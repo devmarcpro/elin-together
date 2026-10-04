@@ -72,6 +72,7 @@ public class CharaStateSnapshot : EClass
                 LastAct = ActMappingValidator.Default.ActToIdMapping.GetValueOrDefault(pc.ai.GetType(), 0),
                 LastReceivedTick = NetSession.Instance.Tick,
                 Speed = pc.Stub_get_Speed(),
+                Turbo = AM_Adv.turbo != 0f,
             },
         };
     }

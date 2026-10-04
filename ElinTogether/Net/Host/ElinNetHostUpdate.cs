@@ -141,6 +141,7 @@ internal partial class ElinNetHost
 
         state.LastAct = response.State.LastAct;
         state.Speed = response.State.Speed;
+        state.Turbo = response.State.Turbo;
         state.LastReceivedTick = response.State.LastReceivedTick;
 
         // if server disabled shared speed, we use -1
