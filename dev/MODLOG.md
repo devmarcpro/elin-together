@@ -1810,3 +1810,40 @@ Pièges de test notés ce jour-là :
   code final ; tout ce que l'utilisateur doit jouer lui-même (deuxième joueur par Steam, hébergeur qui part, mode
   avec Elin entre deux PC, Internet avec mot de passe).
 - **À faire ensuite** : voir `dev/HANDOFF.md` (état au 22h). En tête : sa soirée d'essai réelle avec la 0.26.399.
+
+### Points restants traités en autonomie, décisions du conseil (2026-10-04, nuit) — reprendre ici
+
+- **Consigne** : l'utilisateur a donné la liste des points restants à traiter du début à la fin sans s'arrêter ; chaque
+  décision de conception est tranchée par le skill `llm-council` (5 avis, 5 relectures, un président ; avis et
+  relectures en `sonnet`). Critères, dans l'ordre : l'invité obtient ce qu'un solo obtiendrait ; pas de duplication ni
+  de perte ; le plus petit changement ; aucun risque pour les sauvegardes. Branche `fix/points-restants`, un commit
+  par point.
+- **Conseil 1, « qui reçoit quoi »** (faits lus dans le code par trois agents avant le conseil) :
+  - *Cadeaux du dieu (M3)* — question : deux joueurs du même dieu, qui reçoit le familier et l'artefact ? Verdict :
+    **rang de cadeau par joueur**, sans case ; l'host exécute le cadeau pour l'invité en prêtant au rang du monde,
+    le temps de l'appel, un entier rangé sur le personnage (`try/finally`), la tentative chez l'invité est coupée.
+    Écarté : « premier arrivé » (3 avis sur 5, mais il prive l'invité si l'host a déjà prié ce dieu), ne rien faire.
+  - *Prime de la guilde des guerriers (L7)* — verdict unanime : **au joueur derrière le tueur** (l'invité, ou le
+    maître du compagnon), repli sur l'host si introuvable. Écarté : partage, ne rien faire.
+  - *Mort (L1)* — verdict : **même pénalité que le solo pour un invité sur la carte de l'host**, sans case, lettre
+    de testament comprise, appliquée une fois, chez l'host. Écarté : ne rien changer, une case d'option. Limite
+    acceptée : l'or tombé au sol peut être ramassé par un autre joueur.
+  - *Carte au trésor (M9)* — verdict unanime : **l'host cherche la carte dans le sac de celui qui creuse**. Écarté :
+    exécuter toute la fin du creusage « à la place du joueur » (recette tirée deux fois), ne rien faire.
+- **Conseil 2, « tirages faits deux fois »** :
+  - *Pièges (M5)* — verdict : **seul le jeu de l'invité tire** ; l'host saute le piège pour les personnages des
+    invités (pas pour leurs compagnons), et une demande invité→host « condition de piège sur moi » (liste fermée :
+    sommeil, cécité, paralysie) garde ces effets. L'expérience de désamorçage est gardée. Écarté : l'host seul tire
+    (expérience et téléportation perdues), les deux jets gardés avec le déclenchement de l'invité coupé (messages
+    contradictoires), une graine commune (non vérifiable).
+  - *Grimoires (M13)* — verdict : **seul le jeu de l'invité tire** ; son annulation de lecture porte un motif
+    « échec », l'host décompte alors une charge. Limite acceptée et écrite : sur un échec, la confusion et les
+    monstres (28 % des échecs) n'arrivent pas. Écarté : l'host seul tire (l'invité échapperait au mana et à la
+    téléportation, 72 % des échecs), le saut seul (lectures ratées qui n'usent pas le livre).
+- **Vérification des autres points de la liste (agent, lecture seule, rien joué)** : réels : M11 bénédiction, L4
+  puits, L5 tickets de meuble, L6 punition en quittant son dieu, seringues, stéthoscope (charges), laisse et
+  consigne, appel à l'aide, karma sur la carte d'un invité, autel de l'invention (une recette différente par jeu),
+  mutation en double (seulement avec un équipement d'éther). Déjà corrigés : source chaude (`a9fe6ee`, reste : le
+  groupe), teinture (`88f1241`). Faux : « clé » (aucun objet de ce genre), affinité de la tonte et de l'abattage
+  (elle arrive par le jeu de l'invité ; à confirmer par un test). Trouvé en passant : quand un invité abat un
+  animal, c'est l'host qui perd de l'endurance.
