@@ -188,13 +188,16 @@ def r8(ctx):
     # ce que fait le "oui" du dialogue du marchand d'esclaves (DramaCustomSequence, etape _buySlaveConfirm) : le
     # personnage de sa liste, fabrique dans le jeu de l'acheteur, est pose sur la carte puis recrute
     r = ev(A, f'var tc = CharaGen.Create("{species}"); tc.c_altName = "achete"; '
-              'EClass._zone.AddCard(tc, EClass.pc.pos.GetNearestPoint()); tc.MakeAlly(); return tc.uid.ToString();')
+              'EClass._zone.AddCard(tc, EClass.pc.pos.GetNearestPoint()); tc.MakeAlly(); tc.SetInt(100, 1); return tc.uid.ToString();')
     log(f"achat : personnage local {r}")
     arrived = eventually(lambda: int(ev(H, 'EClass.pc.party.members.Count.ToString()')) == before + 1, timeout=20)
     check("l'animal achete par l'invite arrive chez l'host", arrived)
     got = int(ev(H, 'var c = EClass.pc.party.members.LastOrDefault(x => x.c_altName == "achete"); return (c == null ? 0 : c.uid).ToString();'))
     check("avec un numero de ce monde", 0 < got < 0x40000000)
     ctx["bought"] = got
+    # le dialogue de Fiama marque son animal juste apres l'avoir recrute (DramaOutcome.fiama_pet : SetInt(100, 1))
+    check("la marque posee juste apres le recrutement (celle de l'animal de Fiama) arrive chez l'host",
+          ev(H, f'EClass.game.cards.globalCharas.Find({got}).GetInt(100).ToString()') == "1")
     owned_by_guest(ctx, got, "animal achete")
     check("chez l'invite il n'existe qu'une fois (pas de double local)",
           eventually(lambda: ev(A, 'EClass._map.charas.Count(c => c.c_altName == "achete").ToString()') == "1", timeout=15))
@@ -228,6 +231,31 @@ def r9(ctx):
     time.sleep(2)
 
 
+def r10(ctx):
+    """brosse : l'invite brosse un animal qui l'apprecie, il devient son compagnon"""
+    a = ctx.setdefault("a", state(A)["pc"]["uid"])
+    ctx.setdefault("h", state(H)["pc"]["uid"])
+    uid = spawn_wild(ctx, "tame")
+    # une brosse dans le sac de l'invite ; un animal qui l'apprecie deja assez pour le suivre (le domptage
+    # demande une affinite haute) et moins fort que le charisme du dompteur. Le jeu compare au charisme de
+    # EClass.pc, donc chez l'host a celui de l'host, meme quand c'est l'invite qui brosse : les deux sont montes
+    ev(H, f'var g = EClass._map.charas.Find(x => x.uid == {a}); g.AddThing(ThingGen.Create("brush")); '
+          f'var c = EClass._map.charas.Find(x => x.uid == {uid}); c._affinity = 200; g.elements.SetBase(77, 40); EClass.pc.elements.SetBase(77, 40); "ok"')
+    wait(lambda: ev(A, '(EClass.pc.things.Find("brush") != null).ToString()') == "True", "la brosse arrive dans le sac", timeout=20)
+    log("avant : " + ev(H, f'var c = EClass._map.charas.Find(x => x.uid == {uid}); var g = EClass._map.charas.Find(x => x.uid == {a}); '
+                           'return "domptable=" + TraitToolBrush.IsTamePossible(c) + " affinite=" + c.affinity.CanInvite() + '
+                           '" meilleur attribut=" + c.GetBestAttribute() + " charisme host=" + EClass.pc.CHA + " invite=" + g.CHA;'))
+    # il va a cote, prend la brosse en main et brosse : l'action de la brosse (TraitToolBrush.TrySetHeldAct)
+    ev(A, f'var c = EClass._map.charas.Find(x => x.uid == {uid}); EClass.pc.Teleport(c.pos.GetNearestPoint(allowChara: false), true, true); "ok"')
+    time.sleep(2)
+    r = ev(A, f'var c = EClass._map.charas.Find(x => x.uid == {uid}); EClass.pc.HoldCard(EClass.pc.things.Find("brush")); '
+              'EClass.pc.SetAI(new AI_TendAnimal { target = c }); return "brosse";')
+    log(f"brosse : {r}")
+    tamed = eventually(lambda: info(H, uid) is not None and info(H, uid)[3] == 1, timeout=60)
+    check("l'invite brosse l'animal : il rejoint le groupe (vu de l'host)", tamed)
+    owned_by_guest(ctx, uid, "brosse")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--only")
@@ -237,7 +265,7 @@ def main():
     ctx = {}
     # R9 avant R7 et R8 : "monter" prend le dernier personnage de la case visee, et les compagnons que l'invite
     # gagne ensuite le suivent jusque sur cette case
-    steps = [r1, r2, r3, r4, r5, r6, r9, r7, r8]
+    steps = [r1, r2, r3, r4, r5, r6, r9, r7, r8, r10]
     if a.only:
         steps = [s for s in steps if s.__name__ in a.only.split(",")]
     for step in steps:

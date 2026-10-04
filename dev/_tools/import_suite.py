@@ -200,6 +200,28 @@ def main():
         connect()
         click(0)
         check("il reprend son premier personnage pour finir", in_game() == first)
+
+        log("--- I7")
+        # seule la case d'import cochee (pas le choix du personnage) : un joueur qui a deja quelqu'un ici n'a pas
+        # de question a chaque connexion, il reprend le dernier personnage joue
+        import emp
+        from mp_test import ok
+        set_option("ChooseCharacter", False)
+        set_option("ImportCharacter", True)
+        try:
+            time.sleep(2)
+            leave()
+            ok(emp.call(A, "command", {"cmd": "emp.connect_udp"}))
+            asked = False
+            end = time.time() + 20
+            while time.time() < end and not (state(A)["sceneMode"] == "Zone" and state(A)["connected"]):
+                asked = asked or bool(choices())
+                time.sleep(0.5)
+            check("import seul coche : pas d'ecran de choix pour un joueur qui a deja un personnage ici", not asked)
+            check("il reprend le dernier personnage joue", in_game() == first)
+        finally:
+            set_option("ChooseCharacter", True)
+            set_option("ImportCharacter", False)
     except Exception as ex:  # noqa: BLE001
         check(f"interrompu : {type(ex).__name__}: {str(ex)[:300]}", False)
         for name, port in (("host", H), ("A", A)):

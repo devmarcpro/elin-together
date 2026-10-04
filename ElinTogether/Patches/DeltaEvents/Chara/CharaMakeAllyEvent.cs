@@ -76,15 +76,28 @@ internal static class CharaMakeAllyEvent
                 return true;
             case ElinNetClient client:
                 // we are clients, drop the update and wait for delta
-                if (!ElinDelta.IsApplying) {
-                    var request = CharaMakeAllyRequestDelta.Create(__instance, msg);
-                    client.Delta.AddRemote(request);
-                    // sent whole: it comes back from the host under a uid of the world, the local one would
-                    // stay next to it as a double nobody else sees
-                    if (request.Data is not null) {
-                        __instance.Destroy();
-                    }
+                if (ElinDelta.IsApplying) {
+                    return false;
                 }
+
+                if (!CharaMakeAllyRequestDelta.IsLocalOnly(__instance)) {
+                    client.Delta.AddRemote(CharaMakeAllyRequestDelta.Create(__instance, msg));
+                    return false;
+                }
+
+                // It only exists here and is sent whole. At the next frame: the dialog that gives a pet marks
+                // it right after recruiting it (Fiama's: the mark its revival looks for), and the mark must
+                // travel with it. Then the local one goes: it comes back from the host under a uid of the
+                // world and would stay next to it as a double nobody else sees
+                var ally = __instance;
+                EClass.core.actionsNextFrame.Add(() => {
+                    if (ally.isDestroyed || NetSession.Instance.Connection is not ElinNetClient later) {
+                        return;
+                    }
+
+                    later.Delta.AddRemote(CharaMakeAllyRequestDelta.Create(ally, msg));
+                    ally.Destroy();
+                });
                 return false;
             default:
                 return true;

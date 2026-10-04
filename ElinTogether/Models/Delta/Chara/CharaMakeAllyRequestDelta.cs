@@ -155,6 +155,14 @@ public class CharaMakeAllyRequestDelta : ElinDelta
         _zone.AddCard(refund, receiver.pos);
     }
 
+    /// <summary>
+    ///     A character made in this game only, that the host can only recruit if it receives it whole
+    /// </summary>
+    internal static bool IsLocalOnly(Chara chara)
+    {
+        return PendingUid.IsPending(chara.uid) && !_excluded.Contains(chara.id);
+    }
+
     public static CharaMakeAllyRequestDelta Create(Chara chara, bool msg)
     {
         var pending = PendingUid.IsPending(chara.uid);

@@ -76,7 +76,10 @@ internal partial class ElinNetHost
         // not for the guests of a zone hosted by a player: they come with the character they are playing
         var choose = EmpConfig.Server.ChooseCharacter.Value;
         var import = EmpConfig.Server.ImportCharacter.Value;
-        if (!IsZoneSession && ((roster.Count > 0 && choose) || import)) {
+        // bringing a character alone (no choice of character): asked once, when the player has nobody here yet.
+        // Afterwards it gets the character it played last without a question at every connection
+        var known = SavedRemoteCharas.TryGetValue(peer.User, out var played) && game.cards.globalCharas.Find(played) is not null;
+        if (!IsZoneSession && ((roster.Count > 0 && choose) || (import && (choose || !known)))) {
             // without the choice of character, only the one it played last
             if (!choose) {
                 roster = roster.Where(c => SavedRemoteCharas.TryGetValue(peer.User, out var last) && c.uid == last).ToList();
