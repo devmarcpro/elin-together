@@ -1,9 +1,10 @@
-"""Quetes a zone propre jouees a deux, sens S1 : l'host prend la quete, l'invite l'accompagne
-(PLAN_quetes_donjon_a_deux.md, etapes E1 a E4). Test court, sur des instances deja lancees (host + 1 client,
-tous les deux a la Prairie, options « voyage independant » et « quetes par joueur » cochees).
+"""Quetes a zone propre jouees a deux (PLAN_quetes_donjon_a_deux.md). T1 a T6, sens S1 : l'host prend la quete,
+l'invite l'accompagne (etapes E1 a E4). T7 a T11, sens S2 : l'invite prend la quete, l'host l'accompagne et simule
+la zone (etapes E5 et E6). Test court, sur des instances deja lancees (host + 1 client, tous les deux a la Prairie,
+options « voyage independant » et « quetes par joueur » cochees).
 
     python _tools/mp_test.py
-    python _tools/together_suite.py            # ou --only t1,t2   (~8 minutes en entier)
+    python _tools/together_suite.py            # ou --only t1,t2   (~16 minutes en entier)
 
 T1  l'host prend une quete "subjuguer" et entre : l'invite, reste en ville, voit la boite Oui/Non, clique Oui et
     arrive dans la zone ; memes monstres des deux cotes, pas de doublon, la quete absente de son journal
@@ -14,9 +15,23 @@ T4  meme entree avec une quete de recolte : pas d'exception d'affichage chez l'i
 T5  la boite : sans reponse au bout de 15 secondes elle se ferme et l'host lit « n'a pas repondu » ; Non, l'host
     lit « a refuse » ; dans les deux cas l'invite reste en ville
 
+T7  l'invite prend une quete "subjuguer" et part : l'host, reste a cote de lui en ville, voit la boite Oui/Non au nom
+    de l'invite et clique Oui ; les deux sont dans la zone, simulee par l'host : memes monstres, pas de doublon, la
+    quete au journal de l'invite seulement, et une sauvegarde de l'host dans la zone ne touche a rien
+T8  l'invite tue le dernier monstre et sort : les deux sont de retour en ville, une seule recompense, aux pieds de
+    l'invite, rien pour l'host, la zone est detruite
+T9  la boite chez l'host : sans reponse au bout de 15 secondes, puis Non ; l'invite lit le refus et joue seul dans
+    sa zone comme avant (il la simule), ressort, la quete est ratee pour lui seul
+T10 l'host a dit Oui puis rentre seul en ville avant la fin : l'invite garde la zone et sa quete continue ; il la
+    finit seul, ressort, recompense pour lui
+T11 recolte a deux : le compteur s'affiche des deux cotes, l'invite sort, les deux sacs sont fouilles, le karma
+    perdu est celui de l'invite
+
 Prendre la quete : les deux appels que fait le dialogue du jeu au choix « accepter » (DramaCustomSequence,
 etape _questAccept_instance), pas le dialogue lui-meme : le banc ne sait pas derouler un LayerDrama.
-T2 depend de T1 (la zone ou les deux se trouvent).
+Sortir de la zone : l'appel que fait Player.ExitBorder au bord de la carte, sans marcher jusqu'au bord ni passer
+par la boite « quitter ? » du jeu. T7 a T11 ne jouent pas non plus le dialogue de remerciement du donneur chez
+l'invite (le banc le ferme). T2 depend de T1, T8 de T7 (la zone ou les deux se trouvent).
 """
 import argparse
 import sys
@@ -27,9 +42,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 from bot import choices, click  # noqa: E402
 from mp_test import log, shot, state  # noqa: E402
-from quest_suite import fame, in_log, things_at_pc  # noqa: E402
+from quest_suite import fame, in_log, kept, offered, things_at_pc  # noqa: E402
 from travel_suite import (HOME, RESULTS, both_joined, check, client_settled, dismiss_dialogs, ev, eventually,  # noqa: E402
-                          log_has, marker, scan_logs, wait, zone_uid)
+                          leases, log_has, marker, players, scan_logs, wait, zone_uid)
 
 H, A = 27551, 27552
 
@@ -246,7 +261,283 @@ def t6(ctx):
     ev(A, 'foreach (var t in EClass.pc.things.Where(t => t.id == "bucket").ToList()) t.Destroy(); "ok"')
 
 
-TESTS = {"t1": t1, "t2": t2, "t3": t3, "t4": t4, "t5": t5, "t6": t6}
+# --- sens S2 : l'invite prend la quete, l'host l'accompagne
+
+STATUS = "EClass._zone.instance.status.ToString()"
+LEAVE = 'EClass.pc.MoveZone(EClass._zone.ParentZone); "ok"'
+QUEST_ZONES = 'EClass.game.spatials.map.Values.Count(z => z is Zone && ((Zone)z).IsInstance).ToString()'
+
+
+def karma(port):
+    return int(ev(port, "EClass.player.karma.ToString()"))
+
+
+def guest_takes(kind="QuestSubdue"):
+    """L'invite accepte la quete qu'un habitant propose (premier appel du dialogue). Renvoie (quete, donneur)."""
+    uid, giver = offer(kind)
+    wait(lambda: offered(A, uid), "l'invite voit la quete proposee", timeout=20)
+    dismiss_dialogs(A)
+    ev(A, f'var c = EClass._map.charas.Find(x => x.uid == {giver}); EClass.game.quests.Start(c.quest); "ok"')
+    # le joueur lit une ligne de dialogue entre les deux appels : l'host a note la quete avant le depart
+    wait(lambda: in_log(A, uid), "la quete est au journal de l'invite", timeout=20)
+    return uid, giver
+
+
+def guest_departs(uid, giver):
+    """L'invite part pour la zone de sa quete (second appel du dialogue)."""
+    dismiss_dialogs(A)
+    dismiss_dialogs(H)
+    ev(A, f'var q = EClass.game.quests.list.Find(x => x.uid == {uid}); var c = EClass._map.charas.Find(x => x.uid == {giver}); '
+          'var z = q.CreateInstanceZone(c); EClass.pc.MoveZone(z, ZoneTransition.EnterState.Center); "ok"')
+
+
+def host_box():
+    return ev(H, BOX)
+
+
+def host_asked(guest_name):
+    return eventually(lambda: guest_name in host_box() and len(choices(H)) == 2, timeout=30)
+
+
+def host_comes():
+    """L'host clique Oui : il entre dans la zone de la quete de l'invite, qui l'y suit. Renvoie la zone."""
+    click(H, choices(H)[0])
+
+    def inside():
+        dismiss_dialogs(H)
+        return state(H).get("sceneMode") == "Zone" and ev(H, "EClass._zone.IsInstance.ToString()") == "True"
+
+    wait(inside, "host dans la zone de la quete de l'invite", timeout=120)
+    zuid = int(ev(H, "EClass._zone.uid.ToString()"))
+    both_joined(H, A, zuid)
+    return zuid
+
+
+def together(ctx, kind="QuestSubdue"):
+    """L'invite prend une quete, l'host dit Oui : renvoie (quete, zone), ou None si la boite ne s'ouvre pas."""
+    uid, giver = guest_takes(kind)
+    guest_departs(uid, giver)
+    if not check("l'host voit la boite", host_asked(ctx["guest"])):
+        return None
+    return uid, host_comes()
+
+
+def guest_alone_inside():
+    def inside():
+        dismiss_dialogs(A)
+        return (state(A).get("sceneMode") == "Zone" and ev(A, "EClass._zone.IsInstance.ToString()") == "True"
+                and bool(state(A).get("awayZone")))
+
+    wait(inside, "l'invite seul dans la zone de sa quete", timeout=120)
+    time.sleep(4)
+    return int(ev(A, "EClass._zone.uid.ToString()"))
+
+
+def back_home():
+    """Les deux se retrouvent en ville, ensemble."""
+    def home():
+        dismiss_dialogs(H)
+        return zone_uid(H) == HOME
+
+    wait(home, "host de retour en ville", timeout=180)
+    both_joined(H, A, HOME)
+    time.sleep(4)
+    dismiss_dialogs(H)
+    dismiss_dialogs(A)
+
+
+def t7(ctx):
+    """l'invite part en quete, l'host voit la boite, clique Oui : les deux dans la zone simulee par l'host"""
+    a = ctx["a"]
+    ctx["h_things"] = things_at_pc(H)
+    uid, giver = guest_takes()
+    check("la quete est au journal de l'invite, l'host la garde pour lui, sans l'avoir au sien",
+          eventually(lambda: str(uid) in kept(a).split(","), timeout=10) and not in_log(H, uid))
+    known = int(ev(A, QUEST_ZONES))
+    guest_departs(uid, giver)
+    seen = host_asked(ctx["guest"])
+    check(f"l'host voit la boite Oui/Non au nom de l'invite ({host_box()!r}, {choices(H)})", seen)
+    line = ev(H, 'string.Format("emp_quest_follow_asked".lang(), EClass.pc.Name)')
+    check(f"l'invite lit « {line} »", eventually(lambda: log_has(A, line), timeout=10))
+    check("pendant la question l'invite est encore en ville avec l'host, pas en voyage seul", client_settled(A, HOME, False)())
+    if not seen:
+        guest_alone_inside()
+        ev(A, LEAVE)
+        back_home()
+        return
+    zuid = host_comes()
+    ctx.update(uid2=uid, zuid2=zuid)
+    check("l'invite est dans la zone de l'host, pas en voyage seul", client_settled(A, zuid, False)())
+    check(f"l'host n'a prete aucune zone a l'invite ({leases(H)})", leases(H) == 0)
+    there = lambda p: ev(p, CHARAS).split(",")  # noqa: E731
+    same = eventually(lambda: there(H) == there(A), timeout=20)
+    h, g = there(H), there(A)
+    check(f"memes personnages des deux cotes ({len(h)} chez l'host, {len(g)} chez l'invite)", same)
+    check("pas de doublon", len(set(h)) == len(h) and len(set(g)) == len(g))
+    n = int(ev(H, 'EClass._zone.events.GetEvent<ZoneEventSubdue>().enemies.Count.ToString()'))
+    check(f"les monstres de la quete ne sont apparus qu'une fois ({n} chez l'host)",
+          n > 0 and ev(A, 'var e = EClass._zone.events.GetEvent<ZoneEventSubdue>(); return e == null ? "-1" : e.enemies.Count.ToString();') == str(n))
+    check("la quete est au journal de l'invite, pas de l'host", in_log(A, uid) and not in_log(H, uid))
+    reads = 'var e = EClass._zone.events.GetEvent<ZoneEventSubdue>(); return (e != null && e.quest != null && e.quest.uid == %d).ToString();' % uid
+    check("chez l'host, la zone lit la quete de l'invite", ev(H, reads) == "True")
+    check(f"l'invite ne connait qu'une zone de quete de plus, celle de l'host, pas celle qu'il s'etait faite ({known} -> {ev(A, QUEST_ZONES)})",
+          int(ev(A, QUEST_ZONES)) == known + 1)
+    ev(H, 'EClass.game.Save(); "ok"')
+    check("une sauvegarde de l'host dans la zone ne touche a rien : la zone lit toujours la quete, rien au journal de l'host",
+          ev(H, reads) == "True" and not in_log(H, uid)
+          and ev(H, '(EClass._zone.instance as ZoneInstanceRandomQuest).uidQuest.ToString()') == str(uid))
+
+
+def t8(ctx):
+    """l'invite tue le dernier monstre et sort : retour a deux, une recompense, pour l'invite"""
+    a, uid, zuid = ctx["a"], ctx.get("uid2"), ctx.get("zuid2")
+    if not check("les deux sont dans la zone de la quete de l'invite (T7)", zuid is not None and zone_uid(H) == zuid and zone_uid(A) == zuid):
+        return
+    before = {"fh": fame(H), "fa": fame(A)}
+    last = int(ev(H, 'var e = EClass._zone.events.GetEvent<ZoneEventSubdue>(); '
+                     'var alive = e.enemies.Select(id => EClass._map.FindChara(id)).Where(c => c != null && !c.isDead).ToList(); '
+                     'foreach (var c in alive.Skip(1)) c.Die(); var m = alive[0]; m.hp = 1; m.AddCondition<ConParalyze>(5000, true); '
+                     'return m.uid.ToString();'))
+    eventually(lambda: ev(A, f'(EClass._map.charas.Find(x => x.uid == {last}) != null).ToString()') == "True", timeout=10)
+    spot = free_next_to(A, last)
+    if check(f"une case libre a cote du dernier monstre ({spot or 'non'})", bool(spot)):
+        x, z = spot.split(",")
+        ev(A, f'EClass.pc.Teleport(new Point({x}, {z}), true, true); "ok"')
+        time.sleep(3)
+    dead = lambda: ev(H, f'var m = EClass._map.charas.Find(x => x.uid == {last}); return (m == null || m.isDead).ToString();') == "True"  # noqa: E731
+    for _ in range(40):
+        if dead():
+            break
+        ev(A, f'var m = EClass._map.charas.Find(x => x.uid == {last}); if (m != null && !m.isDead) ACT.Melee.Perform(EClass.pc, m, m.pos); "ok"')
+        time.sleep(1.5)
+    check("l'invite tue le dernier monstre", dead())
+    check("la quete est reussie dans la zone de l'host", eventually(lambda: ev(H, STATUS) == "Success", timeout=15))
+    ev(A, LEAVE)
+    back_home()
+    check("l'invite sort : les deux sont de retour en ville, ensemble", zone_uid(H) == HOME and client_settled(A, HOME, False)())
+    check("la quete est rendue : sortie du journal de l'invite", eventually(lambda: not in_log(A, uid), timeout=25))
+    check("l'host ne la garde plus", eventually(lambda: str(uid) not in kept(a).split(","), timeout=10))
+    check(f"renommee pour l'invite ({before['fa']} -> {fame(A)})", eventually(lambda: fame(A) > before["fa"], timeout=10))
+    check("recompense aux pieds de l'invite", eventually(lambda: things_at_pc(H, a) > 0, timeout=10))
+    time.sleep(5)
+    dismiss_dialogs(A)
+    won = fame(A)
+    check(f"rien pour l'host : ni renommee ({before['fh']} -> {fame(H)}), ni quete, ni recompense a ses pieds",
+          fame(H) == before["fh"] and not in_log(H, uid) and things_at_pc(H) == ctx.get("h_things", 0))
+    time.sleep(5)
+    check(f"une seule recompense : la renommee de l'invite ne monte pas une seconde fois ({won} -> {fame(A)})", fame(A) == won)
+    ev(H, 'EClass.game.Save(); "ok"')
+    check("la zone de la quete n'existe plus chez l'host apres sa sauvegarde",
+          ev(H, f'(EClass.game.spatials.Find({zuid}) == null).ToString()') == "True")
+
+
+def t9(ctx):
+    """la boite chez l'host : sans reponse, puis Non ; l'invite joue seul comme avant"""
+    a = ctx["a"]
+    for key, button in (("emp_quest_follow_no_answer", None), ("emp_quest_follow_declined", 1)):
+        uid, giver = guest_takes()
+        line = ev(H, f'string.Format("{key}".lang(), EClass.pc.Name)')
+        guest_departs(uid, giver)
+        if check("l'host voit la boite", host_asked(ctx["guest"])):
+            if button is None:
+                check("sans reponse, la boite se ferme toute seule (15 secondes)", eventually(lambda: host_box() == "", timeout=25))
+            else:
+                click(H, choices(H)[button])
+            check(f"l'invite lit « {line} »", eventually(lambda: log_has(A, line), timeout=15))
+        zuid = guest_alone_inside()
+        check("l'invite est seul dans la zone de sa quete et la simule, l'host est reste en ville",
+              client_settled(A, zuid, True)() and zone_uid(H) == HOME and host_box() == "")
+        check("la zone suit la quete (des monstres a subjuguer), l'host la lui garde",
+              ev(A, 'var e = EClass._zone.events.GetEvent<ZoneEventSubdue>(); return (e != null && e.quest != null && e.enemies.Count > 0).ToString();') == "True"
+              and str(uid) in kept(a).split(",") and not in_log(H, uid))
+        before = {"fa": fame(A), "fh": fame(H)}
+        ev(A, LEAVE)
+        back_home()
+        check("l'invite ressort sans rien tuer : quete ratee, sortie de son journal, l'host ne la garde plus",
+              eventually(lambda: not in_log(A, uid), timeout=20) and eventually(lambda: str(uid) not in kept(a).split(","), timeout=10))
+        check(f"pour lui seul ({before['fa']} -> {fame(A)}, host {before['fh']} -> {fame(H)})",
+              fame(A) <= before["fa"] and fame(H) == before["fh"])
+        check("la zone n'existe plus chez l'host", ev(H, f'(EClass.game.spatials.Find({zuid}) == null).ToString()') == "True")
+
+
+def t10(ctx):
+    """l'host a dit Oui puis rentre seul avant la fin : la quete de l'invite continue, il la finit seul
+    Ce que le banc ne joue pas comme un joueur : les monstres sont tues d'un appel, pas au combat"""
+    a = ctx["a"]
+    r = together(ctx)
+    if r is None:
+        guest_alone_inside()
+        ev(A, LEAVE)
+        back_home()
+        return
+    uid, zuid = r
+    before = {"fa": fame(A), "fh": fame(H)}
+    n = int(ev(H, 'EClass._zone.events.GetEvent<ZoneEventSubdue>().enemies.Count.ToString()'))
+    dismiss_dialogs(H)
+    ev(H, LEAVE)
+
+    def host_home():
+        dismiss_dialogs(H)
+        return zone_uid(H) == HOME
+
+    wait(host_home, "host de retour en ville, seul", timeout=180)
+    check("l'invite reste dans la zone et la garde", eventually(client_settled(A, zuid, True), timeout=60))
+    time.sleep(4)
+    dismiss_dialogs(A)
+    check("l'host est seul en ville", eventually(lambda: players(H) == 1, timeout=15))
+    check("la quete de l'invite continue : au journal, en cours, gardee par l'host, la zone existe toujours chez lui",
+          in_log(A, uid) and ev(A, STATUS) == "Running" and str(uid) in kept(a).split(",")
+          and ev(H, f'(EClass.game.spatials.Find({zuid}) != null).ToString()') == "True")
+    alive = ('var e = EClass._zone.events.GetEvent<ZoneEventSubdue>(); return e == null ? "-1" : '
+             'e.enemies.Select(id => EClass._map.FindChara(id)).Count(c => c != null && !c.isDead).ToString();')
+    check(f"les monstres de la quete sont toujours la chez l'invite ({ev(A, alive)} sur {n})", ev(A, alive) == str(n))
+    check(f"rien de regle ({before['fa']} -> {fame(A)}, host {before['fh']} -> {fame(H)})", fame(A) == before["fa"] and fame(H) == before["fh"])
+    ev(A, 'var e = EClass._zone.events.GetEvent<ZoneEventSubdue>(); foreach (var id in e.enemies.ToList()) '
+          '{ var c = EClass._map.FindChara(id); if (c != null) c.Die(); } e.CheckClear(); "ok"')
+    check("l'invite finit seul : la quete est reussie", eventually(lambda: ev(A, STATUS) == "Success", timeout=10))
+    ev(A, LEAVE)
+    back_home()
+    check("il ressort et retrouve l'host : la quete est rendue", eventually(lambda: not in_log(A, uid), timeout=25))
+    check(f"renommee pour l'invite ({before['fa']} -> {fame(A)}), pas pour l'host",
+          eventually(lambda: fame(A) > before["fa"], timeout=10) and fame(H) == before["fh"])
+    check("l'host ne la garde plus et la zone n'existe plus",
+          eventually(lambda: str(uid) not in kept(a).split(","), timeout=10)
+          and ev(H, f'(EClass.game.spatials.Find({zuid}) == null).ToString()') == "True")
+
+
+def t11(ctx):
+    """recolte a deux : compteur des deux cotes, l'invite sort, les deux sacs sont fouilles, karma de l'invite
+    Ce que le banc ne joue pas comme un joueur : les recoltes « de la quete » sont mises dans les sacs par l'host (marque 115)"""
+    a = ctx["a"]
+    r = together(ctx, "QuestHarvest")
+    if r is None:
+        guest_alone_inside()
+        ev(A, LEAVE)
+        back_home()
+        return
+    uid, zuid = r
+    text = 'var e = EClass._zone.events.GetEvent<ZoneEventHarvest>(); return e == null ? "pas d evenement" : e.TextWidgetDate;'
+    th, ta = ev(H, text), ev(A, text)
+    check(f"le compteur de la recolte s'affiche des deux cotes (host {th!r}, invite {ta!r})", len(th) > 0 and th == ta)
+    ev(H, f'foreach (var c in new[] {{ EClass.pc, EClass._map.charas.Find(x => x.uid == {a}) }}) for (var i = 0; i < 30; i++) {{ '
+          'var t = ThingGen.Create("bucket"); t.SetBool(115, true); c.AddThing(t, false); } "ok"')
+    mine = 'EClass.pc.things.Count(t => t.id == "bucket").ToString()'
+    check("30 recoltes non livrees dans chaque sac", eventually(lambda: int(ev(A, mine)) >= 30 and int(ev(H, mine)) >= 30, timeout=15))
+    n = {"a": int(ev(A, mine)), "h": int(ev(H, mine))}
+    k = {"a": karma(A), "h": karma(H)}
+    ev(A, LEAVE)
+    back_home()
+    check(f"une partie des recoltes de l'invite a ete reprise, pas tout ({n['a']} -> {ev(A, mine)})",
+          eventually(lambda: n["a"] - 30 < int(ev(A, mine)) < n["a"], timeout=15))
+    check(f"celles de l'host aussi ({n['h']} -> {ev(H, mine)})", n["h"] - 30 < int(ev(H, mine)) < n["h"])
+    check("la quete (rien de livre) est ratee et sortie du journal de l'invite", eventually(lambda: not in_log(A, uid), timeout=25))
+    check(f"l'invite perd 1 de karma ({k['a']} -> {karma(A)}), pas l'host ({k['h']} -> {karma(H)})",
+          eventually(lambda: karma(A) == k["a"] - 1, timeout=10) and karma(H) == k["h"])
+    for port in (H, A):
+        ev(port, 'foreach (var t in EClass.pc.things.Where(t => t.id == "bucket").ToList()) t.Destroy(); "ok"')
+
+
+TESTS = {"t1": t1, "t2": t2, "t3": t3, "t4": t4, "t5": t5, "t6": t6, "t7": t7, "t8": t8, "t9": t9, "t10": t10, "t11": t11}
 
 
 def main():
@@ -263,6 +554,8 @@ def main():
         try:
             if "host" not in ctx:
                 ctx["host"] = ev(H, "EClass.pc.Name")
+                ctx["guest"] = ev(A, "EClass.pc.Name")
+                ctx["a"] = state(A)["pc"]["uid"]
                 both_joined(H, A, HOME)
             test(ctx)
         except Exception as ex:  # noqa: BLE001

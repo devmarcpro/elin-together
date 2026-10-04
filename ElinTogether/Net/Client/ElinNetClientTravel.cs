@@ -78,6 +78,19 @@ internal partial class ElinNetClient
         if (pc.currentZone?.instance is { } instance) {
             zone = game.spatials.Find(instance.uidZone) ?? pc.homeZone;
 
+            // the zone of our quest, run by the host who came along: it takes everyone out, and tells us how
+            // the quest went on the way, see ElinNetHost.LeaveAccompaniedZone
+            if (!Session.IsAway && PersonalQuests.InstancesEnabled &&
+                instance is ZoneInstanceRandomQuest { uidQuest: not 0 } ours &&
+                game.quests.list.Exists(q => q.uid == ours.uidQuest && PersonalQuests.IsPersonal(q))) {
+                Delta.AddRemote(new QuestFollowDelta {
+                    Kind = QuestFollowDelta.Leave,
+                    Name = pc.Name,
+                    ZoneUid = pc.currentZone.uid,
+                });
+                return false;
+            }
+
             // how the quest went is settled now: where we arrive may be someone else's map
             PersonalQuests.LeaveInstance(pc.currentZone);
         }
@@ -538,6 +551,18 @@ internal partial class ElinNetClient
         EmpLog.Information("Zone lease {ZoneUid} denied: {Reason}",
             denied.ZoneUid, denied.Reason);
 
+        // not a refusal: the host comes along to our quest and makes its zone itself. The one made here must
+        // not be found in its place (it has our quest but none of what the host put in the zone), we follow
+        // the host into its own
+        if (denied.Reason == QuestFollowDelta.Coming) {
+            if (_pendingTravel is { } asked && asked.Zone.uid == denied.ZoneUid && _pendingGrant is null) {
+                _pendingTravel = null;
+                ForgetLocalZone(asked.Zone);
+            }
+
+            return;
+        }
+
         // out of the zone of a quest there is no staying: it is over, back to the host
         if (Session.IsAway && pc.currentZone?.IsInstance == true && _pendingGrant is null && !_rejoining) {
             _pendingTravel = null;
@@ -562,6 +587,20 @@ internal partial class ElinNetClient
             _pendingGrant = null;
             SendRejoin();
         }
+    }
+
+    /// <summary>
+    ///     A zone made here that nobody will ever enter: out of the world, as if never made
+    /// </summary>
+    private void ForgetLocalZone(Zone zone)
+    {
+        _localZones.Remove(zone);
+
+        if (game.spatials.map.TryGetValue(zone.uid, out var known) && known == zone) {
+            game.spatials.map.Remove(zone.uid);
+        }
+
+        zone.parent?.RemoveChild(zone);
     }
 
     /// <summary>

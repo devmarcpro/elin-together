@@ -68,6 +68,23 @@ internal static class PersonalQuests
         instance.uidQuest = 0;
     }
 
+    /// <summary>
+    ///     The host came along and ran the zone of our quest (see ElinNetHost.AskAlongToQuestZone): it tells how
+    ///     the quest went as everyone leaves, and it is settled here like one we ran alone, once we stand in town
+    /// </summary>
+    internal static void OnHostSettled(int questUid, int giver, bool failed)
+    {
+        if (!InstancesEnabled || EClass.game?.quests?.list.Exists(q => q.uid == questUid && IsPersonal(q)) != true) {
+            return;
+        }
+
+        _outcome = (questUid, giver, failed);
+
+        // what the host keeps of this quest lands again when we settle in town: not before
+        _stateFresh = false;
+        _settleDeadline = 0f;
+    }
+
     private static void SettleOutcome()
     {
         if (_outcome is not { } outcome || EClass._zone.IsInstance ||

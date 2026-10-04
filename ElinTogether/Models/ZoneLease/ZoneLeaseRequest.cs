@@ -66,6 +66,16 @@ public class LeaseZoneBlueprint
     [Key(7)]
     public bool Instance { get; set; }
 
+    /// <summary>
+    ///     The quest that zone is for and who gave it: with these the host can make the zone itself and run it,
+    ///     when it comes along (see ElinNetHost.AskAlongToQuestZone)
+    /// </summary>
+    [Key(8)]
+    public int QuestUid { get; set; }
+
+    [Key(9)]
+    public int GiverUid { get; set; }
+
     public static LeaseZoneBlueprint Create(Zone zone)
     {
         return new() {
@@ -77,6 +87,8 @@ public class LeaseZoneBlueprint
             ZoneState = ZoneLeaseState.GetState(zone),
             IdCurrentSubset = zone.idCurrentSubset,
             Instance = zone.IsInstance,
+            QuestUid = (zone.instance as ZoneInstanceRandomQuest)?.uidQuest ?? 0,
+            GiverUid = (zone.instance as ZoneInstanceRandomQuest)?.uidClient ?? 0,
         };
     }
 }
