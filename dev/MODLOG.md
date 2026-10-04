@@ -1874,3 +1874,28 @@ Pièges de test notés ce jour-là :
   chemin `C:\Users\steamdeckwin\Documents\ElinMods\<dossier>` est gardé comme raccourci (jonction) vers G: : les
   deux chemins marchent. La mémoire de Claude a été copiée pour une session ouverte depuis `G:\ElinMods`. Vérifié :
   `git status`, `dev/build.ps1`. C: 7,4 → 9,3 Go libres.
+- **Conseil 3, quêtes à donjon jouées à deux** (plan : `PLAN_quetes_donjon_a_deux.md`, la zone est simulée par
+  l'host dans les deux sens) :
+  - *Le geste* — verdict : **une boîte Oui/Non chez l'autre joueur** quand l'un part en quête (« X part en quête :
+    l'accompagner ? La récompense revient à X »), 15 s, sans réponse = non ; le demandeur voit le refus ; pas de
+    boîte si l'autre a déjà une quête à donjon ouverte ou un échange en cours. Écarté : emmener d'office, bouton
+    d'onglet seul, clic sur le donneur.
+  - *La récompense* — verdict : **tout au preneur, comme en solo** ; l'accompagnant garde son butin et son
+    expérience ; la confiscation de la récolte vaut pour les deux sacs. Écarté : partage, récompense en double.
+  - *Les sorties* — verdict : **le preneur sort, tout le monde sort**, quête réglée une fois, chez le preneur,
+    derrière un verrou côté host ; l'accompagnant peut rentrer seul en ville, sans règlement. Écarté : rester sans
+    le preneur, interdire la sortie seul.
+  - *La case* — verdict : **pas de nouvelle case**, actif avec « voyage indépendant » et « quêtes par joueur ».
+  - À faire d'abord selon le président : prouver à deux fenêtres qu'un accompagnant entre dans la zone simulée par
+    l'host et en ressort seul vers la ville, dans les deux sens.
+- **Trois lots écrits par des agents en parallèle (0h → 0h20), rangés sur la branche `wip/lots-non-compiles`** : gestes
+  tenus en main rejoués chez l'host (ticket de meuble, seringues, stéthoscope, laisse, puits ; union 817) ; appel à
+  l'aide, abattage, dieu quitté, source chaude ; quêtes à donjon à deux, sens « l'host a la quête » (union 819, boîte
+  Oui/Non). Ils compilent, le jeu se lance, un invité se connecte. `equal2_suite` lancée une fois : 19/25 (dieu
+  quitté vert ; abattage, source chaude et appel du fanatique rouges ; une `NullReferenceException` dans
+  `CharaTickDelta` chez l'host pendant l'abattage). `guest_suite` G33–G35 et `together_suite` jamais lancées.
+  Relecture des deux premiers lots faite (remarques dans `HANDOFF.md`), pas du troisième.
+- **Chasse aux différences** (agent, lecture seule) : 28 entrées dans `PLAN_chasse_differences.md`, rien de joué.
+- **Passation** : `HANDOFF.md` et `PROMPT_reprise.md` réécrits ; la session suivante s'ouvre depuis `G:\ElinMods`.
+  L'utilisateur a demandé d'arrêter les demandes d'autorisation : elles venaient du déplacement (G: était hors des
+  dossiers de la session) ; le mode « sans demande » de l'application n'est pas disponible depuis la session.

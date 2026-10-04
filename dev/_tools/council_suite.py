@@ -167,7 +167,7 @@ def c4(ctx):
     try:
         # l'host a deja eu les deux cadeaux de ce dieu : pour le jeu, ce monde n'a plus rien a donner
         ev(H, f'{god}.giftRank = 2; "ok"')
-        ev(port, f'{god}.JoinFaith(EClass.pc); EClass.pc.elements.SetBase(85, 40); "ok"')
+        ev(port, f'{god}.JoinFaith(EClass.pc, Religion.ConvertType.Campaign); EClass.pc.elements.SetBase(85, 40); "ok"')
         ok = eventually(lambda: ev(H, f'var c = {chara(H, uid)}; return c.faith.id + "/" + c.Evalue(85);') == "healing/40", timeout=15)
         if not check("l'invite suit ce dieu, avec assez de piete (vu par l'host)", ok):
             return
@@ -188,7 +188,8 @@ def c4(ctx):
               ev(H, f"{god}.giftRank.ToString()") == "2")
     finally:
         ev(H, f'{god}.giftRank = {rank}; "ok"')
-        ev(port, f'EClass.game.religions.Find("{was}").JoinFaith(EClass.pc); "ok"')
+        # retour a son dieu d'avant sans colere du dieu quitte (conversion "de campagne")
+        ev(port, f'EClass.game.religions.Find("{was}").JoinFaith(EClass.pc, Religion.ConvertType.Campaign); "ok"')
 
 
 TRAP = ('var row = EClass.sources.things.rows.FirstOrDefault(x => x.trait != null && x.trait.Length > 0 && x.trait[0] == "Trap" '

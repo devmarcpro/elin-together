@@ -9,7 +9,7 @@ joueurs**. Chacun va où il veut, avec ses compagnons, et le monde (quêtes, bas
 - Journal détaillé (pièges, essais, dates) : `MODLOG.md`. Ce document-ci dit ce qui existe et comment s'en servir.
 - Les chemins `_tools/`, `_lab/`, `_shots/`, `_release/` de ce document sont relatifs à `dev/`. Le journal parle
   encore de `Documents\ElinMods\` : c'était leur place avant le 2026-10-02.
-- État : 2026-10-04 soir (voir `HANDOFF.md` pour le détail à jour).
+- État : 2026-10-05, 0h20 (voir `HANDOFF.md` pour le détail à jour). Dossier de travail : `G:\ElinMods`.
 
 ## 1. Ce que le fork apporte, vu du joueur
 
@@ -340,8 +340,9 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
 
 ## 7. Reste à faire
 
-État au 2026-10-04, 22h. La liste à jour, dans l'ordre, est « À faire ensuite » de `HANDOFF.md` ; ce qui suit
-est un résumé. Détail de chaque point : `PLAN_retours_partie_reelle.md` et la fin de `MODLOG.md`.
+État au 2026-10-05, 0h20. **La liste à jour, dans l'ordre, est « À faire ensuite » de `HANDOFF.md`** (branches
+`fix/points-restants` et `wip/lots-non-compiles`, quêtes à donjon à deux : `PLAN_quetes_donjon_a_deux.md`, autres
+différences trouvées : `PLAN_chasse_differences.md`) ; ce qui suit date du 2026-10-04 à 22h et reste un résumé. Détail de chaque point : `PLAN_retours_partie_reelle.md` et la fin de `MODLOG.md`.
 
 **Fait (voir le tableau de la section 1 et `MODLOG.md`, 2026-10-03 et 2026-10-04) :** les cinq corrections de la
 première vraie partie ; déplacements fluides d'un invité (`move_suite`) ; rejoindre avec un personnage d'une
