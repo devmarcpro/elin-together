@@ -1491,3 +1491,14 @@ Pièges de test notés ce jour-là :
 
 - Contrôle sur le build du dépôt : recruit 45/45, chara 11/11, depot 11/11, travel 54/54, leave 13/13 (un premier
   passage à 12/13 : l'host est arrivé par hasard à deux cases de l'invité, qui était bien resté à sa place).
+
+### Version 0.26.382 publiée (2026-10-04, 16h05) — reprendre ici
+- `make_release.ps1` sur `88d435b` : **mod 0.26.382**, 1 098 852 octets, préversion `independance-0.26.382`, fichier
+  public identique (SHA-256 `300707c9…baab8e`), copie `_release/ElinTogether-independance-0.26.382.zip`. Chargée une
+  fois en jeu (0 exception). Nouveau depuis 0.26.375 : dépôt de sauvegarde, colis et chance du jour chez le
+  gardien seulement, charisme du dompteur.
+- **Le jeu de cette machine a la version publiée 0.26.382** (build Release laissé par `make_release.ps1`).
+- Page des versions : 0.26.375, 0.26.366, 0.26.362, 0.26.349, 0.26.337, 0.26.309 y sont encore.
+- À faire avec l'utilisateur : essayer le dépôt entre deux PC (dossier synchronisé), décider s'il faut le
+  relais sans coupure et un programme à la place du dossier. Sinon, liste du point 5 (plan B du retour de
+  l'host, profil de mods, touche « signaler un problème », bot de soirée, faux réseau lent).
