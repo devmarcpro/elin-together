@@ -1381,3 +1381,15 @@ Pièges de test notés ce jour-là :
 - Plan du serveur « dépôt de sauvegarde » écrit d'après un recensement en lecture seule de tout ce qui dépend
   du jeu de l'host : `PLAN_serveur_depot.md`. **Rien de codé, à valider par l'utilisateur.**
 
+### Version 0.26.366 publiée (2026-10-04, 5h50) — reprendre ici
+- `make_release.ps1` sur `dc879ba` : **mod 0.26.366**, 1 092 122 octets, pas de `.pdb`. Préversion
+  `independance-0.26.366`, fichier public identique au zip local (SHA-256 `6db1f695…2c7187`). Copie gardée :
+  `_release/ElinTogether-independance-0.26.366.zip`. Elle remplace la 0.26.362 (publiée à 5h15), qui ne listait
+  pas les sauvegardes du nuage Steam. Chargée une fois en jeu (écran titre, 0 exception), son remis à l'identique.
+- **Le jeu de cette machine a la version publiée 0.26.366.** Avant de reprendre les tests : `dev/build.ps1`.
+- Page des versions : `independance-0.26.362`, `-0.26.349`, `-0.26.337`, `-0.26.309` y sont encore. Aucune ne se
+  connecte à la 0.26.366 ; la 0.26.362 n'a plus d'intérêt. **À retirer si l'utilisateur le veut** (pas fait
+  sans lui).
+- La liste « À faire ensuite » de la section précédente reste vraie, avec en plus : valider avec lui
+  `PLAN_serveur_depot.md` (cinq décisions) avant de commencer le temps du monde commun.
+
