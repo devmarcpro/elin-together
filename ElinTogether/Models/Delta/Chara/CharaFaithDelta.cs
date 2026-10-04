@@ -1,4 +1,5 @@
 using ElinTogether.Net;
+using ElinTogether.Patches;
 using MessagePack;
 
 namespace ElinTogether.Models;
@@ -11,6 +12,12 @@ public class CharaFaithDelta : ElinDelta
 
     [Key(1)]
     public required string FaithId { get; init; }
+
+    /// <summary>
+    ///     The campaign's conversion (Religion.ConvertType.Campaign): no punishment, the days with the god go on
+    /// </summary>
+    [Key(2)]
+    public bool Campaign { get; init; }
 
     protected override void OnApply(ElinNetBase net)
     {
@@ -36,12 +43,30 @@ public class CharaFaithDelta : ElinDelta
             }
 
             using var _ = Simulate();
+            // leaving a god is punished for "the player" only (Religion.LeaveFaith): the player's own game ran it
+            // and its effects were overwritten, so the host does it, once. The same exceptions as the game's:
+            // the campaign, no god, and between the two minor gods that are kin. The player's own game reads the lines
+            var old = chara.faith;
+            var trickery = game.religions.Trickery;
+            var moon = game.religions.MoonShadow;
+            if (!Campaign && !old.IsEyth && !(old == trickery && religion == moon) && !(old == moon && religion == trickery)) {
+                using var quiet = MsgRelayContext.Suppress();
+                old.Punish(chara);
+            }
+
             religion.JoinFaith(chara);
+            if (!Campaign) {
+                chara.c_daysWithGod = 0;
+            }
+
             net.Delta.AddRemote(this);
             return;
         }
 
         // client sim
         religion.JoinFaith(chara);
+        if (!Campaign) {
+            chara.c_daysWithGod = 0;
+        }
     }
 }

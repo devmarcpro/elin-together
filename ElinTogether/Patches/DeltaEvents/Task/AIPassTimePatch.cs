@@ -45,7 +45,11 @@ internal static class AIPassTimePatch
                 Heal(owner);
 
                 if (i == 50 && owner.pos.IsHotSpring && (!owner.IsPCC || owner.pccData.state == PCCState.Undie)) {
-                    owner.AddCondition<ConHotspring>(EClass._zone.elements.Has(3701) ? 150 : 100)?.SetPerfume();
+                    // the game gives it to the whole group of "the player": here the player and its companions
+                    var power = EClass._zone.elements.Has(3701) ? 150 : 100;
+                    foreach (var member in CompanionHelper.CompanionsOf(owner).Prepend(owner)) {
+                        member.AddCondition<ConHotspring>(power)?.SetPerfume();
+                    }
                 }
             }
 
