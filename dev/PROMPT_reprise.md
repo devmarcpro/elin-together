@@ -1,6 +1,7 @@
 # Message de départ pour une nouvelle session
 
-À coller tel quel dans une nouvelle session ouverte dans **`G:\ElinMods`** (le dossier a été déplacé le 2026-10-04 ;
+Pour un travail **sans arrêt**, tape `/loop` puis colle le texte ci-dessous juste après, dans une nouvelle session
+ouverte dans **`G:\ElinMods`** (le dossier a été déplacé le 2026-10-04 ;
 `C:\Users\steamdeckwin\Documents\ElinMods` n'est plus qu'un raccourci vers lui).
 
 ---
@@ -63,7 +64,14 @@ Workshop notés dans `MODLOG.md`. Ne rends pas la main tant qu'il reste une diff
 
 ## Comment travailler
 
-- **Travaille en continu, sans t'arrêter et sans me demander d'autorisation : j'autorise tout.** Si l'application
+- **Travail non-stop : tu ne t'arrêtes jamais de toi-même dans cette session.** Tu ne finis pas un tour en
+  attendant ma réponse, tu ne me proposes pas de choisir, tu ne dis pas « je reprends quand tu veux ». Un résumé
+  n'est pas une fin : tu l'écris et tu continues dans le même élan. Pendant que des agents ou des tests tournent en
+  fond, avance sur autre chose (le point suivant, la documentation, une relecture) ; si vraiment tout attend,
+  programme ton propre réveil (boucle `/loop` à rythme libre) au lieu de rendre la main. Quand une liste est finie,
+  tu en ouvres une autre (étape E). Seules raisons de t'arrêter : je te le dis, ou une action irréversible sur mes
+  sauvegardes demande mon accord.
+- **Sans me demander d'autorisation : j'autorise tout.** Si l'application
   affiche encore des demandes de confirmation, dis-le-moi une seule fois (je changerai le mode moi-même) et continue.
 - **Décisions de conception** (plusieurs options défendables, effet sur l'équité entre joueurs ou sur la
   sauvegarde) : tranche avec le skill `llm-council`, puis applique. Avant le conseil, lis le code et donne aux
