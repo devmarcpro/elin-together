@@ -49,6 +49,11 @@
             <HintPath Condition="Exists('$(SteamContentPath)\2135150\3400020753')">$(SteamContentPath)\2135150\3400020753\YKFramework.dll</HintPath>
             <Private>false</Private>
         </Reference>
+        <!-- ZipArchive, to read a Steam Cloud save inside its archive (Helper/CharaImport.cs): the game ships it -->
+        <Reference Include="System.IO.Compression">
+            <HintPath>$(ElinGamePath)\Elin_Data\Managed\System.IO.Compression.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
     </ItemGroup>
     <ItemGroup>
         <PackageReference Include="GitVersion.MsBuild" Version="6.8.2">

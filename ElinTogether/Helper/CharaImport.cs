@@ -27,21 +27,44 @@ internal static class CharaImport
     internal record Imported(Chara Chara, int Fame, int Karma, string Source);
 
     /// <summary>
-    ///     The most recent local saves this game can read
+    ///     The most recent saves of this player the game can read, local ones and Steam Cloud ones
     /// </summary>
     internal static List<GameIndex> Saves()
     {
-        try {
-            // the last ones written first: the date a save carries is the one of its world, a copy keeps it
-            return GameIO.GetGameList(CorePath.RootSave)
-                .Where(index => !index.isBackup && File.Exists(Path.Combine(index.path, "game.txt")) && Readable(index))
-                .OrderByDescending(index => File.GetLastWriteTimeUtc(Path.Combine(index.path, "game.txt")))
-                .Take(MaxSaves)
-                .ToList();
-        } catch (Exception ex) {
-            EmpLog.Warning(ex, "Could not list the local saves");
-            return [];
+        var saves = new List<GameIndex>();
+        foreach (var root in new[] { CorePath.RootSave, CorePath.RootSaveCloud }) {
+            try {
+                saves.AddRange(GameIO.GetGameList(root).Where(index => !index.isBackup && DataFile(index) is not null && Readable(index)));
+            } catch (Exception ex) {
+                EmpLog.Warning(ex, "Could not list the saves of {Root}", root);
+            }
         }
+
+        // the last ones written first: the date a save carries is the one of its world, a copy keeps it
+        return saves
+            .OrderByDescending(index => File.GetLastWriteTimeUtc(DataFile(index)!))
+            .Take(MaxSaves)
+            .ToList();
+    }
+
+    /// <summary>
+    ///     Where the game of a save is: its game.txt, or the archive a Steam Cloud save is kept in between two
+    ///     sessions (the game unpacks it in place when it loads the save, which this never does)
+    /// </summary>
+    private static string? DataFile(GameIndex index)
+    {
+        var plain = Path.Combine(index.path, "game.txt");
+        if (File.Exists(plain)) {
+            return plain;
+        }
+
+        var packed = Path.Combine(index.path, "cloud.zip");
+        return File.Exists(packed) ? packed : null;
+    }
+
+    private static bool IsCloud(GameIndex index)
+    {
+        return Path.GetFullPath(index.path).StartsWith(Path.GetFullPath(CorePath.RootSaveCloud), StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool Readable(GameIndex index)
@@ -56,11 +79,16 @@ internal static class CharaImport
     internal static string Label(GameIndex index)
     {
         try {
-            return $"{index.pcName} - {index.zoneName}, {index.RealDate} ({index.id})";
+            return $"{index.pcName} - {index.zoneName}, {index.RealDate} ({Id(index)})";
         } catch {
             // an index without its dates
-            return $"{index.pcName} ({index.id})";
+            return $"{index.pcName} ({Id(index)})";
         }
+    }
+
+    private static string Id(GameIndex index)
+    {
+        return IsCloud(index) ? $"Steam Cloud {index.id}" : index.id;
     }
 
     /// <summary>
@@ -69,7 +97,6 @@ internal static class CharaImport
     /// </summary>
     internal static Imported? Read(GameIndex index)
     {
-        var path = Path.Combine(index.path, "game.txt");
         var instance = Game.Instance;
         var fallback = new Dictionary<string, string>(ModUtil.fallbackTypes);
         try {
@@ -77,14 +104,14 @@ internal static class CharaImport
                 ModUtil.fallbackTypes[type] = other;
             }
 
-            var save = JsonConvert.DeserializeObject<Game>(ReadText(path), GameIO.jsReadGame);
+            var save = JsonConvert.DeserializeObject<Game>(ReadText(index), GameIO.jsReadGame);
             if (save?.player is null || save.cards.globalCharas.Find(save.player.uidChara) is not { } chara) {
                 EmpLog.Warning("Save {Id} has no player character", index.id);
                 return null;
             }
 
             Detach(chara);
-            return new(chara, save.player.fame, save.player.karma, $"{index.id}/{save.player.uidChara}/{chara.Name}");
+            return new(chara, save.player.fame, save.player.karma, $"{Id(index)}/{save.player.uidChara}/{chara.Name}");
         } catch (Exception ex) {
             EmpLog.Warning(ex, "Could not read the character of save {Id}", index.id);
             return null;
@@ -97,17 +124,50 @@ internal static class CharaImport
         }
     }
 
-    private static string ReadText(string path)
+    private static string ReadText(GameIndex index)
     {
+        var path = DataFile(index) ?? throw new FileNotFoundException("no game.txt nor cloud.zip", index.path);
         using var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-        if (!IO.IsCompressed(path)) {
-            using var plain = new StreamReader(file, Encoding.UTF8);
+        using var bytes = new MemoryStream();
+        if (path.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)) {
+            using var zip = new ZipArchive(file, ZipArchiveMode.Read);
+            var entry = zip.GetEntry("game.txt") ?? throw new FileNotFoundException("no game.txt in cloud.zip", path);
+            using var packed = entry.Open();
+            packed.CopyTo(bytes);
+        } else {
+            file.CopyTo(bytes);
+        }
+
+        bytes.Position = 0;
+        if (!IsCompressed(bytes)) {
+            using var plain = new StreamReader(bytes, Encoding.UTF8);
             return plain.ReadToEnd();
         }
 
-        using var lz4 = new LZ4Stream(file, CompressionMode.Decompress);
+        using var lz4 = new LZ4Stream(bytes, CompressionMode.Decompress);
         using var reader = new StreamReader(lz4);
         return reader.ReadToEnd();
+    }
+
+    /// <summary>
+    ///     IO.IsCompressed on bytes already read: a save that does not start like JSON is LZ4
+    /// </summary>
+    private static bool IsCompressed(MemoryStream bytes)
+    {
+        try {
+            int b;
+            while ((b = bytes.ReadByte()) != -1) {
+                if (b is 9 or 10 or 13 or 32) {
+                    continue;
+                }
+
+                return !(b is 34 or 45 or (>= 48 and <= 57) or 91 or 102 or 110 or 116 or 123);
+            }
+
+            return false;
+        } finally {
+            bytes.Position = 0;
+        }
     }
 
     /// <summary>

@@ -133,11 +133,39 @@ def choice():
     chara_suite.in_game()
 
 
+def imported():
+    """Rejoindre avec le personnage d'une sauvegarde : l'ecran de choix, la liste, puis en jeu."""
+    import import_suite
+    from combat_suite import set_option
+    from mp_test import PRISTINE
+    shutil.rmtree(import_suite.SOLO, ignore_errors=True)
+    shutil.copytree(PRISTINE, import_suite.SOLO, copy_function=shutil.copy)
+    set_option("ImportCharacter", True)
+    try:
+        time.sleep(2)
+        chara_suite.leave()
+        chara_suite.connect()
+        time.sleep(1)
+        snap("14-choix-avec-un-personnage-d-une-sauvegarde", A)
+        import_suite.pick(import_suite.IMPORT)
+        wait(lambda: any("(world_import)" in c for c in import_suite.choices()), "liste des sauvegardes", timeout=30, every=1.0)
+        time.sleep(1)
+        snap("15-liste-de-mes-sauvegardes", A)
+        import_suite.pick("(world_import)")
+        chara_suite.in_game()
+        dismiss_dialogs(A)
+        time.sleep(2)
+        snap("16-personnage-importe-en-jeu", A)
+    finally:
+        set_option("ImportCharacter", False)
+        shutil.rmtree(import_suite.SOLO, ignore_errors=True)
+
+
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
     OUT.mkdir(exist_ok=True)
     only = sys.argv[1:]
-    for fn in (options, trade, standing, quests, choice):
+    for fn in (options, trade, standing, quests, choice, imported):
         if not only or fn.__name__ in only:
             log(f"--- {fn.__name__}")
             step(fn)

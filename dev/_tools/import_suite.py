@@ -14,6 +14,8 @@ I2  il choisit world_import : il joue ce personnage (nom, niveau, or, equipement
 I3  il revient et redemande la meme sauvegarde : refuse (un seul exemplaire par joueur), rien de plus chez l'host
 I4  il revient : son personnage importe est dans la liste, comme les autres
 I5  case decochee : le choix n'est plus propose
+I6  une sauvegarde du nuage Steam (un dossier avec index.txt et cloud.zip, comme le jeu les range entre deux
+    sessions) est dans la liste, se lit sans etre deballee ni modifiee, et donne le meme personnage
 """
 import hashlib
 import shutil
@@ -30,6 +32,7 @@ from travel_suite import RESULTS, check, ev, eventually, scan_logs  # noqa: E402
 
 H, A = 27551, 27552
 SOLO = SAVES / "world_import"
+CLOUD = SAVES.parent / "Cloud Save" / "world_importcloud"
 IMPORT = "A character from one of my saves"
 TITLE = ('var d = EClass.ui.layers.OfType<Dialog>().LastOrDefault(); '
          'return d == null ? "" : d.textDetail.text;')
@@ -61,6 +64,23 @@ def digest():
             h.update(str(path.relative_to(SOLO)).encode())
             h.update(path.read_bytes())
     return h.hexdigest()
+
+
+def tree(root):
+    h = hashlib.sha256()
+    for path in sorted(root.rglob("*")):
+        h.update(str(path.relative_to(root)).encode())
+        if path.is_file():
+            h.update(path.read_bytes())
+    return h.hexdigest()
+
+
+def make_cloud():
+    """La meme copie, rangee comme une sauvegarde du nuage : index.txt a cote de cloud.zip (tout le dossier)."""
+    shutil.rmtree(CLOUD, ignore_errors=True)
+    CLOUD.mkdir(parents=True)
+    shutil.copy(PRISTINE / "index.txt", CLOUD / "index.txt")
+    shutil.make_archive(str(CLOUD / "cloud"), "zip", PRISTINE)
 
 
 def choices():
@@ -158,6 +178,28 @@ def main():
         click(0)
         check("il reprend son premier personnage", in_game() == first)
         check("la sauvegarde n'a toujours pas change", digest() == before)
+
+        log("--- I6")
+        make_cloud()
+        packed = tree(CLOUD)
+        set_option("ImportCharacter", True)
+        time.sleep(2)
+        leave()
+        connect()
+        pick(IMPORT)
+        wait(lambda: any("Steam Cloud world_importcloud" in c for c in choices()), "la sauvegarde du nuage dans la liste", timeout=30, every=1.0)
+        log(f"sauvegardes proposees : {choices()}")
+        pick("Steam Cloud world_importcloud")
+        third = in_game()
+        check("sauvegarde du nuage : il joue un troisieme personnage", third not in (first, second, 1))
+        check("avec la fiche de la sauvegarde", same(ev(A, SHEET.format("EClass.pc")), sheet))
+        check("le dossier du nuage n'a pas change (ni deballe, ni deplace)", tree(CLOUD) == packed)
+        set_option("ImportCharacter", False)
+        time.sleep(2)
+        leave()
+        connect()
+        click(0)
+        check("il reprend son premier personnage pour finir", in_game() == first)
     except Exception as ex:  # noqa: BLE001
         check(f"interrompu : {type(ex).__name__}: {str(ex)[:300]}", False)
         for name, port in (("host", H), ("A", A)):
@@ -171,6 +213,7 @@ def main():
         except Exception:  # noqa: BLE001
             pass
         shutil.rmtree(SOLO, ignore_errors=True)
+        shutil.rmtree(CLOUD, ignore_errors=True)
 
     scan_logs(t0)
     failed = [label for label, good in RESULTS if not good]
