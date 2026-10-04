@@ -12,11 +12,11 @@ Quatre demandes de l'utilisateur, plus ce que ses journaux ont montré. Trois ag
 | Somewhat Enhanced Display : une erreur par image après la fin de la session | **corrigé** `7238c7a`, `compat_suite` rouge 356 erreurs → 0 |
 | Bonus de première fabrication d'un invité noté chez l'host | **corrigé** `b164dd7`, `player_suite` F6 |
 | « Un joueur seul sur une carte qu'il tient ne peut pas dormir » | **n'existe pas** : `sleep_suite` Y1 6/6 |
-| Alliés faits par l'host à la place d'un invité (boule à monstre, brosse, monture, œuf) : suivent l'host | à faire (cause 2) |
-| Esclave ou animal acheté par un invité, animal de Fiama : la demande est jetée, l'or est payé | à faire (cause 3) |
+| Alliés faits par l'host à la place d'un invité (boule à monstre, brosse, monture, œuf) : suivent l'host | **corrigé** `7b0c70e`, `recruit_suite` R7, R9 (brosse pas testée en jeu) |
+| Esclave ou animal acheté par un invité, animal de Fiama : la demande est jetée, l'or est payé | **corrigé** `7b0c70e`, `recruit_suite` R8 (rouge 8/21 → vert 41/41) |
 | L'host revient : le rechargement lui-même | plan B ci-dessous, gros |
-| Rejoindre avec un personnage d'une sauvegarde solo | plan ci-dessous, à coder |
-| Déplacements de l'invité moins fluides que ceux de l'host | à l'étude (agent + mesure) |
+| Rejoindre avec un personnage d'une sauvegarde solo | **fait** `6d43567`, `import_suite` 21/21, case `ImportCharacter` |
+| Déplacements de l'invité moins fluides que ceux de l'host | **corrigé** `48930ce` + `6af7ffa`, `move_suite` rouge 6/9 → vert 17/17 |
 
 ## Compagnons : causes restantes
 

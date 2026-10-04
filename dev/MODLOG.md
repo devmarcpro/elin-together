@@ -1302,3 +1302,32 @@ Pièges de test notés ce jour-là :
   case `ImportCharacter`, test `import_suite.py`) et autres recrutements (`CharaMakeAllyEvent.Recruiter`,
   `CharaMakeAllyRequestDelta.Data`, `recruit_suite` R7 boule à monstre, R8 animal acheté, R9 monture).
 
+### Import d'un personnage solo et autres recrutements (2026-10-04, 2h20 → 3h25)
+- Passe complète sur `6af7ffa` (fluidité), suites longues : combat 21/21, economy 24/24, travel 55/55,
+  shared 26/26, trio 24/24, companion 30/30, party 28/28.
+- Écrits pendant cette passe, relus par un agent avant la première compilation (deux `using` oubliés ; l'animal
+  acheté n'aurait jamais été vu des clients : un personnage désérialisé chez l'host n'émet pas de
+  `CardGenDelta`, il faut l'envoyer comme un compagnon qui revient ; le propriétaire posé pendant l'application
+  d'un delta n'était dit à personne ; un invité qui ranime un compagnon de l'host le prenait).
+- **Personnage d'une sauvegarde solo** `6d43567` : `Helper/CharaImport.cs`, case host `ImportCharacter`
+  (décochée par défaut), message `SessionCharaImportResponse`, `SessionCharaSelectRequest.AllowImport/Notice`.
+  Liste : les 8 dernières sauvegardes **écrites** (date du fichier `game.txt`, pas la date que porte la
+  sauvegarde : une copie la garde). Source = `dossier/numéro/nom`, gardée sur la copie (`emp_import`).
+  `import_suite.py` : rouge (case absente) → **21/21**, marché du premier coup ; seul écart, la hache que le mod
+  offre à tout invité, que le test écarte de la comparaison.
+- **Autres recrutements** `7b0c70e` : `CharaMakeAllyEvent.Recruiter` (cadeau, delta du joueur en cours
+  d'application `ElinDelta.Apply` → `Actor`, tâche terminée par l'host pour lui, tour de sa copie
+  `ActingRemotePlayer`), monture dans `PartyJoinEvent.OnAddMember` (seulement si c'est bien sa monture),
+  `CharaMakeAllyRequestDelta.Data` + `AdoptLocal` pour le personnage qui n'existe que chez l'acheteur.
+  `recruit_suite` R7–R9 : rouge 8/21 → **41/41** avec R1–R6.
+- **Pièges** :
+  - « monter » (`ActRide.Perform`) prend le **dernier personnage de la case visée** : les compagnons de l'invité
+    le suivent jusque sur cette case et c'est l'un d'eux qui est monté. R9 passe donc avant R7 et R8 ;
+  - `ActRide.Perform` renvoie toujours faux ; `new ActRide()` n'a pas de numéro et n'est pas transmis :
+    `EClass.pc.UseAbility(ACT.Create(ABILITY.ActRide), cible, case)` ; `ActRide.Ride` direct n'est pas transmis ;
+  - un personnage reçu entier de l'host et déjà « global » n'est pas ajouté à la liste des personnages du monde
+    du client (`SetGlobal` ne fait rien) : ajouté dans `CharaMakeAllyDelta` ;
+  - l'outil Bash casse aussi un script Python donné en ligne quand il contient certaines suites de guillemets :
+    écrire le script dans un fichier.
+- 3h27 : passe complète relancée sur `7b0c70e` (`_shots/*-p4.log`), courtes d'abord.
+

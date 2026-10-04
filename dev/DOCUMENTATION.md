@@ -31,6 +31,10 @@ joueurs**. Chacun va où il veut, avec ses compagnons, et le monde (quêtes, bas
 | Karma et crime par joueur (avec l'option « quêtes par joueur ») | Tuer un habitant, voler, creuser la rue : c'est le joueur qui l'a fait qui perd du karma, plus l'host ni les autres. Les gardes de l'host ne poursuivent que le joueur criminel. | `parity_suite.py` Y3–Y4 |
 | Affinité et guildes communes | L'affinité d'un habitant est la même pour tous ; rejoindre une guilde ou y monter en grade vaut pour le groupe. | `parity_suite.py` |
 | Mort en voyage | Le joueur choisit où revenir, et retrouve l'host s'il revient à la base. | vu une fois avec le bot |
+| Déplacements fluides d'un invité (option) | Un invité marche et agit sur l'horloge de son propre jeu, comme l'host : ses pas ne dépendent plus du réseau ni d'un host qui rame. L'accéléré est partagé : quand un joueur accélère, tous ceux de la carte accélèrent. | `move_suite.py` V1–V3, V6 |
+| Chacun marche comme en solo (option) | La durée d'un pas ne dépend plus de la vitesse des autres joueurs. En combat la vitesse compte toujours. | `move_suite.py` V4–V5 |
+| Personnage d'une sauvegarde solo (option, décochée par défaut) | À la connexion : « un personnage d'une de mes sauvegardes », puis la liste des dernières sauvegardes. Il arrive avec ses caractéristiques, son apparence, son équipement, son sac, son or, sa renommée et son karma. Pas ses compagnons, sa base, ses quêtes ni sa banque. La sauvegarde est seulement lue. Un seul exemplaire par sauvegarde et par joueur. | `import_suite.py` |
+| Compagnons d'un invité, toutes façons de recruter | Dialogue d'un habitant, boule à monstre, monture, animal ou esclave acheté : le compagnon est à l'invité et le suit. | `recruit_suite.py` |
 
 Limite de quêtes aléatoires : **5 par joueur** avec l'option « par joueur » (décisions du 2026-10-01 : quêtes
 aléatoires, renommée et karma personnels ; histoire commune), 5 pour tout le groupe sans elle.
@@ -45,6 +49,9 @@ aléatoires, renommée et karma personnels ; histoire commune), 5 pour tout le g
 | Choix du personnage à la connexion (`ChooseCharacter`) | le joueur choisit parmi ses personnages de cette partie, ou en crée un nouveau | toujours le dernier personnage joué |
 | Quêtes aléatoires et renommée par joueur (`PersonalQuests`) | chacun ses quêtes aléatoires, sa renommée, son karma | un journal et une renommée pour le groupe |
 | Échange entre joueurs (`PlayerTrade`) | « Échanger » apparaît en cliquant sur un autre joueur | pas d'échange |
+| Chaque joueur sur sa propre horloge (`PlayerClock`, avec le combat au rythme du joueur) | un invité marche aussi régulièrement que l'host | ses pas suivent le temps de l'host reçu par le réseau |
+| Chacun marche comme en solo (`PlayerStepPace`, avec le combat au rythme du joueur) | un pas dure toujours le temps de base | la durée d'un pas dépend de l'écart de vitesse entre le joueur le plus rapide et le plus lent |
+| Personnage d'une sauvegarde solo (`ImportCharacter`, décochée par défaut) | le joueur peut amener le personnage d'une de ses sauvegardes | choix absent |
 
 Les options sont envoyées aux clients à la connexion (`NetSessionRules`). Toute nouvelle fonction doit avoir sa case.
 
@@ -165,6 +172,10 @@ python _tools/bot.py --minutes 5 --seed 1
 | `death_suite.py` | mourir sur la carte de l'host puis repartir seul | 2 | ~3 min |
 | `sleep_suite.py` | dormir à plusieurs, à la base ou sur une carte sauvage (`--only w0,z0,z1,z2`) | 2 | ~3 min |
 | `guest_suite.py` | le même geste par l'invité puis par l'host : repos, pêche, baguette, coffres de pari, bouteille vide | 2 | ~3 min |
+| `recruit_suite.py` | compagnons recrutés par un invité : dialogue, monture, boule à monstre, achat | 2 | ~5 min |
+| `move_suite.py` | pas de l'invité : réguliers, host qui rame, écart de vitesse, accéléré partagé | 2 | ~2 min |
+| `import_suite.py` | rejoindre avec le personnage d'une sauvegarde (copie du monde de test) | 2 | ~3 min |
+| `compat_suite.py` | cohabitation avec d'autres mods (Somewhat Enhanced Display) | 2 | ~2 min |
 | `run_short.sh` | les suites courtes à la suite, chacune sur un monde neuf (pas `economy` ni `combat`, qui ouvrent leurs fenêtres : `run_all.sh`) | 2 | ~50 min |
 | `companion_suite.py`, `party_suite.py` | compagnons, limite d'alliés | 2 | ~10 min chacun |
 | `travel_suite.py` | voyage seul, sauvegarde, chat, équipement | 2 | ~15 min |
@@ -229,8 +240,18 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
   une passation) n'ont toujours pas de test à eux.
 - Sommeil : pas testé à trois joueurs. (Un invité seul sur une carte qu'il tient peut y dormir : `sleep_suite` Y1.)
 - Vu dans la vraie partie du 2026-10-03 et pas encore corrigé : le rechargement de l'invité quand l'host revient
-  sur sa carte (une fois au lieu de deux depuis `23554f2`), les déplacements moins fluides d'un invité, les
-  compagnons capturés, domptés, montés ou achetés par un invité.
+  sur sa carte (une fois au lieu de deux depuis `23554f2`).
+- Déplacements : corrigés et mesurés au banc local, **pas encore joués entre deux PC**. La marche touche
+  enfoncée ou souris tenue n'est pas testée (le pont de test ne tient pas de touche).
+- Personnage d'une sauvegarde solo : testé avec un personnage de niveau 1. Pas essayé : une grosse sauvegarde
+  de fin de partie (gel de quelques secondes attendu à la lecture), une sauvegarde faite avec d'autres mods (objet
+  inconnu chez l'host), un personnage qui porte une boule à monstre pleine (le monstre garde son ancien numéro),
+  les artefacts uniques en double, les cadeaux du dieu reçus de nouveau. Avec la case cochée et « choix du
+  personnage » décochée, l'écran de choix s'affiche à chaque connexion. Les sauvegardes du nuage Steam ne sont
+  pas listées.
+- Compagnons d'un invité : le domptage à la brosse n'est pas testé en jeu ; l'achat est testé par ce que fait le
+  « oui » du marchand, pas par son vrai dialogue ; l'animal de Fiama perd sa marque (posée après le recrutement,
+  sur la copie locale). La laisse et la consigne « ne pas s'éloigner » regardent encore l'host.
 - D'autres mods du joueur peuvent mal vivre une session (le jeu d'un client est remplacé à chaque carte) : une
   garde existe pour Somewhat Enhanced Display (`Patches/Compat/OtherModsCompat.cs`), à étendre au cas par cas.
 - Joué une seule soirée entre deux PC par Steam (2026-10-02) ; elle a trouvé le blocage de l'host après une nuit
@@ -243,11 +264,11 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
 
 **D'abord (demandes de l'utilisateur après sa première vraie partie comme invité, dans cet ordre) :**
 1. Fait le 2026-10-04 : passe complète verte sur les cinq corrections du 3 au soir, version publiée ensuite.
-2. **Fluidité des déplacements d'un invité** : écrit sur la branche `wip/player-clock`, jamais lancé. Jouer
-   `move_suite.py` avant et après, puis `combat_suite`, `guest_suite`, `sleep_suite`.
-3. **Rejoindre avec un personnage d'une sauvegarde solo** : plan prêt, pas commencé.
-4. Compagnons, autres façons de recruter : boule à monstre, brosse, monture, œuf (ils suivent l'host) ; esclave ou
-   animal acheté par un invité (perdu).
+2. Fait le 2026-10-04 : fluidité des déplacements d'un invité (`move_suite` 17/17), avec la case « chacun marche
+   comme en solo » et l'accéléré partagé. À jouer entre deux PC.
+3. Fait le 2026-10-04 : rejoindre avec un personnage d'une sauvegarde solo (`import_suite` 21/21).
+4. Fait le 2026-10-04 : compagnons d'un invité par boule à monstre, monture, achat (`recruit_suite` 41/41).
+   Reste : tester la brosse en jeu, l'animal de Fiama, la laisse.
 5. Retour de l'host sur une carte tenue par un invité **sans rechargement** (plan B, gros, derrière une case).
 6. **Profil de mods** (validé le 2026-10-02) : `PLAN_profil_mods.md`, plan détaillé prêt.
 
@@ -257,9 +278,11 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
 - un faux réseau lent entre les fenêtres (délai, à-coups) : le banc local n'a aucun délai.
 
 **Ensuite :**
-7. Temps du monde commun (à décider avec l'utilisateur), puis **serveur indépendant** : il a demandé des idées ;
-   réponse donnée : niveau 1 « serveur gardien » recommandé (un Elin sans joueur qui garde le monde et distribue
-   les cartes, tous les joueurs invités), niveau 2 « tout simulé » très lourd. Il n'a pas encore tranché.
+7. Temps du monde commun (à décider avec l'utilisateur), puis **serveur indépendant**. L'utilisateur a tranché
+   le 2026-10-03 au soir : un serveur « dépôt de sauvegarde » (un petit programme sans Elin qui garde la
+   sauvegarde et dit qui tient quelle carte ; toute la simulation est faite par les joueurs, un joueur par
+   carte). À commencer quand les points 1 à 4 sont bons, **plan à lui présenter avant de coder**. Première
+   marche : le temps du monde commun. Détail dans `MODLOG.md`, « Idées de l'utilisateur ».
 8. Quêtes à donjon : laisser les autres joueurs y rejoindre le preneur (`PLAN_quetes_donjon_phase2.md`).
 9. Inégalités invité/host qui attendent une décision (`PLAN_egalite_invites.md` : M3, M5, M9, L1, L7, M13).
 10. Deux choix de jeu en attente : que faire quand un joueur meurt sur la carte de l'host ; quand la connexion tombe.
