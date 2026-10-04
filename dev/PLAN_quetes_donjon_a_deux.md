@@ -1,14 +1,18 @@
 # Plan : quêtes à donjon jouées à deux (host + un invité, dans les deux sens)
 
 Rendu par un agent (lecture seule) le 2026-10-04 au soir. Remplace l'ordre de `PLAN_quetes_donjon_phase2.md` (qui
-commençait par « un client rejoint un client », inutile à deux). **Rien n'est écrit.**
+commençait par « un client rejoint un client », inutile à deux).
+
+**État au 2026-10-05, 1h05 : E1 à E4 (sens « l'host a la quête ») sont faites**, commit `3eaedf8` sur
+`fix/points-restants`, testées par `together_suite.py` T1 à T6 (18/18). **E5 et E6 (sens « l'invité a la quête »)
+sont en cours.**
 
 ## Principe
 
 À deux, la zone d'une quête jouée ensemble est **toujours simulée par l'host** ; l'autre y est un client ordinaire.
 On évite « l'host invité d'un client », et on réutilise l'arrivée normale sur la carte de l'host (`SendRejoin`).
 
-## Faits d'aujourd'hui
+## Faits du 2026-10-04 au soir (S1 est réglé depuis le 2026-10-05, `3eaedf8` ; S2 reste)
 
 - S1, l'host prend la quête : il entre, l'invité **reste en ville** avec le bail de la ville (`LeavePlayersBehind`,
   `Net/Host/ElinNetHostTravel.cs:139-193`). Aucun geste pour suivre. `SendRejoin()` (`ElinNetClientTravel.cs:609`)
@@ -21,15 +25,18 @@ On évite « l'host invité d'un client », et on réutilise l'arrivée normale 
 
 ## Étapes
 
-| Étape | Quoi | Fichiers | Test (`together_suite.py`, host + 1 client) |
-|---|---|---|---|
-| E1 | gardes « visiteur » (`Patches/ZoneEvents/QuestZoneVisitorPatch.cs`, remplace `ZoneEventHarvestPatch.cs` : préfixes `IsHost` sur `OnVisit` de toutes les sous-classes de `ZoneEventQuest`, `ZoneEventQuest.OnTickRound`, `ZoneEventHarvest.OnLeaveZone`, `ZoneInstanceRandomQuest.OnLeaveZone` ; `TextWidgetDate` de Harvest et Music rend "" sans quête) + `ElinNetClient.FollowHost()` près de `SendRejoin` | nouveau patch, `ElinNetClientTravel.cs` | T1 : H prend, A suit par `FollowHost()`, mêmes monstres, pas d'exception |
-| E2 | on sort ensemble : `LeavePlayersBehind` ne laisse personne dans une instance | `ElinNetHostTravel.cs` ~141 | T2 : une seule récompense, zone détruite |
-| E3 | garde `!IsInstance` sur `elomap.SetZone` | `SpatialGenDelta.cs:71` | icône de ville inchangée chez A |
-| E4 | le geste côté invité quand l'host entre dans une instance | `ElinNetClientTravel.cs` (`OnHostZoneChangedWhileAway`), `ElinNetClientZone.cs:55-63`, textes | T3 : vrai dialogue chez H |
-| E5 | S2 : l'host sait lire et régler la quête d'un joueur (getter `ZoneEventQuest.quest` tiré de `PersonalQuestLogs`, `ZonePreEnterOnCompleteQuestInstance.Execute` → `CompletePersonal`, confiscation limitée) | nouveau patch, `ElinNetHostPersonalQuests.cs` | T4 |
-| E6 | S2 : à la demande de bail d'une instance, l'host peut la prendre chez lui et emmener l'invité (`LeaseZoneBlueprint` clés 8, 9) | `ElinNetHostTravel.cs:233-282, 887`, `ElinNetClientTravel.cs:535` | T5 |
-| E7 | case host (si le conseil en veut une) | `EmpConfig.cs`, `NetSessionRules.cs`, `TabServerConfiguration.cs` | |
+| Étape | Quoi | Fichiers | Test (`together_suite.py`, host + 1 client) | État |
+|---|---|---|---|---|
+| E1 | gardes « visiteur » (`Patches/ZoneEvents/QuestZoneVisitorPatch.cs`, remplace `ZoneEventHarvestPatch.cs` : préfixes `IsHost` sur `OnVisit` de toutes les sous-classes de `ZoneEventQuest`, `ZoneEventQuest.OnTickRound`, `ZoneEventHarvest.OnLeaveZone`, `ZoneInstanceRandomQuest.OnLeaveZone` ; `TextWidgetDate` de Harvest et Music rend "" sans quête) + `ElinNetClient.FollowHost()` près de `SendRejoin` | nouveau patch, `ElinNetClientTravel.cs` | T1 : H prend, A suit par `FollowHost()`, mêmes monstres, pas d'exception | **faite** `3eaedf8`, T1–T6 |
+| E2 | on sort ensemble : `LeavePlayersBehind` ne laisse personne dans une instance | `ElinNetHostTravel.cs` ~141 | T2 : une seule récompense, zone détruite | **faite** `3eaedf8`, T1–T6 |
+| E3 | garde `!IsInstance` sur `elomap.SetZone` | `SpatialGenDelta.cs:71` | icône de ville inchangée chez A | **faite** `3eaedf8`, T1–T6 |
+| E4 | le geste côté invité quand l'host entre dans une instance | `ElinNetClientTravel.cs` (`OnHostZoneChangedWhileAway`), `ElinNetClientZone.cs:55-63`, textes | T3 : vrai dialogue chez H | **faite** `3eaedf8`, T1–T6 |
+| E5 | S2 : l'host sait lire et régler la quête d'un joueur (getter `ZoneEventQuest.quest` tiré de `PersonalQuestLogs`, `ZonePreEnterOnCompleteQuestInstance.Execute` → `CompletePersonal`, confiscation limitée) | nouveau patch, `ElinNetHostPersonalQuests.cs` | T4 | en cours |
+| E6 | S2 : à la demande de bail d'une instance, l'host peut la prendre chez lui et emmener l'invité (`LeaseZoneBlueprint` clés 8, 9) | `ElinNetHostTravel.cs:233-282, 887`, `ElinNetClientTravel.cs:535` | T5 | en cours |
+| E7 | case host (si le conseil en veut une) | `EmpConfig.cs`, `NetSessionRules.cs`, `TabServerConfiguration.cs` | | pas de case (conseil) |
+
+Les numéros T de la colonne « Test » sont ceux du plan ; `together_suite.py` numérote T1 à T6 ce qui a été fait pour
+E1 à E4 (la boîte Oui/Non, entrer, sortir, un seau posé en ville, la fouille de l'accompagnant).
 
 Pas vérifié par l'agent : si `OnVisit` tourne chez un client qui charge la carte de l'host ; Wedding et escorte.
 Les décisions ouvertes (récompense, geste, sortie du preneur, case) sont tranchées par le conseil : voir `MODLOG.md`.

@@ -1811,7 +1811,7 @@ Pièges de test notés ce jour-là :
   avec Elin entre deux PC, Internet avec mot de passe).
 - **À faire ensuite** : voir `dev/HANDOFF.md` (état au 22h). En tête : sa soirée d'essai réelle avec la 0.26.399.
 
-### Points restants traités en autonomie, décisions du conseil (2026-10-04, nuit) — reprendre ici
+### Points restants traités en autonomie, décisions du conseil (2026-10-04, nuit)
 
 - **Consigne** : l'utilisateur a donné la liste des points restants à traiter du début à la fin sans s'arrêter ; chaque
   décision de conception est tranchée par le skill `llm-council` (5 avis, 5 relectures, un président ; avis et
@@ -1899,3 +1899,63 @@ Pièges de test notés ce jour-là :
 - **Passation** : `HANDOFF.md` et `PROMPT_reprise.md` réécrits ; la session suivante s'ouvre depuis `G:\ElinMods`.
   L'utilisateur a demandé d'arrêter les demandes d'autorisation : elles venaient du déplacement (G: était hors des
   dossiers de la session) ; le mode « sans demande » de l'application n'est pas disponible depuis la session.
+
+### Étape A : les trois lots validés (2026-10-05, 0h25 → 1h05) — reprendre ici
+
+- **But** : valider la branche `wip/lots-non-compiles` lot par lot, corriger, faire relire, et reporter chaque point
+  vert sur `fix/points-restants` (un commit par point). Fait. Rien poussé, rien publié.
+- **Abattage par un invité (`equal2_suite` E2)** : l'host levait `NullReferenceException` dans `AI_Slaughter.Run` (par
+  `CharaTickDelta`). Cause : chez l'host, l'invité n'avait pas encore le couteau en main, car l'objet tenu était envoyé
+  une image APRÈS la tâche. Correction d'une ligne dans `Patches/DeltaEvents/Chara/CharaTaskRemoteEvent.cs` : l'objet
+  tenu part avant la tâche (`NetProfileSynchronizationContext.Update()`). Vert : l'endurance et le karma changent chez
+  l'invité, pas chez l'host ; la tonte est bien comptée. C'est probablement aussi ce qui empêchait le banc de faire
+  creuser l'invité pour la carte au trésor (« Progress begin TaskDig … has no matching act ») : **à réessayer avec
+  `council_suite --only c6`, pas refait**.
+- **Source chaude (E4)** : c'était la suite de l'échec de E2 (l'état de l'invité chez l'host restait cassé). Vert sans
+  autre changement : l'invité et son compagnon ont le bain, pas l'host.
+- **Appel du fanatique (E1)** : c'était le test, pas le code. Le jeu n'appelle jamais à l'aide dans une base du joueur
+  (`Chara.DoHostileAction`, `!EClass._zone.IsPCFaction`), même en solo ; le test se jouait à la Prairie. Il va
+  maintenant à Vernis : 4 voisins sur 4 deviennent hostiles, l'host ne reçoit pas d'ennemi. Vert.
+- **`equal2_suite` en entier** : vert (E1 9/9, E2 + E4 19/19, E3 vert au premier passage ; journaux
+  `_shots/equal2_suite-run2.log` et `run3.log`).
+- **Lot 1, gestes tenus en main** : `guest_suite` G33 (ticket de meuble), G34 (seringue de gène), G35 (puits) verts au
+  premier lancement. **Piège du test** : les libellés affichaient la valeur d'AVANT l'attente (« 0 -> 0 » marqué OK), ce
+  qui faisait croire à un faux vert. Corrigé avec `check(cond=eventually(...), label=f"...")` : Python évalue les
+  arguments nommés dans l'ordre écrit, donc la condition (qui attend) passe avant le libellé. Remarques du relecteur :
+  - (a) puits : chez l'host, le vœu du puits n'est plus jamais tiré pour un invité (le drapeau « déjà souhaité » de
+    l'host est prêté à vrai le temps du rejeu) ; c'est le jeu de l'invité qui tire le vœu, avec sa clé et sa fenêtre
+    (1 chance sur 21 par gorgée, soit les chances du jeu 4/5 × 4/5 × 3/4 × 1/10) ; test G39. Constat : les objets-clés
+    sont communs à tous les joueurs (`DialogFlagSync`), donc une seule clé est dépensée pour tout le monde, c'est
+    voulu. Limite écrite dans le code : ce tirage s'ajoute à ce que l'host tire pour la gorgée, il ne le remplace pas ;
+  - (b) laisse tirée deux fois : faux, chez l'invité le compagnon ne bouge pas de lui-même (`CharaMoveEvent` bloque) ;
+    prouvé par G36 (une seule position, le chat de l'invité ne suit pas l'host) ;
+  - (c) tests ajoutés : G36 laisse, G37 stéthoscope (une charge de moins des deux côtés, fenêtre chez celui qui s'en
+    sert seulement), G38 seringues de sang, de paradis et de licorne.
+  `guest_suite --only g33..g39` : 98/98 (`_shots/guest_suite-g33-38-run1.log`).
+  **Pas fait** : les effets du puits sur le potentiel et les mutations, comparés entre les deux jeux ; un test d'un
+  refus ; la portée de 2 cases sans regarder les murs.
+- **Lot 3, quêtes à donjon à deux (l'host a la quête)** : relu par `relecteur-elintogether` avant le premier test.
+  Corrigé : (bloquant) l'host qui sortait de la zone de quête ne reprenait pas la ville tenue par l'invité (la demande
+  de sortie vise la carte du monde, le jeu la remplace ensuite par la ville), donc deux joueurs tenaient la même carte ;
+  maintenant `TryEnterZone` vise la ville d'origine de l'instance. « Tout le monde suit l'host » ne vaut plus que pour
+  les zones de quête (plus pour l'arène ni le moongate). Un accompagnant qui sort seul d'une récolte est fouillé chez
+  l'host (moitié des récoltes non livrées reprises, 1 de karma pour lui). `together_suite` : T1 à T5 40/40 au premier
+  lancement (`_shots/together_suite-run1.log`), puis T5 renforcé (un seau posé en ville par l'invité pendant l'absence
+  de l'host y est encore au retour) et T6 nouveau (fouille : 30 → 16, karma de l'invité 30 → 29, host inchangé) :
+  18/18 (`_shots/together_suite-run2.log`). Remarques du relecteur laissées : le nom affiché dans « a refusé » vient du
+  message de l'invité (pas grave à deux) ; la boîte reste ouverte si la connexion tombe ; le test prend la quête et
+  sort par les appels du jeu, pas par le dialogue ni en marchant jusqu'au bord ; pas de test pour « pas de boîte si
+  l'autre a déjà une quête à donjon ou un échange ».
+- **Branches** : chaque point a été reporté sur `fix/points-restants` par un commit à lui : `299c8bd` abattage + objet
+  tenu (E2), `cf4797d` appel à l'aide (E1), `e9824ee` dieu quitté (E3), `8e413a8` source chaude du groupe (E4),
+  `8f39634` gestes tenus en main (G33–G39), `3eaedf8` quêtes à donjon à deux, sens host (T1–T6). `fix/points-restants`
+  et `wip/lots-non-compiles` ont maintenant le même contenu ; **la branche de travail est `fix/points-restants`**
+  (`wip` gardée, pas supprimée).
+- **Piège du banc** : un geste du banc qui prend un objet en main et l'utilise dans la même commande allait plus vite
+  qu'un joueur (l'objet n'était pas encore arrivé chez l'host) ; c'était un vrai défaut du mod, corrigé (abattage
+  ci-dessus).
+- **Pas testé** (à dire tel quel) : la carte au trésor (`council_suite --only c6`, à refaire) ; tout ce que
+  l'utilisateur doit jouer à deux PC, dont « l'host prend une quête à donjon, l'invité répond Oui à la boîte, puis
+  une fois Non » ; les trois points « pas fait » du lot 1 et les remarques laissées du lot 3 ci-dessus.
+- **À faire ensuite** : voir `dev/HANDOFF.md` (état au 1h05). En tête : quêtes à donjon à deux, sens « l'invité a la
+  quête » (E5, E6 de `PLAN_quetes_donjon_a_deux.md`, en cours), puis `PLAN_chasse_differences.md`.

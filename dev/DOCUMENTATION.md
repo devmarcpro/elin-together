@@ -9,7 +9,7 @@ joueurs**. Chacun va où il veut, avec ses compagnons, et le monde (quêtes, bas
 - Journal détaillé (pièges, essais, dates) : `MODLOG.md`. Ce document-ci dit ce qui existe et comment s'en servir.
 - Les chemins `_tools/`, `_lab/`, `_shots/`, `_release/` de ce document sont relatifs à `dev/`. Le journal parle
   encore de `Documents\ElinMods\` : c'était leur place avant le 2026-10-02.
-- État : 2026-10-05, 0h20 (voir `HANDOFF.md` pour le détail à jour). Dossier de travail : `G:\ElinMods`.
+- État : 2026-10-05, 1h05 (voir `HANDOFF.md` pour le détail à jour). Dossier de travail : `G:\ElinMods`.
 
 ## 1. Ce que le fork apporte, vu du joueur
 
@@ -26,6 +26,8 @@ joueurs**. Chacun va où il veut, avec ses compagnons, et le monde (quêtes, bas
 | Quêtes communes | Les quêtes d'histoire sont dans un seul journal : n'importe qui les lance, les avance, les termine. Sans l'option ci-dessus, les quêtes aléatoires aussi, et la récompense va à celui qui rend la quête. | `quest_suite.py` |
 | Quêtes d'histoire | Un joueur qui n'est pas l'host peut lancer et avancer une quête d'histoire. Ce que le dialogue offre lui revient, ce qu'il déclenche dans le monde se produit chez l'host. La mémoire de l'histoire (dialogues déjà vus, drapeaux, objets clés, dette) est commune. | `quest_suite.py` (voir limites) |
 | Quêtes à donjon pour tous (avec les options « voyage » et « quêtes par joueur ») | Un joueur qui n'est pas l'host peut prendre une quête qui a sa propre zone (subjuguer, récolte, escorte…) : la zone est à lui, il y entre seul, et la quête se règle quand il en ressort. | `instance_suite.py` |
+| Quêtes à donjon à deux, l'host a la quête (avec les options « voyage » et « quêtes par joueur », sans case à elle) | Quand l'host part en quête, une boîte Oui/Non s'ouvre chez l'invité (« X part en quête : l'accompagner ? La récompense revient à X », 15 s, sans réponse = non ; l'host voit le refus ; pas de boîte si l'invité a déjà une quête à donjon ou un échange). Oui : l'invité arrive dans la zone simulée par l'host. La récompense est à celui qui a pris la quête ; quand il sort, tout le monde sort ; l'accompagnant peut aussi rentrer seul en ville (pour une récolte, il est fouillé comme chez l'host : moitié des récoltes non livrées reprises, 1 de karma). L'host qui sort reprend bien la ville tenue par l'invité. | `together_suite.py` T1–T6 |
+| Gestes tenus en main d'un invité | Ticket de meuble, seringues (gène, sang, paradis, licorne), puits, stéthoscope, laisse : le geste est rejoué chez l'host, l'objet est dépensé des deux côtés. Au puits, le vœu est tiré dans le jeu de l'invité (1 chance sur 21 par gorgée), pas chez l'host. Autres corrections de la nuit du 5 octobre : un invité qui abat un animal ne fait plus perdre l'endurance de l'host ; un habitant ami frappé par un invité appelle ses voisins (dans une ville ; le jeu n'appelle jamais dans une base) ; quitter son dieu punit l'invité ; la source chaude profite à l'invité et à son compagnon, pas à l'host. | `guest_suite.py` G33–G39, `equal2_suite.py` |
 | Échange entre joueurs (option) | Clic sur un autre joueur → « Échanger » : une fenêtre où chacun met des objets et de l'or, puis confirme. Rien ne change de mains tant que les deux n'ont pas confirmé ; s'éloigner annule. | `trade_suite.py` |
 | Choix du personnage (option) | À la connexion, le joueur choisit parmi ses personnages de cette partie ou en crée un nouveau. | `chara_suite.py` |
 | Karma et crime par joueur (avec l'option « quêtes par joueur ») | Tuer un habitant, voler, creuser la rue : c'est le joueur qui l'a fait qui perd du karma, plus l'host ni les autres. Les gardes de l'host ne poursuivent que le joueur criminel. | `parity_suite.py` Y3–Y4 |
@@ -178,7 +180,9 @@ python _tools/bot.py --minutes 5 --seed 1
 | `player_suite.py` | dons à la fabrication, apparence au miroir, slime | 2 | ~4 min |
 | `death_suite.py` | mourir sur la carte de l'host puis repartir seul | 2 | ~3 min |
 | `sleep_suite.py` | dormir à plusieurs, à la base ou sur une carte sauvage (`--only w0,z0,z1,z2`) | 2 | ~3 min |
-| `guest_suite.py` | le même geste par l'invité puis par l'host : repos, pêche, baguette, coffres de pari, bouteille vide | 2 | ~3 min |
+| `guest_suite.py` | le même geste par l'invité puis par l'host : repos, pêche, baguette, coffres de pari, bouteille vide, gestes tenus en main (G33–G39 : ticket, seringues, puits, laisse, stéthoscope ; `--only g33,g34,g35,g36,g37,g38,g39`) | 2 | ~3 min |
+| `equal2_suite.py` | invité et host à égalité : abattage (E2), appel à l'aide à Vernis (E1), dieu quitté (E3), source chaude (E4) | 2 | ~5 min |
+| `together_suite.py` | quêtes à donjon à deux, l'host a la quête : boîte Oui/Non, entrer, sortir, fouille de l'accompagnant (T1–T6) | 2 | ~5 min |
 | `recruit_suite.py` | compagnons recrutés par un invité : dialogue, monture, boule à monstre, achat | 2 | ~5 min |
 | `council_suite.py` | les décisions du conseil du 2026-10-04 : grimoires, prime de guilde, cadeaux du dieu, mort après le jour 90, pièges (à Vernis) ; `--only c6` carte au trésor (ne passe pas au banc) | 2 | ~5 min |
 | `move_suite.py` | pas de l'invité : réguliers, host qui rame, écart de vitesse, accéléré partagé | 2 | ~2 min |
@@ -233,12 +237,15 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
 - **Dialogues d'histoire joués par un client** : quêtes, objets offerts, effets sur le monde et mémoire de
   l'histoire sont gérés, mais testés par appels directs, **pas encore en cliquant dans les vrais dialogues**.
   Restent locaux au joueur : les alliés offerts par un dialogue (animal de Fiama), le mariage. En voyage seul, seuls les effets « sur le monde entier » sont répétés chez l'host.
-- Quêtes à donjon : seul le preneur entre dans la zone de sa quête, les autres joueurs ne peuvent pas encore l'y
-  rejoindre. L'escorte prise par un client n'a été testée que par le code, pas en marchant.
+- Quêtes à donjon : quand l'invité prend la quête, seul lui entre dans la zone ; l'host ne peut pas encore l'y
+  rejoindre (étapes E5 et E6 de `PLAN_quetes_donjon_a_deux.md`, en cours). Quand c'est l'host qui la prend,
+  l'invité peut l'accompagner (boîte Oui/Non). L'escorte prise par un client n'a été testée que par le code, pas
+  en marchant.
 - Échange : pas d'objets équipés, ni de sacs pleins ; fenêtre simple (liste + boutons).
 - Karma : sur une carte tenue par un joueur (pas l'host), les gardes suivent encore le karma de ce joueur-là.
-  Un habitant attaqué par un invité n'appelle pas à l'aide. (L'affinité de la tonte et de l'abattage n'est pas
-  perdue, d'après la lecture du code du 2026-10-04 : à confirmer par un test.) Expérience de guilde : si deux joueurs en gagnent au même instant, un des deux gains est perdu.
+  (Un habitant attaqué par un invité appelle maintenant à l'aide comme pour l'host, `cf4797d` ; l'affinité de la
+  tonte est bonne, confirmé par `equal2_suite` E2.) Expérience de guilde :
+  si deux joueurs en gagnent au même instant, un des deux gains est perdu.
 - Conflits connus, rares, non corrigés : deux achats au même instant chez le même marchand (un seul payé), deux
   joueurs qui construisent sur la même case (deux objets consommés), monture qui existe en double au retour
   d'un voyage, plantage du joueur qui tient une carte avec des invités (retour à sa dernière sauvegarde).
@@ -267,7 +274,8 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
   personnage » décochée, l'écran de choix s'affiche à chaque connexion. Les sauvegardes du nuage Steam sont
   listées et lues dans leur archive, sans être déballées.
 - Compagnons d'un invité : l'achat est testé par ce que fait le « oui » du marchand, pas par son vrai dialogue.
-  La laisse et la consigne « ne pas s'éloigner » regardent encore l'host. Domptage à la brosse : le jeu compare
+  La consigne « ne pas s'éloigner » regarde encore l'host (la laisse est rejouée chez l'host depuis
+  `8f39634`). Domptage à la brosse : le jeu compare
   l'animal au charisme de `EClass.pc`, donc à celui de l'host même quand c'est un invité qui brosse.
 - Gardien du monde (`1b0f5c3`, `856d878`) : c'est l'host. Pas fait : les boucles à l'intérieur de `GameDate`
   (aventuriers, quêtes d'histoire ajoutées à date fixe), le passage du rôle à un autre joueur.
@@ -338,11 +346,24 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
   Aussi : bénédiction du dieu d'un invité calculée comme celle d'un joueur ; les autels (invention, soin…)
   servent celui qui les touche, sauf les deux qui ouvrent une fenêtre (matière, armure).
 
+- **Les trois lots de la nuit validés (2026-10-05, 0h25 → 1h05, branche `fix/points-restants`)** : gestes tenus
+  en main rejoués chez l'host (`8f39634`, `guest_suite` G33–G39 : 98/98) ; abattage, appel à l'aide, dieu quitté
+  et source chaude (`299c8bd`, `cf4797d`, `e9824ee`, `8e413a8`, `equal2_suite` en entier vert) ; quêtes à donjon
+  à deux, l'host a la quête (`3eaedf8`, `together_suite` T1–T6 : 18/18). Pas fait : les effets du puits sur le
+  potentiel et les mutations comparés entre les deux jeux ; un test d'un refus ; la portée de 2 cases ne regarde
+  pas les murs ; le tirage du vœu du puits par l'invité s'ajoute à celui de l'host. Quêtes à donjon à deux : le
+  test prend la quête et sort par les appels du jeu, pas par le dialogue ni en marchant ; pas de test pour « pas
+  de boîte si l'autre a déjà une quête à donjon ou un échange » ; la boîte reste ouverte si la connexion tombe.
+  La colère du dieu quitté est au tarif de base chez l'host. **À jouer à deux vrais joueurs** : l'host prend une
+  quête à donjon, l'invité répond Oui à la boîte, puis une fois Non.
+
 ## 7. Reste à faire
 
-État au 2026-10-05, 0h20. **La liste à jour, dans l'ordre, est « À faire ensuite » de `HANDOFF.md`** (branches
-`fix/points-restants` et `wip/lots-non-compiles`, quêtes à donjon à deux : `PLAN_quetes_donjon_a_deux.md`, autres
-différences trouvées : `PLAN_chasse_differences.md`) ; ce qui suit date du 2026-10-04 à 22h et reste un résumé. Détail de chaque point : `PLAN_retours_partie_reelle.md` et la fin de `MODLOG.md`.
+État au 2026-10-05, 1h05. **La liste à jour, dans l'ordre, est « À faire ensuite » de `HANDOFF.md`** (branche de
+travail `fix/points-restants`, `wip/lots-non-compiles` a le même contenu ; quêtes à donjon à deux :
+`PLAN_quetes_donjon_a_deux.md` ; autres différences trouvées : `PLAN_chasse_differences.md`) ; ce qui suit date
+du 2026-10-04 à 22h et reste un résumé. Détail de chaque point : `PLAN_retours_partie_reelle.md` et la fin de
+`MODLOG.md`.
 
 **Fait (voir le tableau de la section 1 et `MODLOG.md`, 2026-10-03 et 2026-10-04) :** les cinq corrections de la
 première vraie partie ; déplacements fluides d'un invité (`move_suite`) ; rejoindre avec un personnage d'une
@@ -352,6 +373,9 @@ sauvegarde solo (`import_suite`) ; compagnons d'un invité (`recruit_suite`) ; u
 mot de passe faux dit clairement ; trous du parcours du premier joueur corrigés (section 6) ; passe large sur le
 code final (22 suites) ; boutons du logiciel serveur essayés par `server_ui_test.ps1` ; **version 0.26.399
 publiée** (2026-10-04). Premier essai entre deux PC du serveur sans Elin sur un réseau local : réussi (section 6).
+Nuit du 5 octobre : gestes tenus en main rejoués chez l'host, abattage, appel à l'aide, dieu quitté, source
+chaude du groupe, quêtes à donjon à deux dans le sens « l'host a la quête » (boîte Oui/Non) : validés, un commit
+par point (section 6, `equal2_suite`, `together_suite`, `guest_suite` G33–G39).
 
 **À faire tout de suite, dans l'ordre :**
 1. fait : `depot_suite` avec `DEPOT_SERVER=1` relancé, 20/20 ;
@@ -380,8 +404,11 @@ publiée** (2026-10-04). Premier essai entre deux PC du serveur sans Elin sur un
    lignes, ou Docker, testable par `depot_proto_test.py`. Le mode avec Elin ne peut pas tourner sur un NAS.
 4. À ne commencer qu'après lui avoir demandé : retour de l'host sans rechargement (plan B), **profil de mods**
    (`PLAN_profil_mods.md`), touche « signaler un problème » en jeu, bot qui rejoue une vraie soirée, faux réseau lent.
-5. Quêtes à donjon : laisser les autres joueurs y rejoindre le preneur (`PLAN_quetes_donjon_phase2.md`).
-6. Inégalités invité/host qui attendent une décision (`PLAN_egalite_invites.md` : M3, M5, M9, L1, L7, M13).
+5. Quêtes à donjon à deux, sens « l'invité a la quête » : E5 et E6 de `PLAN_quetes_donjon_a_deux.md` (en cours) ;
+   « l'host a la quête » est fait (`3eaedf8`).
+6. Inégalités invité/host qui restent (`PLAN_egalite_invites.md` : M14, consigne « ne pas s'éloigner », karma sur
+   la carte d'un invité, mutation en double ; M3, M5, M9, L1, L7, M13, L4, L5, L6, L8, L9, laisse et appel à
+   l'aide sont corrigés).
 7. Deux choix de jeu en attente : que faire quand un joueur meurt sur la carte de l'host ; quand la connexion tombe.
 8. Jouer le début de l'histoire en vrai avec un client ; conflits rares listés dans les limites.
 

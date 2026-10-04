@@ -100,12 +100,15 @@ Laissé de côté, noté dans les commits :
 
 ### Rare ou mineur
 
-L1 un invité qui meurt ne perd pas d'or (**corrigé** `d9df4f6`, C2) · L2 livre de plan / politique sans effet · L3 parchemin
-d'identification / enchantement appliqué deux fois · L4 un puits ne se vide jamais pour un invité · L5 tickets de
-meuble pas dépensés · L6 pas de punition en quittant son dieu · L7 prime de la guilde des guerriers payée à
-l'host (**corrigé** `a5d764a`, C3) · L8 pas de bonus de source chaude · L9 seringues, stéthoscope, clé, teinture… sans effet ou pas
-consommés · L10 petits bonus réservés au joueur (point faible du codex, fièvre de pêche…) · L11 un invité déjà
-repu qui mange perd la nourriture pour rien.
+L1 un invité qui meurt ne perd pas d'or (**corrigé** `d9df4f6`, C2) · L2 livre de plan / politique sans effet ·
+L3 parchemin d'identification / enchantement appliqué deux fois · L4 un puits ne se vide jamais pour un invité
+(**corrigé** `8f39634`, G35 et G39) · L5 tickets de meuble pas dépensés (**corrigé** `8f39634`, G33) · L6 pas de
+punition en quittant son dieu (**corrigé** `e9824ee`, `equal2_suite` E3) · L7 prime de la guilde des guerriers payée
+à l'host (**corrigé** `a5d764a`, C3) · L8 pas de bonus de source chaude (**corrigé** `8e413a8`, E4 : l'invité et son
+compagnon, pas l'host) · L9 seringues (**corrigé** `8f39634`, G34 et G38), stéthoscope (**corrigé** `8f39634`, G37),
+clé (faux), teinture (`88f1241`)… sans effet ou pas consommés · L10 petits bonus réservés au joueur (point faible du
+codex, fièvre de pêche…) · L11 un invité déjà repu qui mange perd la nourriture pour rien. Aussi corrigés avec
+`equal2_suite` : laisse (`8f39634`, G36), appel à l'aide (`cf4797d`, E1), abattage (`299c8bd`, E2).
 
 Vu en passant, pareil pour tous : pendant une session, se reposer finit vite en sommeil (ou en demande de
 sommeil), parce que le mod rend « peut dormir » toujours vrai. À voir avec H1.
@@ -140,21 +143,27 @@ nouveaux : pas de case, sauf si une correction change ce que l'host vit lui-mêm
 ## État au 2026-10-04, nuit (conseil et vérification)
 
 Les six décisions en attente (M3, M5, M9, M13, L1, L7) ont été tranchées par le conseil et corrigées : voir le
-tableau ci-dessus et `MODLOG.md`. Vérifié dans le code par un agent le même soir (rien joué) :
+tableau ci-dessus et `MODLOG.md`.
+
+**Mis à jour le 2026-10-05, 1h05** : tout ce qui est marqué corrigé ci-dessous l'est, avec son commit et son
+test (branche `fix/points-restants`). Restent : consigne « ne pas s'éloigner », karma sur la carte d'un invité,
+mutations, M14.
+
+Vérifié dans le code par un agent le même soir (rien joué) :
 
 | Point | Verdict | Correction la plus petite |
 |---|---|---|
-| L4 puits | réel : il ne se vide pas pour l'invité, et l'invité ne voit pas l'host le vider ; les mauvais effets ne lui arrivent pas | envoyer la charge du puits de l'invité à l'host (`TraitWell.ModCharges`) |
-| L5 tickets de meuble | réel : meuble gratuit, ticket gardé | branche `Target` de `CardOnUseDelta`, exécutée chez l'host |
-| L6 quitter son dieu | réel par le choix d'un nouveau dieu ; déjà en ordre par l'autel | `Punish` chez l'host dans `CharaFaithDelta` |
-| L8 source chaude | déjà corrigé `a9fe6ee` ; reste : le groupe de l'invité ne reçoit pas le bonus | l'appliquer aux membres du groupe |
+| L4 puits | réel : il ne se vide pas pour l'invité, et l'invité ne voit pas l'host le vider ; les mauvais effets ne lui arrivent pas | **corrigé** `8f39634` (G35, G39) : le geste est rejoué chez l'host, le vœu n'y est plus tiré pour l'invité, c'est son jeu qui le tire (1 chance sur 21 par gorgée) |
+| L5 tickets de meuble | réel : meuble gratuit, ticket gardé | **corrigé** `8f39634` (G33) : geste tenu en main rejoué chez l'host |
+| L6 quitter son dieu | réel par le choix d'un nouveau dieu ; déjà en ordre par l'autel | **corrigé** `e9824ee` (E3 : une colère, une boule, jours remis à 0, des deux côtés) |
+| L8 source chaude | déjà corrigé `a9fe6ee` ; reste : le groupe de l'invité ne reçoit pas le bonus | **corrigé** `8e413a8` (E4) : le bain va à l'invité et à son compagnon, pas à l'host |
 | L9 teinture | déjà corrigé `88f1241`, jamais joué | — |
-| L9 seringues | réel : ni effet ni consommation | rejouer le geste tenu en main chez l'host |
-| L9 stéthoscope | partiel : ses charges ne sont pas à jour chez l'host | idem |
+| L9 seringues | réel : ni effet ni consommation | **corrigé** `8f39634` (G34 gène, G38 sang, paradis, licorne) |
+| L9 stéthoscope | partiel : ses charges ne sont pas à jour chez l'host | **corrigé** `8f39634` (G37 : une charge de moins des deux côtés) |
 | L9 clé | faux : aucun objet de ce genre | — |
-| Laisse, consigne | réel : la laisse tire vers l'host ; « ne pas s'éloigner » lit les réglages de l'host | un message « laisse », et le propriétaire dans `GoalCombat` |
-| Appel à l'aide | réel : un habitant ami frappé par un invité devient hostile sans appeler | `DoHostileAction` « à la place du joueur » chez l'host |
-| Affinité tonte, abattage | faux à la lecture (elle arrive par le jeu de l'invité) ; à confirmer par un test. Trouvé : c'est l'host qui perd 3 d'endurance quand un invité abat | — |
+| Laisse, consigne | réel : la laisse tire vers l'host ; « ne pas s'éloigner » lit les réglages de l'host | laisse **corrigée** `8f39634` (G36 : une seule position, ce n'était pas tiré deux fois) ; consigne : à faire |
+| Appel à l'aide | réel : un habitant ami frappé par un invité devient hostile sans appeler | **corrigé** `cf4797d` (E1 : 4 voisins sur 4 hostiles à Vernis, l'host sans ennemi ; le jeu n'appelle jamais dans une base du joueur) |
+| Affinité tonte, abattage | faux à la lecture (elle arrive par le jeu de l'invité) ; **confirmé** par E2 (tonte bonne). Trouvé : c'est l'host qui perdait de l'endurance quand un invité abat | abattage **corrigé** `299c8bd` (E2 : l'objet tenu part avant la tâche ; endurance et karma de l'invité, pas de l'host) |
 | Karma sur la carte d'un invité | réel : un visiteur n'y est jamais criminel | envoyer karma et renommée des visiteurs à celui qui tient la carte |
 | Mutations | réel mais étroit : seulement avec un équipement d'éther, une mutation de plus chez l'host | — |
 | Autels (invention, soin du groupe…) | réel : l'effet allait à l'host, une recette différente par jeu | **corrigé** (`CardOnUseDelta`, G32) ; pas les deux autels à fenêtre (matière, armure) |
