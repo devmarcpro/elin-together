@@ -10,6 +10,7 @@ D1  l'host depose sa sauvegarde dans le depot
 D2  l'autre joueur, a l'ecran titre, prend le monde du depot (avec le logiciel : par "Join by address", sans
     avoir regle de depot) : il le charge, le depot dit que c'est lui qui heberge
 D3  pendant ce temps le premier ne peut pas le prendre (on lui dit qui heberge)
+    (avec le logiciel : un mauvais mot de passe est dit comme tel)
 D4  celui qui heberge change quelque chose et sauvegarde : le monde du depot change
 D5  il quitte : le depot est libre ; le premier joueur le prend a son tour et retrouve le changement (sa copie
     locale a ete effacee avant : le monde vient bien du depot)
@@ -47,6 +48,7 @@ LOCAL = SAVES / "world_depot"
 DEP = 'HarmonyLib.AccessTools.TypeByName("ElinTogether.Helper.SaveDepot")'
 SET = ('var e = HarmonyLib.AccessTools.Property(HarmonyLib.AccessTools.TypeByName("ElinTogether.EmpConfig+Client"), "DepotPath").GetValue(null); '
        'HarmonyLib.AccessTools.Property(e.GetType(), "Value").SetValue(e, @"%s"); "ok"')
+PASSWORD = SET.replace("DepotPath", "DepotPassword")
 CALL = 'HarmonyLib.AccessTools.Method(' + DEP + ', "%s").Invoke(null, null); "ok"'
 DIALOG = 'var d = EClass.ui.layers.OfType<Dialog>().LastOrDefault(); return d == null ? "" : d.textDetail.text;'
 JOIN = ('HarmonyLib.AccessTools.Method(HarmonyLib.AccessTools.TypeByName("ElinTogether.Components.TabLobbyBrowser"), '
@@ -130,6 +132,16 @@ def main():
         check("pendant ce temps le premier joueur ne peut pas le prendre : on lui dit qui heberge",
               "is hosting" in said and state(H).get("sceneMode") == "Title")
         dismiss_dialogs(H)
+        if REMOTE:
+            # un mauvais mot de passe : on le dit, au lieu de "password heberge le monde"
+            ev(H, PASSWORD % "faux")
+            check(f"mauvais mot de passe : personne ne s'appelle \"password\" ({holder(H)!r})", holder(H) == "")
+            take(H)
+            said = ev(H, DIALOG)
+            log(f"le premier joueur : {said}")
+            check("mauvais mot de passe : le jeu dit que le serveur refuse le mot de passe", "refused" in said.lower())
+            dismiss_dialogs(H)
+            ev(H, PASSWORD % "")
 
         log("--- D4")
         before = int(ev(A, BUCKETS))

@@ -68,7 +68,7 @@ adresse.)
      mondes precedents.
    - Mot de passe : "Password (empty: none):" dans le logiciel. S'il y en a un, chaque joueur le met dans le
      jeu, onglet "Client Settings" (c'est l'une des raisons pour lesquelles ce reglage existe encore). Si le mot
-     de passe est faux, le message du jeu n'est pas encore clair.
+     de passe est faux, le jeu le dit.
    - Choisir le monde : dans le logiciel, choisir une sauvegarde dans la liste (celles d'Elin sur ce PC,
      s'il y est) ou par "Browse..." (le dossier d'une sauvegarde copie d'un autre PC : celui qui contient
      game.txt), puis "Put this save on the server". La sauvegarde d'origine n'est pas modifiee.

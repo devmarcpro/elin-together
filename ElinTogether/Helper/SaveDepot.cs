@@ -34,6 +34,7 @@ internal static class SaveDepot
     private const float BeatSeconds = 60f;
 
     private static float _nextBeat;
+    private static string _refused = "";
 
     private static string Root => EmpConfig.Client.DepotPath.Value.Trim();
     private static string World => Path.Combine(Root, "world");
@@ -64,8 +65,8 @@ internal static class SaveDepot
     {
         try {
             if (Remote) {
-                var who = Ask("WHO").Text;
-                return who.Length > 0 ? who : null;
+                var reply = Ask("WHO");
+                return reply.Ok && reply.Text.Length > 0 ? reply.Text : null;
             }
 
             if (!File.Exists(LockFile) || DateTime.UtcNow - File.GetLastWriteTimeUtc(LockFile) > _lockLife) {
@@ -93,7 +94,7 @@ internal static class SaveDepot
             if (Remote) {
                 var reply = Ask("TAKE");
                 if (!reply.Ok) {
-                    Dialog.Ok(reply.Text == "empty" ? "emp_ui_depot_empty" : "emp_ui_depot_fail");
+                    Dialog.Ok(reply.Text == "empty" ? "emp_ui_depot_empty" : Refusal(reply.Text));
                     return;
                 }
 
@@ -159,7 +160,12 @@ internal static class SaveDepot
             return;
         }
 
-        Dialog.Ok(Copy(CorePath.RootSave + Game.id) ? "emp_ui_depot_put_done" : "emp_ui_depot_fail");
+        Dialog.Ok(Copy(CorePath.RootSave + Game.id) ? "emp_ui_depot_put_done" : Refusal(_refused));
+    }
+
+    private static string Refusal(string why)
+    {
+        return why == "password" ? "emp_ui_depot_password_wrong" : "emp_ui_depot_fail";
     }
 
     /// <summary>
@@ -171,6 +177,7 @@ internal static class SaveDepot
         try {
             if (Remote) {
                 var reply = Ask("PUT", Zip(save));
+                _refused = reply.Text;
                 if (!reply.Ok) {
                     EmpLog.Warning("The depot {Root} refused the world: {Reason}", Root, reply.Text);
                 }
