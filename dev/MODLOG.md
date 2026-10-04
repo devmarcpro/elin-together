@@ -1552,3 +1552,13 @@ Pièges de test notés ce jour-là :
   pas encore fermées) : attendre quelques secondes.
 - Captures : `ElinMods\_shots\nuit-2026-10-04\serveur-sans-elin.png`.
 
+
+### Version 0.26.388 publiée (2026-10-04, 17h25) — reprendre ici
+- `make_release.ps1` sur `951776f` : **mod 0.26.388**, 1 117 074 octets, préversion `independance-0.26.388`, fichier public
+  identique (SHA-256 `524da968…47fc7e`), copie dans `_release`. Le zip contient `ElinTogetherServer.exe`
+  (23 040 octets), `Serveur.bat`, `serveur.ps1`. Chargée une fois en jeu (0 exception).
+- **Le jeu de cette machine a la version publiée 0.26.388.** Avant de reprendre les tests : `dev/build.ps1`.
+- Page des versions : sept anciennes versions y sont encore (0.26.385, .382, .375, .366, .362, .349, .337, .309),
+  à retirer si l'utilisateur le veut.
+- À faire avec lui : essayer le serveur entre deux PC (les deux modes) ; décider si le mode sans Elin doit
+  apprendre le relais sans coupure quand l'hébergeur part (plan long, étapes 3 et 4 de `PLAN_serveur_depot.md`).
