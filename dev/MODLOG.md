@@ -1562,3 +1562,13 @@ Pièges de test notés ce jour-là :
   à retirer si l'utilisateur le veut.
 - À faire avec lui : essayer le serveur entre deux PC (les deux modes) ; décider si le mode sans Elin doit
   apprendre le relais sans coupure quand l'hébergeur part (plan long, étapes 3 et 4 de `PLAN_serveur_depot.md`).
+- L'utilisateur : « en mode sans Elin est-ce qu'on peut sélectionner la sauvegarde ? c'est un peu tout
+  l'intérêt ». Ajouté : liste des sauvegardes du PC et « Parcourir… » (dossier d'une sauvegarde copiée d'ailleurs),
+  bouton « Mettre cette sauvegarde sur le serveur » (`Depot.Import` : dossier avec `game.txt`, sauvegarde du nuage
+  par son `cloud.zip`, ou archive ; refusé tant qu'un joueur héberge ; le monde précédent est gardé). Ligne de
+  commande `--import <sauvegarde>` pour le test. `depot_suite` avec `DEPOT_SERVER=1` : 11/11, la sauvegarde
+  vient du logiciel, plus d'un joueur.
+- **Piège** : `ZipFile.CreateFromDirectory` de .NET Framework écrit les dossiers avec des barres inversées et une
+  entrée `Temp\` pour le dossier vide : le jeu le prenait pour un fichier (accès refusé). `SaveDepot.Unzip`
+  remet les barres dans le bon sens avant de décider.
+

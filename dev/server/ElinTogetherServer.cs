@@ -9,12 +9,14 @@
 //    cochee), lit l'etat qu'il ecrit dans ElinMP/server.txt et l'arrete proprement en posant ElinMP/server.stop.
 //    Cote jeu : ElinTogether/Emp/EmpServer.cs. Les joueurs rejoignent par adresse:55556.
 //
-// Ligne de commande (pour les tests) : --depot <dossier> [--port N] [--password X] demarre le depot tout de suite.
+// Ligne de commande (pour les tests) : --depot <dossier> [--port N] [--password X] [--import <sauvegarde>] demarre
+// le depot tout de suite, avec cette sauvegarde comme monde.
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
@@ -196,6 +198,51 @@ internal sealed class Depot
         _beat = DateTime.UtcNow;
     }
 
+    /// <summary>
+    /// La sauvegarde choisie sur ce PC devient le monde du serveur : un dossier de sauvegarde (celui qui contient
+    /// game.txt), une sauvegarde du nuage Steam (son cloud.zip) ou une archive. Renvoie null, ou ce qui l'empeche.
+    /// </summary>
+    public string Import(string path)
+    {
+        byte[] world;
+        try {
+            if (Directory.Exists(path) && !File.Exists(Path.Combine(path, "game.txt")) && File.Exists(Path.Combine(path, "cloud.zip"))) {
+                path = Path.Combine(path, "cloud.zip");
+            }
+
+            if (File.Exists(path)) {
+                world = File.ReadAllBytes(path);
+            } else if (File.Exists(Path.Combine(path, "game.txt"))) {
+                var packed = Path.Combine(_folder, "import.tmp");
+                File.Delete(packed);
+                ZipFile.CreateFromDirectory(path, packed);
+                world = File.ReadAllBytes(packed);
+                File.Delete(packed);
+            } else {
+                return "Ce n'est pas une sauvegarde d'Elin (pas de game.txt).";
+            }
+
+            using (var zip = new ZipArchive(new MemoryStream(world), ZipArchiveMode.Read)) {
+                if (zip.GetEntry("game.txt") == null) {
+                    return "Cette archive ne contient pas de sauvegarde d'Elin (pas de game.txt).";
+                }
+            }
+        } catch (Exception ex) {
+            return ex.Message;
+        }
+
+        lock (_gate) {
+            if (_holderId != null && DateTime.UtcNow - _beat < LockLife) {
+                return HolderName + " héberge le monde en ce moment : attendre qu'il quitte.";
+            }
+
+            Store(world);
+            Last = DateTime.Now.ToString("HH:mm:ss") + "  sauvegarde mise sur le serveur";
+        }
+
+        return null;
+    }
+
     /// <summary>Ecrit a cote puis echange, et garde les trois mondes precedents (world.1.zip est le plus recent).</summary>
     private void Store(byte[] world)
     {
@@ -252,7 +299,10 @@ internal sealed class ServerForm : Form
     private readonly RadioButton _withGame = new RadioButton { Text = "Avec Elin sur ce PC : le monde tourne en permanence", AutoSize = true };
     private readonly Label _choice = new Label { AutoSize = true };
     private readonly ComboBox _saves = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 330 };
-    private readonly TextBox _password = new TextBox { Width = 330 };
+    private readonly Button _browse = new Button { Text = "Parcourir…", Width = 90, Height = 26 };
+    private readonly Button _import = new Button { Text = "Mettre cette sauvegarde sur le serveur", Width = 232, Height = 26 };
+    private readonly Label _passwordTitle = new Label { Text = "Mot de passe (vide : aucun) :", AutoSize = true };
+    private readonly TextBox _password = new TextBox { Width = 160 };
     private readonly CheckBox _hidden = new CheckBox { Text = "Sans fenêtre de jeu (plus léger)", AutoSize = true, Checked = true };
     private readonly Button _toggle = new Button { Text = "Démarrer", Width = 120, Height = 30 };
     private readonly Label _state = new Label { AutoSize = true, Font = new Font("Segoe UI", 11f, FontStyle.Bold) };
@@ -274,16 +324,21 @@ internal sealed class ServerForm : Form
         Font = new Font("Segoe UI", 9f);
         FormBorderStyle = FormBorderStyle.FixedSingle;
         MaximizeBox = false;
-        ClientSize = new Size(360, 500);
+        ClientSize = new Size(360, 560);
         _depotFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "ElinTogetherServer");
 
         var y = 12;
         Add(_noGame, ref y, 22);
         Add(_withGame, ref y, 28);
         Add(_choice, ref y, 20);
-        Add(_saves, ref y, 0);
-        Add(_password, ref y, 30);
-        Add(_hidden, ref y, 26);
+        Add(_saves, ref y, 30);
+        Add(_browse, ref y, 0);
+        Add(_import, ref y, 34);
+        _import.Left = 112;
+        Add(_passwordTitle, ref y, 0);
+        Add(_password, ref y, 0);
+        _password.Left = 184;
+        Add(_hidden, ref y, 28);
         Add(_toggle, ref y, 40);
         Add(_state, ref y, 26);
         Add(_info, ref y, 54);
@@ -305,13 +360,28 @@ internal sealed class ServerForm : Form
                 Clipboard.SetText(((string)_addresses.SelectedItem).Split(' ')[0]);
             }
         };
+        _browse.Click += delegate {
+            using (var pick = new FolderBrowserDialog { Description = "Dossier d'une sauvegarde d'Elin (celui qui contient game.txt)" }) {
+                if (pick.ShowDialog(this) == DialogResult.OK) {
+                    _saves.Items.Insert(0, pick.SelectedPath);
+                    _saves.SelectedIndex = 0;
+                }
+            }
+        };
+        _import.Click += delegate {
+            var problem = _depot.Import(SavePath((string)_saves.SelectedItem));
+            MessageBox.Show(this, problem ?? "Cette sauvegarde est maintenant le monde du serveur.\nLe monde précédent est gardé à côté (world.1.zip).", Text);
+            Refresh();
+        };
         _noGame.CheckedChanged += delegate { Refresh(); };
         _toggle.Click += delegate { if (Running) { Stop(); } else { Start(); } };
         _timer.Tick += delegate { Refresh(); };
         _timer.Start();
         FormClosing += OnClosing;
 
+        string import = null;
         for (var i = 0; i + 1 < args.Length; i++) {
+            if (args[i] == "--import") { import = args[i + 1]; }
             if (args[i] == "--depot") { _depotFolder = args[i + 1]; }
             if (args[i] == "--port") { _depotPort = int.Parse(args[i + 1]); }
             if (args[i] == "--password") { _password.Text = args[i + 1]; }
@@ -320,6 +390,9 @@ internal sealed class ServerForm : Form
         Refresh();
         if (args.Contains("--depot")) {
             Start();
+            if (import != null && _depot != null) {
+                _depot.Import(import);
+            }
         }
     }
 
@@ -365,6 +438,11 @@ internal sealed class ServerForm : Form
         }
 
         var id = ((string)_saves.SelectedItem).Split(' ')[0];
+        if (id.Contains("\\")) {
+            MessageBox.Show(this, "Avec Elin, la sauvegarde doit être une de celles du jeu sur ce PC.", Text);
+            return;
+        }
+
         var window = _hidden.Checked ? "-batchmode -nographics" : "-screen-fullscreen 0 -screen-width 1280 -screen-height 720";
         _game = Process.Start(new ProcessStartInfo(Path.Combine(_elin, "Elin.exe"), window + " -empserver " + id) {
             WorkingDirectory = _elin,
@@ -393,10 +471,13 @@ internal sealed class ServerForm : Form
     {
         var noGame = _noGame.Checked;
         _noGame.Enabled = _withGame.Enabled = !Running;
-        _saves.Visible = _hidden.Visible = !noGame;
-        _password.Visible = noGame;
-        _saves.Enabled = _hidden.Enabled = _password.Enabled = !Running;
-        _choice.Text = noGame ? "Mot de passe du dépôt (vide : aucun) :" : "Sauvegarde à héberger (elle doit avoir une base) :";
+        _hidden.Visible = !noGame;
+        _browse.Visible = _import.Visible = _passwordTitle.Visible = _password.Visible = noGame;
+        _hidden.Enabled = _password.Enabled = !Running;
+        // sans Elin, la sauvegarde se choisit serveur en marche ; avec Elin, avant de le demarrer
+        _saves.Enabled = noGame || !Running;
+        _import.Enabled = _depot != null && _saves.SelectedItem != null;
+        _choice.Text = noGame ? "Sauvegarde à mettre sur le serveur :" : "Sauvegarde à héberger (elle doit avoir une base) :";
         _toggle.Text = Running ? "Arrêter" : "Démarrer";
         _playersTitle.Text = noGame ? "Joueur qui héberge le monde en ce moment :" : "Joueurs connectés :";
         ShowAddresses(noGame ? _depotPort : 55556);
@@ -409,7 +490,7 @@ internal sealed class ServerForm : Form
             _info.Text = _depot == null
                 ? "Dans le jeu de chaque joueur : Client Settings, Depot folder,\net donner une des adresses ci-dessous."
                 : (_depot.WorldSize == 0
-                      ? "Pas encore de monde : un joueur charge sa partie, onglet Lobby,\n« Put this save in the depot »."
+                      ? "Pas encore de monde : choisir une sauvegarde ci-dessus,\n« Mettre cette sauvegarde sur le serveur »."
                       : "Monde : " + (_depot.WorldSize / 1024) + " Ko, reçu le " + _depot.Received.ToString("dd/MM à HH:mm")) +
                   "\n" + (_depot.Last ?? "");
             names = holder == null ? names : new[] { holder };
@@ -486,6 +567,17 @@ internal sealed class ServerForm : Form
         }
 
         e.Cancel = true;
+    }
+
+    /// <summary>Le dossier d'une entree de la liste : un chemin choisi par "Parcourir", ou une sauvegarde du jeu.</summary>
+    private static string SavePath(string item)
+    {
+        if (Directory.Exists(item) || File.Exists(item)) {
+            return item;
+        }
+
+        var id = item.Split(' ')[0];
+        return id.StartsWith("cloud:") ? Path.Combine(Data, "Cloud Save", id.Substring(6)) : Path.Combine(Data, "Save", id);
     }
 
     /// <summary>Les sauvegardes locales et celles du nuage Steam, la derniere ecrite en premier.</summary>

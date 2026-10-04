@@ -195,13 +195,15 @@ internal static class SaveDepot
         var root = Path.GetFullPath(folder) + Path.DirectorySeparatorChar;
         using var zip = new ZipArchive(new MemoryStream(world), ZipArchiveMode.Read);
         foreach (var entry in zip.Entries) {
-            var path = Path.GetFullPath(Path.Combine(root, entry.FullName));
+            // (archives made by Windows write their folders with backslashes)
+            var name = entry.FullName.Replace('\\', '/');
+            var path = Path.GetFullPath(Path.Combine(root, name));
             // what comes from the network stays inside the save folder
             if (!path.StartsWith(root, StringComparison.OrdinalIgnoreCase)) {
                 throw new IOException("the depot sent a file outside the save: " + entry.FullName);
             }
 
-            if (entry.FullName.EndsWith("/")) {
+            if (name.EndsWith("/")) {
                 Directory.CreateDirectory(path);
                 continue;
             }

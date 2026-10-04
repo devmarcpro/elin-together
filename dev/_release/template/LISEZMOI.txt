@@ -55,7 +55,11 @@ Un petit logiciel (un seul fichier, rien a installer). Double-cliquer dessus, ch
    Elin n'a meme pas besoin d'y etre installe.
    - Chaque joueur, dans le jeu : bouton Elin Together, onglet "Client Settings", "Depot", et donner une des
      adresses affichees par le serveur (elles finissent par :55557). Mot de passe : le meme que dans le serveur.
-   - Pour y mettre un monde : charger sa partie, onglet "Lobby", "Put this save in the depot".
+   - Choisir le monde : dans le serveur en marche, choisir une sauvegarde dans la liste (celles d'Elin sur ce
+     PC, s'il y est) ou par "Parcourir" (le dossier d'une sauvegarde copie d'un autre PC : celui qui contient
+     game.txt), puis "Mettre cette sauvegarde sur le serveur". La sauvegarde d'origine n'est pas modifiee.
+     (Un joueur peut aussi deposer la sienne depuis le jeu, tant que le serveur est vide : onglet "Lobby",
+     "Put this save in the depot".)
    - Pour jouer : a l'ecran titre, onglet "Lobby", "Take the world from the depot and host it", puis ouvrir la
      session comme d'habitude. Les autres rejoignent. Chaque sauvegarde retourne au serveur, qui garde aussi
      les trois mondes precedents.

@@ -29,7 +29,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 import emp  # noqa: E402
 from chara_suite import leave  # noqa: E402
-from mp_test import CONTINUE, SAVES, SHOTS, join_client, log, ok, shot, state, wait  # noqa: E402
+from mp_test import CONTINUE, PRISTINE, SAVES, SHOTS, join_client, log, ok, shot, state, wait  # noqa: E402
 from travel_suite import RESULTS, check, dismiss_dialogs, ev, eventually, scan_logs  # noqa: E402
 
 H, A = 27551, 27552
@@ -85,7 +85,9 @@ def main():
         shutil.rmtree(LOCAL, ignore_errors=True)
         DEPOT.mkdir(parents=True)
         if REMOTE:
-            server = subprocess.Popen([str(SERVER_EXE), "--depot", str(DEPOT), "--port", "55557"])
+            # la sauvegarde est choisie dans le logiciel (ici par sa ligne de commande, comme le bouton "Mettre
+            # cette sauvegarde sur le serveur") : aucun joueur n'a a la deposer
+            server = subprocess.Popen([str(SERVER_EXE), "--depot", str(DEPOT), "--port", "55557", "--import", str(PRISTINE)])
             log(f"Elin Together Server lance (pid {server.pid}), depot a {ADDRESS}")
             time.sleep(3)
         for port in (H, A):
@@ -93,11 +95,14 @@ def main():
             ev(port, SET % (ADDRESS if REMOTE else str(DEPOT)))
 
         log("--- D1")
-        ev(H, CALL % "Put")
-        time.sleep(3)
-        log(f"l'host : {ev(H, DIALOG)}")
-        dismiss_dialogs(H)
-        check("l'host depose sa sauvegarde : le depot contient un monde", WORLD.exists())
+        if REMOTE:
+            check("la sauvegarde choisie dans le logiciel est le monde du serveur", eventually(WORLD.exists, timeout=15))
+        else:
+            ev(H, CALL % "Put")
+            time.sleep(3)
+            log(f"l'host : {ev(H, DIALOG)}")
+            dismiss_dialogs(H)
+            check("l'host depose sa sauvegarde : le depot contient un monde", WORLD.exists())
 
         log("--- D2")
         leave()
