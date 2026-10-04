@@ -32,6 +32,7 @@ internal class TabServerConfiguration : TabEmpBase
         Option(time, "player_clock", EmpConfig.Server.PlayerClock);
         Option(time, "step_pace", EmpConfig.Server.PlayerStepPace);
         Option(time, "world_time", EmpConfig.Server.SharedWorldTime);
+        Option(time, "world_keeper", EmpConfig.Server.WorldKeeper);
         Option(time, "turn_combat", EmpConfig.Server.TurnBasedCombat);
         Option(time, "shared_speed", EmpConfig.Server.SharedAverageSpeed);
 

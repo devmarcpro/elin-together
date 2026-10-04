@@ -74,7 +74,8 @@ internal static class WorldDateAdvanceEvent
 
         // as a client does for the time its host advanced, see WorldDateAdvanceDelta
         var pc = EClass.pc;
-        var ticks = behind * 4 / 6;
+        // (a day of it at most: a longer jump is not a time to live through, it would starve the character)
+        var ticks = System.Math.Min(behind, Date.DayToken) * 4 / 6;
         for (var i = 0; i < ticks && pc is { isDead: false }; ++i) {
             pc.TickConditions();
         }

@@ -74,6 +74,13 @@ public class NetSessionRules
     [Key(10)]
     public bool UseSharedWorldTime { get; set; }
 
+    /// <summary>
+    ///     What a passing hour, day or month does to the world is done once, by the world keeper's game (see
+    ///     Patches/WorldKeeper.cs), not by every game that makes the date advance
+    /// </summary>
+    [Key(11)]
+    public bool UseWorldKeeper { get; set; }
+
     public static NetSessionRules Default => new() {
         UseSharedSpeed = EmpConfig.Server.SharedAverageSpeed.Value,
         UseTurnBasedCombat = EmpConfig.Server.TurnBasedCombat.Value,
@@ -86,5 +93,6 @@ public class NetSessionRules
         UsePlayerClock = EmpConfig.Server.PlayerClock.Value,
         UsePlayerStepPace = EmpConfig.Server.PlayerStepPace.Value,
         UseSharedWorldTime = EmpConfig.Server.SharedWorldTime.Value,
+        UseWorldKeeper = EmpConfig.Server.WorldKeeper.Value,
     };
 }

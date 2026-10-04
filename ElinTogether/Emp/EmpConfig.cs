@@ -136,6 +136,14 @@ internal partial class EmpConfig
             "Otherwise only the host's date counts, and a player coming back from a map of its own jumps to it\n" +
             "整个世界共用一个日期：独自在其他地图的玩家所经过的时间对所有人都有效，最靠前的日期就是世界的日期；否则只以主机的日期为准");
 
+        Server.WorldKeeper = config.Bind(
+            "Server",
+            "WorldKeeper",
+            true,
+            "What time does to the world (weather, expired quests, taxes, salaries, letters) is done once, by one game, the same for everyone\n" +
+            "Otherwise every player holding a map runs it too in its own copy: a quest expires twice, each copy has its own weather\n" +
+            "时间对世界的影响（天气、任务过期、税金、工资、信件）只由一个游戏处理一次，所有人相同；否则每个持有地图的玩家也会在自己的副本中各自处理");
+
         Server.PlayerShipping = config.Bind(
             "Server",
             "PlayerShipping",
@@ -259,6 +267,7 @@ internal partial class EmpConfig
         internal static ConfigEntry<bool> PlayerClock { get; set; } = null!;
         internal static ConfigEntry<bool> PlayerStepPace { get; set; } = null!;
         internal static ConfigEntry<bool> SharedWorldTime { get; set; } = null!;
+        internal static ConfigEntry<bool> WorldKeeper { get; set; } = null!;
         internal static ConfigEntry<int> TravelCheckpointSeconds { get; set; } = null!;
     }
 }
