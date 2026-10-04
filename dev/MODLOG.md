@@ -1271,3 +1271,34 @@ Pièges de test notés ce jour-là :
 - `independance-0.26.337` et `independance-0.26.309` sont toujours sur la page : à retirer si l'utilisateur le
   veut (elles ne se connectent pas à la 0.26.349).
 
+### Fluidité des déplacements d'un invité : fusionnée (2026-10-04, 1h30 → 2h15)
+- `move_suite.py` sur le code publié (0.26.349) : **rouge 6/9**. Host à 5 images par seconde : le pas de
+  l'invité passe de 120 à 240 ms. Host trois fois plus rapide : l'invité à 209 ms par pas, l'host à 34 ms.
+- Branche `wip/player-clock` fusionnée (`48930ce`) avec trois ajouts :
+  - **case host `PlayerStepPace`** (« chaque joueur marche comme en solo », option A choisie par l'utilisateur,
+    règle `UsePlayerStepPace` clé 9, active avec `PlayerCombatTime`) : le tour d'un joueur dure toujours le
+    temps de base, il n'est plus étiré par la vitesse des autres. En combat rien ne change (le temps donné aux
+    monstres par tour garde le rapport des vitesses). `5584c51`.
+  - **accéléré partagé** (`6af7ffa`), trouvé par la relecture : sur sa propre horloge, l'accéléré d'un invité
+    n'accélérait que lui, et celui de l'host le laissait en arrière. L'invité dit quand il accélère
+    (`PlayerCharaStateSnapshot.Turbo`), le monde de l'host suit ; l'host envoie l'allure de son monde
+    (`GameDelta.Turbo`, lue au début de l'image : `WorldTurbo`) et le jeu de l'invité est relevé à cette allure,
+    jamais multiplié par-dessus la sienne (`FollowsHost`).
+  - `move_suite` V4 à V6, échauffement, cases réglées par le test lui-même. **Vert 17/17.**
+- **Pièges du test** :
+  - une marche lancée par `AI_Goto` met le jeu de celui qui marche en accéléré (x2,2) : les 118 ms par pas
+    sont déjà une allure d'accéléré (pas de base : 260 ms) ;
+  - l'option du jeu « courir tout seul » allume l'accéléré selon la distance entre la souris et le personnage :
+    la mesure dépendait de l'endroit où traînait le pointeur. Le test la coupe le temps des mesures ;
+  - la première marche après un lancement part en rafale : le pont de test compile ses commandes, le jeu se
+    fige un instant puis rattrape (temps d'image lissé). D'où la marche d'échauffement ;
+  - un `eval` qui passe par `Traverse`/`TypeByName` prend plus d'une seconde : pas dans une boucle de mesure ;
+  - un joueur immobile perd l'accéléré à chaque image (`AM_Adv`, `HasNoGoal` → `EndTurbo`) ;
+  - dans un script lancé par l'outil Bash, `\\n` devient un vrai retour à la ligne : écrire les fichiers C#
+    avec l'outil d'écriture, pas par un script en ligne.
+- Pas testé : la marche touche enfoncée ou souris tenue (`GoalManualMove`), le pont ne tient pas de touche.
+- Passe complète relancée sur `6af7ffa` à 2h11 (`_shots/*-p3.log`).
+- Écrit pendant la passe, **pas compilé, pas lancé** : personnage d'une sauvegarde solo (`Helper/CharaImport.cs`,
+  case `ImportCharacter`, test `import_suite.py`) et autres recrutements (`CharaMakeAllyEvent.Recruiter`,
+  `CharaMakeAllyRequestDelta.Data`, `recruit_suite` R7 boule à monstre, R8 animal acheté, R9 monture).
+
