@@ -1572,3 +1572,10 @@ Pièges de test notés ce jour-là :
   entrée `Temp\` pour le dossier vide : le jeu le prenait pour un fichier (accès refusé). `SaveDepot.Unzip`
   remet les barres dans le bon sens avant de décider.
 
+### Version 0.26.390 publiée, passation (2026-10-04, 17h40) — reprendre ici
+- `make_release.ps1` sur `452f89e` : **mod 0.26.390**, 1 118 345 octets, préversion `independance-0.26.390`, fichier public
+  identique (SHA-256 `7a4a21cc…801ee1`), copie dans `_release`. `ElinTogetherServer.exe` : 26 112 octets, avec le
+  choix de la sauvegarde. Chargée une fois en jeu (0 exception). **C'est la version dans le jeu de cette machine.**
+- L'utilisateur ouvre une nouvelle session : passation dans `dev/HANDOFF.md`, message de départ dans
+  `dev/PROMPT_reprise.md`.
+

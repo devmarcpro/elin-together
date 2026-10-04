@@ -6,6 +6,8 @@ travail `feat/independent-travel`. `upstream` (ElinTogether/ElinTogether) est le
 
 ## Par où commencer
 
+0. `dev/HANDOFF.md` : la passation la plus récente (état, ce qui n'est pas testé, quoi faire ensuite).
+
 1. `dev/DOCUMENTATION.md` : ce qui existe, comment ça marche, comment tester, limites, reste à faire (section 7).
 2. La fin de `dev/MODLOG.md` : le journal, dernière entrée = où le travail s'est arrêté et quoi faire ensuite.
 3. Les `dev/PLAN_*.md` : plans prêts à réaliser (quêtes à donjon phase 2, profil de mods…).
@@ -43,6 +45,8 @@ Les commandes de test se lancent depuis `dev/` avec `PYTHONPATH=_tools/pylib`.
   Ce qui n'a pas pu être testé est écrit comme tel dans le commit, le journal et le résumé.
 - Tenir `dev/MODLOG.md` (journal daté, pièges, résultats de tests) et `dev/DOCUMENTATION.md` à jour à chaque étape :
   c'est ce qui permet de reprendre après une coupure.
+- Sur le Steam Deck (machine partagée avec d'autres sessions) : **deux fenêtres Elin au plus**, pas de `trio_suite`,
+  sauf si l'utilisateur dit le contraire (2026-10-04 : « c'est trop 4 clients »).
 - Tests **courts**, sur des fenêtres déjà ouvertes, pour ce qui a changé. Les passes longues (`run_all.sh`) et les
   bots : seulement quand le PC est libre (vérifier avec `dev/_tools/idle.ps1`, ou demander).
 - Fenêtres Elin toujours **muettes** (`-empmute`, `mp_test.py` le fait), lancées **une à la fois** ; ne pas
