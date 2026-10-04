@@ -56,6 +56,10 @@ PACER = ('if (EClass.pc.HasNoGoal) { var p = EClass.pc.pos.Copy(); '
          'p.x += (EClass.pc.GetInt(990001) == 0 ? 3 : -3); EClass.pc.SetInt(990001, 1 - EClass.pc.GetInt(990001)); '
          'EClass.pc.SetAIImmediate(new AI_Goto(p, 0)); } ActionMode.Adv.SetTurbo(); "ok"')
 
+# la position de celui qui marche, en tenant son accelere : une marche l'allume ou non selon ce que la fenetre
+# recoit (souris, touche Maj), et une mesure faite pendant qu'on se sert du PC devenait irreguliere
+RUN = 'ActionMode.Adv.SetTurbo(); return ' + POS + ';'
+
 
 def calm(port):
     """Attend que ce jeu tourne a l'allure normale."""
@@ -85,7 +89,7 @@ def walk(port, turbo=None, watch=None, read=PACE):
             ev(turbo, PACER if turbo != port else 'ActionMode.Adv.SetTurbo(); "ok"')
         if watch is not None:
             seen.append(float(ev(watch, read)))
-        px, pz, idle = ev(port, POS).split(",")
+        px, pz, idle = ev(port, RUN).split(",")
         now = time.perf_counter()
         if (px, pz) != last:
             steps.append(now)
