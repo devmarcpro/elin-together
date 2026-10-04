@@ -51,6 +51,7 @@ aléatoires, renommée et karma personnels ; histoire commune), 5 pour tout le g
 | Échange entre joueurs (`PlayerTrade`) | « Échanger » apparaît en cliquant sur un autre joueur | pas d'échange |
 | Chaque joueur sur sa propre horloge (`PlayerClock`, avec le combat au rythme du joueur) | un invité marche aussi régulièrement que l'host | ses pas suivent le temps de l'host reçu par le réseau |
 | Chacun marche comme en solo (`PlayerStepPace`, avec le combat au rythme du joueur) | un pas dure toujours le temps de base | la durée d'un pas dépend de l'écart de vitesse entre le joueur le plus rapide et le plus lent |
+| Une seule date pour le monde (`SharedWorldTime`) | le temps passé par un joueur seul sur sa carte compte pour tous : la date la plus avancée est celle du monde | seule la date de l'host compte ; un joueur qui rentre reprend la sienne |
 | Personnage d'une sauvegarde solo (`ImportCharacter`, décochée par défaut) | le joueur peut amener le personnage d'une de ses sauvegardes | choix absent |
 
 Les options sont envoyées aux clients à la connexion (`NetSessionRules`). Toute nouvelle fonction doit avoir sa case.
@@ -175,6 +176,7 @@ python _tools/bot.py --minutes 5 --seed 1
 | `recruit_suite.py` | compagnons recrutés par un invité : dialogue, monture, boule à monstre, achat | 2 | ~5 min |
 | `move_suite.py` | pas de l'invité : réguliers, host qui rame, écart de vitesse, accéléré partagé | 2 | ~2 min |
 | `import_suite.py` | rejoindre avec le personnage d'une sauvegarde (copie du monde de test) | 2 | ~3 min |
+| `time_suite.py` | une seule date pour le monde : invité seul ailleurs, host, saut de cinq heures, retour | 2 | ~2 min |
 | `compat_suite.py` | cohabitation avec d'autres mods (Somewhat Enhanced Display) | 2 | ~2 min |
 | `run_short.sh` | les suites courtes à la suite, chacune sur un monde neuf (pas `economy` ni `combat`, qui ouvrent leurs fenêtres : `run_all.sh`) | 2 | ~50 min |
 | `companion_suite.py`, `party_suite.py` | compagnons, limite d'alliés | 2 | ~10 min chacun |
@@ -259,7 +261,9 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
   garde existe pour Somewhat Enhanced Display (`Patches/Compat/OtherModsCompat.cs`), à étendre au cas par cas.
 - Joué une seule soirée entre deux PC par Steam (2026-10-02) ; elle a trouvé le blocage de l'host après une nuit
   sur une carte sauvage, corrigé depuis. Le reste a été vérifié en local.
-- Le temps du monde suit encore l'host.
+- Temps du monde : une seule date depuis `a76d6a9` (case `SharedWorldTime`). C'est encore le jeu de l'host qui
+  fait ce qui se passe à chaque heure et à chaque jour (météo, quêtes, factions, expédition). Pas testé : deux
+  joueurs qui tiennent chacun une carte, un joueur qui tient une carte avec des visiteurs, trois joueurs.
 
 ## 7. Reste à faire
 

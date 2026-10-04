@@ -1393,3 +1393,27 @@ Pièges de test notés ce jour-là :
 - La liste « À faire ensuite » de la section précédente reste vraie, avec en plus : valider avec lui
   `PLAN_serveur_depot.md` (cinq décisions) avant de commencer le temps du monde commun.
 
+### Temps du monde commun, première marche du serveur (2026-10-04, 9h → …) — reprendre ici
+- L'utilisateur au réveil : « tu avais d'autres choses à faire ». Il avait dit la veille de continuer sans
+  s'arrêter et que le serveur commençait dès que le reste était bon. **Ne pas s'arrêter pour demander** quand il
+  a dit de continuer : prendre les choix proposés dans le plan et avancer. Il a confirmé que le serveur est bien
+  son idée (un programme qui est juste la sauvegarde).
+- **Étape 1 du plan faite** `a76d6a9` : case host `SharedWorldTime` (règle `UseSharedWorldTime`, clé 10).
+  Un joueur qui tient une carte dit la date que son jeu a atteinte (`WorldTimeReportDelta`, union 504, envoyée
+  hors de la carte de l'host comme le chat) ; l'host rattrape par `GameDate.AdvanceMin` (donc avec tout ce que
+  fait une heure ou un jour qui passe), son personnage vit ce temps, et il le redit à tous ; un joueur qui tient
+  une carte rattrape de même quand le monde a avancé sans lui (`WorldDateAdvanceEvent.CatchUp`, à l'image
+  suivante, hors de la boucle des deltas). Garde-fou : pas plus d'un mois de jeu d'un coup.
+- `time_suite.py` W1–W5 : **rouge 7/12** case décochée (l'host n'avance pas avec l'invité, l'invité ne suit pas
+  l'host, la date de l'invité recule de 300 minutes à son retour) → **vert 12/12**.
+- **Piège** : `Chara.TryMoveTowards` appelé par le pont déplace le joueur sans lui faire jouer de tour, donc sans
+  faire passer le temps. Une vraie marche (`AI_Goto`) fait passer ~7 minutes de jeu pour 11 pas. Le monde de
+  l'host ne fait passer aucune minute tant que son joueur ne joue pas.
+- En cours : `travel`, `shared`, `trio`, `economy`, puis `sleep`, `quest`, `instance`, `transfer`, `leave`,
+  `guest`, `time`, `move` sur ce build (`_shots/*-p6.log`).
+- Écrits pendant ce temps, **pas compilés** : la marque de l'animal de Fiama (le compagnon fabriqué chez
+  l'acheteur part à l'image suivante, avec ce que le dialogue lui pose après le recrutement) ; l'écran de choix
+  n'est plus affiché à chaque connexion quand seule la case d'import est cochée (une fois, tant que le joueur n'a
+  personne ici) ; `recruit_suite` R10 (brosse) et la marque dans R8.
+- **Le jeu de cette machine a le build de test.** Remettre une version publiée avant que l'utilisateur joue.
+

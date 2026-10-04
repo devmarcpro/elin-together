@@ -1,6 +1,8 @@
 # Plan — serveur « dépôt de sauvegarde » (idée de l'utilisateur, 2026-10-03)
 
-**Rien n'est codé.** Ce plan est à valider par l'utilisateur avant de commencer, étape par étape.
+L'utilisateur a confirmé le 2026-10-04 au matin que c'est bien son idée, et demandé d'avancer sans attendre.
+**Étape 1 faite le 2026-10-04** (`a76d6a9`, case `SharedWorldTime`, `time_suite` 12/12), avec le choix proposé
+ci-dessous : la date la plus avancée gagne. Les étapes suivantes ne sont pas commencées.
 
 ## L'idée
 
