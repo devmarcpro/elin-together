@@ -29,10 +29,26 @@ internal static class CharaAddConditionEvent
     }
 
     [HarmonyPrefix]
-    internal static bool OnClientAddCondition()
+    internal static bool OnClientAddCondition(Chara __instance, Condition c, bool force)
     {
         // clients cannot add conditions normally
-        return NetSession.Instance.IsHost;
+        if (NetSession.Instance.IsHost) {
+            return true;
+        }
+
+        // the trap this game's player walked on is rolled here only (RemoteTrapPatch): what it does to it is
+        // asked of the game that simulates the map
+        if (RemoteTrapPatch.IsOwnStep && __instance.IsPC && CharaAddConditionDelta.IsTrapCondition(c.source.alias) &&
+            NetSession.Instance.Connection is ElinNetClient client) {
+            client.Delta.AddRemote(new CharaAddConditionDelta {
+                Owner = __instance,
+                ConditionId = c.id,
+                Power = c.power,
+                Force = force,
+            });
+        }
+
+        return false;
     }
 
     extension(Chara chara)

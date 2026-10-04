@@ -23,10 +23,22 @@ public class CharaAddConditionDelta : ElinDelta
     [Key(4)]
     public bool Remove { get; set; }
 
+    internal static bool IsTrapCondition(string alias)
+    {
+        return alias is nameof(ConSleep) or nameof(ConBlind) or nameof(ConParalyze);
+    }
+
     protected override void OnApply(ElinNetBase net)
     {
-        if (net.IsHost) {
-            // reject every single chara add condition delta from clients
+        if (net is ElinNetHost host) {
+            // reject every chara add condition delta from clients, but what a trap does to the player who
+            // sent it: that trap was rolled in its game only
+            if (!Remove && host.ActiveRemoteCharas.TryGetValue(OriginPeer, out var sender) && Owner.Find() == sender &&
+                sources.stats.map.TryGetValue(ConditionId, out var asked) && IsTrapCondition(asked.alias)) {
+                using var _ = Simulate();
+                sender.AddCondition(Condition.Create(asked.alias, Power), Force);
+            }
+
             return;
         }
 
