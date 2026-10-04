@@ -32,6 +32,25 @@ internal static class PartyJoinEvent
         _makingAlly--;
     }
 
+    // the host runs the task of a remote player on its copy of that player (taming with a brush): an ally made
+    // during its turn is that player's
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(Chara), nameof(Chara.Tick))]
+    internal static void OnRemotePlayerTick(Chara __instance, out Chara? __state)
+    {
+        __state = CharaMakeAllyEvent.ActingRemotePlayer;
+        if (NetSession.Instance.Connection is ElinNetHost && __instance.GetBool("remote_chara")) {
+            CharaMakeAllyEvent.ActingRemotePlayer = __instance;
+        }
+    }
+
+    [HarmonyFinalizer]
+    [HarmonyPatch(typeof(Chara), nameof(Chara.Tick))]
+    internal static void OnRemotePlayerTickEnd(Chara? __state)
+    {
+        CharaMakeAllyEvent.ActingRemotePlayer = __state;
+    }
+
     [HarmonyPrefix]
     [HarmonyPatch(typeof(Party), nameof(Party.AddMemeber))]
     internal static bool OnAddMember(Party __instance, Chara c, bool showMsg)
@@ -45,6 +64,22 @@ internal static class PartyJoinEvent
         // asked on our own (travelling alone, or holding a map): ours, not the host's
         if (session is { IsAway: true, Connection: not ElinNetClient } && !ElinDelta.IsApplying && c.CompanionOwnerUid == 0) {
             c.SetCompanionOwner(EClass.pc);
+        }
+
+        // the host adds it for a player who rides it (ActRide adds its mount to the party itself): it follows
+        // that player. Only the mount: a companion of the host a guest brings back to life stays the host's
+        if (_makingAlly == 0 && c.CompanionOwnerUid == 0 && session.Connection is ElinNetHost riding &&
+            CharaMakeAllyEvent.Recruiter(c) is { } rider && (rider.ride == c || rider.parasite == c)) {
+            c.SetCompanionOwner(rider);
+            // told here: nothing else tells it while a player's delta is being applied
+            riding.Delta.AddRemote(new CharaMakeAllyDelta {
+                Owner = c,
+                ShowMsg = showMsg,
+                TemporaryAllyName = c.c_altName,
+                OwnerUid = c.CompanionOwnerUid,
+                JoinOnly = true,
+            });
+            return true;
         }
 
         if (_makingAlly > 0 || ElinDelta.IsApplying) {

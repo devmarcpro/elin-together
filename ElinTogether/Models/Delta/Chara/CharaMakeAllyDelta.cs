@@ -52,6 +52,12 @@ public class CharaMakeAllyDelta : ElinDelta
         }
 
         chara.c_altName = TemporaryAllyName;
+        // received whole from the host, already one of the world's characters there: the game only lists
+        // the ones it makes global itself, and this one would be missing from the list (and from a trip)
+        if (chara.IsGlobal && game.cards.globalCharas.Find(chara.uid) is null) {
+            game.cards.globalCharas.Add(chara);
+        }
+
         chara.SetInt(CompanionHelper.OwnerKey, OwnerUid);
         if (JoinOnly) {
             pc.party.AddMemeber(chara, ShowMsg);

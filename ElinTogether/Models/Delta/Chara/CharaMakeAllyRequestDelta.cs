@@ -28,6 +28,13 @@ public class CharaMakeAllyRequestDelta : ElinDelta
     [Key(4)]
     public bool JoinOnly { get; init; }
 
+    /// <summary>
+    ///     The character itself, when it only exists in the game of the player who recruits it: a slave or an
+    ///     animal bought from a trader, a pet given by a dialog. Without it the host has nobody to recruit
+    /// </summary>
+    [Key(5)]
+    public LZ4Bytes? Data { get; init; }
+
     protected override void OnApply(ElinNetBase net)
     {
         if (net is not ElinNetHost host) {
@@ -80,17 +87,54 @@ public class CharaMakeAllyRequestDelta : ElinDelta
 
     private void ReplayLocalCopy(ElinNetHost host)
     {
-        if (LocalCardId is null || !_excluded.Contains(LocalCardId)) {
+        if (LocalCardId is null) {
             return;
         }
 
         var receiver = host.ActiveRemoteCharas.TryGetValue(OriginPeer, pc);
+        if (!_excluded.Contains(LocalCardId)) {
+            AdoptLocal(host, receiver);
+            return;
+        }
+
         using var _ = Simulate();
         var copy = CharaGen.Create(LocalCardId);
         _zone.AddCard(copy, receiver.pos.GetNearestPoint());
         copy.isCopy = IsCopy;
         copy.SetCompanionOwner(receiver == pc ? null : receiver);
         copy.MakeAlly(ShowMsg);
+    }
+
+    /// <summary>
+    ///     The character the player bought or was given comes to this world as it is, under uids of this world
+    /// </summary>
+    private void AdoptLocal(ElinNetHost net, Chara receiver)
+    {
+        if (Data is null) {
+            return;
+        }
+
+        Chara chara;
+        try {
+            chara = Data.Decompress<Chara>();
+        } catch (System.Exception ex) {
+            EmpLog.Warning(ex, "Could not read the {Id} recruited by player {Peer}", LocalCardId, OriginPeer);
+            return;
+        }
+
+        using var _ = Simulate();
+        chara.currentZone = null;
+        game.cards.AssignUIDRecursive(chara);
+        chara.isCopy = IsCopy;
+        chara.SetCompanionOwner(receiver == pc ? null : receiver);
+
+        // nobody generated it here: the other games learn it whole, as a companion that comes back
+        net.Delta.AddRemote(CardGenDelta.Create(chara));
+        _zone.AddCard(chara, receiver.pos.GetNearestPoint(false, false) ?? receiver.pos);
+        CardCache.Add(chara);
+        CardCache.CacheContainer(chara.things);
+
+        chara.MakeAlly(ShowMsg);
     }
 
     // should work?
@@ -119,6 +163,7 @@ public class CharaMakeAllyRequestDelta : ElinDelta
             LocalCardId = pending ? chara.id : null,
             IsCopy = chara.isCopy, // keep sync with host
             ShowMsg = msg,
+            Data = pending && !_excluded.Contains(chara.id) ? LZ4Bytes.Create(chara) : null,
         };
     }
 }

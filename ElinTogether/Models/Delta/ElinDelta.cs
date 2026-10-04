@@ -1,4 +1,5 @@
 using ElinTogether.Net;
+using ElinTogether.Patches;
 using MessagePack;
 
 namespace ElinTogether.Models;
@@ -131,9 +132,17 @@ public abstract class ElinDelta : EClass
     public void Apply(ElinNetBase net)
     {
         _applyDepth++;
+        // what the host does here, it does for the player who sent it: an ally made on the way (a monster
+        // ball, a mount, a tamed animal) follows that player, not the host
+        var actor = CharaMakeAllyEvent.Actor;
+        if (net is ElinNetHost host && host.ActiveRemoteCharas.TryGetValue(OriginPeer, out var sender)) {
+            CharaMakeAllyEvent.Actor = sender;
+        }
+
         try {
             OnApply(net);
         } finally {
+            CharaMakeAllyEvent.Actor = actor;
             _applyDepth--;
         }
     }

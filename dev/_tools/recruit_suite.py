@@ -117,6 +117,117 @@ def r6(ctx):
     # (le monde de l'host est en pause sans clic de son joueur : "il suit l'host" ne se teste pas par le pont)
 
 
+def spawn_wild(ctx, key):
+    """un animal sauvage a cote de l'invite, vu des deux jeux"""
+    a = ctx["a"]
+    species = next(s for s in SPECIES if ev(H, f'EClass.sources.charas.map.ContainsKey("{s}").ToString()') == "True")
+    uid = int(ev(H, f'var g = EClass._map.charas.Find(x => x.uid == {a}); var c = CharaGen.Create("{species}"); '
+                    'EClass._zone.AddCard(c, g.pos.GetNearestPoint(allowChara: false)); return c.uid.ToString();'))
+    wait(lambda: ev(A, f'(EClass._map.charas.Find(x => x.uid == {uid}) != null).ToString()') == "True", "l'invite voit l'animal", timeout=30)
+    ctx[key] = uid
+    return uid
+
+
+def owned_by_guest(ctx, uid, what):
+    a, h = ctx["a"], ctx["h"]
+    check(f"{what} : dans le groupe chez l'host, une fois", eventually(lambda: info(H, uid) is not None and info(H, uid)[3] == 1, timeout=15))
+    check(f"{what} : il appartient a l'invite chez l'host", info(H, uid) is not None and info(H, uid)[2] == a)
+    check(f"{what} : pareil chez l'invite", eventually(lambda: info(A, uid) is not None and info(A, uid)[3] == 1 and info(A, uid)[2] == a, timeout=15))
+    walk_away(A)
+    check(f"{what} : il suit l'invite, pas l'host", eventually(lambda: 0 <= dist(H, uid, a) <= 4, timeout=30) and dist(H, uid, h) > 4)
+    walk_away(A, dx=-8)
+    time.sleep(3)
+
+
+FULL = 'EClass._map.things.FirstOrDefault(t => t.trait is TraitMonsterBall && (t.trait as TraitMonsterBall).chara != null)'
+HELD = 'EClass.pc.things.Find(t => t.trait is TraitMonsterBall && (t.trait as TraitMonsterBall).chara != null)'
+
+
+def r7(ctx):
+    """boule a monstre : l'invite capture un animal puis le relache, il est a lui et le suit"""
+    a = ctx.setdefault("a", state(A)["pc"]["uid"])
+    ctx.setdefault("h", state(H)["pc"]["uid"])
+    known = ctx.get("u", 0)
+    uid = spawn_wild(ctx, "ball")
+    # une boule assez forte dans le sac de l'invite, un animal affaibli (la capture demande peu de vie)
+    ev(H, f'var g = EClass._map.charas.Find(x => x.uid == {a}); g.AddThing(ThingGen.Create("monsterball", -1, 100)); '
+          f'var c = EClass._map.charas.Find(x => x.uid == {uid}); c.hp = 1; "ok"')
+    wait(lambda: ev(A, '(EClass.pc.things.Find("monsterball") != null).ToString()') == "True", "la boule arrive dans le sac", timeout=20)
+    time.sleep(2)
+    # le lancer du jeu (ce que fait le clic "lancer" : ACT.Throw.Perform)
+    r = ev(A, f'var b = EClass.pc.things.Find("monsterball"); var c = EClass._map.charas.Find(x => x.uid == {uid}); '
+              'ACT.Throw.target = b; ACT.Throw.Perform(EClass.pc, c, c.pos); return "lance";')
+    log(f"capture : {r}")
+    caught = eventually(lambda: ev(H, f'({FULL} != null).ToString()') == "True", timeout=20)
+    check("l'invite lance la boule : l'animal est dedans (vu de l'host)", caught)
+    # il va la ramasser
+    wait(lambda: ev(A, f'({FULL} != null).ToString()') == "True", "l'invite voit la boule pleine", timeout=20)
+    ev(A, f'var b = {FULL}; EClass.pc.SetAIImmediate(new AI_Goto(b.pos.Copy(), 0)); "ok"')
+    wait(lambda: ev(A, f'var b = {FULL}; return (b == null || EClass.pc.pos.Distance(b.pos) <= 1).ToString();') == "True", "l'invite rejoint la boule", timeout=30)
+    ev(A, f'var b = {FULL}; EClass.pc.Pick(b); "ok"')
+    wait(lambda: ev(A, f'({HELD} != null).ToString()') == "True", "la boule pleine est dans son sac", timeout=20)
+    time.sleep(2)
+    # et la relance a cote de lui
+    ev(A, f'var b = {HELD}; var p = EClass.pc.pos.GetNearestPoint(false, false); ACT.Throw.target = b; '
+          'ACT.Throw.Perform(EClass.pc, null, p); return "relache";')
+    mine = (f'EClass._map.charas.LastOrDefault(x => x.IsPCParty && x.GetInt("emp_owner") == {a} && '
+            f'!x.GetBool("remote_chara") && x.uid != {known})')
+    out = eventually(lambda: ev(H, f'({mine} != null).ToString()') == "True", timeout=20)
+    check("il relache l'animal : un nouveau compagnon de l'invite chez l'host", out)
+    got = int(ev(H, f'var c = {mine}; return (c == null ? 0 : c.uid).ToString();'))
+    ctx["ball"] = got
+    owned_by_guest(ctx, got, "boule a monstre")
+
+
+def r8(ctx):
+    """animal achete : celui que le marchand vend n'existe que chez l'invite, il arrive chez l'host et le suit"""
+    ctx.setdefault("a", state(A)["pc"]["uid"])
+    ctx.setdefault("h", state(H)["pc"]["uid"])
+    species = next(s for s in SPECIES if ev(H, f'EClass.sources.charas.map.ContainsKey("{s}").ToString()') == "True")
+    before = int(ev(H, 'EClass.pc.party.members.Count.ToString()'))
+    # ce que fait le "oui" du dialogue du marchand d'esclaves (DramaCustomSequence, etape _buySlaveConfirm) : le
+    # personnage de sa liste, fabrique dans le jeu de l'acheteur, est pose sur la carte puis recrute
+    r = ev(A, f'var tc = CharaGen.Create("{species}"); tc.c_altName = "achete"; '
+              'EClass._zone.AddCard(tc, EClass.pc.pos.GetNearestPoint()); tc.MakeAlly(); return tc.uid.ToString();')
+    log(f"achat : personnage local {r}")
+    arrived = eventually(lambda: int(ev(H, 'EClass.pc.party.members.Count.ToString()')) == before + 1, timeout=20)
+    check("l'animal achete par l'invite arrive chez l'host", arrived)
+    got = int(ev(H, 'var c = EClass.pc.party.members.LastOrDefault(x => x.c_altName == "achete"); return (c == null ? 0 : c.uid).ToString();'))
+    check("avec un numero de ce monde", 0 < got < 0x40000000)
+    ctx["bought"] = got
+    owned_by_guest(ctx, got, "animal achete")
+    check("chez l'invite il n'existe qu'une fois (pas de double local)",
+          eventually(lambda: ev(A, 'EClass._map.charas.Count(c => c.c_altName == "achete").ToString()') == "1", timeout=15))
+
+
+def r9(ctx):
+    """monture : l'invite monte un habitant de la base, il entre dans le groupe a son nom"""
+    a = ctx.setdefault("a", state(A)["pc"]["uid"])
+    ctx.setdefault("h", state(H)["pc"]["uid"])
+    uid = spawn_wild(ctx, "mount")
+    # un habitant de la base hors du groupe : recrute puis laisse par l'host, comme dans R1
+    ev(H, f'EClass._map.charas.Find(x => x.uid == {uid}).MakeAlly(false); "ok"')
+    wait(lambda: info(A, uid) is not None and info(A, uid)[3] == 1, "l'invite le voit dans le groupe", timeout=20)
+    ev(H, f'EClass.pc.party.RemoveMember(EClass._map.charas.Find(x => x.uid == {uid})); "ok"')
+    wait(lambda: info(A, uid) is not None and info(A, uid)[3] == 0, "il est sorti du groupe", timeout=20)
+    time.sleep(2)
+    # l'aptitude "monter" du jeu (celle de la barre d'actions), sur la case de l'habitant
+    ev(A, f'var c = EClass._map.charas.Find(x => x.uid == {uid}); EClass.pc.Teleport(c.pos.GetNearestPoint(allowChara: false), true, true); "ok"')
+    time.sleep(2)
+    r = ev(A, f'var c = EClass._map.charas.Find(x => x.uid == {uid}); EClass.pc.UseAbility(ACT.Create(ABILITY.ActRide), c, c.pos); return EClass.pc.ride == null ? "pas monte" : "monte";')
+    log(f"monture : {r}")
+    check("monture : dans le groupe chez l'host, une fois", eventually(lambda: info(H, uid)[3] == 1, timeout=15))
+    check("monture : elle appartient a l'invite chez l'host", eventually(lambda: info(H, uid)[2] == a, timeout=10))
+    check("monture : pareil chez l'invite", eventually(lambda: info(A, uid)[3] == 1 and info(A, uid)[2] == a, timeout=15))
+    check("l'host voit l'invite monte dessus",
+          eventually(lambda: ev(H, f'var g = EClass._map.charas.Find(x => x.uid == {a}); return (g.ride != null && g.ride.uid == {uid}).ToString();') == "True", timeout=15))
+    # la meme aptitude sur sa propre case : il descend
+    ev(A, 'EClass.pc.UseAbility(ACT.Create(ABILITY.ActRide), EClass.pc, EClass.pc.pos); "ok"')
+    check("il descend : l'host le voit a pied",
+          eventually(lambda: ev(H, f'(EClass._map.charas.Find(x => x.uid == {a}).ride == null).ToString()') == "True", timeout=15))
+    time.sleep(2)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--only")
@@ -124,7 +235,9 @@ def main():
     sys.stdout.reconfigure(encoding="utf-8")
     t0 = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
     ctx = {}
-    steps = [r1, r2, r3, r4, r5, r6]
+    # R9 avant R7 et R8 : "monter" prend le dernier personnage de la case visee, et les compagnons que l'invite
+    # gagne ensuite le suivent jusque sur cette case
+    steps = [r1, r2, r3, r4, r5, r6, r9, r7, r8]
     if a.only:
         steps = [s for s in steps if s.__name__ in a.only.split(",")]
     for step in steps:
