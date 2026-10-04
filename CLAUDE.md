@@ -54,6 +54,10 @@ Les commandes de test se lancent depuis `dev/` avec `PYTHONPATH=_tools/pylib`.
 - Fermer Elin **par numéro de processus exact**. Ce travail passe avant les fenêtres Elin ouvertes par d'autres
   sessions Claude (les prévenir, puis fermer) ; **ne jamais fermer un jeu lancé par l'utilisateur**.
   `run_all.sh` ferme tous les Elin entre deux suites : PC libre seulement.
+- **Modèles** (demande de l'utilisateur, 2026-10-04) : ne pas tout faire au modèle le plus cher. Agents en
+  `haiku` pour chercher, lire un journal, résumer ; en `sonnet` pour relire un changement, recenser, écrire un
+  test sur un modèle existant, tenir la documentation ; `opus` seulement pour concevoir ou pour un bug qui
+  résiste. Pas d'agent pour ce qui tient en deux ou trois commandes.
 - Déléguer la lecture de code et les relectures à des agents (lecture seule) ; garder pour soi les tests en jeu.
   Faire relire chaque gros changement.
 - Coupe-circuit : le même échec trois fois → l'écrire dans le journal et changer d'approche.

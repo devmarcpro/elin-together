@@ -22,6 +22,22 @@ Ce que je veux :
 2. Ensuite je te dirai ce que mon essai du serveur a donné, ou la suite que je veux. Tant que je n'ai rien dit,
    ne lance pas de gros chantier : propose-moi la suite de `dev/HANDOFF.md` et attends ma réponse.
 
+Modèles : je ne veux pas que tout passe par le modèle le plus cher. Choisis le modèle selon la tâche et
+dis-le-moi en une ligne quand tu délègues.
+- **Le plus petit modèle (haiku)**, par un agent : chercher dans le code ou dans le code décompilé, lire un
+  journal de test ou de jeu et en sortir les échecs, lister des fichiers, résumer un document. Tout ce qui est
+  « trouve et rapporte ».
+- **Le modèle intermédiaire (sonnet)**, par un agent : relire un changement avant sa première compilation,
+  recenser ce qu'un chantier touche, écrire un test sur le modèle d'un test existant, mettre à jour la
+  documentation et le journal à partir de faits que tu lui donnes.
+- **Le gros modèle (opus)** seulement pour : concevoir (serveur, protocole, ce qui change l'architecture),
+  comprendre un bug qui résiste après deux essais, trancher entre deux rapports qui se contredisent.
+- Toi, dans la session principale : garde les tests en jeu, les commits et les décisions. Ne délègue pas ce qui
+  tient en deux ou trois commandes, et ne lance pas plusieurs agents pour la même question.
+- Pendant qu'une suite de tests tourne, n'occupe pas le temps avec du travail en plus : attends le résultat.
+- Si une tâche simple s'annonce longue (beaucoup de lecture, de la paperasse), propose-moi de passer la session
+  sur un modèle plus petit plutôt que de la faire au prix fort ; redemande le gros modèle quand il le faut.
+
 Règles : celles de `CLAUDE.md`. En particulier : un changement = un test rouge puis vert = un commit ; teste
 comme un joueur joue ; **pas plus de deux fenêtres Elin à la fois sur cette machine** (pas de `trio_suite`), et
 seulement si je ne me sers pas du PC ; ferme tes fenêtres par numéro de processus, jamais un jeu que j'ai lancé ;
