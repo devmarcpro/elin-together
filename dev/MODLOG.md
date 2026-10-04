@@ -1724,3 +1724,89 @@ Pièges de test notés ce jour-là :
   l'host, profil de mods, touche « signaler un problème », bot de soirée, faux réseau lent, retrait des neuf anciennes
   versions de GitHub. Question ouverte : quel mod fournit `dmp_quest_*`.
 - **19h20** : `depot_suite` avec `DEPOT_SERVER=1` relancé avec le compte corrigé (objets empilés) : **20/20**. Le point (1) ci-dessus est fait. Version publiée 0.26.390 remise dans le jeu de cette machine avant la passation.
+
+
+### Passe large sur le code final, boutons du logiciel, version 0.26.399 (2026-10-04, 19h30 → 22h) — reprendre ici
+
+- **Début** : `git pull` (à jour), `dev/build.ps1`, `depot_proto_test.py` 11/11. `dev/_shots/depot_suite-srv4.log`
+  lu : 20/20.
+- **Outil `codebase-memory` (MCP)** : présent. Le mod était déjà indexé (projet
+  `C-Users-steamdeckwin-Documents-ElinMods-ElinTogether-ElinTogether`). Le code décompilé
+  `Documents\ElinMods\_decomp` a été indexé (projet `C-Users-steamdeckwin-Documents-ElinMods-_decomp`, 54 391
+  nœuds ; 4 fichiers lus en partie : PartialMap.cs, PartialMapMenu.cs, SerializedCards.cs, UIScreenshot.cs). Il a
+  servi à trouver `Application_quitting` dans Heathen en une seule requête. `gh` (GitHub CLI) n'est pas installé
+  sur cette machine ; aucune issue ni PR ouverte sur le fork (vu par l'API publique).
+- **Deux consignes qui se croisaient** : l'utilisateur a collé un second message « traiter le backlog en
+  autonomie » (une issue = une branche `fix/` = une PR, pas de release). On lui a demandé lequel suivre : il a
+  répondu « Liste HANDOFF, comme avant » (donc branche `feat/independent-travel`, publication comprise). Il a aussi
+  dit oui pour ouvrir deux fenêtres alors que `idle.ps1` donnait 0 s (il se servait du PC).
+- **Passe large sur le code final** (commit `2dba2fd`), journaux `dev/_shots/<suite>-final.log` : 22 suites, 19
+  vertes au premier passage. travel 54/54, companion 28/28, server 8/9, depot (mode dossier) 13/13, quest 59/59,
+  chara 11/11, parity 15/15, trade 30/30, build 19/19, player 38/38, instance 32/32, leave 12/13, transfer 9/9,
+  death 11/11, sleep 32/32, guest 216/216, recruit 45/45, compat 5/5, import 25/25, time 11/12, world 9/9, move
+  16/16. **Non rejouées** : `trio_suite` et shared/economy/combat/party (trois ou quatre fenêtres).
+- **Les trois échecs** :
+  - `server_suite` : `InvalidOperationException: Steamworks is not initialized.` dans le `Player.log` du serveur, à
+    la fermeture, après la sauvegarde. Pile : `Steamworks.SteamInput.Shutdown` ←
+    `HeathenEngineering...API.Input.Client.Shutdown` ← `API.App.Application_quitting` ←
+    `Application.Internal_ApplicationQuit`. C'est le jeu lui-même (sa bibliothèque Heathen ferme Steam Input après
+    Steam), **pas le mod** ; déjà vu le 2026-10-01 (`night-quest1.log`, clients 2 et 3). Revenu au 2e passage (8/9).
+    Le compteur d'exceptions des suites (`scan_logs` dans `dev/_tools/travel_suite.py`) ignore maintenant cette
+    ligne : 9/9 (`server_suite-final3.log`). Commit `7a4c2d1`.
+  - `leave_suite` : « l'host, lui, est ailleurs sur la carte (a 1 cases) » : l'host est revenu à 1 case de l'invité
+    au lieu d'être loin ; l'invité, lui, était bien resté à sa place. Rejouée : 13/13 (20 cases). **Cause non
+    établie**, test noté fragile.
+  - `time_suite` W3 : « les heures sont passées chez l'host (son personnage a plus faim) » : faim 31 → 31 après le
+    saut de 5 heures (la date, elle, avait bien sauté de +300 min). Rejouée : 12/12 (31 → 32). La marge du test est
+    d'un seul point et la faim est lue tout de suite après le saut : test noté fragile, **cause non établie** (pas
+    exclu : les heures appliquées chez l'host avec un petit retard).
+- **Boutons du logiciel serveur, essayés par un test** : nouveau `dev/_tools/server_ui_test.ps1` (UI Automation de
+  Windows + clics postés aux vrais contrôles, lit le texte des boîtes).
+  - `-Part depot` (dossier de test `%TEMP%\ets-ui-depot`, port 55558, jamais le dossier
+    `Documents\ElinTogetherServer` de l'utilisateur) : **15/15**. Lancement « Running » sans monde ; « Put this save
+    on the server » sur un serveur vide (boîte « This save is now the world of the server. », `world.zip` créé) ;
+    remplacement : boîte « The server already holds a world. Replace it… », No ne change rien, Yes garde l'ancien
+    en `replaced-*.zip` ; pendant qu'un joueur héberge (TAKE envoyé par le protocole) : la liste le montre, Stop et
+    la croix de la fenêtre demandent (« Tester is hosting the world right now… »), No laisse tout en place, Yes
+    arrête ; port déjà pris : boîte « Port 55558 is already in use on this PC. » et le logiciel reste Stopped ;
+    Start avec port libre : Running, le monde est toujours là ; « Browse… » ouvre le choix de dossier (annulé) ;
+    arrêté puis fermé : se ferme sans question.
+  - `-Part elin` : **6/6**. Mode With Elin, `world_lab`, case « No game window » cochée, Start → « Starting… » →
+    « Running » (date du monde affichée, un Elin sans fenêtre) ; fermer la fenêtre demande « The server is
+    running. Stop it (it saves first)? » (No : toujours Running) ; Stop → « Stopping: saving… » → Stopped, plus
+    d'Elin.
+  - **Défaut trouvé et corrigé** : la boîte « port déjà pris » ajoutait le texte de Windows en français. Maintenant
+    tout est en anglais : « Port N is already in use on this PC. / Close the other program that uses it, or the
+    other Elin Together Server. » (sur deux lignes). Commit `3c6ca9c` (avec le test et le nouvel exe, 27 136
+    octets).
+  - Reste dans la langue de Windows (pas modifiable simplement) : les boutons Oui/Non des boîtes et la fenêtre de
+    choix de dossier. Si `Depot.Import` échoue sur une erreur système, son texte vient aussi de Windows.
+  - **Pas joué** : choisir vraiment un dossier dans « Browse… » ; le message « The server could not start: … »
+    (toujours aucune sauvegarde sans base sous la main).
+  - **Pièges du script** : en PowerShell `$T` et `$t` sont la même variable ; `return` dans `ForEach-Object` ne
+    sort pas de la fonction ; les contrôles WinForms sont vus comme `ControlType.Pane` (filtrer par ClassName
+    `*BUTTON*`, `*COMBOBOX*`, `*LISTBOX*`), ceux des boîtes par ClassName `Button` ; `InvokePattern.Invoke`
+    bloquerait sur une boîte modale, d'où `PostMessage BM_CLICK`.
+- **Version 0.26.399 publiée** (~21h50) : `make_release.ps1` sur `3c6ca9c`, zip 1 122 367 octets, préversion
+  `independance-0.26.399` (https://github.com/devmarcpro/elin-together/releases/tag/independance-0.26.399),
+  fichier public identique (SHA-256 `7b6bb319…284645`), copie
+  `dev/_release/ElinTogether-independance-0.26.399.zip`. Build Release lancé une fois : « Loading [Elin Together
+  0.26.399] », 0 exception, fermé par numéro de processus. **Le jeu de cette machine a la version publiée
+  0.26.399** (avant de reprendre des tests : `dev/build.ps1`). Elle ne se connecte pas à la 0.26.390 : l'ami doit
+  installer le même zip. Le logiciel serveur de l'utilisateur dans `Documents\ElinTogether-independance\` est
+  encore celui de la 0.26.390 (en français) : il doit le remplacer par celui du nouveau zip (pas fait à sa place).
+  Dix anciennes préversions sont maintenant sur la page (0.26.390 s'ajoute aux neuf) : ne rien retirer sans son
+  accord.
+- **Question de l'utilisateur : serveur sur un NAS Synology ?** Réponse donnée : oui pour le mode sans Elin, de deux
+  façons. (a) Tout de suite, sans rien écrire : un dossier partagé du NAS comme dépôt (le réglage « Depot » du jeu
+  accepte un chemin de dossier, mode dossier testé par `depot_suite` 13/13) ; marche sur le réseau local ou par un
+  réseau privé (Tailscale…), pas d'adresse à taper dans « Join by address ». (b) À écrire : le logiciel est un
+  programme Windows (.NET Framework, fenêtre) ; il faudrait une petite version sans fenêtre du même protocole
+  pour le NAS (un script Python d'environ 150 lignes, ou Docker), testable par `depot_proto_test.py`. **Idée
+  notée, pas commencée, à lui demander.** Le mode avec Elin ne peut pas tourner sur un NAS (il faut Elin, Steam et
+  Windows).
+- **Pas testé** (à dire tel quel) : les deux tests fragiles ci-dessus (causes non établies) ; « Browse… » avec un
+  vrai choix de dossier ; « The server could not start: … » ; `trio_suite` et shared/economy/combat/party sur le
+  code final ; tout ce que l'utilisateur doit jouer lui-même (deuxième joueur par Steam, hébergeur qui part, mode
+  avec Elin entre deux PC, Internet avec mot de passe).
+- **À faire ensuite** : voir `dev/HANDOFF.md` (état au 22h). En tête : sa soirée d'essai réelle avec la 0.26.399.

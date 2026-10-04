@@ -67,7 +67,7 @@ Les options sont envoyées aux clients à la connexion (`NetSessionRules`). Tout
 **Pour jouer (toi et ton ami, même zip des deux côtés)** : `_release/ElinTogether-independance.zip`, puis
 `Installer.bat`. `Desinstaller.bat` remet le mod du Workshop. Refaire le zip : `make_release.ps1`. Le zip n'est
 pas dans le dépôt : il se fabrique sur chaque machine.
-La dernière version publiée est la 0.26.390 (préversion `independance-0.26.390`), pour Elin EA 23.351 ; le zip de `_release` est celui de la dernière publication. Il est aussi sur la page des versions
+La dernière version publiée est la 0.26.399 (préversion `independance-0.26.399`), pour Elin EA 23.351 ; le zip de `_release` est celui de la dernière publication. Il est aussi sur la page des versions
 du dépôt (https://github.com/devmarcpro/elin-together/releases) : c'est le lien à donner à un ami.
 Après un `build.ps1` (tests), le jeu de cette machine n'a plus la version du zip : relancer `Installer.bat`
 avant de jouer avec quelqu'un, sinon la connexion est refusée (versions différentes).
@@ -187,6 +187,7 @@ python _tools/bot.py --minutes 5 --seed 1
 | `depot_proto_test.py` | le protocole du serveur sans le jeu : monde remplacé, refus, mot de passe, sauvegardes de secours (11 vérifications) | 0 | ~10 s |
 | `depot_suite.py` | dépôt de sauvegarde : déposer, prendre, refus quand c'est pris, relais entre deux joueurs, monde neuf (`DEPOT_SERVER=1` : à travers le logiciel serveur) | 2 | ~2 min |
 | `server_suite.py` | serveur : démarrage tout seul, joueur qui rejoint par adresse, temps qui avance, retour | lance ses 2 fenêtres | ~4 min |
+| `server_ui_test.ps1` | les boutons du logiciel serveur, clics sur les vrais contrôles (PowerShell : `-Part depot` 15 vérifications, sans Elin, port 55558, dossier `%TEMP%\ets-ui-depot` ; `-Part elin` 6 vérifications, lance un Elin sans fenêtre) | — | — |
 | `compat_suite.py` | cohabitation avec d'autres mods (Somewhat Enhanced Display) | 2 | ~2 min |
 | `run_short.sh` | les suites courtes à la suite, chacune sur un monde neuf (pas `economy` ni `combat`, qui ouvrent leurs fenêtres : `run_all.sh`) | 2 | ~50 min |
 | `companion_suite.py`, `party_suite.py` | compagnons, limite d'alliés | 2 | ~10 min chacun |
@@ -269,8 +270,10 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
   l'animal au charisme de `EClass.pc`, donc à celui de l'host même quand c'est un invité qui brosse.
 - Gardien du monde (`1b0f5c3`, `856d878`) : c'est l'host. Pas fait : les boucles à l'intérieur de `GameDate`
   (aventuriers, quêtes d'histoire ajoutées à date fixe), le passage du rôle à un autre joueur.
-- Elin Together Server : les boutons du logiciel ne sont pas joués par un test (le test lance le logiciel en
-  dépôt par sa ligne de commande, et vérifie côté jeu ce que le mode « avec Elin » lit et écrit). Le dépôt n'est
+- Elin Together Server : les boutons du logiciel sont joués par `server_ui_test.ps1` (2026-10-04, 15/15 sans Elin et
+  6/6 avec Elin : Put this save, les trois boîtes de confirmation, port pris, Start/Stop). **Pas joué** : un vrai
+  choix de dossier dans « Browse… » (le test l'ouvre puis annule) et le message « The server could not start: … ».
+  Les boutons Oui/Non des boîtes et le choix de dossier restent dans la langue de Windows. Le dépôt n'est
   pas chiffré : mot de passe en clair sur le réseau, à réserver à un réseau de confiance ou privé. Le jeu
   s'arrête le temps qu'un monde voyage (quelques dixièmes de seconde pour 74 Ko ; plus pour un gros monde).
 - Serveur (`Emp/EmpServer.cs`, mode avec Elin) : testé entre deux fenêtres de ce PC, serveur et joueur sur le même compte
@@ -293,12 +296,17 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
   est prévenu quand ses sauvegardes n'arrivent plus (`Save\world_depot.unsent`, envoi proposé ensuite) ; le deuxième
   joueur est guidé (rejoindre par Steam, attendre jusqu'à 3 minutes) ; le mode avec Elin affiche « The server could
   not start: … » (sauvegarde sans base, session qui ne s'ouvre pas). Tests : `depot_proto_test.py` 11/11,
-  `depot_suite` dossier 13/13, avec `DEPOT_SERVER=1` 19/20 (le défaut était le compte du test, relancé : voir
-  `dev/_shots/depot_suite-srv4.log`), `server_suite` 9/9. **Pas testé** : le mode avec Elin sur une sauvegarde sans
-  base ; un port UDP déjà pris n'est pas détecté ; les boutons du logiciel à la main ; la passe large sur le code
-  final (arrêtée exprès après 3 suites : server 9/9, travel 54/54, depot 11/11).
-- Machine de développement : le jeu a la version **publiée 0.26.390**, qui ne contient pas ces corrections ; lancer
-  `dev/build.ps1` avant tout test.
+  `depot_suite` dossier 13/13, avec `DEPOT_SERVER=1` 20/20, `server_suite` 9/9. **Pas testé** : le mode avec Elin
+  sur une sauvegarde sans base ; un port UDP déjà pris n'est pas détecté (côté Steam ; côté TCP du logiciel sans
+  Elin, la boîte « Port N is already in use on this PC. » est jouée par `server_ui_test.ps1`).
+- **Passe large sur le code final (2026-10-04, `2dba2fd`)** : 22 suites, 19 vertes au premier passage ; les trois
+  échecs : `server_suite` (erreur « Steamworks is not initialized. » à la fermeture, vient du jeu/Heathen, pas du
+  mod ; ignorée par `scan_logs`, `7a4c2d1`, 9/9), et deux **tests fragiles** à cause non établie, verts au
+  deuxième passage : `leave_suite` L2 (l'host revenu à 1 case de l'invité) et `time_suite` W3 (faim 31 → 31 après
+  le saut de 5 heures, marge d'un point). Non rejouées : `trio_suite` et shared/economy/combat/party.
+- Machine de développement : le jeu a la version **publiée 0.26.399**, qui contient ces corrections ; lancer
+  `dev/build.ps1` avant tout test. Le logiciel serveur de l'utilisateur dans `Documents\ElinTogether-independance\`
+  est encore celui de la 0.26.390 (en français) : à remplacer par celui du nouveau zip.
 - Quêtes « Dummy » (description « Mokyu ») vues par l'utilisateur sur son serveur : **ni le mod ni le serveur**.
   Le monde venait de sa sauvegarde du nuage Steam `world_3`, où 6 quêtes étaient déjà écrites `QuestDummy`
   (identifiants `dmp_quest_*` : voyage, massacre_religion, haltérophilie) : des quêtes d'un autre mod, absent du
@@ -320,7 +328,7 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
 
 ## 7. Reste à faire
 
-État au 2026-10-04, 19h20. La liste à jour, dans l'ordre, est « À faire ensuite » de `HANDOFF.md` ; ce qui suit
+État au 2026-10-04, 22h. La liste à jour, dans l'ordre, est « À faire ensuite » de `HANDOFF.md` ; ce qui suit
 est un résumé. Détail de chaque point : `PLAN_retours_partie_reelle.md` et la fin de `MODLOG.md`.
 
 **Fait (voir le tableau de la section 1 et `MODLOG.md`, 2026-10-03 et 2026-10-04) :** les cinq corrections de la
@@ -328,18 +336,21 @@ première vraie partie ; déplacements fluides d'un invité (`move_suite`) ; rej
 sauvegarde solo (`import_suite`) ; compagnons d'un invité (`recruit_suite`) ; une seule date pour le monde
 (`SharedWorldTime`) ; gardien du monde (`WorldKeeper`) ; dépôt de sauvegarde ; serveur « comme Minecraft » ;
 **Elin Together Server**, le logiciel (en anglais) ; un seul bouton « Join by address » pour les deux serveurs ;
-mot de passe faux dit clairement ; trous du parcours du premier joueur corrigés (section 6). Premier essai
-entre deux PC du serveur sans Elin sur un réseau local : réussi (section 6).
+mot de passe faux dit clairement ; trous du parcours du premier joueur corrigés (section 6) ; passe large sur le
+code final (22 suites) ; boutons du logiciel serveur essayés par `server_ui_test.ps1` ; **version 0.26.399
+publiée** (2026-10-04). Premier essai entre deux PC du serveur sans Elin sur un réseau local : réussi (section 6).
 
 **À faire tout de suite, dans l'ordre :**
 1. fait : `depot_suite` avec `DEPOT_SERVER=1` relancé, 20/20 ;
-2. la passe large de régression sur le code final (arrêtée exprès après 3 suites) : `run_all.sh` puis
-   `run_short.sh`, commandes dans `HANDOFF.md` ; deux fenêtres, PC libre, 1 à 2 heures ;
-3. essayer les boutons du logiciel à la main ;
-4. publier une nouvelle version et la mettre dans le jeu (le jeu de cette machine a la version publiée 0.26.390,
-   sans les corrections du soir ; `dev/build.ps1` avant tout test) ;
-5. sa soirée d'essai réelle (point 1 de la liste suivante) ;
-6. savoir quel mod fournit les quêtes `dmp_quest_*` (réparation possible).
+2. fait : la passe large de régression sur le code final (section 6 pour les résultats et les deux tests
+   fragiles) ;
+3. fait : les boutons du logiciel essayés par un test (reste « Browse… » avec un vrai choix de dossier et le
+   message « The server could not start: … ») ;
+4. fait : version 0.26.399 publiée et mise dans le jeu de cette machine (`dev/build.ps1` avant tout test) ;
+5. sa soirée d'essai réelle avec la 0.26.399 (point 1 de la liste suivante) : l'ami installe le même zip, et
+   l'utilisateur remplace le logiciel serveur de `Documents\ElinTogether-independance\` par celui du zip ;
+6. savoir quel mod fournit les quêtes `dmp_quest_*` (réparation possible) ;
+7. comprendre les deux tests fragiles (`leave_suite` L2, `time_suite` W3) s'ils reviennent.
 
 **Ensuite, dans cet ordre sauf avis contraire de l'utilisateur :**
 1. Essais réels qui restent : serveur par Internet (avec mot de passe), mode avec Elin entre deux PC, un deuxième
@@ -348,6 +359,12 @@ entre deux PC du serveur sans Elin sur un réseau local : réussi (section 6).
 3. Petites améliorations du logiciel, seulement s'il les demande : plusieurs mondes, chiffrement (TLS) du mot de
    passe, journal visible, icône. Idée notée : le deuxième joueur rejoint l'hébergeur tout seul depuis « Join by
    address » (le serveur donnerait l'identifiant Steam de l'hébergeur ; il faut deux comptes Steam pour tester).
+   Idée notée (2026-10-04, pas commencée, à lui demander) : **serveur sur un NAS Synology**. Mode sans Elin
+   seulement. (a) Tout de suite, sans rien écrire : un dossier partagé du NAS comme dépôt (réglage « Depot » du jeu
+   = chemin du dossier, mode dossier testé par `depot_suite` 13/13 ; réseau local ou réseau privé comme
+   Tailscale ; pas d'adresse dans « Join by address »). (b) À écrire : une version **sans fenêtre** du serveur de
+   dépôt (le logiciel actuel est un programme Windows .NET Framework à fenêtre) : un script Python d'environ 150
+   lignes, ou Docker, testable par `depot_proto_test.py`. Le mode avec Elin ne peut pas tourner sur un NAS.
 4. À ne commencer qu'après lui avoir demandé : retour de l'host sans rechargement (plan B), **profil de mods**
    (`PLAN_profil_mods.md`), touche « signaler un problème » en jeu, bot qui rejoue une vraie soirée, faux réseau lent.
 5. Quêtes à donjon : laisser les autres joueurs y rejoindre le preneur (`PLAN_quetes_donjon_phase2.md`).

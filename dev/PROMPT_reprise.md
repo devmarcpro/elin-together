@@ -1,8 +1,5 @@
 # Message de départ pour une nouvelle session
 
-> **Mise à jour 19h20** : le test `depot_suite` avec `DEPOT_SERVER=1` a été relancé : **20/20**. L'étape « lire `depot_suite-srv4.log` » est donc faite ; la suite commence à la passe large.
-
-
 À coller tel quel dans une nouvelle session ouverte dans `Documents\ElinMods` (ou dans le dépôt).
 
 ---
@@ -13,18 +10,13 @@ Je reprends le travail sur ElinTogether (le fork « indépendance »), dans `Eli
 cet ordre : `CLAUDE.md`, `dev/HANDOFF.md`, la fin de `dev/MODLOG.md` (les sections du 2026-10-04) et la section 7
 de `dev/DOCUMENTATION.md`. Réponds-moi en français simple et court, sans jargon.
 
-Où on en est (4 octobre, 19h20) : la version publiée est la 0.26.390 ; c'est elle qui est dans le jeu de cette
-machine pour que je joue avec mon ami. Elle ne contient pas les corrections de ce soir : « Join by address » pour
-les deux modes, le logiciel serveur en anglais, le mot de passe faux dit clairement, et les trous du parcours du
-premier joueur bouchés (une partie neuve peut remplacer le monde du serveur, chaque sauvegarde part au serveur,
-les mondes remplacés sont gardés en `replaced-<date>.zip`, l'hébergeur est prévenu quand ses sauvegardes
-n'arrivent plus, le deuxième joueur sait qu'il doit rejoindre par Steam, les erreurs du mode avec Elin sont
-dites). Tout est dans le commit « the server path » et ceux d'avant. **Avant tout test : `dev/build.ps1`** (le jeu
-a la version publiée, pas le build de test). Pas encore fait, dans cet ordre : (1) lire
-`dev/_shots/depot_suite-srv4.log` ; (2) la passe large de régression sur le code final (commandes dans
-`HANDOFF.md`, deux fenêtres, PC libre) ; (3) essayer les boutons du logiciel à la main ; (4) publier une nouvelle
-version et la mettre dans le jeu ; (5) ma soirée d'essai : deuxième joueur par Steam, hébergeur qui part, mode
-avec Elin entre deux PC, Internet.
+Où on en est (4 octobre, 22h) : la version publiée est la 0.26.399 ; c'est elle qui est dans le jeu de cette
+machine, avec toutes les corrections du serveur (« Join by address » pour les deux modes, logiciel serveur en
+anglais, parcours du premier joueur). La passe large sur le code final est faite (22 suites ; deux tests fragiles
+notés : `leave_suite` L2 et `time_suite` W3) et les boutons du logiciel sont joués par `server_ui_test.ps1`.
+**Avant tout test : `dev/build.ps1`** (le jeu a la version publiée, pas le build de test). Pas encore fait : ma
+soirée d'essai avec la 0.26.399 (deuxième joueur par Steam, hébergeur qui part, mode avec Elin entre deux PC,
+Internet) ; me demander ce que j'en dis.
 
 Ce que je veux :
 
@@ -51,7 +43,7 @@ Instructions permanentes (4 octobre) :
 - À me demander avant de commencer (liste inchangée) : le relais sans coupure quand l'hébergeur part ; quoi faire
   quand un joueur meurt sur la carte de l'host et quand la connexion tombe ; les six inégalités en attente
   (`PLAN_egalite_invites.md`) ; retour de l'host sans rechargement, profil de mods, touche « signaler un
-  problème », bot qui rejoue une soirée, faux réseau lent ; retirer les neuf anciennes versions de GitHub.
+  problème », bot qui rejoue une soirée, faux réseau lent ; retirer les dix anciennes versions de GitHub ; un serveur sur mon NAS Synology.
 - Question ouverte pour moi : quel mod fournit les quêtes `dmp_quest_*` (les « Dummy / Mokyu »).
 
 Modèles : je ne veux pas que tout passe par le modèle le plus cher. Choisis le modèle selon la tâche et
