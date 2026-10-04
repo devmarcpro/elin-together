@@ -1416,4 +1416,34 @@ Pièges de test notés ce jour-là :
   n'est plus affiché à chaque connexion quand seule la case d'import est cochée (une fois, tant que le joueur n'a
   personne ici) ; `recruit_suite` R10 (brosse) et la marque dans R8.
 - **Le jeu de cette machine a le build de test.** Remettre une version publiée avant que l'utilisateur joue.
+- Contrôle sur `a76d6a9` (temps commun) : travel 54/54, shared 26/26, trio 24/24, economy 25/25, sleep 34/34,
+  quest 61/61, instance 34/34, transfer 11/11, leave 15/15, guest 218/218, time 14/14. `move_suite` 17/18.
+
+### Gardien du monde et petits restes (2026-10-04, 10h → 10h50) — reprendre ici
+- Étude en lecture seule de ce que `GameDate.AdvanceMin/Hour/Day/Month` fait, classé « carte », « joueur »,
+  « monde ». Elle a montré que le temps commun rendait systématiques deux doublons déjà présents : une quête qui
+  expire et l'impôt du mois coûtaient renommée et karma deux fois (dans le jeu de l'host et dans la copie du
+  joueur parti seul, dont la perte remontait à l'host par `PlayerStanding`).
+- **Gardien du monde, premier commit** `1b0f5c3` : case host `WorldKeeper` (règle `UseWorldKeeper`, clé 11),
+  `Patches/WorldKeeper.cs`. Un jeu qui a rejoint une session ne fait plus ce que le temps fait au monde : météo,
+  quêtes expirées, sites aléatoires, données du jour, jour et mois de la faction, lettres et colis aléatoires.
+  La météo du gardien est envoyée à tous (`WeatherDelta`, union 505), y compris aux joueurs de la carte de
+  l'host, qui ne la voyaient jamais changer. Un rattrapage fait vivre au personnage un jour de temps au plus.
+  `world_suite.py` K1–K4 : **rouge 6/9** case décochée (deux météos, la copie de l'invité comptait sa fin de
+  mois et fabriquait 7 colis) → **vert 10/10**.
+- **Petits restes** `d3d5622` : le personnage fabriqué chez l'acheteur part à l'image suivante, avec la marque
+  que le dialogue lui pose après le recrutement (animal de Fiama) ; avec la case d'import seule, plus d'écran de
+  choix à chaque connexion ; `recruit_suite` R10, domptage par la vraie action de la brosse (`AI_TendAnimal`,
+  brosse en main). **recruit 47/47, import 27/27.**
+- **Piège Harmony** : plusieurs `[HarmonyPatch(type, méthode)]` sur une seule méthode se combinent en UNE cible.
+  Pour plusieurs cibles : une classe avec `TargetMethods()`.
+- **`move_suite` irrégulière depuis ~10h** (13/18, 15/18, 16/18 ; 18/18 deux fois à 4h20 sur `7b0c70e`) :
+  `idle.ps1` donnait 0 s, **l'utilisateur se servait du PC**. L'accéléré d'une marche dépend des entrées
+  (souris, Maj) que reçoivent les fenêtres du jeu. À rejouer PC libre avant de conclure à une régression du
+  temps commun (rien dans ce code ne touche un joueur présent sur la carte de l'host).
+- **Arrêt des fenêtres de jeu à 10h50** : règle de `CLAUDE.md`, pas de fenêtre quand l'utilisateur se sert du PC.
+  **Pas faite : la passe complète sur le gardien du monde**, donc pas de nouvelle version publiée. À faire PC
+  libre : `build.ps1`, passe complète (avec `time_suite`, `world_suite`), `move_suite` deux fois, puis version.
+- **Le jeu de cette machine a de nouveau la version publiée 0.26.366** (dossier du zip recopié dans `Package`,
+  même fichier). Le temps commun et le gardien n'y sont pas.
 

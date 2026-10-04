@@ -2,7 +2,12 @@
 
 L'utilisateur a confirmé le 2026-10-04 au matin que c'est bien son idée, et demandé d'avancer sans attendre.
 **Étape 1 faite le 2026-10-04** (`a76d6a9`, case `SharedWorldTime`, `time_suite` 12/12), avec le choix proposé
-ci-dessous : la date la plus avancée gagne. Les étapes suivantes ne sont pas commencées.
+ci-dessous : la date la plus avancée gagne.
+**Étape 2 commencée le 2026-10-04** (`1b0f5c3`, case `WorldKeeper`, `world_suite` 10/10) : ce qu'une heure, un jour
+ou un mois fait au monde n'est fait que par le gardien, qui est encore l'host ; sa météo est envoyée à tous.
+Reste de l'étape 2 : les boucles internes de `GameDate`, les données du jour, puis le passage du rôle (ce qui
+doit voyager avec lui : météo, données du jour, journal de quêtes, colis en attente, coffres du monde, factures,
+niveau et expérience de la base, aventuriers).
 
 ## L'idée
 
