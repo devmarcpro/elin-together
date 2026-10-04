@@ -1455,3 +1455,7 @@ Pièges de test notés ce jour-là :
   du monde : un essai a échoué sur une connexion locale entre deux fenêtres (10 s sans réponse), sans exception.
 - Passe sur `2c6a89e` (gardien du monde + petits restes) : travel 54/54, shared 26/26, companion 30/30,
   party 28/28, combat 22/22, economy 25/25. Courtes en cours (`_shots/*-p8.log`).
+- Courtes sur `2c6a89e` : quest 61/61, chara 13/13, parity 17/17, trade 32/32, build 21/21, player 40/40,
+  instance 34/34, leave 15/15, transfer 11/11, death 13/13, sleep 34/34, guest 218/218, recruit 47/47, compat 7/7,
+  import 27/27, time 14/14, world 10/10, move 18/18 (la mesure de référence de `move_suite` est reprise jusqu'à
+  trois fois si elle est irrégulière : la première marche mesurée part parfois encore en rafale).

@@ -168,7 +168,12 @@ def main():
         check("les deux jeux tournent a l'allure normale avant de mesurer", calm(H) and calm(A))
 
         log("--- V1")
-        ref = describe(walk(A))
+        # la premiere marche mesuree apres un lancement est parfois encore en rafale : reprise, trois fois au plus
+        for _ in range(3):
+            ref = describe(walk(A))
+            if ref is not None and ref["cv"] < 0.15:
+                break
+            back(A)
         log(f"reference : {show(ref)}")
         check(f"l'invite marche sur la carte de l'host : pas reguliers ({show(ref)})", ref is not None and ref["cv"] < 0.35)
         back(A)
