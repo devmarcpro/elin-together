@@ -1339,3 +1339,28 @@ Pièges de test notés ce jour-là :
   constante (`e1b9a44`), 18/18 deux fois de suite sur des mondes neufs.
   **Piège** : `bash run_short.sh … | head -1` coupe le script avant qu'il ferme ses fenêtres.
 
+### Version 0.26.362 publiée depuis le Steam Deck (2026-10-04, 5h15)
+- `make_release.ps1` sur `f9b2ecd` : **mod 0.26.362**, 1 091 645 octets, pas de `.pdb`. Préversion
+  `independance-0.26.362`, fichier public identique au zip local (SHA-256 `660e5e1f…5d716b`). Copie gardée :
+  `_release/ElinTogether-independance-0.26.362.zip`. Nouveau par rapport à 0.26.349 : fluidité des déplacements
+  d'un invité, case « chacun marche comme en solo », personnage d'une sauvegarde solo, compagnons d'un invité
+  par boule à monstre, monture, achat.
+- Le build Release se charge en jeu ici (« Loading [Elin Together 0.26.362] », écran titre, 0 exception). Son
+  coupé par `Save/config.txt` le temps de l'essai, fichier remis à l'identique.
+- **Le jeu de cette machine a la version publiée 0.26.362** (le build Release laissé par `make_release.ps1`),
+  prête pour jouer avec l'ami une fois qu'il a le même zip. Avant de reprendre les tests : `dev/build.ps1`.
+- Publication : `dev/_tools/publish_release.py <version> <commit entier> <note.md> <zip>` (API GitHub avec
+  l'identifiant que git a déjà ; vérifie que le fichier public est identique).
+- Sur la page des versions : `independance-0.26.349`, `-0.26.337` et `-0.26.309` sont toujours là. Aucune ne se
+  connecte à la 0.26.362. À retirer si l'utilisateur le veut (pas fait sans lui).
+
+### À faire ensuite (état au 2026-10-04, 5h15)
+1. L'utilisateur joue la 0.26.362 avec son ami : fluidité entre deux PC, import d'un vrai personnage, recrutements.
+2. Ce qu'il a demandé de ne commencer **qu'après lui avoir demandé**, un par un : retour de l'host sans
+   rechargement (plan B de `PLAN_retours_partie_reelle.md`), profil de mods (`PLAN_profil_mods.md`), touche
+   « signaler un problème », bot qui rejoue une vraie soirée, faux réseau lent.
+3. Temps du monde commun puis serveur « dépôt de sauvegarde » : il veut s'y mettre maintenant que 1 à 4 sont
+   faits ; **lui présenter le plan avant de coder**.
+4. Petits restes : brosse à tester en jeu, animal de Fiama, laisse qui regarde l'host, écran de choix à chaque
+   connexion quand seule la case d'import est cochée.
+
