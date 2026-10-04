@@ -1,0 +1,30 @@
+using ElinTogether.Helper;
+using ElinTogether.Models;
+using ElinTogether.Net;
+using HarmonyLib;
+
+namespace ElinTogether.Patches;
+
+/// <summary>
+///     What a dialog does to the player and its companions (the healer's care) is asked of the host, see
+///     <see cref="CharaEffectRequestDelta" />. This game still plays it for the words and the sound
+/// </summary>
+[HarmonyPatch(typeof(ActEffect), nameof(ActEffect.Proc), typeof(EffectId), typeof(int), typeof(BlessedState), typeof(Card),
+    typeof(Card), typeof(ActRef))]
+internal static class DramaEffectPatch
+{
+    [HarmonyPrefix]
+    internal static void OnProc(EffectId id, Card cc, Card tc)
+    {
+        if (LayerDrama.Instance == null || ElinDelta.IsApplying || !CharaEffectRequestDelta.IsAllowed(id) ||
+            NetSession.Instance.Connection is not ElinNetClient client ||
+            (tc ?? cc) is not Chara target || !(target.IsPC || target.IsCompanionOf(EClass.pc))) {
+            return;
+        }
+
+        client.Delta.AddRemote(new CharaEffectRequestDelta {
+            Target = target,
+            Id = id,
+        });
+    }
+}
