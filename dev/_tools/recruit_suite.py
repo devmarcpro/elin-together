@@ -237,10 +237,10 @@ def r10(ctx):
     ctx.setdefault("h", state(H)["pc"]["uid"])
     uid = spawn_wild(ctx, "tame")
     # une brosse dans le sac de l'invite ; un animal qui l'apprecie deja assez pour le suivre (le domptage
-    # demande une affinite haute) et moins fort que le charisme du dompteur. Le jeu compare au charisme de
-    # EClass.pc, donc chez l'host a celui de l'host, meme quand c'est l'invite qui brosse : les deux sont montes
+    # demande une affinite haute) et moins fort que le charisme du dompteur : celui de l'invite, monte ici ;
+    # celui de l'host reste trop bas (le jeu lisait le charisme du joueur local, donc celui de l'host)
     ev(H, f'var g = EClass._map.charas.Find(x => x.uid == {a}); g.AddThing(ThingGen.Create("brush")); '
-          f'var c = EClass._map.charas.Find(x => x.uid == {uid}); c._affinity = 200; g.elements.SetBase(77, 40); EClass.pc.elements.SetBase(77, 40); "ok"')
+          f'var c = EClass._map.charas.Find(x => x.uid == {uid}); c._affinity = 200; g.elements.SetBase(77, 40); "ok"')
     wait(lambda: ev(A, '(EClass.pc.things.Find("brush") != null).ToString()') == "True", "la brosse arrive dans le sac", timeout=20)
     log("avant : " + ev(H, f'var c = EClass._map.charas.Find(x => x.uid == {uid}); var g = EClass._map.charas.Find(x => x.uid == {a}); '
                            'return "domptable=" + TraitToolBrush.IsTamePossible(c) + " affinite=" + c.affinity.CanInvite() + '
