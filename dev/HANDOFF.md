@@ -1,18 +1,28 @@
-# Passation — ElinTogether « indépendance », état au 2026-10-04, 17h40
+# Passation — ElinTogether « indépendance », état au 2026-10-04, soir
 
 À lire en premier par la session suivante. Le détail daté est dans `MODLOG.md` (fin du fichier), le mode d'emploi
 dans `DOCUMENTATION.md`, les règles dans `../CLAUDE.md`.
 
 ## Où on en est
 
-- Branche `feat/independent-travel`, tout est poussé sur GitHub. Dernière version publiée : **0.26.390**
-  (préversion `independance-0.26.390`), et **c'est elle qui est installée dans le jeu de cette machine**
-  (Steam Deck sous Windows). Avant tout test : `dev/build.ps1` (remet le build de test). Avant que
-  l'utilisateur joue avec son ami : remettre une version publiée (`make_release.ps1`, ou recopier le dossier
-  `Mod_ElinTogether` d'un zip de `dev/_release/` dans `Elin\Package`).
+- Branche `feat/independent-travel`. Dernière version publiée : **0.26.390** (préversion
+  `independance-0.26.390`). **Le jeu de cette machine a maintenant le build de TEST** (après la correction
+  `018091d`), pas la version publiée. Avant que l'utilisateur joue avec son ami : une nouvelle version publiée
+  (`make_release.ps1`, ou recopier le dossier `Mod_ElinTogether` d'un zip de `dev/_release/` dans `Elin\Package`).
+  Avant tout test : `dev/build.ps1`.
+- **Premier essai réel entre deux PC (4 octobre au soir)** : serveur sans Elin sur le Steam Deck, joueur sur un
+  autre PC du même réseau. « Join by address » ne parlait qu'à un serveur de jeu : le jeu montrait la clé brute
+  `emp_ui_timeout`. Contournement (champ « Depot » = `192.168.1.28:55557`, puis « Lobby ») : connexion et prise du
+  monde réussies. **Corrigé par `018091d`** : « Join by address » marche avec les deux serveurs, le champ
+  « Depot » se remplit tout seul ; `depot_suite` avec `DEPOT_SERVER=1` rouge 3/4 puis vert 11/11 (port de test
+  55558). Elin Together Server est maintenant en anglais. Détail : `MODLOG.md`, dernière section.
+- Quêtes « Dummy / Mokyu » : pas le mod, ce sont 6 quêtes `dmp_quest_*` d'un autre mod déjà abîmées dans sa
+  sauvegarde du nuage ; il prend une partie neuve pour le serveur. Question ouverte : quel mod les fournit.
+- **En cours, pas fait** : message clair quand le mot de passe du serveur est faux ; rejouer les suites du serveur ;
+  essayer les boutons du logiciel à la main ; nouvelle version publiée.
 - Elin : EA 23.351 Patch 2, canal Nightly. Si Steam met le jeu à jour : `make_lab.py Elin2 2` (3, 4), sinon le
   client de test est refusé (« invalid version ») sans message clair.
-- Aucun jeu ni serveur ne tourne. Rien n'est en cours.
+- Aucun jeu ni serveur ne tourne.
 
 ## Ce qui a été fait depuis la reprise sur cette machine (3 au soir → 4 octobre)
 
@@ -26,7 +36,8 @@ dans `DOCUMENTATION.md`, les règles dans `../CLAUDE.md`.
 | Ce que le temps fait au monde n'arrive qu'une fois : météo, impôts, salaires, colis, chance du jour (`WorldKeeper`) | `1b0f5c3`, `856d878` | `world_suite` 11/11 |
 | Dépôt de sauvegarde : le monde vit dans un dépôt, le premier arrivé l'héberge (`SaveDepot.cs`, réglage « Depot ») | « a save depot » | `depot_suite` 11/11 |
 | Serveur « comme Minecraft » : `Elin.exe -empserver <sauvegarde>`, « Join by address » | « a server like a Minecraft server » | `server_suite` 9/9 |
-| **Elin Together Server**, le logiciel (`dev/server/`, `ElinTogetherServer.exe`, 26 Ko) : mode sans Elin (garde le monde, vrai verrou, choix de la sauvegarde) et mode avec Elin (sans fenêtre) | `7e0a4ea`, `452f89e` | `depot_suite` avec `DEPOT_SERVER=1` 11/11 |
+| **Elin Together Server**, le logiciel (`dev/server/`, `ElinTogetherServer.exe`, 26 Ko) : mode sans Elin (garde le monde, vrai verrou, choix de la sauvegarde) et mode avec Elin (sans fenêtre) ; interface en anglais depuis le soir du 4 | `7e0a4ea`, `452f89e` | `depot_suite` avec `DEPOT_SERVER=1` 11/11 |
+| « Join by address » marche avec les deux serveurs (suite au premier essai entre deux PC) ; texte `emp_ui_timeout` ajouté | `018091d` | `depot_suite` avec `DEPOT_SERVER=1` : rouge 3/4, puis vert 11/11 |
 
 Dernière passe large (sur le code de 0.26.375) : 24 suites sur 25 vertes. Depuis, seules les suites touchées par
 chaque ajout ont été rejouées.
@@ -45,8 +56,13 @@ chaque ajout ont été rejouées.
 
 ## Ce qui n'est pas testé (à dire tel quel si on en parle)
 
-- Rien de ce qui touche au serveur n'a été joué **entre deux PC** ni par Internet : tout entre deux fenêtres ici.
+- Le mode sans Elin a été joué **une fois entre deux PC sur un réseau local** (connexion, prise du monde), avant
+  la correction `018091d` (avec le contournement par le champ « Depot »). Pas essayé : par **Internet**, le mode
+  **avec Elin** entre deux PC, un **deuxième joueur** qui rejoint, **l'hébergeur qui part**. Le nouveau « Join by
+  address » n'a été essayé que par le test, pas encore par l'utilisateur. Le texte du délai (`emp_ui_timeout`) n'est
+  pas testé (seul un build Release l'affiche), ni le figement possible de 5 secondes.
   Ports : TCP 55557 (sans Elin), UDP 55556 (avec Elin), ou un réseau privé (Tailscale, ZeroTier).
+- Mot de passe du serveur faux : le message du jeu n'est pas clair (« password is hosting the world »), à corriger.
 - Mode avec Elin : le même compte Steam sur le PC serveur et sur le PC où il joue en même temps (Steam peut
   refuser). Le test local a marché avec serveur et joueur sur le même compte, sur une seule machine.
 - Les boutons du logiciel ne sont pas joués par un test (le test le lance par sa ligne de commande :
@@ -60,11 +76,14 @@ chaque ajout ont été rejouées.
 
 ## À faire ensuite (dans cet ordre, sauf avis contraire de l'utilisateur)
 
-1. **Son essai réel** du serveur avec son ami (les deux modes), et ce qu'il en dit.
+0. **Tout de suite** : message clair pour un mot de passe faux ; rejouer les suites du serveur ; essayer les boutons
+   du logiciel à la main ; publier une nouvelle version et la remettre dans le jeu de cette machine.
+1. **Son prochain essai réel** du serveur (par Internet, mode avec Elin, un deuxième joueur, l'hébergeur qui part)
+   avec le nouveau « Join by address », et ce qu'il en dit. Lui demander quel mod fournit `dmp_quest_*`.
 2. Si le mode sans Elin lui convient : le **relais sans coupure** quand l'hébergeur part (plan long, étapes 3 et 4
    de `PLAN_serveur_depot.md` : arriver sans passer par la carte de l'host, l'host peut partir). Gros.
 3. Petites améliorations possibles du logiciel, seulement s'il les demande : plusieurs mondes, chiffrement,
-   journal visible, icône, interface en anglais.
+   journal visible, icône (l'interface en anglais est faite).
 4. Ce qu'il avait demandé de ne commencer **qu'après lui avoir demandé**, un par un : retour de l'host sans
    rechargement (plan B de `PLAN_retours_partie_reelle.md`), profil de mods (`PLAN_profil_mods.md`), touche
    « signaler un problème », bot qui rejoue une vraie soirée, faux réseau lent.

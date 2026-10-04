@@ -9,7 +9,7 @@ joueurs**. Chacun va où il veut, avec ses compagnons, et le monde (quêtes, bas
 - Journal détaillé (pièges, essais, dates) : `MODLOG.md`. Ce document-ci dit ce qui existe et comment s'en servir.
 - Les chemins `_tools/`, `_lab/`, `_shots/`, `_release/` de ce document sont relatifs à `dev/`. Le journal parle
   encore de `Documents\ElinMods\` : c'était leur place avant le 2026-10-02.
-- État : 2026-10-02 matin (après la nuit de tests).
+- État : 2026-10-04 soir (voir `HANDOFF.md` pour le détail à jour).
 
 ## 1. Ce que le fork apporte, vu du joueur
 
@@ -34,8 +34,9 @@ joueurs**. Chacun va où il veut, avec ses compagnons, et le monde (quêtes, bas
 | Déplacements fluides d'un invité (option) | Un invité marche et agit sur l'horloge de son propre jeu, comme l'host : ses pas ne dépendent plus du réseau ni d'un host qui rame. L'accéléré est partagé : quand un joueur accélère, tous ceux de la carte accélèrent. | `move_suite.py` V1–V3, V6 |
 | Chacun marche comme en solo (option) | La durée d'un pas ne dépend plus de la vitesse des autres joueurs. En combat la vitesse compte toujours. | `move_suite.py` V4–V5 |
 | Personnage d'une sauvegarde solo (option, décochée par défaut) | À la connexion : « un personnage d'une de mes sauvegardes », puis la liste des dernières sauvegardes. Il arrive avec ses caractéristiques, son apparence, son équipement, son sac, son or, sa renommée et son karma. Pas ses compagnons, sa base, ses quêtes ni sa banque. La sauvegarde est seulement lue. Un seul exemplaire par sauvegarde et par joueur. | `import_suite.py` |
-| **Elin Together Server** (`ElinTogetherServer.exe`, 26 Ko, rien à installer) | Le logiciel serveur. « Sans Elin » : il garde le monde et un vrai verrou, aucun jeu ne tourne ; le premier joueur prend le monde et l'héberge, chaque sauvegarde lui revient (réglage « Depot » du jeu = `adresse:55557`, mot de passe possible). « Avec Elin sur ce PC » : il lance le jeu en serveur sans fenêtre ni affichage, montre l'état, les joueurs, la date du monde, la dernière sauvegarde, et l'arrête après une sauvegarde. Source : `dev/server/`. | `depot_suite.py` avec `DEPOT_SERVER=1`, `server_suite.py` |
+| **Elin Together Server** (`ElinTogetherServer.exe`, 26 Ko, rien à installer) | Le logiciel serveur. Interface en anglais depuis le 2026-10-04. « Sans Elin » : il garde le monde et un vrai verrou, aucun jeu ne tourne ; le premier joueur prend le monde et l'héberge, chaque sauvegarde lui revient (le joueur tape l'adresse `adresse:55557` dans « Join by address » ; le réglage « Depot » se remplit tout seul, et sert encore pour un dossier partagé et pour le mot de passe). « Avec Elin sur ce PC » : il lance le jeu en serveur sans fenêtre ni affichage, montre l'état, les joueurs, la date du monde, la dernière sauvegarde, et l'arrête après une sauvegarde. Source : `dev/server/`. | `depot_suite.py` avec `DEPOT_SERVER=1`, `server_suite.py` |
 | Serveur (comme un serveur Minecraft) | Un Elin que personne ne joue, lancé par `Serveur.bat` (ou `Elin.exe -empserver <sauvegarde>`, `cloud:<id>` pour une sauvegarde du nuage) : il charge le monde et ouvre la partie tout seul, sauvegarde toutes les cinq minutes tant que quelqu'un joue. Les joueurs le rejoignent par adresse : onglet Lobby, « Join by address », `adresse:55556`. | `server_suite.py` |
+| Un seul bouton pour rejoindre : « Join by address » (depuis `018091d`) | Il marche avec les deux serveurs. Il demande d'abord à l'adresse si c'est Elin Together Server ; si oui, cette adresse devient le dépôt (le réglage « Depot » se remplit tout seul) et le joueur prend le monde et l'héberge, ou apprend qui l'héberge déjà ; sinon il rejoint un serveur de jeu comme avant. La saisie d'adresse cite les deux ports (55556 avec Elin, 55557 sans). Le jeu peut se figer jusqu'à 5 secondes si la machine à cette adresse laisse tomber la connexion sans rien répondre. Le texte `emp_ui_timeout` manquait dans toutes les langues (le jeu montrait la clé brute) : « The server does not answer. Check the address, the port and the mode of the server. » (EN/JP/CN). | `depot_suite.py` avec `DEPOT_SERVER=1` : 11/11 (3/4 rouge avant). Le texte du délai n'est pas testé : seul un build Release l'affiche. |
 | Dépôt de sauvegarde (réglage « Depot folder », onglet Client Settings) | Un dossier que tout le groupe peut atteindre (partagé ou synchronisé) garde le monde. Écran titre, onglet Lobby : « Take the world from the depot and host it ». Le premier arrivé héberge, les autres le rejoignent, chaque sauvegarde retourne au dépôt, et quand il part un autre peut reprendre. « Put this save in the depot » y dépose une sauvegarde. | `depot_suite.py` |
 | Une seule date, un seul monde (options) | Le temps passé par un joueur seul sur sa carte compte pour tous ; météo, impôts, salaires, colis et quêtes expirées n'arrivent qu'une fois. | `time_suite.py`, `world_suite.py` |
 | Compagnons d'un invité, toutes façons de recruter | Dialogue d'un habitant, boule à monstre, monture, animal ou esclave acheté : le compagnon est à l'invité et le suit. | `recruit_suite.py` |
@@ -66,7 +67,7 @@ Les options sont envoyées aux clients à la connexion (`NetSessionRules`). Tout
 **Pour jouer (toi et ton ami, même zip des deux côtés)** : `_release/ElinTogether-independance.zip`, puis
 `Installer.bat`. `Desinstaller.bat` remet le mod du Workshop. Refaire le zip : `make_release.ps1`. Le zip n'est
 pas dans le dépôt : il se fabrique sur chaque machine.
-Le zip actuel date du 2026-10-02 20h32, commit `f17ad6c`, mod 0.26.309, pour Elin EA 23.351. Il est aussi sur la page des versions
+La dernière version publiée est la 0.26.390 (préversion `independance-0.26.390`), pour Elin EA 23.351 ; le zip de `_release` est celui de la dernière publication. Il est aussi sur la page des versions
 du dépôt (https://github.com/devmarcpro/elin-together/releases) : c'est le lien à donner à un ami.
 Après un `build.ps1` (tests), le jeu de cette machine n'a plus la version du zip : relancer `Installer.bat`
 avant de jouer avec quelqu'un, sinon la connexion est refusée (versions différentes).
@@ -271,11 +272,25 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
   dépôt par sa ligne de commande, et vérifie côté jeu ce que le mode « avec Elin » lit et écrit). Le dépôt n'est
   pas chiffré : mot de passe en clair sur le réseau, à réserver à un réseau de confiance ou privé. Le jeu
   s'arrête le temps qu'un monde voyage (quelques dixièmes de seconde pour 74 Ko ; plus pour un gros monde).
-- Serveur (`Emp/EmpServer.cs`) : testé entre deux fenêtres de ce PC, serveur et joueur sur le même compte
-  Steam. **Pas testé** : entre deux PC, par Internet (port 55556 UDP à ouvrir ou réseau privé), avec un second
+- Serveur (`Emp/EmpServer.cs`, mode avec Elin) : testé entre deux fenêtres de ce PC, serveur et joueur sur le même compte
+  Steam. **Pas testé** : entre deux PC (le mode sans Elin l'a été, voir plus bas), par Internet (port 55556 UDP à ouvrir ou réseau privé), avec un second
   joueur, et **avec le même compte Steam sur deux PC à la fois** (Steam peut refuser de lancer le jeu sur le
   second PC tant qu'il tourne sur le premier). Un joueur qui va sur la carte d'un autre joueur le rejoint par
   Steam, pas par l'adresse du serveur. Le personnage de l'host de la sauvegarde reste planté à la base.
+- **Premier essai entre deux PC (2026-10-04 soir)** : même réseau local, serveur sans Elin (TCP 55557) sur le
+  Steam Deck, joueur sur un autre PC. Le bouton « Join by address » ne parlait alors qu'à un serveur de jeu
+  (mode avec Elin) : rien ne répondait et le jeu montrait la clé brute `emp_ui_timeout`. Contournement qui a marché :
+  réglage « Depot » = `adresse:55557` puis bouton « Take the world… » : connexion et prise du monde réussies.
+  Corrigé par `018091d` (un seul bouton pour les deux serveurs). Le mode sans Elin a donc été joué une fois
+  entre deux PC sur un réseau local. **Pas encore essayé** : par Internet, le mode avec Elin entre deux PC, un
+  second joueur qui rejoint, l'hébergeur qui part. En cours : un message clair quand le mot de passe du serveur
+  est faux (aujourd'hui le jeu peut dire « password is hosting the world »).
+- Quêtes « Dummy » (description « Mokyu ») vues par l'utilisateur sur son serveur : **ni le mod ni le serveur**.
+  Le monde venait de sa sauvegarde du nuage Steam `world_3`, où 6 quêtes étaient déjà écrites `QuestDummy`
+  (identifiants `dmp_quest_*` : voyage, massacre_religion, haltérophilie) : des quêtes d'un autre mod, absent du
+  Steam Deck. Elin fait cela lui-même quand il ne retrouve pas le type d'une quête à la lecture. Les quêtes du jeu
+  sont intactes. L'utilisateur prend une partie neuve pour le serveur. Question ouverte : quel mod fournit
+  `dmp_quest_*` (une réparation serait possible, le vrai identifiant est encore dans la sauvegarde).
 - Dépôt de sauvegarde (`SaveDepot.cs`) : le verrou est une date de fichier (`host.txt`, rafraîchi chaque
   minute, périmé après trois) : deux joueurs qui prennent le monde dans la même minute l'ont tous les deux, et
   la dernière sauvegarde gagne. Quand celui qui héberge part pendant que d'autres jouent, ils retournent à
@@ -291,40 +306,35 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
 
 ## 7. Reste à faire
 
-État au 2026-10-03 au soir. Détail de chaque point : `PLAN_retours_partie_reelle.md` et la fin de `MODLOG.md`.
+État au 2026-10-04 au soir. La liste à jour, dans l'ordre, est « À faire ensuite » de `HANDOFF.md` ; ce qui suit
+est un résumé. Détail de chaque point : `PLAN_retours_partie_reelle.md` et la fin de `MODLOG.md`.
 
-**D'abord (demandes de l'utilisateur après sa première vraie partie comme invité, dans cet ordre) :**
-1. Fait le 2026-10-04 : passe complète verte sur les cinq corrections du 3 au soir, version publiée ensuite.
-2. Fait le 2026-10-04 : fluidité des déplacements d'un invité (`move_suite` 17/17), avec la case « chacun marche
-   comme en solo » et l'accéléré partagé. À jouer entre deux PC.
-3. Fait le 2026-10-04 : rejoindre avec un personnage d'une sauvegarde solo (`import_suite` 21/21).
-4. Fait le 2026-10-04 : compagnons d'un invité par boule à monstre, monture, achat (`recruit_suite` 41/41).
-   Reste : tester la brosse en jeu, l'animal de Fiama, la laisse.
-5. Retour de l'host sur une carte tenue par un invité **sans rechargement** (plan B, gros, derrière une case).
-6. **Profil de mods** (validé le 2026-10-02) : `PLAN_profil_mods.md`, plan détaillé prêt.
+**Fait (voir le tableau de la section 1 et `MODLOG.md`, 2026-10-03 et 2026-10-04) :** les cinq corrections de la
+première vraie partie ; déplacements fluides d'un invité (`move_suite`) ; rejoindre avec un personnage d'une
+sauvegarde solo (`import_suite`) ; compagnons d'un invité (`recruit_suite`) ; une seule date pour le monde
+(`SharedWorldTime`) ; gardien du monde (`WorldKeeper`) ; dépôt de sauvegarde ; serveur « comme Minecraft » ;
+**Elin Together Server**, le logiciel ; un seul bouton « Join by address » pour les deux serveurs. Premier essai
+entre deux PC du serveur sans Elin sur un réseau local : réussi (section 6).
 
-**Tests plus proches d'une vraie partie (proposé à l'utilisateur le 2026-10-03, il n'a pas encore dit oui) :**
-- une touche « signaler un problème » en jeu (capture d'écran + repère dans le journal) ;
-- un bot qui rejoue une vraie soirée (l'host sort et rentre, l'invité suit, recruter, dormir, se battre) ;
-- un faux réseau lent entre les fenêtres (délai, à-coups) : le banc local n'a aucun délai.
+**En cours / à faire tout de suite :**
+- un message clair quand le mot de passe du serveur est faux ;
+- rejouer les suites du serveur et essayer les boutons du logiciel à la main ;
+- une nouvelle version publiée (le jeu de cette machine a le build de test ; la dernière publiée est la 0.26.390,
+  et une version publiée doit être remise avant que l'utilisateur joue) ;
+- savoir quel mod fournit les quêtes `dmp_quest_*` (réparation possible).
 
-**Ensuite :**
-7. Serveur : **le serveur « comme Minecraft » existe** depuis le 2026-10-04 (`server_suite` 7/7), demandé par
-   l'utilisateur pour son PC de dev. À essayer par lui entre deux PC ; point à vérifier : le même compte Steam
-   sur le PC serveur et sur le PC où il joue.
-   Le dépôt de sauvegarde existe aussi depuis le 2026-10-04 (dossier partagé, `depot_suite` 11/11). À voir
-   avec l'utilisateur : l'essayer entre deux PC ; puis, si ça lui convient, le relais sans coupure quand
-   l'hébergeur part, et un petit programme à la place du dossier (vrai verrou, pas besoin de dossier partagé).
-   Plan long d'origine : `PLAN_serveur_depot.md`.
-   Temps du monde commun (à décider avec l'utilisateur), puis **serveur indépendant**. L'utilisateur a tranché
-   le 2026-10-03 au soir : un serveur « dépôt de sauvegarde » (un petit programme sans Elin qui garde la
-   sauvegarde et dit qui tient quelle carte ; toute la simulation est faite par les joueurs, un joueur par
-   carte). À commencer quand les points 1 à 4 sont bons, **plan à lui présenter avant de coder**. Première
-   marche : le temps du monde commun. Détail dans `MODLOG.md`, « Idées de l'utilisateur ».
-8. Quêtes à donjon : laisser les autres joueurs y rejoindre le preneur (`PLAN_quetes_donjon_phase2.md`).
-9. Inégalités invité/host qui attendent une décision (`PLAN_egalite_invites.md` : M3, M5, M9, L1, L7, M13).
-10. Deux choix de jeu en attente : que faire quand un joueur meurt sur la carte de l'host ; quand la connexion tombe.
-11. Jouer le début de l'histoire en vrai avec un client ; conflits rares listés dans les limites.
+**Ensuite, dans cet ordre sauf avis contraire de l'utilisateur :**
+1. Essais réels qui restent : serveur par Internet, mode avec Elin entre deux PC, un deuxième joueur, l'hébergeur
+   qui part.
+2. Relais sans coupure quand l'hébergeur part du serveur sans Elin (`PLAN_serveur_depot.md`, étapes 3 et 4). Gros.
+3. Petites améliorations du logiciel, seulement s'il les demande : plusieurs mondes, chiffrement, journal visible,
+   icône.
+4. À ne commencer qu'après lui avoir demandé : retour de l'host sans rechargement (plan B), **profil de mods**
+   (`PLAN_profil_mods.md`), touche « signaler un problème » en jeu, bot qui rejoue une vraie soirée, faux réseau lent.
+5. Quêtes à donjon : laisser les autres joueurs y rejoindre le preneur (`PLAN_quetes_donjon_phase2.md`).
+6. Inégalités invité/host qui attendent une décision (`PLAN_egalite_invites.md` : M3, M5, M9, L1, L7, M13).
+7. Deux choix de jeu en attente : que faire quand un joueur meurt sur la carte de l'host ; quand la connexion tombe.
+8. Jouer le début de l'histoire en vrai avec un client ; conflits rares listés dans les limites.
 
 ## 8. Historique du fork
 

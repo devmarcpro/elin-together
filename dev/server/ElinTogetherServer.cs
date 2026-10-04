@@ -219,12 +219,12 @@ internal sealed class Depot
                 world = File.ReadAllBytes(packed);
                 File.Delete(packed);
             } else {
-                return "Ce n'est pas une sauvegarde d'Elin (pas de game.txt).";
+                return "This is not an Elin save (no game.txt).";
             }
 
             using (var zip = new ZipArchive(new MemoryStream(world), ZipArchiveMode.Read)) {
                 if (zip.GetEntry("game.txt") == null) {
-                    return "Cette archive ne contient pas de sauvegarde d'Elin (pas de game.txt).";
+                    return "This archive holds no Elin save (no game.txt).";
                 }
             }
         } catch (Exception ex) {
@@ -233,11 +233,11 @@ internal sealed class Depot
 
         lock (_gate) {
             if (_holderId != null && DateTime.UtcNow - _beat < LockLife) {
-                return HolderName + " héberge le monde en ce moment : attendre qu'il quitte.";
+                return HolderName + " is hosting the world right now: wait until they leave.";
             }
 
             Store(world);
-            Last = DateTime.Now.ToString("HH:mm:ss") + "  sauvegarde mise sur le serveur";
+            Last = DateTime.Now.ToString("HH:mm:ss") + "  save put on the server";
         }
 
         return null;
@@ -295,16 +295,16 @@ internal sealed class ServerForm : Form
     private static readonly string StatusFile = Path.Combine(Data, @"ElinMP\server.txt");
     private static readonly string StopFile = Path.Combine(Data, @"ElinMP\server.stop");
 
-    private readonly RadioButton _noGame = new RadioButton { Text = "Sans Elin : garde le monde, les joueurs l'hébergent", AutoSize = true, Checked = true };
-    private readonly RadioButton _withGame = new RadioButton { Text = "Avec Elin sur ce PC : le monde tourne en permanence", AutoSize = true };
+    private readonly RadioButton _noGame = new RadioButton { Text = "Without Elin: keeps the world, a player hosts it", AutoSize = true, Checked = true };
+    private readonly RadioButton _withGame = new RadioButton { Text = "With Elin on this PC: the world runs all the time", AutoSize = true };
     private readonly Label _choice = new Label { AutoSize = true };
     private readonly ComboBox _saves = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 330 };
-    private readonly Button _browse = new Button { Text = "Parcourir…", Width = 90, Height = 26 };
-    private readonly Button _import = new Button { Text = "Mettre cette sauvegarde sur le serveur", Width = 232, Height = 26 };
-    private readonly Label _passwordTitle = new Label { Text = "Mot de passe (vide : aucun) :", AutoSize = true };
+    private readonly Button _browse = new Button { Text = "Browse…", Width = 90, Height = 26 };
+    private readonly Button _import = new Button { Text = "Put this save on the server", Width = 232, Height = 26 };
+    private readonly Label _passwordTitle = new Label { Text = "Password (empty: none):", AutoSize = true };
     private readonly TextBox _password = new TextBox { Width = 160 };
-    private readonly CheckBox _hidden = new CheckBox { Text = "Sans fenêtre de jeu (plus léger)", AutoSize = true, Checked = true };
-    private readonly Button _toggle = new Button { Text = "Démarrer", Width = 120, Height = 30 };
+    private readonly CheckBox _hidden = new CheckBox { Text = "No game window (lighter)", AutoSize = true, Checked = true };
+    private readonly Button _toggle = new Button { Text = "Start", Width = 120, Height = 30 };
     private readonly Label _state = new Label { AutoSize = true, Font = new Font("Segoe UI", 11f, FontStyle.Bold) };
     private readonly Label _info = new Label { AutoSize = true };
     private readonly Label _playersTitle = new Label { AutoSize = true };
@@ -324,7 +324,7 @@ internal sealed class ServerForm : Form
         Font = new Font("Segoe UI", 9f);
         FormBorderStyle = FormBorderStyle.FixedSingle;
         MaximizeBox = false;
-        ClientSize = new Size(360, 560);
+        ClientSize = new Size(360, 596);
         _depotFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "ElinTogetherServer");
 
         var y = 12;
@@ -344,8 +344,9 @@ internal sealed class ServerForm : Form
         Add(_info, ref y, 54);
         Add(_playersTitle, ref y, 20);
         Add(_players, ref y, 72);
-        Add(new Label { Text = "Adresses à donner (double-clic pour copier) :", AutoSize = true }, ref y, 20);
+        Add(new Label { Text = "Addresses to give to the players (double-click to copy):", AutoSize = true }, ref y, 20);
         Add(_addresses, ref y, 70);
+        Add(new Label { Text = "In the game: Elin Together panel, Lobby tab,\n\"Join by address\", and type one of these addresses.", AutoSize = true }, ref y, 34);
 
         foreach (var save in Saves()) {
             _saves.Items.Add(save);
@@ -361,7 +362,7 @@ internal sealed class ServerForm : Form
             }
         };
         _browse.Click += delegate {
-            using (var pick = new FolderBrowserDialog { Description = "Dossier d'une sauvegarde d'Elin (celui qui contient game.txt)" }) {
+            using (var pick = new FolderBrowserDialog { Description = "Folder of an Elin save (the one that holds game.txt)" }) {
                 if (pick.ShowDialog(this) == DialogResult.OK) {
                     _saves.Items.Insert(0, pick.SelectedPath);
                     _saves.SelectedIndex = 0;
@@ -370,7 +371,7 @@ internal sealed class ServerForm : Form
         };
         _import.Click += delegate {
             var problem = _depot.Import(SavePath((string)_saves.SelectedItem));
-            MessageBox.Show(this, problem ?? "Cette sauvegarde est maintenant le monde du serveur.\nLe monde précédent est gardé à côté (world.1.zip).", Text);
+            MessageBox.Show(this, problem ?? "This save is now the world of the server.\nThe previous world is kept beside it (world.1.zip).", Text);
             Refresh();
         };
         _noGame.CheckedChanged += delegate { Refresh(); };
@@ -414,7 +415,7 @@ internal sealed class ServerForm : Form
             try {
                 _depot = new Depot(_depotFolder, _depotPort, _password.Text);
             } catch (SocketException ex) {
-                MessageBox.Show(this, "Le port " + _depotPort + " est déjà pris sur ce PC.\n" + ex.Message, Text);
+                MessageBox.Show(this, "Port " + _depotPort + " is already in use on this PC.\n" + ex.Message, Text);
             }
 
             Refresh();
@@ -422,12 +423,12 @@ internal sealed class ServerForm : Form
         }
 
         if (_elin == null) {
-            MessageBox.Show(this, "Elin est introuvable sur ce PC.", Text);
+            MessageBox.Show(this, "Elin was not found on this PC.", Text);
             return;
         }
 
         if (_saves.SelectedItem == null) {
-            MessageBox.Show(this, "Aucune sauvegarde trouvée.", Text);
+            MessageBox.Show(this, "No save found.", Text);
             return;
         }
 
@@ -439,7 +440,7 @@ internal sealed class ServerForm : Form
 
         var id = ((string)_saves.SelectedItem).Split(' ')[0];
         if (id.Contains("\\")) {
-            MessageBox.Show(this, "Avec Elin, la sauvegarde doit être une de celles du jeu sur ce PC.", Text);
+            MessageBox.Show(this, "With Elin, the save must be one of the game's saves on this PC.", Text);
             return;
         }
 
@@ -477,21 +478,21 @@ internal sealed class ServerForm : Form
         // sans Elin, la sauvegarde se choisit serveur en marche ; avec Elin, avant de le demarrer
         _saves.Enabled = noGame || !Running;
         _import.Enabled = _depot != null && _saves.SelectedItem != null;
-        _choice.Text = noGame ? "Sauvegarde à mettre sur le serveur :" : "Sauvegarde à héberger (elle doit avoir une base) :";
-        _toggle.Text = Running ? "Arrêter" : "Démarrer";
-        _playersTitle.Text = noGame ? "Joueur qui héberge le monde en ce moment :" : "Joueurs connectés :";
+        _choice.Text = noGame ? "Save to put on the server:" : "Save to host (it must have a home base):";
+        _toggle.Text = Running ? "Stop" : "Start";
+        _playersTitle.Text = noGame ? "Player hosting the world right now:" : "Connected players:";
         ShowAddresses(noGame ? _depotPort : 55556);
 
         var names = new string[0];
         if (noGame) {
             var holder = _depot == null ? null : _depot.Holder;
-            _state.Text = _depot == null ? "Arrêté" : "En marche";
+            _state.Text = _depot == null ? "Stopped" : "Running";
             _state.ForeColor = _depot == null ? Color.Firebrick : Color.ForestGreen;
             _info.Text = _depot == null
-                ? "Dans le jeu de chaque joueur : Client Settings, Depot folder,\net donner une des adresses ci-dessous."
+                ? "The first player to arrive loads the world and hosts it;\nthe others join that player through Steam, as usual."
                 : (_depot.WorldSize == 0
-                      ? "Pas encore de monde : choisir une sauvegarde ci-dessus,\n« Mettre cette sauvegarde sur le serveur »."
-                      : "Monde : " + (_depot.WorldSize / 1024) + " Ko, reçu le " + _depot.Received.ToString("dd/MM à HH:mm")) +
+                      ? "No world yet: pick a save above, then\n\"Put this save on the server\"."
+                      : "World: " + (_depot.WorldSize / 1024) + " KB, received " + _depot.Received.ToString("yyyy-MM-dd HH:mm")) +
                   "\n" + (_depot.Last ?? "");
             names = holder == null ? names : new[] { holder };
         } else {
@@ -523,12 +524,12 @@ internal sealed class ServerForm : Form
             status.TryGetValue("date", out date);
             status.TryGetValue("saved", out saved);
             status.TryGetValue("players", out players);
-            _state.Text = !Running ? "Arrêté" : stopping ? "Arrêt : sauvegarde en cours…" : state == "running" ? "En marche" : "Démarrage (une à deux minutes)…";
+            _state.Text = !Running ? "Stopped" : stopping ? "Stopping: saving…" : state == "running" ? "Running" : "Starting (one or two minutes)…";
             _state.ForeColor = !Running ? Color.Firebrick : state == "running" && !stopping ? Color.ForestGreen : Color.DarkOrange;
             _toggle.Enabled = !stopping;
             _info.Text = Running && state == "running"
-                ? "Date du monde : " + date + "\nDernière sauvegarde : " + (saved == "-" ? "pas encore" : saved)
-                : !Running ? "Elin doit être installé sur ce PC." : "";
+                ? "World date: " + date + "\nLast save: " + (saved == "-" ? "not yet" : saved)
+                : !Running ? "Elin must be installed on this PC. Every player joins the\nworld; nobody has to host it." : "";
             names = string.IsNullOrEmpty(players) ? names : players.Split('|');
         }
 
@@ -547,7 +548,7 @@ internal sealed class ServerForm : Form
             .Select(a => a.Address.ToString())
             .Where(a => !a.StartsWith("169.254."))
             .Distinct()
-            .Select(ip => ip + ":" + port + (ip.StartsWith("127.") ? "   (depuis ce PC)" : ""))
+            .Select(ip => ip + ":" + port + (ip.StartsWith("127.") ? "   (from this PC only)" : ""))
             .ToArray();
         if (!addresses.SequenceEqual(_addresses.Items.Cast<string>())) {
             _addresses.Items.Clear();
@@ -561,7 +562,7 @@ internal sealed class ServerForm : Form
             return;
         }
 
-        if (MessageBox.Show(this, "Le serveur tourne. L'arrêter (il sauvegarde d'abord) ?", Text, MessageBoxButtons.YesNo) == DialogResult.Yes
+        if (MessageBox.Show(this, "The server is running. Stop it (it saves first)?", Text, MessageBoxButtons.YesNo) == DialogResult.Yes
             && _stopAsked == DateTime.MinValue) {
             Stop();
         }
@@ -595,7 +596,7 @@ internal sealed class ServerForm : Form
                 if (file != null) {
                     var written = File.GetLastWriteTime(file);
                     found.Add(new KeyValuePair<DateTime, string>(written,
-                        root[1] + Path.GetFileName(save) + "   (" + written.ToString("dd/MM/yyyy HH:mm") + ")"));
+                        root[1] + Path.GetFileName(save) + "   (" + written.ToString("yyyy-MM-dd HH:mm") + ")"));
                 }
             }
         }

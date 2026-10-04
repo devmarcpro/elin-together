@@ -1579,3 +1579,58 @@ Pièges de test notés ce jour-là :
 - L'utilisateur ouvre une nouvelle session : passation dans `dev/HANDOFF.md`, message de départ dans
   `dev/PROMPT_reprise.md`.
 
+
+### Premier essai entre deux PC, bouton d'adresse unique, logiciel en anglais (2026-10-04, soir) — reprendre ici
+- **Premier essai réel de l'utilisateur entre deux PC** (même réseau local, serveur sur le Steam Deck, 192.168.1.28).
+  Il lance Elin Together Server en mode « Without Elin » (TCP 55557) et, sur l'autre PC, utilise « Join by
+  address ». Ce bouton ne parlait qu'à un serveur de jeu (mode « With Elin », UDP 55556) : rien ne répondait, et le
+  jeu montrait la clé brute `emp_ui_timeout` (le texte manquait dans toutes les langues). Ce n'était pas le réseau :
+  le serveur écoutait et le pare-feu laissait passer.
+- Contournement qui a marché : « Client Settings », champ « Depot » = `192.168.1.28:55557`, puis onglet « Lobby »,
+  bouton qui prend le monde. Il s'est connecté. **Le mode sans Elin a donc été joué une fois entre deux PC sur un
+  réseau local** (connexion et prise du monde). **Pas encore essayé** : par Internet, le mode avec Elin entre deux
+  PC, un deuxième joueur qui rejoint, l'hébergeur qui part.
+- **Correction, commit `018091d`** : « Join by address » marche avec les deux serveurs. Il demande d'abord à
+  l'adresse si c'est Elin Together Server. Si oui : cette adresse devient le dépôt (le réglage `DepotPath` se
+  remplit tout seul), et le joueur prend le monde et l'héberge, ou apprend qui l'héberge déjà. Sinon il rejoint un
+  serveur de jeu comme avant. Code : `TabLobbyBrowser.JoinAddress`, `SaveDepot.TakeFrom`. `emp_ui_timeout` a
+  maintenant un texte (EN/JP/CN) : « The server does not answer. Check the address, the port and the mode of the
+  server. » La saisie d'adresse cite les deux ports (55556 avec Elin, 55557 sans).
+  **Plafond connu** : le jeu peut se figer jusqu'à 5 secondes si la machine à cette adresse laisse tomber la
+  connexion sans rien répondre.
+- Test : `depot_suite` avec `DEPOT_SERVER=1`, le deuxième joueur ne règle aucun dépôt et passe par `JoinAddress`.
+  Le test utilise maintenant le port 55558, pour ne jamais heurter un vrai serveur de l'utilisateur sur 55557.
+  **Rouge 3/4 avant la correction** (le joueur n'arrive jamais dans le monde), **vert 11/11 après**. Pas testé :
+  le texte du délai lui-même (seuls les builds Release l'affichent).
+- Pour les joueurs, il n'y a plus qu'**une chose à savoir** dans les deux modes : panneau Elin Together, onglet
+  « Lobby », « Join by address », taper l'adresse affichée par le logiciel serveur. Le champ « Depot » de « Client
+  Settings » existe encore (dossier partagé, mot de passe) mais n'est plus nécessaire pour le logiciel sans mot
+  de passe.
+- Partir d'un monde neuf : un joueur crée une partie normalement, puis onglet « Lobby », bouton « Put this save
+  in the depot » (`emp_ui_depot_put`) ; le serveur garde le monde précédent à côté (`world.1.zip`). Ou choisir une
+  sauvegarde dans le logiciel.
+- **Quêtes « Dummy » / « Mokyu »** vues par l'utilisateur : **pas causées par le mod ni par le serveur**. Le monde de
+  son serveur était sa sauvegarde du nuage Steam `world_3` (écrite le 2026-10-01 à 22h15, même taille à l'octet,
+  1 628 098). Dans cette sauvegarde, 6 quêtes étaient déjà écrites `QuestDummy` avant tout travail sur le serveur ;
+  leurs identifiants commencent par `dmp_quest_` (travel, massacre_religion, weightlifting) : des quêtes d'un autre
+  mod, non installé sur le Steam Deck. C'est Elin lui-même (`GameSerializationBinder` : un type de quête introuvable
+  à la lecture devient `QuestDummy`, et la sauvegarde suivante l'écrit). Les quêtes du jeu (histoire, dette,
+  guildes, maison…) sont intactes dans le fichier. L'utilisateur prend une partie neuve pour le serveur.
+  **Question ouverte** pour lui : quel mod fournit `dmp_quest_*` (une réparation serait possible, le vrai
+  identifiant est encore dans la sauvegarde).
+- **Elin Together Server est maintenant en anglais** (`dev/server/ElinTogetherServer.cs`, `dev/server/build.ps1`).
+  Libellés : modes « Without Elin: keeps the world, a player hosts it » et « With Elin on this PC: the world
+  runs all the time » ; boutons « Browse… », « Put this save on the server », « Start »/« Stop » ; case « No
+  game window (lighter) » ; « Password (empty: none): » ; état « Running »/« Stopped » ; liste « Addresses to
+  give to the players (double-click to copy): » et, dessous : « In the game: Elin Together panel, Lobby tab,
+  "Join by address", and type one of these addresses. » `LISEZMOI.txt` et `DOCUMENTATION.md` les citent.
+- **En cours, pas fait** : un message clair quand le mot de passe du serveur est faux (aujourd'hui le jeu peut dire
+  « password is hosting the world ») ; rejouer les suites du serveur ; essayer à la main les boutons du logiciel ;
+  une nouvelle version publiée. **Le jeu de cette machine a le build de TEST** ; la dernière version publiée est
+  toujours la 0.26.390 : remettre une version publiée avant que l'utilisateur joue.
+- **Pièges** : l'outil Bash casse les barres inverses dans un Python en ligne (un script avec `'\\'` dans un
+  heredoc a échoué) : écrire les scripts avec l'outil d'écriture. Et `Player.log` du jeu installé est écrasé par
+  les passes de test : il ne dit rien de la session de l'utilisateur sur un autre PC.
+- Méthode : agent `haiku` pour chercher dans le code décompilé (il a trouvé `QuestDummy` ; son hypothèse sur la
+  cause, la sérialisation réseau, était fausse : c'est le fichier de sauvegarde qui a donné la réponse), agent
+  `sonnet` pour ces documents.
