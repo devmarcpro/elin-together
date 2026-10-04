@@ -44,9 +44,12 @@ internal static class QuestZoneVisitorPatch
     [HarmonyPatch(typeof(QuestManager), nameof(QuestManager.Get), typeof(int))]
     internal static void OnGetQuest(int uid, ref Quest? __result)
     {
-        if (__result is null && NetSession.Instance.Transport is ElinNetHost host) {
-            __result = host.AccompaniedQuest(uid);
+        // nothing of this outside of a session hosted here
+        if (NetSession.Instance.Transport is not ElinNetHost host) {
+            return;
         }
+
+        __result ??= host.AccompaniedQuest(uid);
     }
 
     /// <summary>
@@ -153,13 +156,24 @@ internal static class QuestZoneDeathPatch
     [HarmonyPrefix]
     internal static void OnDie(out ZoneInstance.Status? __state)
     {
+        __state = null;
+
+        // nothing of this outside of a session hosted here
+        if (NetSession.Instance.Transport is not ElinNetHost) {
+            return;
+        }
+
         __state = (EClass.game?.activeZone?.instance as ZoneInstanceRandomQuest)?.status;
     }
 
     [HarmonyPostfix]
     internal static void OnDied(Chara __instance, ZoneInstance.Status? __state)
     {
-        if (__state is { } before && NetSession.Instance.Transport is ElinNetHost host) {
+        if (NetSession.Instance.Transport is not ElinNetHost host) {
+            return;
+        }
+
+        if (__state is { } before) {
             host.OnDeathInQuestZone(__instance, before);
         }
     }
@@ -176,10 +190,17 @@ internal static class QuestZoneSavePatch
     [HarmonyPrefix]
     internal static void OnSave(out System.Action? __state)
     {
-        __state = (NetSession.Instance.Transport as ElinNetHost)?.HideAccompaniedQuest();
+        __state = null;
+
+        // nothing of this outside of a session hosted here
+        if (NetSession.Instance.Transport is not ElinNetHost host) {
+            return;
+        }
+
+        __state = host.HideAccompaniedQuest();
     }
 
-    [HarmonyFinalizer]
+    [HarmonyPostfix]
     internal static void OnSaved(System.Action? __state)
     {
         __state?.Invoke();
