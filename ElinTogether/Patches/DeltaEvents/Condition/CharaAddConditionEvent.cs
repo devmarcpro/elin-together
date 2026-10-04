@@ -1,4 +1,5 @@
 using System;
+using ElinTogether.Helper;
 using ElinTogether.Models;
 using ElinTogether.Net;
 using HarmonyLib;
@@ -33,7 +34,9 @@ internal static class CharaAddConditionEvent
     {
         // clients cannot add conditions normally
         if (NetSession.Instance.IsHost) {
-            return true;
+            // under a fifth of its hit points a resident that is hit may take fright, never "the player": here
+            // another player read as a resident and could no longer strike (Card.DamageHP)
+            return !(c is ConFear && CardDamageHpEvent.Depth > 0 && __instance.IsRemotePlayer);
         }
 
         // the trap this game's player walked on is rolled here only (RemoteTrapPatch): what it does to it is

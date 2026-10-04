@@ -24,6 +24,7 @@ internal static class CardDamageHpEvent
                                         out CardDamageHpDelta? __state)
     {
         __state = null;
+        Depth++;
 
         // simply drop the update as clients and wait for delta
         if (NetSession.Instance.Connection is not { } connection) {
@@ -49,6 +50,17 @@ internal static class CardDamageHpEvent
         }
 
         return connection.IsHost;
+    }
+
+    /// <summary>
+    ///     Inside the game's damage code when above 0, see CharaAddConditionEvent
+    /// </summary>
+    internal static int Depth { get; private set; }
+
+    [HarmonyFinalizer]
+    internal static void OnCardDamageHPEnd()
+    {
+        Depth--;
     }
 
     [HarmonyPostfix]
