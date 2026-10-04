@@ -435,8 +435,9 @@ internal sealed class ServerForm : Form
         if (_noGame.Checked) {
             try {
                 _depot = new Depot(_depotFolder, _depotPort, _password.Text);
-            } catch (SocketException ex) {
-                MessageBox.Show(this, "Port " + _depotPort + " is already in use on this PC.\n" + ex.Message, Text);
+            } catch (SocketException) {
+                // (no ex.Message: Windows writes it in its own language)
+                MessageBox.Show(this, "Port " + _depotPort + " is already in use on this PC.\nClose the other program that uses it, or the other Elin Together Server.", Text);
             }
 
             Refresh();
