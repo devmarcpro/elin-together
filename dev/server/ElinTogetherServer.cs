@@ -32,6 +32,7 @@ internal sealed class Depot
 {
     private const int MaxWorld = 300 * 1024 * 1024;
     private static readonly TimeSpan LockLife = TimeSpan.FromMinutes(3);
+    private static readonly TimeSpan BackupEvery = TimeSpan.FromMinutes(30);
 
     private readonly object _gate = new object();
     private readonly string _folder;
@@ -103,6 +104,11 @@ internal sealed class Depot
                 var id = ReadLine(stream);
                 var name = ReadLine(stream);
                 var length = int.Parse(ReadLine(stream));
+                if (password != _password) {
+                    Reply(stream, "NO password", null);
+                    return;
+                }
+
                 if (length < 0 || length > MaxWorld) {
                     Reply(stream, "NO too big", null);
                     return;
@@ -116,11 +122,6 @@ internal sealed class Depot
                     }
 
                     read += n;
-                }
-
-                if (password != _password) {
-                    Reply(stream, "NO password", null);
-                    return;
                 }
 
                 byte[] answer;
@@ -158,20 +159,18 @@ internal sealed class Depot
                 Hold(id, name);
                 return "OK";
             case "PUT":
-                // le monde ne vient que de celui qui l'heberge, ou de n'importe qui tant que le depot est vide
-                if (!mine && (held || File.Exists(WorldFile))) {
-                    return "NO not the holder";
+                // celui qui heberge sauvegarde ; quand personne n'heberge, un joueur peut mettre un autre monde
+                // (une nouvelle partie) : l'ancien est garde a part et ce joueur devient celui qui heberge
+                if (held && !mine) {
+                    return "NO held " + HolderName;
                 }
 
                 if (body.Length == 0) {
                     return "NO empty";
                 }
 
-                Store(body);
-                if (mine) {
-                    _beat = DateTime.UtcNow;
-                }
-
+                Store(body, !mine);
+                Hold(id, name);
                 return "OK";
             case "BEAT":
                 if (!held || mine) {
@@ -236,30 +235,48 @@ internal sealed class Depot
                 return HolderName + " is hosting the world right now: wait until they leave.";
             }
 
-            Store(world);
+            Store(world, true);
             Last = DateTime.Now.ToString("HH:mm:ss") + "  save put on the server";
         }
 
         return null;
     }
 
-    /// <summary>Ecrit a cote puis echange, et garde les trois mondes precedents (world.1.zip est le plus recent).</summary>
-    private void Store(byte[] world)
+    /// <summary>
+    /// Ecrit a cote puis echange. Un monde remplace par un autre (une nouvelle partie, une sauvegarde choisie
+    /// dans le logiciel) est garde pour de bon, sous replaced-date.zip. Les sauvegardes de celui qui heberge
+    /// gardent les trois precedentes (world.1.zip est la plus recente), une par demi-heure au plus : sinon
+    /// vingt minutes de sauvegardes automatiques effacent tout ce qui precede.
+    /// </summary>
+    private void Store(byte[] world, bool replaces)
     {
         var incoming = WorldFile + ".new";
         File.WriteAllBytes(incoming, world);
         if (File.Exists(WorldFile)) {
-            for (var i = 3; i >= 1; i--) {
-                var older = Path.Combine(_folder, "world." + i + ".zip");
-                var newer = i == 1 ? WorldFile : Path.Combine(_folder, "world." + (i - 1) + ".zip");
-                if (File.Exists(newer)) {
-                    File.Delete(older);
-                    File.Move(newer, older);
+            var newest = Path.Combine(_folder, "world.1.zip");
+            if (replaces) {
+                File.Move(WorldFile, Path.Combine(_folder, "replaced-" + DateTime.Now.ToString("yyyyMMdd-HHmmss-fff") + ".zip"));
+            } else if (!File.Exists(newest) || DateTime.Now - File.GetLastWriteTime(newest) > BackupEvery) {
+                for (var i = 3; i >= 1; i--) {
+                    var older = Path.Combine(_folder, "world." + i + ".zip");
+                    var newer = i == 1 ? WorldFile : Path.Combine(_folder, "world." + (i - 1) + ".zip");
+                    if (File.Exists(newer)) {
+                        File.Delete(older);
+                        File.Copy(newer, older);
+                    }
                 }
+
+                File.SetLastWriteTime(newest, DateTime.Now);
             }
         }
 
-        File.Move(incoming, WorldFile);
+        // (un seul geste : une coupure ne laisse jamais le dossier sans world.zip)
+        if (File.Exists(WorldFile)) {
+            File.Replace(incoming, WorldFile, null);
+        } else {
+            File.Move(incoming, WorldFile);
+        }
+
         Received = DateTime.Now;
     }
 
@@ -370,8 +387,12 @@ internal sealed class ServerForm : Form
             }
         };
         _import.Click += delegate {
+            if (_depot.WorldSize > 0 && MessageBox.Show(this, "The server already holds a world. Replace it with this save?\n(The current world is kept in the server folder, as replaced-<date>.zip.)", Text, MessageBoxButtons.YesNo) != DialogResult.Yes) {
+                return;
+            }
+
             var problem = _depot.Import(SavePath((string)_saves.SelectedItem));
-            MessageBox.Show(this, problem ?? "This save is now the world of the server.\nThe previous world is kept beside it (world.1.zip).", Text);
+            MessageBox.Show(this, problem ?? "This save is now the world of the server.", Text);
             Refresh();
         };
         _noGame.CheckedChanged += delegate { Refresh(); };
@@ -455,6 +476,10 @@ internal sealed class ServerForm : Form
     private void Stop()
     {
         if (_depot != null) {
+            if (!MayLeave()) {
+                return;
+            }
+
             _depot.Stop();
             _depot = null;
             Refresh();
@@ -466,6 +491,15 @@ internal sealed class ServerForm : Form
         File.WriteAllText(StopFile, "stop");
         _stopAsked = DateTime.Now;
         Refresh();
+    }
+
+    /// <summary>Sans Elin : arreter pendant qu'un joueur heberge, c'est perdre ses sauvegardes suivantes.</summary>
+    private bool MayLeave()
+    {
+        var holder = _depot == null ? null : _depot.Holder;
+        return holder == null || MessageBox.Show(this,
+            holder + " is hosting the world right now.\nIf the server stops, their next saves will not reach it.\nStop anyway?",
+            Text, MessageBoxButtons.YesNo) == DialogResult.Yes;
     }
 
     private new void Refresh()
@@ -489,7 +523,7 @@ internal sealed class ServerForm : Form
             _state.Text = _depot == null ? "Stopped" : "Running";
             _state.ForeColor = _depot == null ? Color.Firebrick : Color.ForestGreen;
             _info.Text = _depot == null
-                ? "The first player to arrive loads the world and hosts it;\nthe others join that player through Steam, as usual."
+                ? "The first player to arrive loads the world and hosts it;\nthe others join that player through Steam, as usual.\nOver the Internet: set a password."
                 : (_depot.WorldSize == 0
                       ? "No world yet: pick a save above, then\n\"Put this save on the server\"."
                       : "World: " + (_depot.WorldSize / 1024) + " KB, received " + _depot.Received.ToString("yyyy-MM-dd HH:mm")) +
@@ -558,7 +592,12 @@ internal sealed class ServerForm : Form
 
     private void OnClosing(object sender, FormClosingEventArgs e)
     {
-        if (!Running || _depot != null) {
+        if (_depot != null) {
+            e.Cancel = !MayLeave();
+            return;
+        }
+
+        if (!Running) {
             return;
         }
 

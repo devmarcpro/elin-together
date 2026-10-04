@@ -30,9 +30,8 @@ import move_suite  # noqa: E402
 
 ADDRESS = "127.0.0.1:55556"
 # (les classes du mod sont internes : par reflexion, comme les autres suites)
-JOIN = ('var s = ElinTogether.Net.NetSession.Instance; var t = HarmonyLib.AccessTools.TypeByName("ElinTogether.Net.ElinNetClient"); '
-        'var c = HarmonyLib.AccessTools.Method(s.GetType(), "InitializeComponent").MakeGenericMethod(t).Invoke(s, null); '
-        f'HarmonyLib.AccessTools.Method(t, "ConnectAddress").Invoke(c, new object[] {{ "{ADDRESS}" }}); "ok"')
+JOIN = ('HarmonyLib.AccessTools.Method(HarmonyLib.AccessTools.TypeByName("ElinTogether.Components.TabLobbyBrowser"), '
+        f'"JoinAddress").Invoke(null, new object[] {{ "{ADDRESS}" }}); "ok"')
 DATE = 'EClass.world.date.GetRaw().ToString()'
 
 
