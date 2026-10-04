@@ -31,7 +31,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from council_suite import free_next_to  # noqa: E402
 from guest_suite import awake, bag_size, chara, first_id, give, stand, use_held  # noqa: E402
 from mp_test import log, shot, state  # noqa: E402
-from travel_suite import RESULTS, check, ev, eventually, scan_logs  # noqa: E402
+from travel_suite import HOME, RESULTS, VERNIS, check, ev, eventually, host_goto, scan_logs, zone_uid  # noqa: E402
 
 H, A = 27551, 27552
 
@@ -87,7 +87,9 @@ def e1(ctx):
         check(f"l'ami frappe une fois n'est pas hostile, chez l'host ({h})", h == "Neutral")
         check(f"l'invite voit la meme chose ({hostility(port, friend)})", eventually(lambda: hostility(port, friend) == h, timeout=10))
 
-        # (b) un fanatique appelle toujours : ses semblables (meme hostilite d'origine) deviennent hostiles
+        # (b) un fanatique appelle toujours : ses semblables (meme hostilite d'origine) deviennent hostiles.
+        # Pas dans une base : le jeu n'y appelle jamais a l'aide, meme en solo (Chara.DoHostileAction) -> a Vernis
+        host_goto(H, port, VERNIS)
         host_foe = ev(H, 'EClass.pc.enemy == null ? "" : EClass.pc.enemy.uid.ToString()')
         fanatic = spawn(uid, "fanatic", "Neutral")
         made.append(fanatic)
@@ -110,6 +112,8 @@ def e1(ctx):
     finally:
         ev(port, 'EClass.debug.godMode = false; "ok"')
         drop(made)
+        if zone_uid(H) != HOME:
+            host_goto(H, port, HOME)
 
 
 def tame(ctx, cid):
