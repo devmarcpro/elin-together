@@ -62,7 +62,8 @@ internal static class CharaTaskRemoteEvent
             TaskCut task => TaskCutArgs.Create(task),
             TaskDig task => TaskDigArgs.Create(task),
             TaskDrawWater task => TaskDrawWaterArgs.Create(task),
-            TaskDump task => TaskDumpArgs.Create(task),
+            // not sent: it reads "the player's" bag and closes "the player's" windows wherever it runs, the others
+            // see it as a busy player and the items reach them as they are put away
             TaskHarvest task => TaskHarvestArgs.Create(task),
             TaskMine task => TaskMineArgs.Create(task),
             TaskPlow task => TaskPlowArgs.Create(task),
