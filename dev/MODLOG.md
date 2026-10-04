@@ -1447,3 +1447,11 @@ Pièges de test notés ce jour-là :
 - **Le jeu de cette machine a de nouveau la version publiée 0.26.366** (dossier du zip recopié dans `Package`,
   même fichier). Le temps commun et le gardien n'y sont pas.
 
+
+### Machine partagée avec une autre session (2026-10-04, 13h)
+- L'utilisateur : « c'est trop, 4 clients Elin » (une autre session travaille sur un serveur privé Dofus sur ce PC).
+  **Sur cette machine, ne plus lancer `trio_suite` (host + 3 clients)** tant qu'il ne dit pas le contraire ; deux
+  fenêtres au plus par défaut. `trio_suite` était verte sur `a76d6a9` (temps commun), pas rejouée sur le gardien
+  du monde : un essai a échoué sur une connexion locale entre deux fenêtres (10 s sans réponse), sans exception.
+- Passe sur `2c6a89e` (gardien du monde + petits restes) : travel 54/54, shared 26/26, companion 30/30,
+  party 28/28, combat 22/22, economy 25/25. Courtes en cours (`_shots/*-p8.log`).
