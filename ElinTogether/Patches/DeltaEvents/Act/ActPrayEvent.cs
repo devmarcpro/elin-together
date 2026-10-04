@@ -1,4 +1,5 @@
 using ElinTogether.Helper;
+using ElinTogether.Models;
 using ElinTogether.Net;
 using HarmonyLib;
 
@@ -22,6 +23,16 @@ internal static class ActPrayEvent
             c.PlayEffect("revive");
             c.Say("piety2", c);
             return false;
+        }
+
+        // the gifts of its god, as for a player praying alone: before the daily prayer, and instead of it
+        // (its own count of them: RemoteGodGiftPatch). The pet follows the one who prayed
+        using (ElinDelta.Simulate())
+        using (MsgRelayContext.RedirectTo(c))
+        using (CharaMakeAllyEvent.GiftsFor(c)) {
+            if (c.faith.TryGetGift(c)) {
+                return false;
+            }
         }
 
         var today = EClass.world.date.GetRawDay();
