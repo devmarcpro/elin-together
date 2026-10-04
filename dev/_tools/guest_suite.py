@@ -762,6 +762,48 @@ def g25(ctx):
         ev(H, f'var t = EClass._map.things.Find(x => x.uid == {s}); if (t != null) t.Destroy(); "ok"')
 
 
+def g31(ctx):
+    """benediction du dieu : calculee pour un invite comme pour un joueur (piete et jours avec son dieu), pas comme pour un familier"""
+    port, uid = ctx["a"]
+    was = ev(port, 'EClass.pc.elements.Base(85) + "," + EClass.pc.c_daysWithGod')
+    try:
+        ev(port, 'EClass.pc.elements.SetBase(85, 40); EClass.pc.c_daysWithGod = 100; "ok"')
+        eventually(lambda: ev(H, f'{chara(H, uid)}.Evalue(85).ToString()') == "40", timeout=10)
+        # 10 + (racine(100 jours) x 2 + 40 de piete) / 2
+        check(f"dans le jeu de l'invite : 40 ({ev(port, 'EClass.pc.GetPietyValue().ToString()')})", ev(port, 'EClass.pc.GetPietyValue().ToString()') == "40")
+        ev(H, f'{chara(H, uid)}.c_daysWithGod = 100; "ok"')
+        check(f"chez l'host, pour l'invite : 40 ({ev(H, f'{chara(H, uid)}.GetPietyValue().ToString()')})", ev(H, f'{chara(H, uid)}.GetPietyValue().ToString()') == "40")
+    finally:
+        b, d = was.split(",")
+        ev(port, f'EClass.pc.elements.SetBase(85, {b}); EClass.pc.c_daysWithGod = {d}; "ok"')
+
+
+def g32(ctx):
+    """autel de l'invention : l'invite qui le touche trouve une recette, une seule, la meme pour tous ; l'autel s'eteint"""
+    port, uid = ctx["a"]
+    idx = ev(H, 'EClass.gamedata.shrines.FindIndex(x => x.id == "invention").ToString()')
+    if not check(f"le jeu a un autel de l'invention (numero {idx})", idx not in ("", "-1")):
+        return
+    sid = first_id("Shrine")
+    s = ev(H, f'var c = {chara(H, uid)}; var t = ThingGen.Create("{sid}"); t.refVal = {idx}; t.isOn = true; '
+              'EClass._zone.AddCard(t, c.pos.GetNearestPoint(false, false, false, true)).Install(); return t.uid + "/" + t.isOn + "/" + ((TraitShrine)t.trait).Shrine.id;')
+    if not check(f"un autel de l'invention allume est pose pres de l'invite ({s})", s.endswith("/True/invention")):
+        return
+    s = s.split("/")[0]
+    eventually(lambda: ev(port, f'(EClass._map.things.Find(x => x.uid == {s}) != null).ToString()') == "True", timeout=10)
+    before = {p: set(ev(p, KNOWN).split(",")) for p in (H, port)}
+    awake(port)
+    ev(port, f'EClass._map.things.Find(x => x.uid == {s}).trait.OnUse(EClass.pc); "ok"')
+    eventually(lambda: set(ev(H, KNOWN).split(",")) - before[H], timeout=10)
+    time.sleep(3)
+    new = {p: set(ev(p, KNOWN).split(",")) - before[p] for p in (H, port)}
+    check(f"une recette de plus, une seule, chez l'host ({', '.join(sorted(new[H])) or 'aucune'})", len(new[H]) == 1)
+    check(f"la meme chez l'invite ({', '.join(sorted(new[port])) or 'aucune'})", new[port] == new[H])
+    spent = lambda p: ev(p, f'var t = EClass._map.things.Find(x => x.uid == {s}); return t == null ? "absent" : t.isOn.ToString();')  # noqa: E731
+    check(f"l'autel est eteint partout ({spent(H)}, {spent(port)})", eventually(lambda: spent(H) == spent(port) == "False", timeout=10))
+    ev(H, f'var t = EClass._map.things.Find(x => x.uid == {s}); if (t != null) t.Destroy(); "ok"')
+
+
 PAIR = ('foreach (var g in EClass.sources.things.rows.Where(x => x.trait != null && x.trait.Length > 0 && x.trait[0].StartsWith("ToolRange")).Take(20)) { var gun = ThingGen.Create(g.id); '
         'foreach (var a in EClass.sources.things.rows.Where(x => x.trait != null && x.trait.Length > 0 && x.trait[0].StartsWith("Ammo")).Take(20)) { var am = ThingGen.Create(a.id); '
         'var ok = (gun.trait as TraitToolRange)?.IsAmmo(am) ?? false; am.Destroy(); if (ok) { gun.Destroy(); return g.id + "," + a.id; } } gun.Destroy(); } return "";')
@@ -801,9 +843,9 @@ def main():
 
     ctx = {"a": (A, state(A)["pc"]["uid"]), "h": (H, state(H)["pc"]["uid"])}
     # G8 en dernier : l'invite y quitte la carte
-    steps = [g5, g3, g2, g11, g1, g4, g6, g7, g9, g10, g12, g14, g15, g16, g19, g21, g23, g24, g25, g30, g8]
+    steps = [g5, g3, g2, g11, g1, g4, g6, g7, g9, g10, g12, g14, g15, g16, g19, g21, g23, g24, g25, g30, g31, g32, g8]
     if a.only:
-        steps = [s for s in (g1, g2, g3, g4, g5, g6, g7, g9, g10, g11, g12, g14, g15, g16, g19, g21, g23, g24, g25, g30, g8)
+        steps = [s for s in (g1, g2, g3, g4, g5, g6, g7, g9, g10, g11, g12, g14, g15, g16, g19, g21, g23, g24, g25, g30, g31, g32, g8)
                  if s.__name__ in a.only.split(",")]
     for step in steps:
         log(f"--- {step.__name__.upper()} : {step.__doc__}")

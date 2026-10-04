@@ -180,6 +180,7 @@ python _tools/bot.py --minutes 5 --seed 1
 | `sleep_suite.py` | dormir à plusieurs, à la base ou sur une carte sauvage (`--only w0,z0,z1,z2`) | 2 | ~3 min |
 | `guest_suite.py` | le même geste par l'invité puis par l'host : repos, pêche, baguette, coffres de pari, bouteille vide | 2 | ~3 min |
 | `recruit_suite.py` | compagnons recrutés par un invité : dialogue, monture, boule à monstre, achat | 2 | ~5 min |
+| `council_suite.py` | les décisions du conseil du 2026-10-04 : grimoires, prime de guilde, cadeaux du dieu, mort après le jour 90, pièges (à Vernis) ; `--only c6` carte au trésor (ne passe pas au banc) | 2 | ~5 min |
 | `move_suite.py` | pas de l'invité : réguliers, host qui rame, écart de vitesse, accéléré partagé | 2 | ~2 min |
 | `import_suite.py` | rejoindre avec le personnage d'une sauvegarde (copie du monde de test) | 2 | ~3 min |
 | `time_suite.py` | une seule date pour le monde : invité seul ailleurs, host, saut de cinq heures, retour | 2 | ~2 min |
@@ -236,8 +237,8 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
   rejoindre. L'escorte prise par un client n'a été testée que par le code, pas en marchant.
 - Échange : pas d'objets équipés, ni de sacs pleins ; fenêtre simple (liste + boutons).
 - Karma : sur une carte tenue par un joueur (pas l'host), les gardes suivent encore le karma de ce joueur-là.
-  Un habitant attaqué par un invité n'appelle pas à l'aide. Affinité de la tonte et de l'abattage perdue pour un
-  invité. Expérience de guilde : si deux joueurs en gagnent au même instant, un des deux gains est perdu.
+  Un habitant attaqué par un invité n'appelle pas à l'aide. (L'affinité de la tonte et de l'abattage n'est pas
+  perdue, d'après la lecture du code du 2026-10-04 : à confirmer par un test.) Expérience de guilde : si deux joueurs en gagnent au même instant, un des deux gains est perdu.
 - Conflits connus, rares, non corrigés : deux achats au même instant chez le même marchand (un seul payé), deux
   joueurs qui construisent sur la même case (deux objets consommés), monture qui existe en double au retour
   d'un voyage, plantage du joueur qui tient une carte avec des invités (retour à sa dernière sauvegarde).
@@ -325,6 +326,17 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
 - Temps du monde : une seule date depuis `a76d6a9` (case `SharedWorldTime`). C'est encore le jeu de l'host qui
   fait ce qui se passe à chaque heure et à chaque jour (météo, quêtes, factions, expédition). Pas testé : deux
   joueurs qui tiennent chacun une carte, un joueur qui tient une carte avec des visiteurs, trois joueurs.
+
+- **Décisions du conseil, 2026-10-04 au soir (branche `fix/points-restants`)** : chaque joueur reçoit une fois le
+  familier et l'artefact de son dieu ; la prime de la guilde des guerriers va au joueur derrière le tueur ; un
+  invité qui meurt chez l'host après le jour 90 perd une part de son or comme un joueur seul (elle tombe par
+  terre : n'importe qui peut la ramasser) ; un piège et une lecture de grimoire ne sont tirés que dans le jeu du
+  joueur concerné. Limites : sur une lecture ratée par un invité, la confusion et les monstres n'arrivent pas ;
+  un piège de malédiction ou d'acide n'abîme l'équipement que dans le jeu de l'invité (pas vérifié) ; un invité
+  qui prie seul en voyage puis chez l'host pourrait recevoir un cadeau deux fois (pas vérifié) ; la carte au
+  trésor creusée par un invité sur la carte du monde avec l'host est corrigée mais **pas vérifiée en jeu**.
+  Aussi : bénédiction du dieu d'un invité calculée comme celle d'un joueur ; les autels (invention, soin…)
+  servent celui qui les touche, sauf les deux qui ouvrent une fenêtre (matière, armure).
 
 ## 7. Reste à faire
 

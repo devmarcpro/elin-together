@@ -85,25 +85,25 @@ Laissé de côté, noté dans les commits :
 |---|---|---|---|
 | M1 | colis, boîtes cadeau, maquettes, statue de dieu dorée : le contenu va dans le sac de l'host | `TraitParcel`, `TraitGiftPack`, `TraitPlamoBox`, `TraitGodStatue` | **corrigé** `11ca53d` (G6) pour colis, paquet cadeau, maquette. Restent : paquets du Nouvel An et de Jure (ils donnent aussi un allié), statue de dieu |
 | M2 | boule de gacha : le lot tombe aux pieds de l'host | `TraitGachaBall`, `Player.DropReward` | **corrigé** `11ca53d` (G7) |
-| M3 | un invité ne reçoit jamais les cadeaux de son dieu (familier, artefact) | `ActPray`, `Religion.TryGetGift` | à prouver |
+| M3 | un invité ne reçoit jamais les cadeaux de son dieu (familier, artefact) | `ActPray`, `Religion.TryGetGift` | **corrigé** `78c345d` (conseil du 2026-10-04 : un compte de cadeaux par joueur ; `council_suite` C4) |
 | M4 | un livre ancien déchiffré par un invité tombe en poussière | `TraitBaseSpellbook.OnRead` | à prouver |
-| M5 | un piège peut toucher un invité deux fois | `TraitFloorSwitch`, `TraitTrap` | à prouver (pas tout suivi) |
+| M5 | un piège peut toucher un invité deux fois | `TraitFloorSwitch`, `TraitTrap` | **corrigé** `31c0c28` (conseil : tiré dans le jeu de l'invité seulement, il garde l'expérience ; sommeil, cécité, paralysie demandés à l'host ; C5) |
 | M6 | les graines récoltées par un invité suivent le talent Agriculture de l'host | `TraitSeed.MakeSeed` | à prouver |
 | M7 | une recette trouvée en récoltant / creusant / minant est oubliée à la reconnexion | `TaskHarvest`, `TaskDig`, `TaskMine`, `AddRecipeEvent` | **corrigé** `e3772ef` (G9, en creusant ; récolte et mine pas jouées) |
 | M8 | l'arrosoir d'un invité ne se remplit pas pour de vrai | `TraitToolWaterCan`, `ActDrawWater` | à prouver (même maillon que H3) |
-| M9 | carte au trésor d'un invité : pas de coffre en creusant | `TaskDig` | à prouver |
+| M9 | carte au trésor d'un invité : pas de coffre en creusant | `TaskDig` | **corrigé, pas vérifié en jeu** `4b45541` (seulement quand l'invité est sur la carte du monde avec l'host ; le banc n'arrive pas à y faire creuser l'invité) |
 | M10 | le vœu d'un invité ne donne rien | `ActEffect.Wish` | à prouver |
-| M11 | la bénédiction du dieu d'un invité est calculée comme celle d'un familier | `Chara.GetPietyValue` | à prouver |
+| M11 | la bénédiction du dieu d'un invité est calculée comme celle d'un familier | `Chara.GetPietyValue` | **corrigé** (`RemotePietyPatch`, G31). Reste : les jours passés avec son dieu ne sont comptés que dans le jeu de l'invité |
 | M12 | banque, coffre des impôts, mannequin, outil du sac… : la fenêtre s'ouvre chez l'host ; le mannequin prend l'équipement de l'host | plusieurs `Trait*.OnUse` | **corrigé** `3f45072` (G8) pour banque, coffre des impôts, panneau des politiques, **corde** (l'host se voyait proposer de se pendre) et **pierre de retour** (l'host était emmené sur la carte du monde) ; table de blackjack et machine à sous par le même chemin, pas jouées. Restent : mannequin, munitions, outil de fabrication utilisé depuis le sac |
-| M13 | un invité rate deux fois plus souvent la lecture d'un grimoire | `AI_Read`, `TraitBaseSpellbook.TryProgress` | à prouver (pas tout suivi) |
+| M13 | un invité rate deux fois plus souvent la lecture d'un grimoire | `AI_Read`, `TraitBaseSpellbook.TryProgress` | **corrigé** `202f026` (conseil : tiré dans le jeu du lecteur seulement, un échec use le livre chez l'host ; C1). Limite : sur un échec, ni confusion ni monstres |
 | M14 | réglages de la base faits par un invité (lit, nom de zone, panneaux, étiquettes de vente…) : seulement sur son écran | lambdas de `TraitBed`, `TraitCoreZone`, `TraitSalesTag`… | à prouver |
 
 ### Rare ou mineur
 
-L1 un invité qui meurt ne perd pas d'or · L2 livre de plan / politique sans effet · L3 parchemin
+L1 un invité qui meurt ne perd pas d'or (**corrigé** `d9df4f6`, C2) · L2 livre de plan / politique sans effet · L3 parchemin
 d'identification / enchantement appliqué deux fois · L4 un puits ne se vide jamais pour un invité · L5 tickets de
 meuble pas dépensés · L6 pas de punition en quittant son dieu · L7 prime de la guilde des guerriers payée à
-l'host · L8 pas de bonus de source chaude · L9 seringues, stéthoscope, clé, teinture… sans effet ou pas
+l'host (**corrigé** `a5d764a`, C3) · L8 pas de bonus de source chaude · L9 seringues, stéthoscope, clé, teinture… sans effet ou pas
 consommés · L10 petits bonus réservés au joueur (point faible du codex, fièvre de pêche…) · L11 un invité déjà
 repu qui mange perd la nourriture pour rien.
 
@@ -136,3 +136,25 @@ météo, prière quotidienne et offrandes, guildes et drapeaux d'histoire, porte
 Ordre : H1 → H6 dans l'ordre, puis M1/M2/M4/M6/M9 (même correction), puis le reste.
 Règle du fork : chaque nouveau comportement a sa case côté host. Ici ce sont des défauts, pas des comportements
 nouveaux : pas de case, sauf si une correction change ce que l'host vit lui-même.
+
+## État au 2026-10-04, nuit (conseil et vérification)
+
+Les six décisions en attente (M3, M5, M9, M13, L1, L7) ont été tranchées par le conseil et corrigées : voir le
+tableau ci-dessus et `MODLOG.md`. Vérifié dans le code par un agent le même soir (rien joué) :
+
+| Point | Verdict | Correction la plus petite |
+|---|---|---|
+| L4 puits | réel : il ne se vide pas pour l'invité, et l'invité ne voit pas l'host le vider ; les mauvais effets ne lui arrivent pas | envoyer la charge du puits de l'invité à l'host (`TraitWell.ModCharges`) |
+| L5 tickets de meuble | réel : meuble gratuit, ticket gardé | branche `Target` de `CardOnUseDelta`, exécutée chez l'host |
+| L6 quitter son dieu | réel par le choix d'un nouveau dieu ; déjà en ordre par l'autel | `Punish` chez l'host dans `CharaFaithDelta` |
+| L8 source chaude | déjà corrigé `a9fe6ee` ; reste : le groupe de l'invité ne reçoit pas le bonus | l'appliquer aux membres du groupe |
+| L9 teinture | déjà corrigé `88f1241`, jamais joué | — |
+| L9 seringues | réel : ni effet ni consommation | rejouer le geste tenu en main chez l'host |
+| L9 stéthoscope | partiel : ses charges ne sont pas à jour chez l'host | idem |
+| L9 clé | faux : aucun objet de ce genre | — |
+| Laisse, consigne | réel : la laisse tire vers l'host ; « ne pas s'éloigner » lit les réglages de l'host | un message « laisse », et le propriétaire dans `GoalCombat` |
+| Appel à l'aide | réel : un habitant ami frappé par un invité devient hostile sans appeler | `DoHostileAction` « à la place du joueur » chez l'host |
+| Affinité tonte, abattage | faux à la lecture (elle arrive par le jeu de l'invité) ; à confirmer par un test. Trouvé : c'est l'host qui perd 3 d'endurance quand un invité abat | — |
+| Karma sur la carte d'un invité | réel : un visiteur n'y est jamais criminel | envoyer karma et renommée des visiteurs à celui qui tient la carte |
+| Mutations | réel mais étroit : seulement avec un équipement d'éther, une mutation de plus chez l'host | — |
+| Autels (invention, soin du groupe…) | réel : l'effet allait à l'host, une recette différente par jeu | **corrigé** (`CardOnUseDelta`, G32) ; pas les deux autels à fenêtre (matière, armure) |

@@ -1847,3 +1847,23 @@ Pièges de test notés ce jour-là :
   groupe), teinture (`88f1241`). Faux : « clé » (aucun objet de ce genre), affinité de la tonte et de l'abattage
   (elle arrive par le jeu de l'invité ; à confirmer par un test). Trouvé en passant : quand un invité abat un
   animal, c'est l'host qui perd de l'endurance.
+- **Fait et testé (branche `fix/points-restants`)** : `d9df4f6` mort (C2), `a5d764a` prime (C3), `78c345d` cadeaux du
+  dieu (C4), `31c0c28` pièges (C5 : l'host ne tire plus, un seul coup, le sommeil arrive), `202f026` grimoires (C1),
+  bénédiction du dieu d'un invité (G31, rouge 13 → vert 40), autels (G32 : une recette, la même pour tous).
+  `council_suite` 35/35 hors C6 (`_shots/council_suite-green3.log`). Non-régression sur ce code : death 11/11,
+  guest 220/220 (+ G31, G32), parity 15/15, sleep 32/32, recruit 45/45 (`_shots/*-points.log`).
+- **Fait, pas vérifié en jeu** : `4b45541` carte au trésor. Le banc met bien les deux joueurs sur la carte du monde et
+  l'invité sur la case, mais la tâche de creuser donnée par le banc n'arrive pas chez l'host (« Progress begin
+  TaskDig … has no matching act ») : à essayer en vrai (l'invité creuse à la pelle sur la case de sa carte, l'host
+  étant aussi sur la carte du monde).
+- **À dire tel quel** : le test des grimoires passait déjà sur l'ancien code (le double échec n'a pas été reproduit
+  par le test) ; il prouve que la lecture va au bout et qu'un échec use une charge, une seule.
+- **Pièges du soir** : `new ActPray()` n'a pas d'identifiant, l'host lève `InvalidCastException` : prendre
+  `ACT.Create(6050)` ; sur la carte du monde on creuse sous ses pieds, `Teleport` n'y bouge pas un invité
+  (`MoveImmediate` oui), et y marcher peut déclencher une rencontre (l'invité part dans une zone à lui) ; quand l'host
+  quitte Vernis en premier, l'invité hérite de la carte ; un préfixe sur `Chara.GetPietyValue` qui lit `IsPC` fige le
+  chargement de la sauvegarde (appelé pendant la lecture, avant qu'il y ait un joueur) : tester
+  `core.IsGameStarted` ; `mp_test.py` lancé juste après `run_short.sh` échoue, relancer.
+- **Demandes de l'utilisateur pendant la session** : déplacer tout le dossier `ElinMods` sur `G:\` (C: est plein à
+  93 %) ; « aucune différence entre host et invité, tout doit être seamless » ; travailler en boucle sans s'arrêter,
+  autant d'agents que nécessaire, chercher sans cesse quoi améliorer.
