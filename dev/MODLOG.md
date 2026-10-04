@@ -1489,3 +1489,5 @@ Pièges de test notés ce jour-là :
 - En cours : recruit, chara, leave, depot, travel sur ce build (`_shots/*-p10.log`), puis une version.
 - Le jeu de cette machine a le build de test ; la dernière version publiée est la 0.26.375.
 
+- Contrôle sur le build du dépôt : recruit 45/45, chara 11/11, depot 11/11, travel 54/54, leave 13/13 (un premier
+  passage à 12/13 : l'host est arrivé par hasard à deux cases de l'invité, qui était bien resté à sa place).
