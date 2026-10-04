@@ -40,6 +40,11 @@ TARGET = ('var p = EClass.pc.pos.Copy(); var best = p.Copy(); '
           f'for (var i = 1; i <= {CELLS}; i++) {{ var q = new Point(p.x + i, p.z); '
           'if (!q.IsInBounds || q.IsBlocked || q.HasChara) break; best = q; } '
           'return best.x + "," + best.z + "," + (best.x - p.x);')
+# la meme recherche, puis le depart : une seule commande, toujours le meme texte. Le pont de test compile chaque
+# texte nouveau, le jeu se fige un instant puis rattrape, et les premiers pas partent en rafale
+GO = (TARGET.replace('return best.x + "," + best.z + "," + (best.x - p.x);', '') +
+      'if (best.x - p.x >= 8) EClass.pc.SetAIImmediate(new AI_Goto(best, 0)); return (best.x - p.x).ToString();')
+WEST = 'var p = EClass.pc.pos.Copy(); p.x -= 16; EClass.pc.Teleport(p.GetNearestPoint(false, false) ?? EClass.pc.pos, true, true); "ok"'
 POS = 'EClass.pc.pos.x + "," + EClass.pc.pos.z + "," + EClass.pc.HasNoGoal'
 
 
@@ -68,13 +73,11 @@ FOLLOWS = ('((bool)HarmonyLib.Traverse.Create(HarmonyLib.AccessTools.TypeByName(
 def walk(port, turbo=None, watch=None, read=PACE):
     """Fait marcher le joueur en ligne droite et releve l'instant de chaque pas. Renvoie les intervalles (s).
     turbo : port du jeu ou l'accelere est tenu pendant la marche ; watch : port dont on releve l'accelere."""
-    x, z, n = ev(port, TARGET).split(",")
-    if int(n) < 8:
-        # pas assez de place vers l'est : on repart du point d'arrivee vers l'ouest
-        ev(port, 'var p = EClass.pc.pos.Copy(); p.x -= 16; EClass.pc.Teleport(p.GetNearestPoint(false, false) ?? EClass.pc.pos, true, true); "ok"')
+    if int(ev(port, GO)) < 8:
+        # pas assez de place vers l'est : on repart plus a l'ouest
+        ev(port, WEST)
         time.sleep(2)
-        x, z, n = ev(port, TARGET).split(",")
-    ev(port, f'EClass.pc.SetAIImmediate(new AI_Goto(new Point({x}, {z}), 0)); "ok"')
+        ev(port, GO)
     steps, last, end = [], None, time.time() + 25
     seen = []
     while time.time() < end:
@@ -152,8 +155,12 @@ def main():
         # echauffement : la premiere marche fait compiler ses commandes par le pont de test, le jeu se fige un
         # instant puis rattrape (le temps d'image du jeu est lisse) : ses premiers pas partent en rafale
         for port in (A, H):
-            walk(port)
-            back(port)
+            ev(port, WEST)
+            time.sleep(1)
+            for _ in range(2):
+                walk(port)
+                back(port)
+        time.sleep(2)
         check("les deux jeux tournent a l'allure normale avant de mesurer", calm(H) and calm(A))
 
         log("--- V1")
