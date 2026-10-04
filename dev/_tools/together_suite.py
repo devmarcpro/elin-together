@@ -1,6 +1,6 @@
 """Quetes a zone propre jouees a deux (PLAN_quetes_donjon_a_deux.md). T1 a T6, sens S1 : l'host prend la quete,
 l'invite l'accompagne (etapes E1 a E4). T7 a T11, sens S2 : l'invite prend la quete, l'host l'accompagne et simule
-la zone (etapes E5 et E6). Test court, sur des instances deja lancees (host + 1 client, tous les deux a la Prairie,
+la zone (etapes E5 et E6 ; quetes "subjuguer" seulement, les autres restent a l'invite seul). Test court, sur des instances deja lancees (host + 1 client, tous les deux a la Prairie,
 options « voyage independant » et « quetes par joueur » cochees).
 
     python _tools/mp_test.py
@@ -17,15 +17,16 @@ T5  la boite : sans reponse au bout de 15 secondes elle se ferme et l'host lit �
 
 T7  l'invite prend une quete "subjuguer" et part : l'host, reste a cote de lui en ville, voit la boite Oui/Non au nom
     de l'invite et clique Oui ; les deux sont dans la zone, simulee par l'host : memes monstres, pas de doublon, la
-    quete au journal de l'invite seulement, et une sauvegarde de l'host dans la zone ne touche a rien
+    quete au journal de l'invite seulement
 T8  l'invite tue le dernier monstre et sort : les deux sont de retour en ville, une seule recompense, aux pieds de
     l'invite, rien pour l'host, la zone est detruite
 T9  la boite chez l'host : sans reponse au bout de 15 secondes, puis Non ; l'invite lit le refus et joue seul dans
     sa zone comme avant (il la simule), ressort, la quete est ratee pour lui seul
 T10 l'host a dit Oui puis rentre seul en ville avant la fin : l'invite garde la zone et sa quete continue ; il la
     finit seul, ressort, recompense pour lui
-T11 recolte a deux : le compteur s'affiche des deux cotes, l'invite sort, les deux sacs sont fouilles, le karma
-    perdu est celui de l'invite
+T11 l'host sauvegarde dans la zone accompagnee : le fichier ecrit n'a ni evenement de quete ni numero de quete
+    (la quete d'un autre n'entre pas dans la sauvegarde de l'host), et la zone en jeu n'a pas bouge ; une quete de
+    recolte prise par l'invite n'ouvre pas de boite (elle reste a lui seul)
 
 Prendre la quete : les deux appels que fait le dialogue du jeu au choix « accepter » (DramaCustomSequence,
 etape _questAccept_instance), pas le dialogue lui-meme : le banc ne sait pas derouler un LayerDrama.
@@ -34,6 +35,7 @@ par la boite « quitter ? » du jeu. T7 a T11 ne jouent pas non plus le dialogue
 l'invite (le banc le ferme). T2 depend de T1, T8 de T7 (la zone ou les deux se trouvent).
 """
 import argparse
+import re
 import sys
 import time
 from datetime import datetime, timezone
@@ -41,10 +43,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from bot import choices, click  # noqa: E402
-from mp_test import log, shot, state  # noqa: E402
+from mp_test import SAVES, log, shot, state  # noqa: E402
 from quest_suite import fame, in_log, kept, offered, things_at_pc  # noqa: E402
 from travel_suite import (HOME, RESULTS, both_joined, check, client_settled, dismiss_dialogs, ev, eventually,  # noqa: E402
-                          leases, log_has, marker, players, scan_logs, wait, zone_uid)
+                          leases, log_has, marker, players, save_mtime, scan_logs, wait, zone_uid)
 
 H, A = 27551, 27552
 
@@ -268,10 +270,6 @@ LEAVE = 'EClass.pc.MoveZone(EClass._zone.ParentZone); "ok"'
 QUEST_ZONES = 'EClass.game.spatials.map.Values.Count(z => z is Zone && ((Zone)z).IsInstance).ToString()'
 
 
-def karma(port):
-    return int(ev(port, "EClass.player.karma.ToString()"))
-
-
 def guest_takes(kind="QuestSubdue"):
     """L'invite accepte la quete qu'un habitant propose (premier appel du dialogue). Renvoie (quete, donneur)."""
     uid, giver = offer(kind)
@@ -382,10 +380,6 @@ def t7(ctx):
     check("chez l'host, la zone lit la quete de l'invite", ev(H, reads) == "True")
     check(f"l'invite ne connait qu'une zone de quete de plus, celle de l'host, pas celle qu'il s'etait faite ({known} -> {ev(A, QUEST_ZONES)})",
           int(ev(A, QUEST_ZONES)) == known + 1)
-    ev(H, 'EClass.game.Save(); "ok"')
-    check("une sauvegarde de l'host dans la zone ne touche a rien : la zone lit toujours la quete, rien au journal de l'host",
-          ev(H, reads) == "True" and not in_log(H, uid)
-          and ev(H, '(EClass._zone.instance as ZoneInstanceRandomQuest).uidQuest.ToString()') == str(uid))
 
 
 def t8(ctx):
@@ -506,35 +500,45 @@ def t10(ctx):
 
 
 def t11(ctx):
-    """recolte a deux : compteur des deux cotes, l'invite sort, les deux sacs sont fouilles, karma de l'invite
-    Ce que le banc ne joue pas comme un joueur : les recoltes « de la quete » sont mises dans les sacs par l'host (marque 115)"""
+    """l'host sauvegarde dans la zone accompagnee : rien de la quete de l'invite dans le fichier ; pas de boite pour une recolte
+    Ce que le banc ne joue pas comme un joueur : la sauvegarde est un appel (Game.Save), pas le menu"""
     a = ctx["a"]
-    r = together(ctx, "QuestHarvest")
+    r = together(ctx)
     if r is None:
         guest_alone_inside()
         ev(A, LEAVE)
         back_home()
         return
     uid, zuid = r
-    text = 'var e = EClass._zone.events.GetEvent<ZoneEventHarvest>(); return e == null ? "pas d evenement" : e.TextWidgetDate;'
-    th, ta = ev(H, text), ev(A, text)
-    check(f"le compteur de la recolte s'affiche des deux cotes (host {th!r}, invite {ta!r})", len(th) > 0 and th == ta)
-    ev(H, f'foreach (var c in new[] {{ EClass.pc, EClass._map.charas.Find(x => x.uid == {a}) }}) for (var i = 0; i < 30; i++) {{ '
-          'var t = ThingGen.Create("bucket"); t.SetBool(115, true); c.AddThing(t, false); } "ok"')
-    mine = 'EClass.pc.things.Count(t => t.id == "bucket").ToString()'
-    check("30 recoltes non livrees dans chaque sac", eventually(lambda: int(ev(A, mine)) >= 30 and int(ev(H, mine)) >= 30, timeout=15))
-    n = {"a": int(ev(A, mine)), "h": int(ev(H, mine))}
-    k = {"a": karma(A), "h": karma(H)}
+    live = ('var e = EClass._zone.events.GetEvent<ZoneEventSubdue>(); var i = EClass._zone.instance as ZoneInstanceRandomQuest; '
+            'return (e != null && e.quest != null) + "|" + i.uidQuest;')
+    check("avant la sauvegarde, la zone de l'host lit la quete de l'invite", ev(H, live) == f"True|{uid}")
+    before = save_mtime()
+    ev(H, 'EClass.game.Save(); "ok"')
+    check("l'host a sauvegarde", eventually(lambda: save_mtime() > before, timeout=30))
+    text = (SAVES / "world_lab" / "game.txt").read_text(encoding="utf-8", errors="replace")
+    if check("la sauvegarde est lisible (pas compressee) et contient la zone de la quete", text.lstrip().startswith("{") and "ZoneInstanceSubdue" in text):
+        check("le fichier n'a pas d'evenement de quete", "ZoneEventSubdue" not in text)
+        check(f"ni le numero de la quete de l'invite ({uid})", re.search(r'"uidQuest":\s*%d\b' % uid, text) is None)
+    check("apres la sauvegarde, la zone en jeu n'a pas bouge : elle lit toujours la quete, rien au journal de l'host",
+          ev(H, live) == f"True|{uid}" and not in_log(H, uid) and in_log(A, uid))
+    fa = fame(A)
     ev(A, LEAVE)
     back_home()
-    check(f"une partie des recoltes de l'invite a ete reprise, pas tout ({n['a']} -> {ev(A, mine)})",
-          eventually(lambda: n["a"] - 30 < int(ev(A, mine)) < n["a"], timeout=15))
-    check(f"celles de l'host aussi ({n['h']} -> {ev(H, mine)})", n["h"] - 30 < int(ev(H, mine)) < n["h"])
-    check("la quete (rien de livre) est ratee et sortie du journal de l'invite", eventually(lambda: not in_log(A, uid), timeout=25))
-    check(f"l'invite perd 1 de karma ({k['a']} -> {karma(A)}), pas l'host ({k['h']} -> {karma(H)})",
-          eventually(lambda: karma(A) == k["a"] - 1, timeout=10) and karma(H) == k["h"])
-    for port in (H, A):
-        ev(port, 'foreach (var t in EClass.pc.things.Where(t => t.id == "bucket").ToList()) t.Destroy(); "ok"')
+    check("l'invite sort sans rien tuer : quete ratee pour lui, sortie de son journal, l'host ne la garde plus",
+          eventually(lambda: not in_log(A, uid), timeout=25) and eventually(lambda: str(uid) not in kept(a).split(","), timeout=10)
+          and fame(A) <= fa)
+
+    # une recolte reste a l'invite seul : pas de boite, il part tout de suite
+    uid, giver = guest_takes("QuestHarvest")
+    guest_departs(uid, giver)
+    zuid = guest_alone_inside()
+    check("quete de recolte de l'invite : pas de boite chez l'host, l'invite est seul dans sa zone",
+          host_box() == "" and zone_uid(H) == HOME and client_settled(A, zuid, True)())
+    ev(A, LEAVE)
+    back_home()
+    check("il ressort, la quete est reglee chez lui", eventually(lambda: not in_log(A, uid), timeout=25))
+
 
 
 TESTS = {"t1": t1, "t2": t2, "t3": t3, "t4": t4, "t5": t5, "t6": t6, "t7": t7, "t8": t8, "t9": t9, "t10": t10, "t11": t11}
