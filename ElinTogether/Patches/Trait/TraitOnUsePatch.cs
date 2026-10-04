@@ -28,6 +28,16 @@ internal class TraitOnUsePatch
             AccessTools.Method(typeof(TraitPolicyBoard), nameof(TraitPolicyBoard.OnUse), [typeof(Chara)]),
             AccessTools.Method(typeof(TraitBJTable), nameof(TraitBJTable.OnUse), [typeof(Chara)]),
             AccessTools.Method(typeof(TraitSlotMachine), nameof(TraitSlotMachine.OnUse), [typeof(Chara)]),
+            AccessTools.Method(typeof(TraitRadio), nameof(TraitRadio.OnUse), [typeof(Chara)]),
+            AccessTools.Method(typeof(TraitJukeBox), nameof(TraitJukeBox.OnUse), [typeof(Chara)]),
+            AccessTools.Method(typeof(TraitEditPlaylist), nameof(TraitEditPlaylist.OnUse), [typeof(Chara)]),
+            AccessTools.Method(typeof(TraitBookResident), nameof(TraitBookResident.OnUse), [typeof(Chara)]),
+            AccessTools.Method(typeof(TraitBookRoster), nameof(TraitBookRoster.OnUse), [typeof(Chara)]),
+            AccessTools.Method(typeof(TraitDetector), nameof(TraitDetector.OnUse), [typeof(Chara)]),
+            AccessTools.Method(typeof(TraitGeneratorWheel), nameof(TraitGeneratorWheel.OnUse), [typeof(Chara)]),
+            // the action mode of the local player
+            AccessTools.Method(typeof(TraitPainter), nameof(TraitPainter.OnUse), [typeof(Chara)]),
+            AccessTools.Method(typeof(TraitViewMap), nameof(TraitViewMap.OnUse), [typeof(Chara)]),
             // a crafting tool used from the bag
             AccessTools.Method(typeof(TraitCrafter), nameof(TraitCrafter.OnUse), [typeof(Chara)]),
             // the local player, hanged or sent away

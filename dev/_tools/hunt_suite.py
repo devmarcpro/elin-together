@@ -7,6 +7,10 @@ puis par l'host. Test court, sur des instances deja lancees (host + 1 client, to
 D1  peur : frappe sous 20 % de points de vie, un invite ne prend pas peur (le jeu ne le fait qu'aux habitants) et
     peut toujours frapper, comme l'host.
 D2  guerisseur payant : l'invite paie et il est soigne pour de bon (chez l'host aussi), comme l'host.
+D4  objets a fenetre (radio, juke-box, livres de la base, detecteur, roue, vue de carte ; le pinceau est corrige de
+    la meme facon mais le banc ne voit pas son mode) : chez celui qui s'en
+    sert, rien chez l'autre. Le geste est Trait.OnUse, ce que fait « utiliser » dans le sac.
+D5  faucille : l'ecopo va a celui qui fauche.
 D3  rangement automatique : l'invite range son sac dans un coffre regle pour ca ; les fenetres de l'host restent
     ouvertes et les objets de l'host restent dans son sac.
 
@@ -24,7 +28,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from guest_suite import awake, both, chara, clear_conditions, close_layers, count, give  # noqa: E402
+from guest_suite import awake, both, chara, clear_conditions, close_layers, count, first_id, give, use_held  # noqa: E402
 from equal2_suite import drop, seen, spawn  # noqa: E402
 from mp_test import log, shot, state  # noqa: E402
 from travel_suite import RESULTS, check, ev, eventually, scan_logs  # noqa: E402
@@ -146,6 +150,71 @@ def d3(ctx):
             _ = mine, theirs
 
 
+WINDOWS = (("Radio", "la radio"), ("JukeBox", "le juke-box"), ("EditPlaylist", "la liste de lecture"), ("BookResident", "le livre des residents"),
+           ("BookRoster", "le livre de l'equipe"), ("Detector", "le detecteur"), ("GeneratorWheel", "la roue"), ("ViewMap", "la vue de carte"))
+
+
+def screen(port):
+    """Mode d'action et fenetres ouvertes de ce jeu."""
+    return ev(port, 'EClass.scene.actionMode.GetType().Name + "|" + string.Join(",", EClass.ui.layers.Select(l => l.GetType().Name))')
+
+
+def d4(ctx):
+    """objets a fenetre : la fenetre (ou le mode) s'ouvre chez celui qui s'en sert, rien ne bouge chez l'autre joueur"""
+    for trait, what in WINDOWS:
+        item = first_id(trait)
+        if not item:
+            print(f"    [SAUTE] aucun objet du jeu n'a le trait {trait}")
+            continue
+        for who, key in both(ctx):
+            port, uid = ctx[key]
+            other = H if port == A else A
+            close_layers()
+            for p in (H, A):
+                ev(p, 'if (!(EClass.scene.actionMode is AM_Adv)) ActionMode.Adv.Activate(); "ok"')
+            t = give(ctx, key, item)
+            time.sleep(1)
+            mine0, theirs0 = screen(port), screen(other)
+            awake(port)
+            ev(port, f'var t = EClass.pc.things.Find(x => x.uid == {t}); t.trait.OnUse(EClass.pc); "ok"')
+            time.sleep(2)
+            mine, theirs = screen(port), screen(other)
+            check(f"{who} se sert de {what} : ca s'ouvre chez lui ({mine0} -> {mine})", mine != mine0)
+            check(f"{who}, {what} : rien ne bouge chez l'autre joueur ({theirs})", theirs == theirs0)
+            close_layers()
+            for p in (H, A):
+                ev(p, 'if (!(EClass.scene.actionMode is AM_Adv)) ActionMode.Adv.Activate(); "ok"')
+            ev(H, f'var t = {chara(H, uid)}.things.Find(x => x.uid == {t}); if (t != null) t.Destroy(); "ok"')
+
+
+def d5(ctx):
+    """faucille : l'ecopo va a celui qui fauche, l'invite comme l'host"""
+    sickle = first_id("ToolSickle")
+    if not check(f"le jeu a une faucille ({sickle})", bool(sickle)):
+        return
+    for who, key in both(ctx):
+        port, uid = ctx[key]
+        other_uid = ctx["h" if key == "a" else "a"][1]
+        weed = spawn(uid, "putty", "Neutral", "m.c_minionType = MinionType.Friend;")
+        try:
+            if not check(f"{who} : une creature a faucher est a cote de lui ({weed})", weed and eventually(lambda: seen(port, weed), timeout=15)):
+                continue
+            ev(port, f'EClass._map.charas.Find(x => x.uid == {weed}).c_minionType = MinionType.Friend; "ok"')
+            tool = give(ctx, key, sickle)
+            mine0, theirs0 = count(H, uid, "ecopo"), count(H, other_uid, "ecopo")
+            x, z = (int(v) for v in ev(H, f'var m = EClass._map.charas.Find(x => x.uid == {weed}); return m.pos.x + "," + m.pos.z;').split(","))
+            awake(port)
+            log(f"{who} fauche : {use_held(port, tool, at=(x, z), pick='i.act is TaskCullLife')}")
+            gone = lambda: ev(H, f'var m = EClass._map.charas.Find(x => x.uid == {weed}); return (m == null || m.isDead).ToString();') == "True"  # noqa: E731
+            check(cond=eventually(lambda: awake(port) and gone(), timeout=40), label=f"{who} : la creature est fauchee, chez l'host")
+            check(cond=eventually(lambda: count(H, uid, "ecopo") > mine0 and count(port, uid, "ecopo") == count(H, uid, "ecopo"), timeout=10),
+                  label=f"{who} : il recoit l'ecopo, les deux jeux voient pareil ({mine0} -> {count(H, uid, 'ecopo')} et {count(port, uid, 'ecopo')})")
+            check(f"{who} : l'autre joueur n'en recoit pas ({theirs0} -> {count(H, other_uid, 'ecopo')})", count(H, other_uid, "ecopo") == theirs0)
+        finally:
+            ev(port, 'EClass.pc.SetNoGoal(); "ok"')
+            drop([weed])
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--only")
@@ -154,7 +223,7 @@ def main():
     t0 = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
 
     ctx = {"a": (A, state(A)["pc"]["uid"]), "h": (H, state(H)["pc"]["uid"])}
-    steps = [d1, d2, d3]
+    steps = [d1, d2, d3, d4, d5]
     if a.only:
         steps = [s for s in steps if s.__name__ in a.only.split(",")]
     for step in steps:
