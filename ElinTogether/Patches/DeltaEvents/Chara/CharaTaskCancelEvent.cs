@@ -40,6 +40,9 @@ internal static class CharaTaskCancelEvent
         net.Delta.AddRemote(new CharaTaskCancelDelta {
             Owner = owner,
             ActId = actId,
+            Reason = net is ElinNetClient && owner.IsPC && TraitBaseSpellbookPatch.HasFailed(current)
+                ? CharaTaskCancelDelta.ReadFailed
+                : (byte)0,
         });
 
         return !prevent;

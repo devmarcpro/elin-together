@@ -19,6 +19,14 @@ public class CharaTaskCancelDelta : ElinDelta
     [Key(1)]
     public required int ActId { get; init; }
 
+    internal const byte ReadFailed = 1;
+
+    /// <summary>
+    ///     Why it stops, when the game that stops it knows more than "stopped": 0 for nothing to add
+    /// </summary>
+    [Key(2)]
+    public byte Reason { get; init; }
+
     protected override void OnApply(ElinNetBase net)
     {
         if (Owner.Find() is not Chara chara) {
@@ -61,6 +69,14 @@ public class CharaTaskCancelDelta : ElinDelta
         }
 
         LastCancelDelta.Remove(Owner.Uid);
+
+        // a reading is rolled in the reader's game only (TraitBaseSpellbookPatch): when it failed there, the book
+        // loses its charge here, where the charges are kept. Once: the reading is stopped right below
+        if (net is ElinNetHost host && Reason == ReadFailed && ai is AI_Read { target.trait: TraitBaseSpellbook book } &&
+            host.ActiveRemoteCharas.TryGetValue(OriginPeer, out var sender) && sender == chara) {
+            using var _ = Simulate();
+            book.ModCharge(chara);
+        }
 
         ai.Stub_Cancel();
     }
