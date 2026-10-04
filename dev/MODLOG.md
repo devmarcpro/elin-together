@@ -1330,4 +1330,12 @@ Pièges de test notés ce jour-là :
   - l'outil Bash casse aussi un script Python donné en ligne quand il contient certaines suites de guillemets :
     écrire le script dans un fichier.
 - 3h27 : passe complète relancée sur `7b0c70e` (`_shots/*-p4.log`), courtes d'abord.
+- **Passe complète verte sur `7b0c70e`, 23 suites sur 23** (5h06) : quest 61/61, chara 13/13, parity 17/17,
+  trade 32/32, build 21/21, player 40/40, instance 34/34, leave 15/15, transfer 11/11, death 13/13, sleep 34/34,
+  guest 218/218, recruit 41/41, compat 7/7, move 18/18, import 21/21, companion 30/30, party 28/28,
+  combat 21/21, economy 24/24, travel 55/55, shared 26/26, trio 24/24.
+  `move_suite` avait fait 16/18 dans la série : sa mesure de référence partait en rafale parce que la commande
+  de départ changeait de texte à chaque position (recompilée par le pont, jeu figé un instant). Commande rendue
+  constante (`e1b9a44`), 18/18 deux fois de suite sur des mondes neufs.
+  **Piège** : `bash run_short.sh … | head -1` coupe le script avant qu'il ferme ses fenêtres.
 

@@ -230,10 +230,11 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
   d'un voyage, plantage du joueur qui tient une carte avec des invités (retour à sa dernière sauvegarde).
   Un invité qui demande à voyager à l'instant où la carte qu'il visite change de mains perd sa demande : il
   doit recliquer.
-- **État des tests au 2026-10-04, Elin EA 23.351 Patch 2** : passe complète sur `5b54595`, les 21 suites vertes :
-  travel 54/54, shared 26/26, trio 24/24, companion 30/30, party 28/28, economy 25/25, combat 21/21,
-  quest 61/61, chara 13/13, parity 17/17, trade 32/32, build 21/21, player 40/40, instance 34/34, leave 15/15,
-  transfer 11/11, death 13/13, sleep 34/34, guest 218/218, recruit 23/23, compat 7/7.
+- **État des tests au 2026-10-04 à 5h, Elin EA 23.351 Patch 2** : passe complète sur `7b0c70e` (le code de la
+  version publiée ensuite), les 23 suites vertes : travel 55/55, shared 26/26, trio 24/24, companion 30/30,
+  party 28/28, economy 24/24, combat 21/21, quest 61/61, chara 13/13, parity 17/17, trade 32/32, build 21/21,
+  player 40/40, instance 34/34, leave 15/15, transfer 11/11, death 13/13, sleep 34/34, guest 218/218,
+  recruit 41/41, compat 7/7, move 18/18, import 21/21.
   Après une mise à jour d'Elin par Steam : refaire `make_lab.py` pour les trois copies, sinon le client de test
   est refusé (« invalid version ») sans que `mp_test.py` dise pourquoi.
   Les quatre changements de `36eccb3` (banque en voyage, rappel abandonné, bail refusé, entrées bloquées pendant
