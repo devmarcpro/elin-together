@@ -35,11 +35,17 @@ internal static class SaveDepot
 
     private static float _nextBeat;
     private static string _refused = "";
+    private static bool _lostTold;
 
     private static string Root => EmpConfig.Client.DepotPath.Value.Trim();
     private static string World => Path.Combine(Root, "world");
     private static string LockFile => Path.Combine(Root, "host.txt");
     private static string Local => CorePath.RootSave + WorldId;
+
+    /// <summary>
+    ///     Left beside the local copy while the depot has not received its last save
+    /// </summary>
+    private static string Unsent => Local + ".unsent";
 
     /// <summary>
     ///     The depot is the server application, not a folder
@@ -90,6 +96,19 @@ internal static class SaveDepot
             return;
         }
 
+        if (File.Exists(Unsent) && File.Exists(Path.Combine(Local, "game.txt"))) {
+            if (EmpServer.Requested) {
+                SendUnsent();
+            } else {
+                Dialog.YesNo("emp_ui_depot_unsent", SendUnsent, () => {
+                    File.Delete(Unsent);
+                    Take();
+                });
+            }
+
+            return;
+        }
+
         try {
             if (Remote) {
                 var reply = Ask("TAKE");
@@ -116,6 +135,7 @@ internal static class SaveDepot
             return;
         }
 
+        _lostTold = false;
         EmpLog.Information("Took the world from the depot {Root}", Root);
         Game.Load(WorldId, false);
     }
@@ -147,6 +167,19 @@ internal static class SaveDepot
     }
 
     /// <summary>
+    ///     The local copy holds a save the depot never received: it goes there now. What the depot holds at
+    ///     that moment (another player may have played since) is kept aside, never thrown away
+    /// </summary>
+    private static void SendUnsent()
+    {
+        if (Copy(Local, true)) {
+            Take();
+        } else {
+            Dialog.Ok(Refusal(_refused));
+        }
+    }
+
+    /// <summary>
     ///     Puts the save being played in the depot, as its world
     /// </summary>
     internal static void Put()
@@ -160,20 +193,54 @@ internal static class SaveDepot
             return;
         }
 
-        Dialog.Ok(Copy(CorePath.RootSave + Game.id) ? "emp_ui_depot_put_done" : Refusal(_refused));
+        if (!Copy(CorePath.RootSave + Game.id, true)) {
+            Dialog.Ok(Refusal(_refused));
+            return;
+        }
+
+        // (an older unsent copy of the depot's world must not come back over the world just put)
+        File.Delete(Unsent);
+
+        // the save now lives in the depot: it is played from there, so that every later save goes back to it
+        // (played on under its own name, it would never reach the depot again)
+        Dialog.Ok("emp_ui_depot_put_done", () => {
+            EClass.scene.Init(Scene.Mode.Title);
+            EClass.core.actionsNextFrame.Add(Take);
+        });
     }
 
     private static string Refusal(string why)
     {
-        return why == "password" ? "emp_ui_depot_password_wrong" : "emp_ui_depot_fail";
+        return why == "password" ? "emp_ui_depot_password_wrong" :
+            why.StartsWith("held ") ? "emp_ui_depot_held".Loc(why.Substring(5)) : "emp_ui_depot_fail";
     }
 
     /// <summary>
     ///     The save folder replaces the depot's world. The folder is written beside it, then swapped, so a copy
     ///     cut short never leaves half a world; the server does the same with its archive
     /// </summary>
-    private static bool Copy(string save)
+    private static bool Copy(string save, bool replaces = false)
     {
+        var sent = CopyTo(save, replaces);
+        if (save == Local) {
+            try {
+                if (sent) {
+                    File.Delete(Unsent);
+                } else {
+                    File.WriteAllText(Unsent, _refused);
+                }
+            } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) {
+                // the marker is a courtesy: the save itself is on this PC either way
+            }
+        }
+
+        return sent;
+    }
+
+    /// <param name="replaces">the folder depot keeps the world it held aside (the server decides by itself)</param>
+    private static bool CopyTo(string save, bool replaces)
+    {
+        _refused = "";
         try {
             if (Remote) {
                 var reply = Ask("PUT", Zip(save));
@@ -191,7 +258,7 @@ internal static class SaveDepot
             IO.CopyDir(save, incoming, name => name == "Temp");
             IO.DeleteDirectory(old);
             if (Directory.Exists(World)) {
-                Directory.Move(World, old);
+                Directory.Move(World, replaces ? World + ".replaced-" + DateTime.Now.ToString("yyyyMMdd-HHmmss") : old);
             }
 
             Directory.Move(incoming, World);
@@ -199,7 +266,7 @@ internal static class SaveDepot
             EmpLog.Information("World sent to the depot {Root}", Root);
             return true;
         } catch (Exception ex) {
-            EmpLog.Warning(ex, "Could not send the world to the depot {Root}", Root);
+            EmpLog.Warning("Could not send the world to the depot {Root}: {Why}", Root, ex.GetBaseException().Message);
             return false;
         }
     }
@@ -307,7 +374,7 @@ internal static class SaveDepot
     {
         _nextBeat = Time.unscaledTime + BeatSeconds;
         if (Remote) {
-            Ask("BEAT");
+            Lost(Ask("BEAT").Text);
         } else {
             File.WriteAllLines(LockFile, [Me, MyName]);
         }
@@ -322,9 +389,31 @@ internal static class SaveDepot
             return;
         }
 
-        if (Copy(Local) && !Remote) {
-            Beat();
+        if (Copy(Local)) {
+            if (!Remote) {
+                Beat();
+            }
+        } else if (!Lost(_refused)) {
+            EmpPop.Information("emp_ui_depot_unsaved".lang());
         }
+    }
+
+    /// <summary>
+    ///     The depot answered that another player hosts the world: this game was cut off long enough for the
+    ///     lock to pass on. Said once, in a dialog: nothing played from here on reaches the depot
+    /// </summary>
+    private static bool Lost(string why)
+    {
+        if (!why.StartsWith("held ")) {
+            return false;
+        }
+
+        if (!_lostTold) {
+            _lostTold = true;
+            Dialog.Ok("emp_ui_depot_lost".Loc(why.Substring(5)));
+        }
+
+        return true;
     }
 
     /// <summary>

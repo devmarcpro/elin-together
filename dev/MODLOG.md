@@ -1634,3 +1634,93 @@ Pièges de test notés ce jour-là :
 - Méthode : agent `haiku` pour chercher dans le code décompilé (il a trouvé `QuestDummy` ; son hypothèse sur la
   cause, la sérialisation réseau, était fausse : c'est le fichier de sauvegarde qui a donné la réponse), agent
   `sonnet` pour ces documents.
+
+### Trous du parcours serveur corrigés, passation (2026-10-04, 18h45 → 19h20) — reprendre ici
+
+- **Méthode** : cinq agents en lecture seule pour décider quoi faire. Trois `haiku` sur les trois dépôts GitHub que
+  l'utilisateur veut utiliser, un `sonnet` qui classe le travail restant, un `sonnet` qui suit pas à pas le chemin
+  d'un joueur qui arrive pour la première fois sur le serveur. Ce dernier a trouvé de vrais trous ; chacun a été
+  vérifié dans le code avant d'être corrigé. L'utilisateur a donné carte blanche (« j'autorise tout »).
+- **Commits** : `018091d` « Join by address » marche avec les deux modes, texte `emp_ui_timeout` ; `6ad16ab`
+  logiciel serveur en anglais et documents ; `899b221` mot de passe faux dit clairement (« The server refused the
+  password… ») ; `ab57854` corrections du serveur et test `dev/_tools/depot_proto_test.py` (parle le protocole du
+  serveur sans le jeu, 10 secondes : rouge 5/11, vert 11/11). Les changements du jeu (`SaveDepot.cs`,
+  `EmpServer.cs`, `ElinNetHostCompanions.cs`, textes, `depot_suite.py`, le logiciel serveur) sont dans le commit
+  « the server path ».
+- **Corrigé** :
+  - Une partie neuve ne pouvait jamais remplacer le monde du serveur (refus dès qu'un monde existait). Maintenant :
+    acceptée quand personne n'héberge, le joueur devient l'hébergeur ; refusée avec le nom de l'hébergeur sinon.
+  - Après « Put this save on the server », le jeu continuait sa propre sauvegarde, donc les suivantes
+    n'arrivaient jamais au serveur. Maintenant le « OK » du dialogue renvoie au titre et recharge le monde depuis
+    le serveur (`world_depot`) : chaque sauvegarde y va.
+  - Les trois sauvegardes de secours étaient effacées par quatre sauvegardes automatiques (20 minutes). Maintenant
+    un monde remplacé est gardé pour de bon (`replaced-<date>.zip`, dossier du serveur) ; sauvegarde de secours
+    glissante : au plus une par 30 minutes.
+  - Fermer ou arrêter le logiciel pendant qu'un joueur héberge : il demande d'abord. Remplacer un monde depuis le
+    logiciel : il demande d'abord.
+  - 300 Mo de mémoire pouvaient être réservés sans mot de passe : le mot de passe est vérifié d'abord.
+  - L'hébergeur n'était jamais prévenu quand ses sauvegardes n'arrivaient plus. Maintenant : fenêtre quand une
+    sauvegarde n'est pas reçue ; la sauvegarde est marquée (`Save\world_depot.unsent`) ; à la prochaine prise du
+    monde, le jeu propose de l'envoyer (le monde actuel du serveur est gardé à côté) ; si un autre joueur a repris
+    le monde entre-temps, un dialogue le dit une fois.
+  - Deuxième joueur : le message « X is hosting » dit de rejoindre par Steam (invitation, ou « Join Game » dans la
+    liste d'amis Steam) et d'attendre jusqu'à 3 minutes si l'hébergeur vient de partir. Le message du serveur vide
+    dit quoi faire.
+  - Mode avec Elin : une sauvegarde sans base, ou une session qui ne peut pas s'ouvrir, fait écrire au jeu sans
+    fenêtre `state=error:<raison>` puis quitter ; le logiciel affiche « The server could not start: … ».
+  - Bogue trouvé par le test : exception quand l'hébergeur retourne au titre avec un invité encore connecté
+    (`TakeCompanionsAlong`) : garde ajoutée.
+  - Une relecture `sonnet` de ces changements a trouvé quatre défauts de plus, tous corrigés : un monde entier mis
+    de côté à chaque sauvegarde après que le verrou a expiré pendant une mise en veille ; en mode dossier, une
+    sauvegarde tardive pouvait détruire le monde plus récent d'un autre joueur (maintenant gardé à côté :
+    `world.replaced-<date>`) ; un vieux repère « non envoyé » pouvait revenir sur une partie neuve qu'on venait de
+    déposer ; un serveur sans fenêtre bloqué sur une question à laquelle personne ne peut répondre.
+- **Pas testé** : le mode avec Elin sur une sauvegarde sans base (aucune sous la main) ; un port UDP déjà pris ne
+  fait pas échouer la prise réseau de Steam (essayé : le serveur arrive quand même à « running »), donc ce cas n'est
+  pas détecté. Les boutons du logiciel n'ont pas été essayés à la main.
+- **Tests** : `depot_proto_test.py` 11/11 ; `depot_suite` en mode dossier 13/13 ; `depot_suite` avec `DEPOT_SERVER=1`
+  19/20, le seul échec étant le compte du test lui-même (objets empilés comptés comme un seul), corrigé et relancé :
+  résultat à lire dans `dev/_shots/depot_suite-srv4.log` ; `server_suite` sans fenêtre 9/9 (V1 à V6, rejoint par le
+  même bouton que le joueur). La passe large sur le code final a été commencée puis arrêtée exprès après 3 suites
+  (server 9/9, travel 54/54, depot 11/11), parce que le code changeait encore.
+- **Trois dépôts GitHub à utiliser** : `DeusData/codebase-memory-mcp` (index local du code, serveur MCP, utile pour
+  chercher dans le code décompilé ; l'utilisateur l'installe lui-même avec `install.ps1`, puis relance Claude Code :
+  la session suivante cherche ses outils (ToolSearch « codebase-memory ») et les utilise à la place des agents
+  haiku, en indexant le mod et `_decomp`) ; `trailhq/Graft` (même idée, plus lourd : clé d'API, mesures envoyées par
+  défaut : jugé en double, pas installé) ; `msitarzewski/agency-agents` (230 fiches de rôles ; la fiche « multijoueur
+  Unity » ne convient pas ; un relecteur propre au projet a été écrit :
+  `Documents\ElinMods\.claude\agents\relecteur-elintogether.md`, modèle sonnet). Claude n'installe pas de
+  programme tiers lui-même. Le serveur `fal` du plugin `universal-modder` a échoué (jeton refusé, HTTP 401).
+- **Nouvelles consignes de l'utilisateur** : carte blanche (ne pas s'arrêter, noter le choix recommandé) ; plusieurs
+  agents en parallèle pour décider et relire ; Remote Control activé à chaque début de session ; tout ce qu'il voit
+  dans le logiciel serveur en anglais ; toujours écrire tout ce qui reste à faire.
+- **Pièges du jour** : dans les dialogues à deux boutons du jeu, « Yes » n'est pas à l'indice 0 de la hiérarchie :
+  le cliquer par son libellé ; `Dialog.Ok(texte, action)` lance l'action à **toute** fermeture du dialogue ; des
+  objets du même genre s'empilent : compter avec `Sum(t => t.Num)` ; un Python en ligne dans l'outil Bash
+  transforme `\\n` en vrai retour à la ligne : écrire un fichier script ; `run_short.sh` et `run_all.sh` laissent
+  leurs processus bash, python et Elin vivants quand la tâche de fond est arrêtée : les fermer par numéro de
+  processus ; `Player.log` et `_shots/elin2-player.log` sont écrasés par le test suivant.
+- **Corrections de lignes périmées** : le message de mot de passe faux est **fait** (pas « en cours ») ; la page
+  GitHub compte **neuf** anciennes préversions (0.26.388, .385, .382, .375, .366, .362, .349, .337, .309), pas sept
+  ni huit comme dit plus haut (section de 17h25).
+- **État de la machine à la passation** : le jeu a la version **publiée 0.26.390** (dossier `Mod_ElinTogether` venu de
+  `dev/_release/ElinTogether-independance-0.26.390.zip`), pour que l'utilisateur joue avec son ami : lancer
+  `dev/build.ps1` avant tout test. Avec elle, « Join by address » ne marche que pour le mode avec Elin ; contournement
+  pour le mode sans Elin : « Client Settings », champ « Depot » = `192.168.1.28:55557`, puis « Lobby », prendre le
+  monde. Son logiciel serveur est dans `Documents\ElinTogether-independance\` (0.26.390, en français), son dossier de
+  monde dans `Documents\ElinTogetherServer` (vieux monde `world.zip`, sauvegarde du nuage `world_3`).
+- **Idées notées, pas commencées** : le deuxième joueur rejoint l'hébergeur tout seul depuis « Join by address » (le
+  serveur donnerait l'identifiant Steam de l'hébergeur ; il faut deux comptes Steam pour tester) ; chiffrement
+  (TLS) du mot de passe du dépôt ; journal visible dans le logiciel.
+- **À faire, dans cet ordre** : (1) lire `dev/_shots/depot_suite-srv4.log` ; (2) passe large sur le code final :
+  `bash _tools/run_all.sh <nom> travel_suite companion_suite server_suite` puis
+  `bash _tools/run_short.sh <nom> depot_suite quest_suite chara_suite parity_suite trade_suite build_suite player_suite instance_suite leave_suite transfer_suite death_suite sleep_suite guest_suite recruit_suite compat_suite import_suite time_suite world_suite move_suite`
+  (deux fenêtres, PC libre, 1 à 2 heures ; pas de `trio_suite`, ni shared/economy/combat/party) ; (3) essayer à la
+  main les boutons du logiciel (Browse…, Put this save on the server, les trois confirmations, Start/Stop en mode
+  avec Elin, le message d'erreur) ; (4) publier une nouvelle version (`make_release.ps1`, `publish_release.py`) et
+  la mettre dans le jeu ; (5) sa soirée : deuxième joueur par Steam, hébergeur qui part, mode avec Elin entre deux
+  PC, Internet. Décisions à lui, à demander : relais sans coupure, joueur qui meurt sur la carte de l'host et
+  connexion qui tombe, six inégalités (`PLAN_egalite_invites.md` : M3, M5, M9, L1, L7, M13), plan B retour de
+  l'host, profil de mods, touche « signaler un problème », bot de soirée, faux réseau lent, retrait des neuf anciennes
+  versions de GitHub. Question ouverte : quel mod fournit `dmp_quest_*`.
+- **19h20** : `depot_suite` avec `DEPOT_SERVER=1` relancé avec le compte corrigé (objets empilés) : **20/20**. Le point (1) ci-dessus est fait. Version publiée 0.26.390 remise dans le jeu de cette machine avant la passation.

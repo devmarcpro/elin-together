@@ -184,7 +184,8 @@ python _tools/bot.py --minutes 5 --seed 1
 | `import_suite.py` | rejoindre avec le personnage d'une sauvegarde (copie du monde de test) | 2 | ~3 min |
 | `time_suite.py` | une seule date pour le monde : invité seul ailleurs, host, saut de cinq heures, retour | 2 | ~2 min |
 | `world_suite.py` | le gardien du monde : même météo partout, fin de mois comptée une fois | 2 | ~2 min |
-| `depot_suite.py` | dépôt de sauvegarde : déposer, prendre, refus quand c'est pris, relais entre deux joueurs | 2 | ~2 min |
+| `depot_proto_test.py` | le protocole du serveur sans le jeu : monde remplacé, refus, mot de passe, sauvegardes de secours (11 vérifications) | 0 | ~10 s |
+| `depot_suite.py` | dépôt de sauvegarde : déposer, prendre, refus quand c'est pris, relais entre deux joueurs, monde neuf (`DEPOT_SERVER=1` : à travers le logiciel serveur) | 2 | ~2 min |
 | `server_suite.py` | serveur : démarrage tout seul, joueur qui rejoint par adresse, temps qui avance, retour | lance ses 2 fenêtres | ~4 min |
 | `compat_suite.py` | cohabitation avec d'autres mods (Somewhat Enhanced Display) | 2 | ~2 min |
 | `run_short.sh` | les suites courtes à la suite, chacune sur un monde neuf (pas `economy` ni `combat`, qui ouvrent leurs fenêtres : `run_all.sh`) | 2 | ~50 min |
@@ -283,8 +284,21 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
   réglage « Depot » = `adresse:55557` puis bouton « Take the world… » : connexion et prise du monde réussies.
   Corrigé par `018091d` (un seul bouton pour les deux serveurs). Le mode sans Elin a donc été joué une fois
   entre deux PC sur un réseau local. **Pas encore essayé** : par Internet, le mode avec Elin entre deux PC, un
-  second joueur qui rejoint, l'hébergeur qui part. En cours : un message clair quand le mot de passe du serveur
-  est faux (aujourd'hui le jeu peut dire « password is hosting the world »).
+  second joueur qui rejoint par Steam, l'hébergeur qui part. Le message du mot de passe faux est fait (`899b221`).
+- **Trous du parcours du premier joueur, corrigés le 2026-10-04 au soir** (commits `ab57854` et « the server
+  path », détail dans `MODLOG.md`) : une partie neuve remplace le monde du serveur quand personne n'héberge ; après
+  « Put this save on the server » le jeu recharge le monde depuis le serveur ; un monde remplacé est gardé en
+  `replaced-<date>.zip` et les sauvegardes de secours sont au plus une par 30 minutes ; le logiciel demande avant
+  de s'arrêter ou de remplacer un monde ; le mot de passe est vérifié avant de réserver la mémoire ; l'hébergeur
+  est prévenu quand ses sauvegardes n'arrivent plus (`Save\world_depot.unsent`, envoi proposé ensuite) ; le deuxième
+  joueur est guidé (rejoindre par Steam, attendre jusqu'à 3 minutes) ; le mode avec Elin affiche « The server could
+  not start: … » (sauvegarde sans base, session qui ne s'ouvre pas). Tests : `depot_proto_test.py` 11/11,
+  `depot_suite` dossier 13/13, avec `DEPOT_SERVER=1` 19/20 (le défaut était le compte du test, relancé : voir
+  `dev/_shots/depot_suite-srv4.log`), `server_suite` 9/9. **Pas testé** : le mode avec Elin sur une sauvegarde sans
+  base ; un port UDP déjà pris n'est pas détecté ; les boutons du logiciel à la main ; la passe large sur le code
+  final (arrêtée exprès après 3 suites : server 9/9, travel 54/54, depot 11/11).
+- Machine de développement : le jeu a la version **publiée 0.26.390**, qui ne contient pas ces corrections ; lancer
+  `dev/build.ps1` avant tout test.
 - Quêtes « Dummy » (description « Mokyu ») vues par l'utilisateur sur son serveur : **ni le mod ni le serveur**.
   Le monde venait de sa sauvegarde du nuage Steam `world_3`, où 6 quêtes étaient déjà écrites `QuestDummy`
   (identifiants `dmp_quest_*` : voyage, massacre_religion, haltérophilie) : des quêtes d'un autre mod, absent du
@@ -306,29 +320,34 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
 
 ## 7. Reste à faire
 
-État au 2026-10-04 au soir. La liste à jour, dans l'ordre, est « À faire ensuite » de `HANDOFF.md` ; ce qui suit
+État au 2026-10-04, 19h20. La liste à jour, dans l'ordre, est « À faire ensuite » de `HANDOFF.md` ; ce qui suit
 est un résumé. Détail de chaque point : `PLAN_retours_partie_reelle.md` et la fin de `MODLOG.md`.
 
 **Fait (voir le tableau de la section 1 et `MODLOG.md`, 2026-10-03 et 2026-10-04) :** les cinq corrections de la
 première vraie partie ; déplacements fluides d'un invité (`move_suite`) ; rejoindre avec un personnage d'une
 sauvegarde solo (`import_suite`) ; compagnons d'un invité (`recruit_suite`) ; une seule date pour le monde
 (`SharedWorldTime`) ; gardien du monde (`WorldKeeper`) ; dépôt de sauvegarde ; serveur « comme Minecraft » ;
-**Elin Together Server**, le logiciel ; un seul bouton « Join by address » pour les deux serveurs. Premier essai
+**Elin Together Server**, le logiciel (en anglais) ; un seul bouton « Join by address » pour les deux serveurs ;
+mot de passe faux dit clairement ; trous du parcours du premier joueur corrigés (section 6). Premier essai
 entre deux PC du serveur sans Elin sur un réseau local : réussi (section 6).
 
-**En cours / à faire tout de suite :**
-- un message clair quand le mot de passe du serveur est faux ;
-- rejouer les suites du serveur et essayer les boutons du logiciel à la main ;
-- une nouvelle version publiée (le jeu de cette machine a le build de test ; la dernière publiée est la 0.26.390,
-  et une version publiée doit être remise avant que l'utilisateur joue) ;
-- savoir quel mod fournit les quêtes `dmp_quest_*` (réparation possible).
+**À faire tout de suite, dans l'ordre :**
+1. fait : `depot_suite` avec `DEPOT_SERVER=1` relancé, 20/20 ;
+2. la passe large de régression sur le code final (arrêtée exprès après 3 suites) : `run_all.sh` puis
+   `run_short.sh`, commandes dans `HANDOFF.md` ; deux fenêtres, PC libre, 1 à 2 heures ;
+3. essayer les boutons du logiciel à la main ;
+4. publier une nouvelle version et la mettre dans le jeu (le jeu de cette machine a la version publiée 0.26.390,
+   sans les corrections du soir ; `dev/build.ps1` avant tout test) ;
+5. sa soirée d'essai réelle (point 1 de la liste suivante) ;
+6. savoir quel mod fournit les quêtes `dmp_quest_*` (réparation possible).
 
 **Ensuite, dans cet ordre sauf avis contraire de l'utilisateur :**
-1. Essais réels qui restent : serveur par Internet, mode avec Elin entre deux PC, un deuxième joueur, l'hébergeur
-   qui part.
+1. Essais réels qui restent : serveur par Internet (avec mot de passe), mode avec Elin entre deux PC, un deuxième
+   joueur qui rejoint par Steam, l'hébergeur qui part.
 2. Relais sans coupure quand l'hébergeur part du serveur sans Elin (`PLAN_serveur_depot.md`, étapes 3 et 4). Gros.
-3. Petites améliorations du logiciel, seulement s'il les demande : plusieurs mondes, chiffrement, journal visible,
-   icône.
+3. Petites améliorations du logiciel, seulement s'il les demande : plusieurs mondes, chiffrement (TLS) du mot de
+   passe, journal visible, icône. Idée notée : le deuxième joueur rejoint l'hébergeur tout seul depuis « Join by
+   address » (le serveur donnerait l'identifiant Steam de l'hébergeur ; il faut deux comptes Steam pour tester).
 4. À ne commencer qu'après lui avoir demandé : retour de l'host sans rechargement (plan B), **profil de mods**
    (`PLAN_profil_mods.md`), touche « signaler un problème » en jeu, bot qui rejoue une vraie soirée, faux réseau lent.
 5. Quêtes à donjon : laisser les autres joueurs y rejoindre le preneur (`PLAN_quetes_donjon_phase2.md`).

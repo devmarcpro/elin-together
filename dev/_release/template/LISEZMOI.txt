@@ -60,21 +60,32 @@ adresse.)
 
 1) "Without Elin: keeps the world, a player hosts it" : le serveur garde le monde, les joueurs l'hebergent.
    Aucun jeu ne tourne sur le PC serveur, Elin n'a meme pas besoin d'y etre installe. Les adresses finissent
-   par :55557 (port TCP).
+   par :55557 (port TCP). La premiere fois, Windows peut demander d'autoriser le logiciel a traverser le
+   pare-feu : repondre oui.
    - Pour jouer : "Join by address" avec cette adresse. Si personne n'heberge, le jeu prend le monde et c'est
-     ce joueur qui l'heberge : il ouvre la session comme d'habitude, les autres rejoignent de la meme facon.
-     Si quelqu'un heberge deja, le jeu dit qui : il suffit de le rejoindre. Quand l'hebergeur quitte, un
-     autre peut prendre le monde a son tour. Chaque sauvegarde retourne au serveur, qui garde aussi les trois
-     mondes precedents.
+     ce joueur qui l'heberge : il ouvre la session comme d'habitude. Chaque sauvegarde retourne au serveur.
+     Si le serveur n'arrive plus a recevoir ses sauvegardes, une fenetre le dit ; la prochaine fois qu'il prend
+     le monde, le jeu propose d'envoyer cette sauvegarde.
+   - Le deuxieme joueur (et les suivants) : "Join by address" ne le fait pas entrer chez l'hebergeur. Si
+     quelqu'un heberge deja, le jeu dit qui, et il faut rejoindre cette personne par Steam : par son
+     invitation, ou par "Join Game" dans la liste d'amis Steam (amis Steam seulement). Si l'hebergeur vient de
+     partir, attendre jusqu'a 3 minutes : le monde redevient libre, un autre peut le prendre.
    - Mot de passe : "Password (empty: none):" dans le logiciel. S'il y en a un, chaque joueur le met dans le
      jeu, onglet "Client Settings" (c'est l'une des raisons pour lesquelles ce reglage existe encore). Si le mot
-     de passe est faux, le jeu le dit.
+     de passe est faux, le jeu le dit. Par Internet, mettre un mot de passe (il n'est pas chiffre).
    - Choisir le monde : dans le logiciel, choisir une sauvegarde dans la liste (celles d'Elin sur ce PC,
      s'il y est) ou par "Browse..." (le dossier d'une sauvegarde copie d'un autre PC : celui qui contient
-     game.txt), puis "Put this save on the server". La sauvegarde d'origine n'est pas modifiee.
+     game.txt), puis "Put this save on the server". La sauvegarde d'origine n'est pas modifiee. Si un joueur
+     heberge en ce moment, le logiciel demande confirmation avant de remplacer le monde ; il demande aussi
+     avant de s'arreter ou de fermer pendant qu'un joueur heberge.
    - Partir d'un monde neuf : un joueur cree une nouvelle partie comme d'habitude, puis, onglet "Lobby", bouton
-     "Put this save in the depot" (il met la partie sur le serveur). Le serveur garde l'ancien monde a cote
-     (world.1.zip).
+     "Put this save in the depot" (il met la partie sur le serveur, le serveur fonctionne vraiment avec elle).
+     C'est accepte quand personne n'heberge ; ce joueur devient l'hebergeur. Si quelqu'un heberge deja, c'est
+     refuse et le jeu donne son nom. Apres le OK, le jeu revient a l'ecran titre et recharge le monde depuis
+     le serveur : prendre le monde (bouton "Take the world...") pour jouer.
+   - Anciens mondes : un monde remplace n'est jamais efface. Il reste dans le dossier du serveur
+     (Documents\ElinTogetherServer) sous le nom replaced-<date>.zip. Le serveur garde aussi des sauvegardes de
+     secours (au plus une toutes les 30 minutes).
    - Autre facon, toujours possible : onglet "Client Settings", champ "Depot" = l'adresse (par exemple
      192.168.1.28:55557), puis onglet "Lobby", bouton "Take the world from the depot and host it".
 
@@ -82,12 +93,14 @@ adresse.)
    Minecraft. Elin doit etre installe sur le PC serveur ; il tourne derriere, sans fenetre (case "No game
    window (lighter)"). Choisir la sauvegarde (elle doit avoir une base). Les adresses finissent par :55556
    (port UDP). Le serveur sauvegarde toutes les cinq minutes tant que quelqu'un joue, et avant de s'arreter.
-   (Serveur.bat fait la meme chose sans le logiciel, avec une fenetre de jeu.)
+   Si la sauvegarde n'a pas de base, ou si la session ne peut pas s'ouvrir, le logiciel ecrit "The server could
+   not start: ..." avec la raison. (Serveur.bat fait la meme chose sans le logiciel, avec une fenetre de jeu.)
+   Meme pare-feu Windows que plus haut : repondre oui la premiere fois.
 - Pour rejoindre : "Join by address" avec l'adresse du PC serveur (le logiciel, ou Serveur.bat, affiche les
   adresses possibles).
 - Depuis Internet : ouvrir le port 55556 (UDP) de la box vers le PC serveur (55557 en TCP pour le mode sans
   Elin), ou utiliser un reseau prive (Tailscale, ZeroTier...) et donner l'adresse que ce reseau attribue au
-  PC serveur.
+  PC serveur. Par Internet, mettre un mot de passe dans le logiciel.
 - Tout le monde est invite : chacun va ou il veut, le monde continue quand quelqu'un part.
 
 Le depot sans serveur du tout : un dossier partage
@@ -110,7 +123,8 @@ A savoir
 --------
 - C'est une version de test, verifiee surtout sur un seul PC avec plusieurs fenetres du jeu. Le serveur sans
   Elin a ete essaye une fois entre deux PC du meme reseau local (connexion et prise du monde). Pas encore
-  essaye : par Internet, le mode avec Elin entre deux PC, un deuxieme joueur qui rejoint, l'hebergeur qui part.
+  essaye : par Internet, le mode avec Elin entre deux PC, un deuxieme joueur qui rejoint par Steam, l'hebergeur
+  qui part.
   Faites une copie de vos sauvegardes avant de jouer :
   %USERPROFILE%\AppData\LocalLow\Lafrontier\Elin
 - Le temps du monde est commun a tous les joueurs ; meteo, impots et salaires ne passent qu'une fois.

@@ -1,26 +1,58 @@
 # Message de départ pour une nouvelle session
 
+> **Mise à jour 19h20** : le test `depot_suite` avec `DEPOT_SERVER=1` a été relancé : **20/20**. L'étape « lire `depot_suite-srv4.log` » est donc faite ; la suite commence à la passe large.
+
+
 À coller tel quel dans une nouvelle session ouverte dans `Documents\ElinMods` (ou dans le dépôt).
 
 ---
 
 Je reprends le travail sur ElinTogether (le fork « indépendance »), dans `ElinTogether\`. Charge d'abord le skill
-`ponytail:ponytail` et garde-le pour toute la session. Fais `git pull` sur la branche `feat/independent-travel`,
-puis lis dans cet ordre : `CLAUDE.md`, `dev/HANDOFF.md`, la fin de `dev/MODLOG.md` (les sections du 2026-10-04),
-et la section 7 de `dev/DOCUMENTATION.md`. Réponds-moi en français simple et court, sans jargon.
+`ponytail:ponytail` et garde-le pour toute la session ; charge aussi `universal-modder` si le travail s'y prête.
+**Active Remote Control tout de suite.** Fais `git pull` sur la branche `feat/independent-travel`, puis lis dans
+cet ordre : `CLAUDE.md`, `dev/HANDOFF.md`, la fin de `dev/MODLOG.md` (les sections du 2026-10-04) et la section 7
+de `dev/DOCUMENTATION.md`. Réponds-moi en français simple et court, sans jargon.
 
-Où on en est : la version publiée est la 0.26.390, c'est elle qui est dans le jeu de cette machine. Elle contient
-la fluidité des déplacements d'un invité, l'import d'un personnage d'une sauvegarde solo, les compagnons d'un
-invité, une seule date et un seul « monde » pour tous, et surtout **Elin Together Server** : un petit logiciel
-serveur (`ElinTogetherServer.exe`) avec deux modes, « sans Elin » (il garde le monde, les joueurs l'hébergent,
-on choisit la sauvegarde dans le logiciel) et « avec Elin sur ce PC » (le monde tourne en permanence, on rejoint
-par adresse). Tout a été testé entre deux fenêtres de ce PC, rien entre deux PC.
+Où on en est (4 octobre, 19h20) : la version publiée est la 0.26.390 ; c'est elle qui est dans le jeu de cette
+machine pour que je joue avec mon ami. Elle ne contient pas les corrections de ce soir : « Join by address » pour
+les deux modes, le logiciel serveur en anglais, le mot de passe faux dit clairement, et les trous du parcours du
+premier joueur bouchés (une partie neuve peut remplacer le monde du serveur, chaque sauvegarde part au serveur,
+les mondes remplacés sont gardés en `replaced-<date>.zip`, l'hébergeur est prévenu quand ses sauvegardes
+n'arrivent plus, le deuxième joueur sait qu'il doit rejoindre par Steam, les erreurs du mode avec Elin sont
+dites). Tout est dans le commit « the server path » et ceux d'avant. **Avant tout test : `dev/build.ps1`** (le jeu
+a la version publiée, pas le build de test). Pas encore fait, dans cet ordre : (1) lire
+`dev/_shots/depot_suite-srv4.log` ; (2) la passe large de régression sur le code final (commandes dans
+`HANDOFF.md`, deux fenêtres, PC libre) ; (3) essayer les boutons du logiciel à la main ; (4) publier une nouvelle
+version et la mettre dans le jeu ; (5) ma soirée d'essai : deuxième joueur par Steam, hébergeur qui part, mode
+avec Elin entre deux PC, Internet.
 
 Ce que je veux :
 
 1. Dis-moi en quelques lignes ce que tu as compris de l'état, et ce qui n'est pas testé.
-2. Ensuite je te dirai ce que mon essai du serveur a donné, ou la suite que je veux. Tant que je n'ai rien dit,
-   ne lance pas de gros chantier : propose-moi la suite de `dev/HANDOFF.md` et attends ma réponse.
+2. Ensuite enchaîne sur la liste « À faire ensuite » de `dev/HANDOFF.md`, sans attendre. Pose-moi seulement les
+   questions de la liste « décisions qui restent à lui » ; mets les autres questions dans ton résumé.
+
+Instructions permanentes (4 octobre) :
+- **Carte blanche** (« j'autorise tout ») : ne t'arrête pas pour demander. Prends le choix que tu recommandes, note-le
+  dans `dev/MODLOG.md`, avance.
+- **Plusieurs agents en parallèle** pour décider et pour relire, quand les questions sont indépendantes.
+- **Remote Control activé au début de chaque session.**
+- **Tout ce que je vois dans le logiciel serveur doit être en anglais.**
+- **Écris toujours tout ce qui reste à faire** (dans `dev/HANDOFF.md`), à chaque étape.
+- Trois dépôts que je veux voir utilisés : `DeusData/codebase-memory-mcp` (je l'installe moi-même avec
+  `install.ps1` dans `Documents\ElinMods`, puis je relance Claude Code : cherche ses outils avec ToolSearch
+  « codebase-memory » et, s'ils sont là, utilise-les pour chercher dans le code à la place des agents haiku ;
+  indexe le mod et `Documents\ElinMods\_decomp`) ; `msitarzewski/agency-agents` (le relecteur
+  `Documents\ElinMods\.claude\agents\relecteur-elintogether.md` en vient : utilise-le pour les relectures) ;
+  `trailhq/Graft` : écarté (en double, plus lourd). **N'installe jamais un programme tiers toi-même** : dis-moi la
+  commande, je la lance.
+- Le serveur `fal` de `universal-modder` a échoué (jeton refusé, HTTP 401) : dis-moi si tu as besoin d'art ou de
+  son généré, je renouvellerai le jeton.
+- À me demander avant de commencer (liste inchangée) : le relais sans coupure quand l'hébergeur part ; quoi faire
+  quand un joueur meurt sur la carte de l'host et quand la connexion tombe ; les six inégalités en attente
+  (`PLAN_egalite_invites.md`) ; retour de l'host sans rechargement, profil de mods, touche « signaler un
+  problème », bot qui rejoue une soirée, faux réseau lent ; retirer les neuf anciennes versions de GitHub.
+- Question ouverte pour moi : quel mod fournit les quêtes `dmp_quest_*` (les « Dummy / Mokyu »).
 
 Modèles : je ne veux pas que tout passe par le modèle le plus cher. Choisis le modèle selon la tâche et
 dis-le-moi en une ligne quand tu délègues.

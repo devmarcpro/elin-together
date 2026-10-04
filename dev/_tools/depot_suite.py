@@ -6,12 +6,15 @@ Test court (host + 1 client a la Prairie). Finit avec les deux jeux dans le mond
 
 Idee de l'utilisateur (2026-10-03) : un serveur qui est juste la sauvegarde. Premiere forme : un dossier partage.
 
-D1  l'host depose sa sauvegarde dans le depot
+D1  l'host depose sa sauvegarde dans le depot (avec le logiciel : par-dessus le monde qui s'y trouve, qui est
+    garde a part) ; son jeu la recharge depuis le depot : c'est lui qui l'heberge, ses sauvegardes y vont
 D2  l'autre joueur, a l'ecran titre, prend le monde du depot (avec le logiciel : par "Join by address", sans
     avoir regle de depot) : il le charge, le depot dit que c'est lui qui heberge
 D3  pendant ce temps le premier ne peut pas le prendre (on lui dit qui heberge)
     (avec le logiciel : un mauvais mot de passe est dit comme tel)
 D4  celui qui heberge change quelque chose et sauvegarde : le monde du depot change
+    (avec le logiciel : le serveur est arrete pendant une sauvegarde ; elle reste sur le PC du joueur, qui la
+    renvoie quand il revient : rien n'est perdu)
 D5  il quitte : le depot est libre ; le premier joueur le prend a son tour et retrouve le changement (sa copie
     locale a ete effacee avant : le monde vient bien du depot)
 D6  il ouvre la session, l'autre le rejoint : les deux jouent dans le monde du depot
@@ -53,7 +56,14 @@ CALL = 'HarmonyLib.AccessTools.Method(' + DEP + ', "%s").Invoke(null, null); "ok
 DIALOG = 'var d = EClass.ui.layers.OfType<Dialog>().LastOrDefault(); return d == null ? "" : d.textDetail.text;'
 JOIN = ('HarmonyLib.AccessTools.Method(HarmonyLib.AccessTools.TypeByName("ElinTogether.Components.TabLobbyBrowser"), '
         '"JoinAddress").Invoke(null, new object[] { "%s" }); "ok"')
-BUCKETS = 'EClass.pc.things.Flatten().Count(t => t.id == "bucket").ToString()'
+# le bouton n du dernier dialogue (0 : "OK" ou "Oui", 1 : "Non"), comme le joueur clique
+CLICK = ('var d = EClass.ui.layers.OfType<Dialog>().LastOrDefault(); if (d == null) return "no dialog"; '
+         'var b = d.GetComponentsInChildren<UnityEngine.UI.Button>(true).Where(x => x.name.StartsWith("ButtonGeneral(Clone)")).ToList(); '
+         'if (b.Count <= %d) return "no button"; b[%d].onClick.Invoke(); return "clicked";')
+YES = ('var d = EClass.ui.layers.OfType<Dialog>().LastOrDefault(); if (d == null) return "no dialog"; '
+       'var b = d.GetComponentsInChildren<UnityEngine.UI.Button>(true).FirstOrDefault(x => x.GetComponentsInChildren<UnityEngine.UI.Text>(true).Any(t => t.text == Lang.Get("yes"))); '
+       'if (b == null) return "no yes button"; b.onClick.Invoke(); return "clicked";')
+BUCKETS = 'EClass.pc.things.Flatten().Where(t => t.id == "bucket").Sum(t => t.Num).ToString()'
 
 
 def game_id(port):
@@ -78,6 +88,14 @@ def loaded(port):
     return cond
 
 
+def click(port, n=0):
+    return ev(port, CLICK % (n, n))
+
+
+def start_server(*more):
+    return subprocess.Popen([str(SERVER_EXE), "--depot", str(DEPOT), "--port", PORT, *more])
+
+
 def holder(asker):
     """Qui heberge le monde, vu du jeu `asker` ("" si personne, ou si c'est lui)."""
     return ev(asker, HELD)
@@ -90,11 +108,12 @@ def main():
     try:
         shutil.rmtree(DEPOT, ignore_errors=True)
         shutil.rmtree(LOCAL, ignore_errors=True)
+        (SAVES / "world_depot.unsent").unlink(missing_ok=True)
         DEPOT.mkdir(parents=True)
         if REMOTE:
             # la sauvegarde est choisie dans le logiciel (ici par sa ligne de commande, comme le bouton "Mettre
             # cette sauvegarde sur le serveur") : aucun joueur n'a a la deposer
-            server = subprocess.Popen([str(SERVER_EXE), "--depot", str(DEPOT), "--port", PORT, "--import", str(PRISTINE)])
+            server = start_server("--import", str(PRISTINE))
             log(f"Elin Together Server lance (pid {server.pid}), depot a {ADDRESS}")
             time.sleep(3)
         for port in (H, A):
@@ -105,15 +124,23 @@ def main():
         log("--- D1")
         if REMOTE:
             check("la sauvegarde choisie dans le logiciel est le monde du serveur", eventually(WORLD.exists, timeout=15))
-        else:
-            ev(H, CALL % "Put")
-            time.sleep(3)
-            log(f"l'host : {ev(H, DIALOG)}")
-            dismiss_dialogs(H)
-            check("l'host depose sa sauvegarde : le depot contient un monde", WORLD.exists())
+        ev(H, CALL % "Put")
+        time.sleep(3)
+        log(f"l'host : {ev(H, DIALOG)}")
+        check("l'host depose sa sauvegarde : le depot contient un monde", WORLD.exists())
+        if REMOTE:
+            check("le monde qui s'y trouvait est garde a part", any(DEPOT.glob("replaced-*.zip")))
+        click(H)
+        wait(loaded(H), "l'host recharge le monde depuis le depot", timeout=180, every=3.0)
+        dismiss_dialogs(H)
+        check("son jeu la recharge depuis le depot : c'est le monde du depot qu'il joue", game_id(H) == "world_depot")
+        stamp = WORLD.stat().st_mtime
+        ev(H, 'EClass.game.Save(false, true).ToString()')
+        check("et ses sauvegardes y vont", eventually(lambda: WORLD.stat().st_mtime > stamp, timeout=20))
+        to_title(H)
 
         log("--- D2")
-        leave()
+        to_title(A)
         if REMOTE:
             emp.call(A, "eval", {"code": JOIN % ADDRESS}, timeout=180)
             time.sleep(2)
@@ -151,6 +178,29 @@ def main():
               eventually(lambda: WORLD.stat().st_mtime > stamp, timeout=20))
         check("pas de reste de copie dans le depot", not any(DEPOT.glob("*.new")) and not (DEPOT / "world.old").exists())
 
+        if REMOTE:
+            # le serveur s'arrete pendant qu'il joue : la sauvegarde suivante n'arrive pas, elle n'est pas perdue
+            server.kill()
+            server.wait()
+            ev(A, 'EClass.pc.AddThing(ThingGen.Create("bucket")); EClass.game.Save(false, true).ToString()')
+            unsent = SAVES / "world_depot.unsent"
+            check("serveur arrete : la sauvegarde est notee comme non recue", eventually(unsent.exists, timeout=30))
+            to_title(A)
+            server = start_server()
+            time.sleep(3)
+            stamp = WORLD.stat().st_mtime
+            emp.call(A, "eval", {"code": JOIN % ADDRESS}, timeout=180)
+            time.sleep(2)
+            said = ev(A, DIALOG)
+            log(f"l'autre joueur : {said}")
+            check("a son retour, le jeu propose de l'envoyer", "never reached" in said)
+            log(f"clic sur Oui : {emp.call(A, 'eval', {'code': YES}, timeout=180)}")
+            wait(loaded(A), "l'autre joueur recharge le monde", timeout=180, every=3.0)
+            dismiss_dialogs(A)
+            check("elle est envoyee : le monde du serveur change, rien n'est perdu",
+                  WORLD.stat().st_mtime > stamp and int(ev(A, BUCKETS)) == before + 2 and not unsent.exists())
+
+        buckets = int(ev(A, BUCKETS))
         log("--- D5")
         to_title(A)
         check("il quitte : le depot est libre", eventually(lambda: holder(H) == "", timeout=10))
@@ -159,7 +209,7 @@ def main():
         wait(loaded(H), "le premier joueur charge le monde du depot", timeout=180, every=3.0)
         dismiss_dialogs(H)
         check(f"le premier joueur le prend a son tour et retrouve le changement ({ev(H, BUCKETS)} seaux, {before} avant)",
-              int(ev(H, BUCKETS)) == before + 1)
+              int(ev(H, BUCKETS)) == buckets > before)
 
         log("--- D6")
         ok(emp.call(H, "command", {"cmd": "emp.add_local"}))

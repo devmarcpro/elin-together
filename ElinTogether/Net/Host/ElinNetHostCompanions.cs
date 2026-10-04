@@ -18,6 +18,10 @@ internal partial class ElinNetHost
     /// </summary>
     private void TakeCompanionsAlong(Chara player)
     {
+        if (EClass.game?.player?.chara is null) {
+            return;
+        }
+
         foreach (var companion in CompanionHelper.CompanionsOf(player)) {
             if (companion.isDead || companion.currentZone is null) {
                 continue;

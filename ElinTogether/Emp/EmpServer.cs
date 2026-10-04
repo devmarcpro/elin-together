@@ -80,8 +80,20 @@ internal static class EmpServer
                 dialog.Close();
             }
 
+            // without these two the session never opens: say why and stop, instead of trying for ever
+            if (EClass.player?.chara?.homeBranch?.owner is null) {
+                Fail("this save has no home base (claim a land in it first)");
+                return;
+            }
+
             EmpLog.Information("Server: opening the session on port {Port}", Common.EmpConstants.LocalPort);
-            session.InitializeComponent<ElinNetHost>().StartServer(true);
+            try {
+                session.InitializeComponent<ElinNetHost>().StartServer(true);
+            } catch (Exception ex) {
+                Fail($"port {Common.EmpConstants.LocalPort} could not be opened ({ex.Message})");
+                return;
+            }
+
             _nextSave = Time.unscaledTime + SaveSeconds;
             return;
         }
@@ -104,6 +116,13 @@ internal static class EmpServer
         }
 
         Tell("running");
+    }
+
+    private static void Fail(string reason)
+    {
+        EmpLog.Error("Server: cannot start, {Reason}", reason);
+        Tell("error:" + reason.Split('\n')[0].Trim());
+        Application.Quit();
     }
 
     private static void Tell(string state)

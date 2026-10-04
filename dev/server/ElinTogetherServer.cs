@@ -169,7 +169,7 @@ internal sealed class Depot
                     return "NO empty";
                 }
 
-                Store(body, !mine);
+                Store(body, _holderId != id);
                 Hold(id, name);
                 return "OK";
             case "BEAT":
@@ -532,7 +532,8 @@ internal sealed class ServerForm : Form
         } else {
             var status = new Dictionary<string, string>();
             try {
-                if (Running && File.Exists(StatusFile)) {
+                // (lu aussi apres l'arret : le jeu y dit pourquoi il n'a pas pu demarrer)
+                if (File.Exists(StatusFile)) {
                     foreach (var line in File.ReadAllLines(StatusFile)) {
                         var at = line.IndexOf('=');
                         if (at > 0) {
@@ -563,8 +564,9 @@ internal sealed class ServerForm : Form
             _toggle.Enabled = !stopping;
             _info.Text = Running && state == "running"
                 ? "World date: " + date + "\nLast save: " + (saved == "-" ? "not yet" : saved)
+                : !Running && state != null && state.StartsWith("error:") ? "The server could not start:\n" + state.Substring(6)
                 : !Running ? "Elin must be installed on this PC. Every player joins the\nworld; nobody has to host it." : "";
-            names = string.IsNullOrEmpty(players) ? names : players.Split('|');
+            names = !Running || string.IsNullOrEmpty(players) ? names : players.Split('|');
         }
 
         if (!names.SequenceEqual(_players.Items.Cast<string>())) {
