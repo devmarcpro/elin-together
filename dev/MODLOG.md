@@ -1522,3 +1522,12 @@ Pièges de test notés ce jour-là :
 - **À vérifier par l'utilisateur** : le même compte Steam sur le PC serveur et sur le PC où il joue (Steam
   peut bloquer) ; la connexion depuis chez son ami (port 55556 UDP ou réseau privé).
 
+
+### Version 0.26.385 publiée (2026-10-04, 16h50)
+- `make_release.ps1` sur `fd2b1a2` : **mod 0.26.385**, 1 102 000 octets, préversion `independance-0.26.385`, fichier public
+  identique (SHA-256 `b7715504…9461bb`), copie dans `_release`. Le zip contient `Serveur.bat` et `serveur.ps1`.
+  Chargée une fois en jeu (0 exception). **C'est la version dans le jeu de cette machine.**
+- Demande suivante de l'utilisateur : « je voudrais que le serveur soit un vrai logiciel avec une interface, le
+  plus light possible ». Prévu : un petit exécutable (choix de la sauvegarde, démarrer/arrêter, état, joueurs,
+  adresses), le jeu derrière sans affichage si Elin le supporte (`-batchmode -nographics`, à tester), arrêt
+  propre avec sauvegarde.
