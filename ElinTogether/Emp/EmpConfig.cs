@@ -160,6 +160,14 @@ internal partial class EmpConfig
             "Otherwise it always gets the character it played last\n" +
             "加入的玩家可以选择自己在这个世界已有的角色或新建角色，否则总是使用上次的角色");
 
+        Server.ImportCharacter = config.Bind(
+            "Server",
+            "ImportCharacter",
+            false,
+            "A player joining can bring the character of one of its own saves: the character, its equipment, bag and gold, its fame and karma\n" +
+            "Not its companions, base, quests or bank. Its save is only read, never changed\n" +
+            "加入的玩家可以带来自己存档中的角色：角色本身、装备、背包、金币、声望和业力；不包括同伴、据点、任务和银行。存档只被读取，不会被修改");
+
         Server.TravelCheckpointSeconds = config.Bind(
             "Server",
             "TravelCheckpointSeconds",
@@ -237,6 +245,7 @@ internal partial class EmpConfig
         internal static ConfigEntry<bool> PlayerShipping { get; set; } = null!;
         internal static ConfigEntry<bool> PersonalQuests { get; set; } = null!;
         internal static ConfigEntry<bool> ChooseCharacter { get; set; } = null!;
+        internal static ConfigEntry<bool> ImportCharacter { get; set; } = null!;
         internal static ConfigEntry<bool> PlayerTrade { get; set; } = null!;
         internal static ConfigEntry<bool> PlayerCombatTime { get; set; } = null!;
         internal static ConfigEntry<bool> PlayerClock { get; set; } = null!;

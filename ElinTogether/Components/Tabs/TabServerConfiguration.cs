@@ -20,6 +20,7 @@ internal class TabServerConfiguration : TabEmpBase
         var players = Section("players");
         Option(players, "independent_travel", EmpConfig.Server.IndependentTravel);
         Option(players, "choose_chara", EmpConfig.Server.ChooseCharacter);
+        Option(players, "import_chara", EmpConfig.Server.ImportCharacter);
 
         var own = Section("own");
         Option(own, "personal_quests", EmpConfig.Server.PersonalQuests);

@@ -23,14 +23,33 @@ internal partial class ElinNetClient
         // PreparePlayerJoin
         AdvanceHandshake(NetHandshakePhase.Joined);
 
-        var labels = request.Charas
-            .Select(c => c.Label)
-            .Append("emp_ui_chara_new".lang())
-            .ToList();
+        ShowCharaChoice(request, request.Notice);
+    }
+
+    private void ShowCharaChoice(SessionCharaSelectRequest request, string? notice = null)
+    {
+        var labels = request.Charas.Select(c => c.Label).ToList();
+        // then, in this order: a character from one of my saves (if the host allows it), a new character
+        var import = request.AllowImport ? labels.Count : -1;
+        if (request.AllowImport) {
+            labels.Add("emp_ui_chara_import".lang());
+        }
+
+        labels.Add("emp_ui_chara_new".lang());
+
+        var title = "emp_ui_chara_pick".lang();
+        if (!notice.IsEmpty()) {
+            title = notice.lang() + " " + title;
+        }
 
         var chosen = false;
-        var dialog = Dialog.List("emp_ui_chara_pick".lang(), labels, label => label, (index, _) => {
+        var dialog = Dialog.List(title, labels, label => label, (index, _) => {
             chosen = true;
+            if (index == import) {
+                ShowSaveChoice(request);
+                return true;
+            }
+
             Host.Send(new SessionCharaSelectResponse {
                 Uid = index < request.Charas.Count ? request.Charas[index].Uid : 0,
             });
@@ -39,6 +58,47 @@ internal partial class ElinNetClient
         dialog.SetOnKill(() => {
             if (!chosen) {
                 Socket.Disconnect(Host, EmpDisconnectInfo.ClientCancel);
+            }
+        });
+    }
+
+    /// <summary>
+    ///     Which of its own saves to bring the character of. Closing the list goes back to the first choice
+    /// </summary>
+    private void ShowSaveChoice(SessionCharaSelectRequest request)
+    {
+        var saves = CharaImport.Saves();
+        if (saves.Count == 0) {
+            ShowCharaChoice(request, "emp_ui_chara_import_none");
+            return;
+        }
+
+        var labels = saves.Select(CharaImport.Label).Append("emp_ui_chara_import_back".lang()).ToList();
+        var chosen = false;
+        var dialog = Dialog.List("emp_ui_chara_import_pick".lang(), labels, label => label, (index, _) => {
+            chosen = true;
+            if (index >= saves.Count) {
+                ShowCharaChoice(request);
+                return true;
+            }
+
+            if (CharaImport.Read(saves[index]) is not { } imported) {
+                ShowCharaChoice(request, "emp_ui_chara_import_fail");
+                return true;
+            }
+
+            EmpLog.Information("Bringing {Name} from save {Source}", imported.Chara.Name, imported.Source);
+            Host.Send(new SessionCharaImportResponse {
+                Chara = LZ4Bytes.Create(imported.Chara),
+                Fame = imported.Fame,
+                Karma = imported.Karma,
+                Source = imported.Source,
+            });
+            return true;
+        });
+        dialog.SetOnKill(() => {
+            if (!chosen) {
+                ShowCharaChoice(request);
             }
         });
     }

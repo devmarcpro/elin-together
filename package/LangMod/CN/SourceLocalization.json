@@ -171,5 +171,13 @@
     "LangGeneral.emp_ui_sv_cfg_player_clock.text": "每位玩家按自己的时钟行动",
     "LangGeneral.emp_ui_sv_desc_player_clock.text": "客机与主机一样流畅地移动和行动，不受网络节奏影响。需要开启上一项。",
     "LangGeneral.emp_ui_sv_cfg_step_pace.text": "每位玩家按单人游戏的节奏移动",
-    "LangGeneral.emp_ui_sv_desc_step_pace.text": "每一步的时长不再取决于其他玩家的速度。战斗中速度仍然有效。需要开启“战斗按各玩家时间进行”。"
+    "LangGeneral.emp_ui_sv_desc_step_pace.text": "每一步的时长不再取决于其他玩家的速度。战斗中速度仍然有效。需要开启“战斗按各玩家时间进行”。",
+    "LangGeneral.emp_ui_sv_cfg_import_chara.text": "玩家可以带来自己存档中的角色",
+    "LangGeneral.emp_ui_sv_desc_import_chara.text": "角色本身、装备、背包、金币、声望和业力。不包括同伴、据点、任务和银行。存档只被读取，不会被修改。",
+    "LangGeneral.emp_ui_chara_import.text": "我的存档中的角色…",
+    "LangGeneral.emp_ui_chara_import_pick.text": "带来哪个存档的角色？（存档不会被修改）",
+    "LangGeneral.emp_ui_chara_import_back.text": "返回",
+    "LangGeneral.emp_ui_chara_import_none.text": "没有找到可读取的存档。",
+    "LangGeneral.emp_ui_chara_import_fail.text": "无法带来该角色。",
+    "LangGeneral.emp_ui_chara_import_twice.text": "该存档的角色已经在这个世界中。"
 }

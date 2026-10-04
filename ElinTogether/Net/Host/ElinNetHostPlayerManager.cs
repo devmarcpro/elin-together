@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using ElinTogether.Helper;
 using ElinTogether.Models;
 using ElinTogether.Net.Steam;
 using UnityEngine;
@@ -65,16 +67,25 @@ internal partial class ElinNetHost
     /// <summary>
     ///     PeerConnect -> Prepare -> MoveZone -> SaveProbe
     /// </summary>
-    public void PreparePlayerJoin(ISteamNetPeer peer)
+    public void PreparePlayerJoin(ISteamNetPeer peer, string? notice = null)
     {
         EmpLog.Information("Preparing player {@Peer} for joining",
             peer);
 
         var roster = RosterOf(peer.User);
         // not for the guests of a zone hosted by a player: they come with the character they are playing
-        if (!IsZoneSession && roster.Count > 0 && EmpConfig.Server.ChooseCharacter.Value) {
-            // the player picks who to play, or makes someone new
+        var choose = EmpConfig.Server.ChooseCharacter.Value;
+        var import = EmpConfig.Server.ImportCharacter.Value;
+        if (!IsZoneSession && ((roster.Count > 0 && choose) || import)) {
+            // without the choice of character, only the one it played last
+            if (!choose) {
+                roster = roster.Where(c => SavedRemoteCharas.TryGetValue(peer.User, out var last) && c.uid == last).ToList();
+            }
+
+            // the player picks who to play, brings someone from its own saves, or makes someone new
             peer.Send(new SessionCharaSelectRequest {
+                AllowImport = import,
+                Notice = notice,
                 Charas = roster
                     .Select(c => new SessionCharaEntry {
                         Uid = c.uid,
@@ -137,6 +148,52 @@ internal partial class ElinNetHost
         }
 
         SavedRemoteCharas[peer.User] = chara.uid;
+        SendSaveProbe(chara, peer);
+    }
+
+    /// <summary>
+    ///     Net event: the player brings the character of one of its own saves
+    /// </summary>
+    private void OnSessionCharaImportResponse(SessionCharaImportResponse response, ISteamNetPeer peer)
+    {
+        if (ActiveRemoteCharas.ContainsKey(peer.Id)) {
+            return;
+        }
+
+        if (IsZoneSession || !EmpConfig.Server.ImportCharacter.Value) {
+            EmpLog.Warning("Player {@Peer} sent a character while bringing one is not allowed", peer);
+            PreparePlayerJoin(peer);
+            return;
+        }
+
+        // one copy of a save's character per player: a second one would be the same items twice
+        RosterOf(peer.User);
+        if (PlayerRosters[peer.User].Any(uid =>
+                game.cards.globalCharas.Find(uid)?.GetStr(CharaImport.SourceKey) == response.Source)) {
+            EmpLog.Information("Player {@Peer} already brought the character of {Source}", peer, response.Source);
+            PreparePlayerJoin(peer, "emp_ui_chara_import_twice");
+            return;
+        }
+
+        Chara chara;
+        try {
+            chara = response.Chara.Decompress<Chara>();
+            CharaImport.Adopt(chara, response.Source);
+        } catch (Exception ex) {
+            EmpLog.Warning(ex, "Could not take in the character brought by player {@Peer}", peer);
+            PreparePlayerJoin(peer, "emp_ui_chara_import_fail");
+            return;
+        }
+
+        EmpLog.Information("Player {@Peer} brings {Name} (Lv {Level}) from its save {Source}",
+            peer, chara.Name, chara.LV, response.Source);
+
+        // before the save probe, which hands a missing standing the one of a new player
+        PlayerStandings[chara.uid] = [response.Fame, response.Karma];
+        SavedRemoteCharas[peer.User] = chara.uid;
+        // adds the character now played to the roster
+        RosterOf(peer.User);
+
         SendSaveProbe(chara, peer);
     }
 
