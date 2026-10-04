@@ -38,6 +38,14 @@ Jouer
     * Random quests, fame and karma per player    chacun ses quetes d'habitants, sa renommee, son karma
     * Trade window between players                clic sur un autre joueur, "Echanger"
     * Combat on each player's time                un monstre agit quand le joueur qu'il combat agit
+    * Each player on its own clock                un invite marche aussi regulierement que l'hote
+    * Every player walks at the pace of a solo game
+                                                  la duree d'un pas ne depend plus de la vitesse des autres
+    * Players can bring a character from their own saves (decochee au depart)
+                                                  en rejoignant : "A character from one of my saves...", puis
+                                                  la liste de ses sauvegardes. Le personnage vient avec son
+                                                  equipement, son sac, son or, sa renommee et son karma ; pas
+                                                  ses compagnons ni sa base. La sauvegarde n'est jamais modifiee.
 
 Revenir en arriere
 ------------------
