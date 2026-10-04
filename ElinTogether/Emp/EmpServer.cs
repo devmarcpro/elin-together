@@ -1,4 +1,6 @@
 using System;
+using System.IO;
+using System.Linq;
 using ElinTogether.Helper;
 using ElinTogether.Net;
 using UnityEngine;
@@ -8,17 +10,22 @@ namespace ElinTogether;
 /// <summary>
 ///     A game started with `-empserver &lt;save id&gt;` is a server, as one runs a Minecraft server: it loads that
 ///     save and opens the session by itself, nobody plays it, the players join by address
-///     (`&lt;this machine&gt;:55556`) whenever they want. `-empserver world_depot` takes the world from the
-///     save depot when one is set (see SaveDepot)
+///     (`&lt;this machine&gt;:55556`) whenever they want. `cloud:&lt;id&gt;` for a Steam Cloud save,
+///     `world_depot` to take the world from the save depot when one is set (see SaveDepot). <br />
+///     It tells its state in `ElinMP/server.txt` and stops, after saving, when `ElinMP/server.stop` appears:
+///     that is how the server application (dev/server) shows and drives it
 /// </summary>
 internal static class EmpServer
 {
     private const float SaveSeconds = 300f;
 
     private static readonly string? _save = Arg("-empserver");
+    private static readonly string _folder = Path.Combine(Application.persistentDataPath, "ElinMP");
 
     private static float _next;
+    private static float _nextSave;
     private static bool _loading;
+    private static string _saved = "-";
 
     internal static bool Requested => _save is not null;
 
@@ -43,12 +50,14 @@ internal static class EmpServer
 
         var session = NetSession.Instance;
         if (!EClass.core.IsGameStarted) {
+            Tell("loading");
             // (the title has its own layers open: no waiting for an idle interface)
             if (_loading || EClass.scene.mode != Scene.Mode.Title) {
                 return;
             }
 
             _loading = true;
+            File.Delete(Path.Combine(_folder, "server.stop"));
             EmpLog.Information("Server: loading {Save}", _save);
             if (_save == SaveDepot.WorldId && SaveDepot.Enabled) {
                 SaveDepot.Take();
@@ -73,15 +82,50 @@ internal static class EmpServer
 
             EmpLog.Information("Server: opening the session on port {Port}", Common.EmpConstants.LocalPort);
             session.InitializeComponent<ElinNetHost>().StartServer(true);
-            _next = Time.unscaledTime + SaveSeconds;
+            _nextSave = Time.unscaledTime + SaveSeconds;
+            return;
+        }
+
+        if (File.Exists(Path.Combine(_folder, "server.stop"))) {
+            EmpLog.Information("Server: asked to stop, saving");
+            File.Delete(Path.Combine(_folder, "server.stop"));
+            EClass.game.Save(false, true);
+            Tell("stopped");
+            Application.Quit();
             return;
         }
 
         // nobody is there to save: the server does, while someone plays
-        if (session.CurrentPlayers.Count > 1) {
-            EClass.game.Save(true, true);
+        if (Time.unscaledTime >= _nextSave) {
+            _nextSave = Time.unscaledTime + SaveSeconds;
+            if (session.CurrentPlayers.Count > 1 && EClass.game.Save(true, true)) {
+                _saved = DateTime.Now.ToString("HH:mm");
+            }
         }
 
-        _next = Time.unscaledTime + SaveSeconds;
+        Tell("running");
+    }
+
+    private static void Tell(string state)
+    {
+        try {
+            var players = state == "running"
+                ? NetSession.Instance.CurrentPlayers
+                    .Where(p => p.Index != 0)
+                    .Select(p => EClass.game.cards.globalCharas.Find(p.CharaUid)?.Name ?? "?")
+                : [];
+            Directory.CreateDirectory(_folder);
+            File.WriteAllLines(Path.Combine(_folder, "server.txt"), [
+                "state=" + state,
+                "save=" + _save,
+                "port=" + Common.EmpConstants.LocalPort,
+                "players=" + string.Join("|", players),
+                "date=" + (state == "running" ? EClass.world.date.GetText(Date.TextFormat.Log) : ""),
+                "saved=" + _saved,
+                "time=" + DateTime.Now.ToString("HH:mm:ss"),
+            ]);
+        } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) {
+            // the application reads it at the same time: next tick
+        }
     }
 }

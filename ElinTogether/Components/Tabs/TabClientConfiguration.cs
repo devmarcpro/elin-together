@@ -35,5 +35,15 @@ internal class TabClientConfiguration : TabEmpBase
                 }
             });
         }).SetTooltipLang(depot.Description.Description);
+
+        var password = EmpConfig.Client.DepotPassword;
+        btnGroup.Button("emp_ui_depot_password".Loc(password.Value.Length > 0 ? "***" : "-"), () => {
+            Dialog.InputName("emp_ui_depot_password_ask", password.Value, (cancel, text) => {
+                if (!cancel) {
+                    password.Value = text.Trim();
+                    LayerElinTogether.Instance?.Reopen();
+                }
+            });
+        }).SetTooltipLang(password.Description.Description);
     }
 }

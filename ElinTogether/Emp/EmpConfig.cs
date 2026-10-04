@@ -54,6 +54,12 @@ internal partial class EmpConfig
             "The first player takes the world from it and hosts, every save goes back to it, the next player can take over\n" +
             "存档仓库文件夹：小组所有玩家都能访问的文件夹（共享或同步），用于保存世界。留空：不使用");
 
+        Client.DepotPassword = config.Bind(
+            "Client",
+            "DepotPassword",
+            "",
+            "Password of the save depot, when it is Elin Together Server and one was set there");
+
         Client.ServerAddress = config.Bind(
             "Client",
             "ServerAddress",
@@ -265,6 +271,7 @@ internal partial class EmpConfig
     {
         internal static ConfigEntry<KeyCode> PingKeybind { get; set; } = null!;
         internal static ConfigEntry<string> DepotPath { get; set; } = null!;
+        internal static ConfigEntry<string> DepotPassword { get; set; } = null!;
         internal static ConfigEntry<string> ServerAddress { get; set; } = null!;
     }
 

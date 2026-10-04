@@ -13,8 +13,14 @@ D4  celui qui heberge change quelque chose et sauvegarde : le monde du depot cha
 D5  il quitte : le depot est libre ; le premier joueur le prend a son tour et retrouve le changement (sa copie
     locale a ete effacee avant : le monde vient bien du depot)
 D6  il ouvre la session, l'autre le rejoint : les deux jouent dans le monde du depot
+
+    DEPOT_SERVER=1 python _tools/depot_suite.py
+Le meme scenario avec Elin Together Server a la place du dossier : l'application (aucun jeu, aucun dossier partage)
+garde le monde et le verrou, les jeux lui parlent par son adresse.
 """
+import os
 import shutil
+import subprocess
 import sys
 import time
 from datetime import datetime, timezone
@@ -28,6 +34,12 @@ from travel_suite import RESULTS, check, dismiss_dialogs, ev, eventually, scan_l
 
 H, A = 27551, 27552
 DEPOT = SHOTS / "depot"
+REMOTE = bool(os.environ.get("DEPOT_SERVER"))
+SERVER_EXE = Path(__file__).resolve().parent.parent / "_release" / "template" / "ElinTogetherServer.exe"
+ADDRESS = "127.0.0.1:55557"
+WORLD = DEPOT / "world.zip" if REMOTE else DEPOT / "world" / "game.txt"
+HELD = ('var who = HarmonyLib.AccessTools.Method(' + 'HarmonyLib.AccessTools.TypeByName("ElinTogether.Helper.SaveDepot")' +
+        ', "HeldBy").Invoke(null, null); return who == null ? "" : who.ToString();')
 LOCAL = SAVES / "world_depot"
 DEP = 'HarmonyLib.AccessTools.TypeByName("ElinTogether.Helper.SaveDepot")'
 SET = ('var e = HarmonyLib.AccessTools.Property(HarmonyLib.AccessTools.TypeByName("ElinTogether.EmpConfig+Client"), "DepotPath").GetValue(null); '
@@ -59,28 +71,33 @@ def loaded(port):
     return cond
 
 
-def holder():
-    f = DEPOT / "host.txt"
-    return f.read_text(encoding="utf-8").splitlines() if f.exists() else []
+def holder(asker):
+    """Qui heberge le monde, vu du jeu `asker` ("" si personne, ou si c'est lui)."""
+    return ev(asker, HELD)
 
 
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
     t0 = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+    server = None
     try:
         shutil.rmtree(DEPOT, ignore_errors=True)
         shutil.rmtree(LOCAL, ignore_errors=True)
         DEPOT.mkdir(parents=True)
+        if REMOTE:
+            server = subprocess.Popen([str(SERVER_EXE), "--depot", str(DEPOT), "--port", "55557"])
+            log(f"Elin Together Server lance (pid {server.pid}), depot a {ADDRESS}")
+            time.sleep(3)
         for port in (H, A):
             dismiss_dialogs(port)
-            ev(port, SET % str(DEPOT))
+            ev(port, SET % (ADDRESS if REMOTE else str(DEPOT)))
 
         log("--- D1")
         ev(H, CALL % "Put")
         time.sleep(3)
         log(f"l'host : {ev(H, DIALOG)}")
         dismiss_dialogs(H)
-        check("l'host depose sa sauvegarde : le depot contient un monde", (DEPOT / "world" / "game.txt").exists())
+        check("l'host depose sa sauvegarde : le depot contient un monde", WORLD.exists())
 
         log("--- D2")
         leave()
@@ -88,7 +105,7 @@ def main():
         wait(loaded(A), "l'autre joueur charge le monde du depot", timeout=180, every=3.0)
         dismiss_dialogs(A)
         check("l'autre joueur prend le monde du depot et le charge", game_id(A) == "world_depot")
-        check(f"le depot dit qui heberge ({holder()[1:]})", eventually(lambda: len(holder()) == 2, timeout=10))
+        check(f"le depot dit qui heberge ({holder(H)})", eventually(lambda: holder(H) != "", timeout=10))
 
         log("--- D3")
         to_title(H)
@@ -101,15 +118,15 @@ def main():
 
         log("--- D4")
         before = int(ev(A, BUCKETS))
-        stamp = (DEPOT / "world" / "game.txt").stat().st_mtime
+        stamp = WORLD.stat().st_mtime
         ev(A, 'EClass.pc.AddThing(ThingGen.Create("bucket")); EClass.game.Save(false, true).ToString()')
         check("celui qui heberge sauvegarde : le monde du depot change",
-              eventually(lambda: (DEPOT / "world" / "game.txt").stat().st_mtime > stamp, timeout=20))
-        check("pas de reste de copie dans le depot", not (DEPOT / "world.new").exists() and not (DEPOT / "world.old").exists())
+              eventually(lambda: WORLD.stat().st_mtime > stamp, timeout=20))
+        check("pas de reste de copie dans le depot", not any(DEPOT.glob("*.new")) and not (DEPOT / "world.old").exists())
 
         log("--- D5")
         to_title(A)
-        check("il quitte : le depot est libre", eventually(lambda: not holder(), timeout=10))
+        check("il quitte : le depot est libre", eventually(lambda: holder(H) == "", timeout=10))
         shutil.rmtree(LOCAL, ignore_errors=True)
         take(H)
         wait(loaded(H), "le premier joueur charge le monde du depot", timeout=180, every=3.0)
@@ -131,6 +148,8 @@ def main():
             except Exception:  # noqa: BLE001
                 pass
     finally:
+        if server is not None:
+            server.kill()
         for port in (H, A):
             try:
                 ev(port, SET % "")

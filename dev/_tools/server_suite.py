@@ -11,6 +11,7 @@ V3  il passe du temps sur la carte du serveur : la date du monde avance, alors q
 V4  il part seul a Vernis et y passe du temps : la date du serveur avance avec la sienne
 V5  il quitte et revient par l'adresse : il retrouve son personnage
 """
+import os
 import shutil
 import subprocess
 import sys
@@ -74,7 +75,7 @@ def main():
         shutil.copytree(PRISTINE, SAVES / "world_lab")
 
         log("--- V1")
-        server = subprocess.Popen([str(GAME_EXE), *WINDOW, "-empserver", "world_lab"], cwd=GAME_EXE.parent)
+        server = subprocess.Popen([str(GAME_EXE), *WINDOW, *os.environ.get("SERVER_ARGS", "").split(), "-empserver", "world_lab"], cwd=GAME_EXE.parent)
         procs.append(server)
         log(f"serveur lance (pid {server.pid})")
         S = wait(lambda: bridge_for(server.pid), "pont du serveur", timeout=600)
