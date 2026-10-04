@@ -576,7 +576,9 @@ def scan_logs(t0):
             logs.append((f"client {i} Player.log", SHOTS / name))
     for name, path in logs:
         text = path.read_text(encoding="utf-8", errors="replace") if path.exists() else ""
-        exc = [l for l in text.splitlines() if "Exception" in l]
+        # le jeu lui-meme, a sa fermeture (Heathen App.Application_quitting ferme Steam Input apres Steam) :
+        # vu le 2026-10-01 et le 2026-10-04, apres la sauvegarde, pas le mod
+        exc = [l for l in text.splitlines() if "Exception" in l and "Steamworks is not initialized" not in l]
         check(f"{name} : {len(exc)} exception(s)", not exc)
         for l in exc[:8]:
             print("       ", l[:220])
