@@ -43,6 +43,24 @@ internal static class WorldKeeper
 }
 
 /// <summary>
+///     The keeper's day (luck, seed of the newspaper) is the world's
+/// </summary>
+[HarmonyPatch(typeof(World), nameof(World.CreateDayData))]
+internal static class WorldKeeperDay
+{
+    [HarmonyPostfix]
+    internal static void OnNewDay(World __instance)
+    {
+        if (NetSession.Instance.Transport is not ElinNetHost host || !NetSession.Instance.Rules.UseWorldKeeper ||
+            __instance.dayData is null) {
+            return;
+        }
+
+        host.Delta.AddRemote(DayDataDelta.Create(__instance.dayData));
+    }
+}
+
+/// <summary>
 ///     The hooks of the world that only its keeper runs
 /// </summary>
 [HarmonyPatch]
@@ -60,6 +78,10 @@ internal static class WorldKeeperHooks
         yield return AccessTools.Method(typeof(Faction), nameof(Faction.OnAdvanceMonth));
         yield return AccessTools.Method(typeof(GameDate), nameof(GameDate.ShipLetter));
         yield return AccessTools.Method(typeof(GameDate), nameof(GameDate.ShipRandomPackages));
+        // every parcel the date sends (gifts of the year, the magic chest, salaries): the list of parcels on
+        // their way is the world's, a copy of it must neither grow nor be delivered a second time
+        yield return AccessTools.Method(typeof(World), nameof(World.SendPackage));
+        yield return AccessTools.Method(typeof(FactionBranch), nameof(FactionBranch.ReceivePackages));
     }
 
     [HarmonyPrefix]
