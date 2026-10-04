@@ -10,6 +10,8 @@ V2  un joueur le rejoint par son adresse (le champ "Join by address"), cree son 
 V3  il passe du temps sur la carte du serveur : la date du monde avance, alors que personne ne joue le serveur
 V4  il part seul a Vernis et y passe du temps : la date du serveur avance avec la sienne
 V5  il quitte et revient par l'adresse : il retrouve son personnage
+V6  il dit son etat et ses joueurs dans un fichier, et s'arrete apres une sauvegarde quand on le lui demande
+    (c'est ce dont se sert l'application Elin Together Server)
 """
 import os
 import shutil
@@ -127,6 +129,19 @@ def main():
         wait(lambda: len(state(S).get("players", [])) == 1, "le serveur ne voit plus le joueur", timeout=60)
         time.sleep(3)
         check("il quitte et revient par l'adresse : il retrouve son personnage", join(P) == first)
+
+        log("--- V6")
+        # ce que lit et ecrit Elin Together Server pour montrer et arreter ce serveur
+        folder = SAVES.parent / "ElinMP"
+        status = dict(line.split("=", 1) for line in (folder / "server.txt").read_text(encoding="utf-8").splitlines() if "=" in line)
+        log(f"etat ecrit par le serveur : {status}")
+        check(f"le serveur dit son etat et ses joueurs ({status.get('state')}, {status.get('players')})",
+              status.get("state") == "running" and status.get("players", "") != "")
+        stamp = (SAVES / "world_lab" / "game.txt").stat().st_mtime
+        (folder / "server.stop").write_text("stop")
+        stopped = eventually(lambda: server.poll() is not None, timeout=60)
+        check("on lui demande de s'arreter : il sauvegarde puis se ferme",
+              stopped and (SAVES / "world_lab" / "game.txt").stat().st_mtime > stamp)
     except Exception as ex:  # noqa: BLE001
         check(f"interrompu : {type(ex).__name__}: {str(ex)[:300]}", False)
         for h in emp.live_ports():

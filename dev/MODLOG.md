@@ -1531,3 +1531,24 @@ Pièges de test notés ce jour-là :
   plus light possible ». Prévu : un petit exécutable (choix de la sauvegarde, démarrer/arrêter, état, joueurs,
   adresses), le jeu derrière sans affichage si Elin le supporte (`-batchmode -nographics`, à tester), arrêt
   propre avec sauvegarde.
+
+### Elin Together Server, le logiciel (2026-10-04, 16h50 → 17h15) — reprendre ici
+- L'utilisateur : « je voudrais que le serveur soit un vrai logiciel avec une interface, le plus light possible »,
+  puis « le serveur n'est pas Elin n'est-ce pas, pas besoin d'avoir une copie d'Elin pour que ça tourne ».
+  Réponse donnée : jusque-là si, c'était Elin derrière. Fait ensuite : le mode sans Elin.
+- `dev/server/ElinTogetherServer.cs` (un fichier, WinForms, compilé par le `csc` de Windows :
+  `dev/server/build.ps1` → `_release/template/ElinTogetherServer.exe`, 23 Ko, aucune dépendance) :
+  - **Sans Elin** : classe `Depot`, un `TcpListener` (port 55557, pas de droits administrateur). Une demande par
+    connexion : mot de passe, commande (`WHO`, `TAKE`, `PUT`, `BEAT`, `RELEASE`), identité, nom, longueur, octets.
+    Le monde est une archive `world.zip` (écrite à côté puis échangée), les trois précédentes sont gardées.
+    Verrou réel, périmé après trois minutes sans signe de vie. Côté jeu : `SaveDepot` a deux formes, dossier ou
+    `adresse:port` ; ce qui vient du réseau n'est déballé que dans le dossier de la sauvegarde.
+  - **Avec Elin** : lance `Elin.exe -batchmode -nographics -empserver <id>`, lit `ElinMP/server.txt`, arrête par
+    `ElinMP/server.stop` (le serveur sauvegarde puis `Application.Quit`), force l'arrêt après 45 s.
+- **Elin tourne en `-batchmode -nographics`** : `server_suite` 7/7 sans fenêtre ni affichage.
+- Tests sur le build final : `depot_suite` 11/11 (dossier), 11/11 avec `DEPOT_SERVER=1` (le logiciel),
+  `server_suite` 9/9 sans fenêtre (avec V6 : état écrit, arrêt après sauvegarde).
+- **Piège** : enchaîner `mp_test.py` juste après `run_short.sh` échoue (« Elin tourne déjà », les fenêtres ne sont
+  pas encore fermées) : attendre quelques secondes.
+- Captures : `ElinMods\_shots\nuit-2026-10-04\serveur-sans-elin.png`.
+
