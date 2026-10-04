@@ -23,6 +23,12 @@ public class SpatialGenDelta : ElinDelta
     [Key(4)]
     public int Icon { get; init; }
 
+    /// <summary>
+    ///     The zone of a quest: it sits on the tile of the town it comes from, without taking its place on the map
+    /// </summary>
+    [Key(5)]
+    public bool IsInstance { get; init; }
+
     public static SpatialGenDelta Create(Zone zone)
     {
         return new() {
@@ -31,6 +37,8 @@ public class SpatialGenDelta : ElinDelta
             Pos = new() { X = zone.x, Z = zone.y },
             ParentZoneUid = zone.parent?.uid ?? -1,
             Icon = zone.icon,
+            // sent a frame after the zone is created, the game has set its instance by then
+            IsInstance = zone.IsInstance,
         };
     }
 
@@ -68,7 +76,7 @@ public class SpatialGenDelta : ElinDelta
         game.spatials.uidNext = Math.Max(game.spatials.uidNext, ZoneUid + 1);
 
         // update on overworld
-        if (parent is Region region) {
+        if (parent is Region region && !IsInstance) {
             region.elomap.SetZone(Pos.X, Pos.Z, remoteZone, true);
         }
 

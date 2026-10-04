@@ -30,6 +30,9 @@ internal partial class ElinNetHost
             EmpLog.Debug("Dispatching zone to all players");
 
             Broadcast(packet);
+
+            // after the zone change: the question is only asked while the host is known to be there
+            InviteToQuestZone(zone);
         }
 
         // update lobby data

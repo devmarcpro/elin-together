@@ -105,7 +105,8 @@ internal partial class ElinNetClient
                 probeZone.parent = parent;
                 spatial.map[response.ZoneUid] = remoteZone = probeZone;
 
-                if (parent is Region region) {
+                // the zone of a quest sits on the tile of its town without taking its place on the map
+                if (parent is Region region && !probeZone.IsInstance) {
                     region.elomap.SetZone(probeZone.x, probeZone.y, remoteZone, true);
                 }
             } catch (Exception ex) {

@@ -142,6 +142,13 @@ internal partial class ElinNetHost
             return;
         }
 
+        // nobody stays in the zone of a quest without the one who took it: whoever came along leaves with
+        // the host and arrives where it arrives, as its party does. The quest is settled by the host's own move
+        if (zone.IsInstance) {
+            _settled.Clear();
+            return;
+        }
+
         // only those standing here: a player still loading this map (it was called back for this very move,
         // or just joined) comes along as before
         var staying = Socket.Peers.Where(p => ActiveRemoteCharas.ContainsKey(p.Id) && _settled.Contains(p.Id)).ToList();
@@ -188,6 +195,34 @@ internal partial class ElinNetHost
                 IdCurrentSubset = zone.idCurrentSubset,
                 Guest = true,
                 Handoff = true,
+            });
+        }
+    }
+
+    /// <summary>
+    ///     The host stands in the zone of a quest it took: the players it left in the town the quest comes from
+    ///     are asked along, see ElinNetClient.OnQuestFollowInvite. The quest and its reward stay the host's
+    /// </summary>
+    private void InviteToQuestZone(Zone zone)
+    {
+        if (IsZoneSession || !PersonalQuests.InstancesEnabled || zone != _zone ||
+            zone.instance is not ZoneInstanceRandomQuest { uidQuest: not 0 } instance) {
+            return;
+        }
+
+        foreach (var peer in Socket.Peers) {
+            // the one keeping that town since the host left it, a player elsewhere has its own business
+            if (!_departed.Contains(peer.Id) || !_leases.TryGetValue(peer.Id, out var zones) ||
+                !zones.ContainsKey(instance.uidZone)) {
+                continue;
+            }
+
+            EmpLog.Information("Asking player {@Peer} along to quest zone {ZoneFullName}", peer, zone.ZoneFullName);
+
+            SendDeltaTo(peer.Id, new QuestFollowDelta {
+                Kind = QuestFollowDelta.Invite,
+                Name = pc.Name,
+                ZoneUid = zone.uid,
             });
         }
     }

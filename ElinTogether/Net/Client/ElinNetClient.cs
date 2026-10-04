@@ -39,6 +39,7 @@ internal partial class ElinNetClient : ElinNetBase
 
         UpdateTravelCheckpoint();
         UpdateHandoffWait();
+        UpdateQuestInvite();
         UpdateTransferLock();
 
         if (IsConnected) {
