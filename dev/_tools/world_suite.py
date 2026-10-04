@@ -33,6 +33,7 @@ H, A = 27551, 27552
 DATE = 'EClass.world.date.GetRaw().ToString()'
 WEATHER = ('var w = EClass.world.weather; return (int)w._currentCondition + "/" + w.duration + "/" + '
            'string.Join(",", w.forecasts.Select(f => (int)f.condition + ":" + f.duration));')
+DAY = 'EClass.world.dayData.luck + "/" + EClass.world.dayData.seed'
 MONTH = 'EClass.world.date.month.ToString()'
 BILLS = 'EClass.player.taxBills.ToString()'
 PARCELS = 'EClass.game.cards.listPackage.Count.ToString()'
@@ -102,6 +103,8 @@ def main():
         log(f"meteo host   : {ev(H, WEATHER)}")
         log(f"meteo invite : {ev(A, WEATHER)}")
         check("apres 30 heures passees par l'invite seul a Vernis, les deux jeux ont la meme meteo et les memes previsions", same)
+        log(f"jour host : {ev(H, DAY)} ; jour invite : {ev(A, DAY)}")
+        check("et la meme chance du jour (un jour a passe)", eventually(lambda: ev(H, DAY) == ev(A, DAY), timeout=15))
 
         log("--- K2")
         host, guest, parcels = cross_month()
