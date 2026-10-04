@@ -81,6 +81,11 @@ public class CharaMoveDelta : ElinDelta
             }
 
             _recentMoves[chara.uid] = Time.unscaledTime;
+
+            // the game tugs the leashed companions of "the player" at each of its steps: for a guest, the host does it
+            if (net.IsHost) {
+                GuestLeash.Follow(chara);
+            }
         }
     }
 

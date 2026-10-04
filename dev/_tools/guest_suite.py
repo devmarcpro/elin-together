@@ -834,6 +834,101 @@ def g30(ctx):
         check(f"{who} : des munitions ont quitte son sac ({count(H, uid, aid)} sur 50)", count(H, uid, aid) < 50)
 
 
+def use_menu(port, at, pick):
+    """Clic gauche sur une case, comme un joueur : le jeu construit la liste des actions de ce qui s'y trouve
+    (ActPlan._Update), on prend la premiere qui verifie `pick` (condition C# sur `i`), on l'execute."""
+    return ev(port,
+              'var p = new ActPlan { input = ActInput.LeftMouse }; var pt = new PointTarget(); '
+              f'pt.pos.Set(new Point({at[0]}, {at[1]})); p._Update(pt); '
+              'var offered = string.Join(",", p.list.Select(i => i.act is DynamicAct d ? d.id : i.act.GetType().Name)); '
+              f'var item = p.list.FirstOrDefault(i => {pick}); if (item == null) return "action absente, proposees : " + offered; '
+              'item.Perform(); return "ok " + (item.act is DynamicAct x ? x.id : item.act.GetType().Name) + " parmi " + offered;')
+
+
+def clear_conditions(uid):
+    """Retire toutes les conditions de ce personnage, dans le jeu de l'host et dans celui de l'invite (un puits peut
+    endormir, aveugler ; une seringue donne des hallucinations) : la suite n'a pas a les subir."""
+    for p in (H, A):
+        ev(p, f'var c = {chara(p, uid)}; if (c != null) foreach (var k in c.conditions.ToList()) k.Kill(true); "ok"')
+
+
+def g33(ctx):
+    """ticket de meuble (L5) : le meuble qu'un invite achete est dans son sac, le ticket est depense, pour lui comme pour l'host,
+    et chaque jeu voit la meme chose (avant : meuble gratuit, ticket garde)"""
+    tk = first_id("TicketFurniture")
+    # un meuble que le jeu vend contre un ticket, bon marche (prix du ticket = categorie x (prix / 500 + 1))
+    furn = ev(H, 'foreach (var r in EClass.sources.things.rows.Where(x => x.value > 0 && EClass.sources.categories.map.ContainsKey(x.category) '
+                 '&& EClass.sources.categories.map[x.category].ticket > 0).Take(80)) { var t = ThingGen.Create(r.id); '
+                 'var ok = t.trait.CanBeHeld && t.trait.CanBeStolen && !t.trait.IsDoor && !(t.trait is TraitNewZone) && !t.isMasked && t.GetPrice() < 500; '
+                 't.Destroy(); if (ok) return r.id; } return "";')
+    if not check(f"le jeu a un ticket de meuble et un meuble a acheter ({tk}, {furn})", bool(tk and furn)):
+        return
+    for who, key in both(ctx):
+        port, uid = ctx[key]
+        close_layers()
+        ticket = give(ctx, key, tk, 50, extra="t.refVal = EClass._zone.GetTopZone().uid;")
+        x, z = (int(v) for v in ev(H, f'var p = {chara(H, uid)}.pos.GetNearestPoint(false, false, false, true); return p.x + "," + p.z;').split(","))
+        f = ev(H, f'var t = ThingGen.Create("{furn}"); EClass._zone.AddCard(t, new Point({x}, {z})).Install(); t.isNPCProperty = true; return t.uid.ToString();')
+        on_map = lambda p: ev(p, f'(EClass._map.things.Find(t => t.uid == {f}) != null).ToString()') == "True"  # noqa: E731
+        eventually(lambda: on_map(port), timeout=10)
+        price = int(ev(H, f'var k = {chara(H, uid)}.things.Find(t => t.uid == {ticket}); var m = EClass._map.things.Find(t => t.uid == {f}); '
+                          'return (((TraitTicketFurniture)k.trait).GetPrice(m) * m.Num).ToString();'))
+        bag0, tk0 = count(H, uid, furn), count(H, uid, tk)
+        awake(port)
+        log(f"{who} : {use_held(port, ticket, at=(x, z))}")
+        check(f"{who} : le meuble est dans son sac chez l'host ({bag0} -> {count(H, uid, furn)})", eventually(lambda: count(H, uid, furn) == bag0 + 1, timeout=10))
+        check(f"{who} : le ticket est depense, {price} (chez l'host {tk0} -> {count(H, uid, tk)})", eventually(lambda: count(H, uid, tk) == tk0 - price, timeout=10))
+        check(f"{who} : son propre jeu voit pareil (meuble {count(port, uid, furn)}, tickets {count(port, uid, tk)})",
+              eventually(lambda: count(port, uid, furn) == bag0 + 1 and count(port, uid, tk) == tk0 - price, timeout=10))
+        check(f"{who} : le meuble n'est plus sur la carte, ni chez l'host ni chez l'invite", eventually(lambda: not on_map(H) and not on_map(A), timeout=10))
+        ev(H, f'var c = {chara(H, uid)}; foreach (var t in c.things.Where(m => m.id == "{furn}" || m.id == "{tk}").ToList()) t.Destroy(); "ok"')
+
+
+def g34(ctx):
+    """seringue de gene (L9) : sur lui-meme, l'invite a l'effet (hallucination) et la seringue est consommee, comme l'host
+    (avant : aucun effet, seringue gardee)"""
+    syr = first_id("SyringeGene")
+    if not check(f"le jeu a une seringue de gene ({syr})", bool(syr)):
+        return
+    for who, key in both(ctx):
+        port, uid = ctx[key]
+        clear_conditions(uid)
+        s = give(ctx, key, syr, 3)
+        n0 = count(H, uid, syr)
+        awake(port)
+        log(f"{who} : {use_held(port, s)}")
+        hallu = lambda p: ev(p, f'{chara(p, uid)}.HasCondition<ConHallucination>().ToString()')  # noqa: E731
+        check(f"{who} : l'hallucination est chez l'host ({hallu(H)})", eventually(lambda: hallu(H) == "True", timeout=10))
+        check(f"{who} : et chez lui ({hallu(port)})", eventually(lambda: hallu(port) == "True", timeout=10))
+        check(f"{who} : une seringue de moins chez l'host ({n0} -> {count(H, uid, syr)})", eventually(lambda: count(H, uid, syr) == n0 - 1, timeout=10))
+        check(f"{who} : et chez lui ({count(port, uid, syr)})", eventually(lambda: count(port, uid, syr) == n0 - 1, timeout=10))
+        clear_conditions(uid)
+        ev(H, f'var c = {chara(H, uid)}; foreach (var t in c.things.Where(m => m.id == "{syr}").ToList()) t.Destroy(); "ok"')
+
+
+def g35(ctx):
+    """puits (L4) : quand l'invite boit, le puits perd une charge chez l'host, comme quand l'host boit
+    (avant : il ne se vidait jamais). Le puits sacre (compteur du monde, `player.holyWell`) n'est pas joue"""
+    well = first_id("Well")
+    if not check(f"le jeu a un puits ({well})", bool(well)):
+        return
+    for who, key in both(ctx):
+        port, uid = ctx[key]
+        clear_conditions(uid)
+        w, x, z = (int(v) for v in ev(H, f'var t = ThingGen.Create("{well}"); t.c_charges = 5; t.SetInt(26, 0); '
+                                         f'EClass._zone.AddCard(t, {chara(H, uid)}.pos.GetNearestPoint(false, false, false, true)).Install(); '
+                                         'return t.uid + "," + t.pos.x + "," + t.pos.z;').split(","))
+        charges = lambda p: int(ev(p, f'var t = EClass._map.things.Find(m => m.uid == {w}); return t == null ? "-99" : t.c_charges.ToString();'))  # noqa: E731
+        eventually(lambda: charges(port) == 5, timeout=10)
+        awake(port)
+        drink = use_menu(port, (x, z), 'i.act is DynamicAct d && d.id == "actDrink"')
+        log(f"{who} : {drink}")
+        check(f"{who} boit : le puits perd une charge chez l'host (5 -> {charges(H)})", eventually(lambda: charges(H) == 4, timeout=10))
+        check(f"{who} : son jeu voit le meme puits ({charges(port)})", eventually(lambda: charges(port) == 4, timeout=10))
+        clear_conditions(uid)
+        ev(H, f'var t = EClass._map.things.Find(m => m.uid == {w}); if (t != null) t.Destroy(); "ok"')
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--only")
@@ -843,9 +938,9 @@ def main():
 
     ctx = {"a": (A, state(A)["pc"]["uid"]), "h": (H, state(H)["pc"]["uid"])}
     # G8 en dernier : l'invite y quitte la carte
-    steps = [g5, g3, g2, g11, g1, g4, g6, g7, g9, g10, g12, g14, g15, g16, g19, g21, g23, g24, g25, g30, g31, g32, g8]
+    steps = [g5, g3, g2, g11, g1, g4, g6, g7, g9, g10, g12, g14, g15, g16, g19, g21, g23, g24, g25, g30, g31, g32, g33, g34, g35, g8]
     if a.only:
-        steps = [s for s in (g1, g2, g3, g4, g5, g6, g7, g9, g10, g11, g12, g14, g15, g16, g19, g21, g23, g24, g25, g30, g31, g32, g8)
+        steps = [s for s in (g1, g2, g3, g4, g5, g6, g7, g9, g10, g11, g12, g14, g15, g16, g19, g21, g23, g24, g25, g30, g31, g32, g33, g34, g35, g8)
                  if s.__name__ in a.only.split(",")]
     for step in steps:
         log(f"--- {step.__name__.upper()} : {step.__doc__}")
