@@ -114,7 +114,10 @@ public class CardOnUseDelta : ElinDelta
         return type == typeof(TraitParcel) || type == typeof(TraitGiftPack) || type == typeof(TraitPlamoBox) ||
                type == typeof(TraitGachaBall) || type == typeof(TraitGiftNewYear) || type == typeof(TraitGiftJure) ||
                // the machine god's gives a window to choose from: not here
-               (type == typeof(TraitGodStatue) && ((TraitGodStatue)trait).Religion.id != "machine");
+               (type == typeof(TraitGodStatue) && ((TraitGodStatue)trait).Religion.id != "machine") ||
+               // a shrine blesses "the player" and its party, or gives it a recipe: on the host that was the
+               // host, and every game drew a recipe of its own. The two that open a window to choose from: not here
+               (type == typeof(TraitShrine) && ((TraitShrine)trait).Shrine.id is not ("material" or "armor"));
     }
 
     private void Relay(ElinNetBase net)
