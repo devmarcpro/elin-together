@@ -125,7 +125,15 @@ public class CardActReplayDelta : ElinDelta
 
         var item = plan.list.Find(i => i.tc == target && i.act.ID == Id) ??
                    ((uint)Index < (uint)plan.list.Count && plan.list[Index].tc == target ? plan.list[Index] : null);
-        item?.act.Perform();
+        // a well's wish is the player's own (its key, its once-a-day flag, its dialog): never rolled here with the
+        // host's, the client's game rolls it, see CardActReplayEvent
+        var wished = EClass.player.wellWished;
+        EClass.player.wellWished = true;
+        try {
+            item?.act.Perform();
+        } finally {
+            EClass.player.wellWished = wished;
+        }
 
         // a well sets its charges directly, nothing else sends them (the holy one counts in the host's player)
         if (card.trait is TraitWell { IsHoly: false }) {

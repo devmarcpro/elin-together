@@ -77,6 +77,18 @@ internal static class CardActReplayEvent
             Leashed = (trait is TraitLeash && item.tc is Chara companion) ? !companion.isLeashed : null,
         });
 
+        // the wish of a well: the host never rolls it for another player, this game does, with its own key and
+        // flag, at the game's odds (4/5 x 4/5 x 3/4 x 1/10)
+        // ponytail: one roll on top of what the host draws for this drink, not instead of it
+        if (trait is TraitWell { polluted: false, Charges: > 0 } && !EClass.player.wellWished && EClass.rnd(21) == 0) {
+            if (EClass.player.CountKeyItem("well_wish") > 0) {
+                EClass.player.ModKeyItem("well_wish", -1);
+                ActEffect.Proc(EffectId.Wish, EClass.pc, null,
+                    50 + EClass.player.CountKeyItem("well_enhance") * 50 + EClass.player.flags.fishStolen * 50);
+                EClass.player.wellWished = true;
+            }
+        }
+
         // the scope opens its window and the leash flips its bit here, where the player is: the request only keeps the
         // host's part in step. For the others the host does it all, and ends the turn as the lambda did
         if (trait is TraitLeash or TraitStethoscope) {
