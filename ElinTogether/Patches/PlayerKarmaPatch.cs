@@ -1,4 +1,5 @@
 using ElinTogether.Helper;
+using ElinTogether.Models;
 using ElinTogether.Net;
 using HarmonyLib;
 
@@ -12,6 +13,7 @@ namespace ElinTogether.Patches;
 internal static class PlayerKarmaPatch
 {
     private static Chara? _combatSubject;
+    private static (Chara? Dead, Card? Killer) _lastKill;
 
     private static ElinNetHost? Host =>
         PersonalQuests.Enabled && NetSession.Instance.Connection is ElinNetHost { ActiveRemoteCharas.Count: > 0 } host
@@ -21,10 +23,42 @@ internal static class PlayerKarmaPatch
     [HarmonyPrefix]
     [HarmonyPriority(Priority.First)]
     [HarmonyPatch(typeof(Chara), nameof(Chara.Die))]
-    internal static void OnDie(Card? origin, out Card? __state)
+    internal static void OnDie(Chara __instance, Card? origin, out Card? __state)
     {
         __state = PlayerKarma.Killer;
         PlayerKarma.Killer = origin;
+        _lastKill = (__instance, origin);
+    }
+
+    // the fighters' guild pays "the player" for a kill, right after the death is settled: on the host that was
+    // always the host. The bounty goes to the player behind the one who killed (itself, or the owner of the
+    // companion), told and paid from here, once. Council decision of 2026-10-04, see MODLOG
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(GuildFighter), nameof(GuildFighter.HasBounty))]
+    internal static void OnHasBounty(Chara c, ref bool __result)
+    {
+        if (!__result || !c.isDead || _lastKill.Dead != c) {
+            return;
+        }
+
+        switch (NetSession.Instance.Connection) {
+            // a kill settled elsewhere, played again here: paid from there
+            case ElinNetClient when ElinDelta.IsApplying:
+                __result = false;
+                break;
+            case ElinNetHost when PlayerKarma.PlayerBehind(_lastKill.Killer) is { IsRemotePlayer: true } player:
+                var gold = EClass.rndHalf(200 + EClass.curve(c.LV, 20, 15) * 20);
+                using (MsgRelayContext.RedirectTo(player)) {
+                    Msg.Say("bounty", c, gold.ToString());
+                }
+
+                using (ElinDelta.Simulate()) {
+                    player.ModCurrency(gold);
+                }
+
+                __result = false;
+                break;
+        }
     }
 
     [HarmonyFinalizer]
