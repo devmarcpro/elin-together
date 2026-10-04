@@ -1469,3 +1469,23 @@ Pièges de test notés ce jour-là :
 - Page des versions : 0.26.366, 0.26.362, 0.26.349, 0.26.337, 0.26.309 y sont encore, à retirer si l'utilisateur le veut.
 - Ensuite : branche `wip/keeper2` (dossier `ElinMods\_wt-keeper2`, pas compilé) : colis et chance du jour chez le
   gardien seulement, charisme du dompteur (`TameCharismaPatch`).
+
+### Suite du gardien, charisme du dompteur, dépôt de sauvegarde (2026-10-04, 14h45 → 15h30) — reprendre ici
+- L'utilisateur a demandé d'utiliser les skills **ponytail** (la plus petite solution qui marche) à partir de 13h.
+- `d7a83ab` : un invité dompte avec son propre charisme (le jeu lisait celui du joueur local, donc de l'host) :
+  `TameCharismaPatch`, `recruit_suite` R10 avec seul le charisme de l'invité monté, rouge puis vert.
+- `856d878` : seul le gardien envoie et livre les colis (`World.SendPackage`, `FactionBranch.ReceivePackages`),
+  et sa « chance du jour » est celle de tous (`DayDataDelta`, union 506). `world_suite` K1 rouge (deux chances
+  différentes) puis 11/11. Les boucles internes de `GameDate` sont laissées tant qu'un test ne montre pas un
+  doublon (ponytail).
+- Contrôle : world 11/11, time 14/14, sleep 34/34, quest 61/61, guest 218/218. `recruit_suite` 41/43 : la
+  capture à la boule à monstre a raté une fois (réussie les trois fois précédentes), à rejouer.
+- **Dépôt de sauvegarde** (commit « a save depot ») : en appliquant ponytail à l'idée de l'utilisateur, le
+  serveur « qui est juste la sauvegarde » devient un dossier partagé. `Helper/SaveDepot.cs`, réglage client
+  `DepotPath`, deux boutons dans l'onglet Lobby, le dossier se règle dans l'onglet Client Settings.
+  `depot_suite.py` D1–D6 : **11/11** (premier essai 2/4 : `EClass.pc` lève une exception à l'écran titre, il n'y
+  a pas de jeu). Détail et limites dans `PLAN_serveur_depot.md` et `DOCUMENTATION.md` section 6.
+- **Piège** : `EClass.pc` n'est pas nul sans jeu, il lève une exception. Tester `EClass.core.IsGameStarted`.
+- En cours : recruit, chara, leave, depot, travel sur ce build (`_shots/*-p10.log`), puis une version.
+- Le jeu de cette machine a le build de test ; la dernière version publiée est la 0.26.375.
+

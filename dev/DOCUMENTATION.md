@@ -34,6 +34,8 @@ joueurs**. Chacun va où il veut, avec ses compagnons, et le monde (quêtes, bas
 | Déplacements fluides d'un invité (option) | Un invité marche et agit sur l'horloge de son propre jeu, comme l'host : ses pas ne dépendent plus du réseau ni d'un host qui rame. L'accéléré est partagé : quand un joueur accélère, tous ceux de la carte accélèrent. | `move_suite.py` V1–V3, V6 |
 | Chacun marche comme en solo (option) | La durée d'un pas ne dépend plus de la vitesse des autres joueurs. En combat la vitesse compte toujours. | `move_suite.py` V4–V5 |
 | Personnage d'une sauvegarde solo (option, décochée par défaut) | À la connexion : « un personnage d'une de mes sauvegardes », puis la liste des dernières sauvegardes. Il arrive avec ses caractéristiques, son apparence, son équipement, son sac, son or, sa renommée et son karma. Pas ses compagnons, sa base, ses quêtes ni sa banque. La sauvegarde est seulement lue. Un seul exemplaire par sauvegarde et par joueur. | `import_suite.py` |
+| Dépôt de sauvegarde (réglage « Depot folder », onglet Client Settings) | Un dossier que tout le groupe peut atteindre (partagé ou synchronisé) garde le monde. Écran titre, onglet Lobby : « Take the world from the depot and host it ». Le premier arrivé héberge, les autres le rejoignent, chaque sauvegarde retourne au dépôt, et quand il part un autre peut reprendre. « Put this save in the depot » y dépose une sauvegarde. | `depot_suite.py` |
+| Une seule date, un seul monde (options) | Le temps passé par un joueur seul sur sa carte compte pour tous ; météo, impôts, salaires, colis et quêtes expirées n'arrivent qu'une fois. | `time_suite.py`, `world_suite.py` |
 | Compagnons d'un invité, toutes façons de recruter | Dialogue d'un habitant, boule à monstre, monture, animal ou esclave acheté : le compagnon est à l'invité et le suit. | `recruit_suite.py` |
 
 Limite de quêtes aléatoires : **5 par joueur** avec l'option « par joueur » (décisions du 2026-10-01 : quêtes
@@ -179,6 +181,7 @@ python _tools/bot.py --minutes 5 --seed 1
 | `import_suite.py` | rejoindre avec le personnage d'une sauvegarde (copie du monde de test) | 2 | ~3 min |
 | `time_suite.py` | une seule date pour le monde : invité seul ailleurs, host, saut de cinq heures, retour | 2 | ~2 min |
 | `world_suite.py` | le gardien du monde : même météo partout, fin de mois comptée une fois | 2 | ~2 min |
+| `depot_suite.py` | dépôt de sauvegarde : déposer, prendre, refus quand c'est pris, relais entre deux joueurs | 2 | ~2 min |
 | `compat_suite.py` | cohabitation avec d'autres mods (Somewhat Enhanced Display) | 2 | ~2 min |
 | `run_short.sh` | les suites courtes à la suite, chacune sur un monde neuf (pas `economy` ni `combat`, qui ouvrent leurs fenêtres : `run_all.sh`) | 2 | ~50 min |
 | `companion_suite.py`, `party_suite.py` | compagnons, limite d'alliés | 2 | ~10 min chacun |
@@ -259,9 +262,13 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
 - Compagnons d'un invité : l'achat est testé par ce que fait le « oui » du marchand, pas par son vrai dialogue.
   La laisse et la consigne « ne pas s'éloigner » regardent encore l'host. Domptage à la brosse : le jeu compare
   l'animal au charisme de `EClass.pc`, donc à celui de l'host même quand c'est un invité qui brosse.
-- Gardien du monde (`1b0f5c3`) : c'est l'host. Pas encore fait : les boucles à l'intérieur de `GameDate`
-  (aventuriers, colis datés, quêtes d'histoire ajoutées à date fixe), l'envoi des données du jour (chance,
-  journal) aux autres jeux, le passage du rôle à un autre joueur.
+- Gardien du monde (`1b0f5c3`, `856d878`) : c'est l'host. Pas fait : les boucles à l'intérieur de `GameDate`
+  (aventuriers, quêtes d'histoire ajoutées à date fixe), le passage du rôle à un autre joueur.
+- Dépôt de sauvegarde (`SaveDepot.cs`) : le verrou est une date de fichier (`host.txt`, rafraîchi chaque
+  minute, périmé après trois) : deux joueurs qui prennent le monde dans la même minute l'ont tous les deux, et
+  la dernière sauvegarde gagne. Quand celui qui héberge part pendant que d'autres jouent, ils retournent à
+  l'écran titre et l'un d'eux reprend le monde du dépôt (pas de relais sans coupure). Pas essayé sur un vrai
+  dossier synchronisé entre deux PC (délai de synchronisation), seulement entre deux fenêtres.
 - D'autres mods du joueur peuvent mal vivre une session (le jeu d'un client est remplacé à chaque carte) : une
   garde existe pour Somewhat Enhanced Display (`Patches/Compat/OtherModsCompat.cs`), à étendre au cas par cas.
 - Joué une seule soirée entre deux PC par Steam (2026-10-02) ; elle a trouvé le blocage de l'host après une nuit
@@ -290,7 +297,10 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
 - un faux réseau lent entre les fenêtres (délai, à-coups) : le banc local n'a aucun délai.
 
 **Ensuite :**
-7. Plan écrit le 2026-10-04 : `PLAN_serveur_depot.md` (six étapes, cinq décisions à prendre avec lui).
+7. Serveur : **le dépôt de sauvegarde existe** depuis le 2026-10-04 (dossier partagé, `depot_suite` 11/11). À voir
+   avec l'utilisateur : l'essayer entre deux PC ; puis, si ça lui convient, le relais sans coupure quand
+   l'hébergeur part, et un petit programme à la place du dossier (vrai verrou, pas besoin de dossier partagé).
+   Plan long d'origine : `PLAN_serveur_depot.md`.
    Temps du monde commun (à décider avec l'utilisateur), puis **serveur indépendant**. L'utilisateur a tranché
    le 2026-10-03 au soir : un serveur « dépôt de sauvegarde » (un petit programme sans Elin qui garde la
    sauvegarde et dit qui tient quelle carte ; toute la simulation est faite par les joueurs, un joueur par

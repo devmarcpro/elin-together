@@ -47,6 +47,17 @@ Jouer
                                                   equipement, son sac, son or, sa renommee et son karma ; pas
                                                   ses compagnons ni sa base. La sauvegarde n'est jamais modifiee.
 
+Le depot de sauvegarde (un monde qui ne depend de personne)
+----------------------------------------------------------
+Un dossier que tout le groupe peut atteindre (dossier partage, ou synchronise par un logiciel de partage de
+fichiers) garde le monde. Dans le jeu : bouton Elin Together, onglet "Client Settings", "Depot folder", et
+donner le chemin de ce dossier. Chaque joueur le regle une fois.
+- Pour y mettre un monde : charger sa partie, onglet "Lobby", "Put this save in the depot".
+- Pour jouer : a l'ecran titre, onglet "Lobby", "Take the world from the depot and host it", puis ouvrir la
+  session comme d'habitude. Les autres rejoignent. Chaque sauvegarde retourne au depot.
+- Si quelqu'un heberge deja, le bouton dit qui : il suffit de le rejoindre.
+- Quand celui qui heberge quitte, un autre peut prendre le monde a son tour.
+
 Revenir en arriere
 ------------------
 Double-cliquer sur Desinstaller.bat : retire cette version et reactive la version Workshop.

@@ -9,6 +9,18 @@ Reste de l'étape 2 : les boucles internes de `GameDate`, les données du jour, 
 doit voyager avec lui : météo, données du jour, journal de quêtes, colis en attente, coffres du monde, factures,
 niveau et expérience de la base, aventuriers).
 
+## Le raccourci pris le 2026-10-04 (fait, `depot_suite` 11/11)
+
+« Un serveur qui est juste la sauvegarde » peut être un **dossier partagé** : il garde le monde (`world/`) et un
+fichier qui dit qui héberge (`host.txt`). Le premier joueur qui arrive prend le monde et l'héberge avec le mod tel
+qu'il est, les autres le rejoignent, chaque sauvegarde retourne au dépôt, et quand il part un autre peut reprendre.
+Les joueurs simulent déjà leurs propres cartes. Code : `Helper/SaveDepot.cs` (~200 lignes), réglage « Depot
+folder ». Le temps commun et le gardien du monde (étapes 1 et 2 ci-dessous, faites) servent dans les deux cas.
+
+Ce que le raccourci ne donne pas, et que le plan long ci-dessous donnerait : continuer sans coupure quand celui qui
+héberge part pendant que d'autres jouent. **À décider avec l'utilisateur après un essai entre deux PC** : est-ce
+que ça suffit, ou faut-il le relais sans coupure (étapes 3 et 4), et un programme à la place du dossier (étape 5).
+
 ## L'idée
 
 Le serveur est un petit programme, **sans Elin**. Il garde la sauvegarde et dit qui tient quelle carte. Toute la
