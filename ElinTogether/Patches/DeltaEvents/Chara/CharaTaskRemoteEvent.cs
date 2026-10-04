@@ -168,6 +168,11 @@ internal static class CharaTaskRemoteEvent
             _ => FakeTask.Default,
         };
 
+        // the tool in hand must reach the others before the task that uses it (Card.Tool there is chara.held)
+        if (__instance.IsPC) {
+            NetProfileSynchronizationContext.Update();
+        }
+
         connection.Delta.AddRemote(new CharaTaskDelta {
             Owner = __instance,
             TaskArgs = args,
