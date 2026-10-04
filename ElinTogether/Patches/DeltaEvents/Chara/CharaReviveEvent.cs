@@ -61,6 +61,15 @@ internal static class CharaReviveEvent
         return false;
     }
 
+    // what dying costs a player is settled by the game that simulates the map (CharaReviveDelta): not again
+    // here, when its coming back is played in its own game
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(Chara), nameof(Chara.ApplyDeathPenalty))]
+    internal static bool OnApplyDeathPenalty()
+    {
+        return NetSession.Instance.Connection is not ElinNetClient || !ElinDelta.IsApplying;
+    }
+
     [HarmonyPostfix]
     [HarmonyPatch(typeof(Chara), nameof(Chara.Revive))]
     internal static void OnCharaReviveEnd(Chara __instance, bool __state)
