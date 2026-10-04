@@ -1867,3 +1867,10 @@ Pièges de test notés ce jour-là :
 - **Demandes de l'utilisateur pendant la session** : déplacer tout le dossier `ElinMods` sur `G:\` (C: est plein à
   93 %) ; « aucune différence entre host et invité, tout doit être seamless » ; travailler en boucle sans s'arrêter,
   autant d'agents que nécessaire, chercher sans cesse quoi améliorer.
+- **Dossier déplacé sur `G:\ElinMods` (2026-10-04, 23h45)**, à la demande de l'utilisateur (C: plein). Tout y est
+  (dépôt, `.claude`, `_decomp`, `_backup`, `_shots`, les autres mods), sauf `_lab` : les copies de test du jeu sont
+  des liens physiques vers le jeu Steam, ils ne traversent pas un disque ; `_lab` reste donc dans
+  `C:\Users\steamdeckwin\Documents\ElinMods\_lab` (il ne pèse rien) et `G:\ElinMods\_lab` y renvoie. L'ancien
+  chemin `C:\Users\steamdeckwin\Documents\ElinMods\<dossier>` est gardé comme raccourci (jonction) vers G: : les
+  deux chemins marchent. La mémoire de Claude a été copiée pour une session ouverte depuis `G:\ElinMods`. Vérifié :
+  `git status`, `dev/build.ps1`. C: 7,4 → 9,3 Go libres.
