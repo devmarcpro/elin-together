@@ -1459,3 +1459,13 @@ Pièges de test notés ce jour-là :
   instance 34/34, leave 15/15, transfer 11/11, death 13/13, sleep 34/34, guest 218/218, recruit 47/47, compat 7/7,
   import 27/27, time 14/14, world 10/10, move 18/18 (la mesure de référence de `move_suite` est reprise jusqu'à
   trois fois si elle est irrégulière : la première marche mesurée part parfois encore en rafale).
+
+### Version 0.26.375 publiée (2026-10-04, 14h45)
+- `make_release.ps1` sur `807d13d` : **mod 0.26.375**, 1 095 659 octets. Préversion `independance-0.26.375`, fichier
+  public identique (SHA-256 `0242d6cc…de1988`), copie `_release/ElinTogether-independance-0.26.375.zip`. Chargée
+  une fois en jeu (écran titre, 0 exception). Nouveau : une seule date pour le monde, gardien du monde (météo,
+  impôts, quêtes expirées une seule fois), brosse, marque de l'animal de Fiama, écran de choix une seule fois.
+- 24 suites sur 25 vertes sur ce code ; `trio_suite` (4 fenêtres) pas rejouée, voir plus haut.
+- Page des versions : 0.26.366, 0.26.362, 0.26.349, 0.26.337, 0.26.309 y sont encore, à retirer si l'utilisateur le veut.
+- Ensuite : branche `wip/keeper2` (dossier `ElinMods\_wt-keeper2`, pas compilé) : colis et chance du jour chez le
+  gardien seulement, charisme du dompteur (`TameCharismaPatch`).
