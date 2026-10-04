@@ -21,6 +21,8 @@ internal partial class ElinNetClient : ElinNetBase
     /// </summary>
     public bool IsLocalConnection { get; private set; }
 
+    public bool IsDirectConnection { get; private set; }
+
     protected override void Update()
     {
         base.Update();
@@ -65,6 +67,18 @@ internal partial class ElinNetClient : ElinNetBase
         Stop();
         IsLocalConnection = true;
         Socket.Connect(port);
+    }
+
+    /// <summary>
+    ///     To a server by its address ("host:port"), as one joins a Minecraft server. Like a local connection
+    ///     it does not go through the Steam lobby; players still reach each other's maps through Steam
+    /// </summary>
+    public void ConnectAddress(string address)
+    {
+        Stop();
+        IsLocalConnection = false;
+        IsDirectConnection = true;
+        Socket.Connect(address);
     }
 
     public void ConnectSteamUser(UserData steamId)

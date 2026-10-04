@@ -28,6 +28,20 @@ internal class TabLobbyBrowser : TabEmpBase
                 });
             }
 
+            // a server: a game nobody plays, started with -empserver, joined by its address
+            btnGroup.Button("emp_ui_join_address".lang(), () => {
+                var last = EmpConfig.Client.ServerAddress;
+                Dialog.InputName("emp_ui_join_address_ask", last.Value.Length > 0 ? last.Value : "127.0.0.1:55556", (cancel, text) => {
+                    if (cancel || text.Trim().Length == 0) {
+                        return;
+                    }
+
+                    last.Value = text.Trim();
+                    LayerElinTogether.Instance?.Close();
+                    NetSession.Instance.InitializeComponent<ElinNetClient>().ConnectAddress(last.Value);
+                });
+            });
+
             btnGroup.Header("emp_ui_unclaimed_zone");
             return;
         }

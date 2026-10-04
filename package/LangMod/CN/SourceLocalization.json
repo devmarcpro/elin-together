@@ -191,5 +191,7 @@
     "LangGeneral.emp_ui_depot_fail.text": "无法读写仓库文件夹。",
     "LangGeneral.emp_ui_depot_put_done.text": "这个世界已放入仓库：小组中的任何玩家都可以取出并主持。",
     "LangGeneral.emp_ui_depot_folder.text": "仓库文件夹：{0}",
-    "LangGeneral.emp_ui_depot_folder_ask.text": "存档仓库文件夹（小组所有人都能访问的文件夹；留空则不使用）"
+    "LangGeneral.emp_ui_depot_folder_ask.text": "存档仓库文件夹（小组所有人都能访问的文件夹；留空则不使用）",
+    "LangGeneral.emp_ui_join_address.text": "按地址加入",
+    "LangGeneral.emp_ui_join_address_ask.text": "服务器地址（主机:端口，端口为 55556）"
 }

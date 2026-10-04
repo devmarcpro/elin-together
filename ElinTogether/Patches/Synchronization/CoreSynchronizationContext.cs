@@ -28,6 +28,7 @@ internal class CoreSynchronizationContext : SynchronizationContext
     {
         PlayerTrade.WatchSession();
         SaveDepot.Update();
+        EmpServer.Update();
 
         if (NetSession.Instance.Connection is not { } connection || !core.IsGameStarted) {
             return;

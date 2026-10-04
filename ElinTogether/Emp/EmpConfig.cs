@@ -54,6 +54,13 @@ internal partial class EmpConfig
             "The first player takes the world from it and hosts, every save goes back to it, the next player can take over\n" +
             "存档仓库文件夹：小组所有玩家都能访问的文件夹（共享或同步），用于保存世界。留空：不使用");
 
+        Client.ServerAddress = config.Bind(
+            "Client",
+            "ServerAddress",
+            "",
+            "Address of the server joined last with \"Join by address\", as host:port (the port is 55556)\n" +
+            "上次通过“按地址加入”连接的服务器地址，格式为 主机:端口（端口为 55556）");
+
         Client.PingKeybind = config.Bind(
             "Client",
             "PingKeybind",
@@ -258,6 +265,7 @@ internal partial class EmpConfig
     {
         internal static ConfigEntry<KeyCode> PingKeybind { get; set; } = null!;
         internal static ConfigEntry<string> DepotPath { get; set; } = null!;
+        internal static ConfigEntry<string> ServerAddress { get; set; } = null!;
     }
 
     internal static class Server
