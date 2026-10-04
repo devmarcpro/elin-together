@@ -29,7 +29,7 @@ from bot import choices, click  # noqa: E402
 from mp_test import log, shot, state  # noqa: E402
 from quest_suite import fame, in_log, things_at_pc  # noqa: E402
 from travel_suite import (HOME, RESULTS, both_joined, check, client_settled, dismiss_dialogs, ev, eventually,  # noqa: E402
-                          log_has, scan_logs, wait, zone_uid)
+                          log_has, marker, scan_logs, wait, zone_uid)
 
 H, A = 27551, 27552
 
@@ -212,11 +212,41 @@ def t5(ctx):
                 click(A, choices(A)[button])
             check(f"l'host lit « {line} »", eventually(lambda: log_has(H, line), timeout=10))
         check("l'invite est reste en ville", client_settled(A, HOME, True)() and box() == "")
+        # ce que l'invite fait en ville pendant ce temps ne doit pas etre perdu au retour de l'host (la ville lui est reprise)
+        seau, pos = marker(A)
         host_leaves()
+        check(cond=eventually(lambda: ev(H, f'(EClass._map.things.Find(t => t.uid == {seau}) != null).ToString()') == "True", timeout=15),
+              label=f"le seau pose en ville par l'invite pendant l'absence de l'host y est encore chez l'host ({pos})")
         check("l'host ressort, les deux se retrouvent en ville", eventually(lambda: not in_log(H, uid), timeout=15))
 
 
-TESTS = {"t1": t1, "t2": t2, "t3": t3, "t4": t4, "t5": t5}
+def t6(ctx):
+    """recolte : l'invite qui ressort seul avec des recoltes non livrees est fouille (la moitie reprise, 1 de karma), comme en solo
+    Ce que le banc ne joue pas comme un joueur : les recoltes « de la quete » sont mises dans son sac par l'host (marque 115)"""
+    uid, zuid = host_enters("QuestHarvest")
+    if not check("l'invite voit la boite", asked(ctx["host"])):
+        host_leaves()
+        return
+    follow(zuid)
+    a = state(A)["pc"]["uid"]
+    ev(H, f'var c = EClass._map.charas.Find(x => x.uid == {a}); for (var i = 0; i < 30; i++) {{ var t = ThingGen.Create("bucket"); '
+          't.SetBool(115, true); c.AddThing(t, false); } "ok"')
+    buckets = lambda: int(ev(A, 'EClass.pc.things.Count(t => t.id == "bucket").ToString()'))  # noqa: E731
+    check(cond=eventually(lambda: buckets() >= 30, timeout=15), label=f"l'invite a 30 recoltes non livrees dans son sac ({buckets()})")
+    n0, k0, kh = buckets(), int(ev(A, "EClass.player.karma.ToString()")), int(ev(H, "EClass.player.karma.ToString()"))
+    ev(A, 'EClass.pc.MoveZone(EClass._zone.ParentZone); "ok"')
+    check("l'invite arrive seul en ville", eventually(client_settled(A, HOME, True), timeout=120))
+    time.sleep(4)
+    dismiss_dialogs(A)
+    check(f"une partie de ses recoltes a ete reprise, pas tout ({n0} -> {buckets()})", n0 - 30 < buckets() < n0)
+    k1 = int(ev(A, "EClass.player.karma.ToString()"))
+    check(f"il perd 1 de karma ({k0} -> {k1}), pas l'host ({kh} -> {ev(H, 'EClass.player.karma.ToString()')})",
+          k1 == k0 - 1 and int(ev(H, "EClass.player.karma.ToString()")) == kh)
+    host_leaves()
+    ev(A, 'foreach (var t in EClass.pc.things.Where(t => t.id == "bucket").ToList()) t.Destroy(); "ok"')
+
+
+TESTS = {"t1": t1, "t2": t2, "t3": t3, "t4": t4, "t5": t5, "t6": t6}
 
 
 def main():
