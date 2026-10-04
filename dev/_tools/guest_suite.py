@@ -834,6 +834,381 @@ def g30(ctx):
         check(f"{who} : des munitions ont quitte son sac ({count(H, uid, aid)} sur 50)", count(H, uid, aid) < 50)
 
 
+def use_menu(port, at, pick):
+    """Clic gauche sur une case, comme un joueur : le jeu construit la liste des actions de ce qui s'y trouve
+    (ActPlan._Update), on prend la premiere qui verifie `pick` (condition C# sur `i`), on l'execute."""
+    return ev(port,
+              'var p = new ActPlan { input = ActInput.LeftMouse }; var pt = new PointTarget(); '
+              f'pt.pos.Set(new Point({at[0]}, {at[1]})); p._Update(pt); '
+              'var offered = string.Join(",", p.list.Select(i => i.act is DynamicAct d ? d.id : i.act.GetType().Name)); '
+              f'var item = p.list.FirstOrDefault(i => {pick}); if (item == null) return "action absente, proposees : " + offered; '
+              'item.Perform(); return "ok " + (item.act is DynamicAct x ? x.id : item.act.GetType().Name) + " parmi " + offered;')
+
+
+def clear_conditions(uid):
+    """Retire toutes les conditions de ce personnage, dans le jeu de l'host et dans celui de l'invite (un puits peut
+    endormir, aveugler ; une seringue donne des hallucinations) : la suite n'a pas a les subir."""
+    for p in (H, A):
+        ev(p, f'var c = {chara(p, uid)}; if (c != null) foreach (var k in c.conditions.ToList()) k.Kill(true); "ok"')
+
+
+def g33(ctx):
+    """ticket de meuble (L5) : le meuble qu'un invite achete est dans son sac, le ticket est depense, pour lui comme pour l'host,
+    et chaque jeu voit la meme chose (avant : meuble gratuit, ticket garde)"""
+    tk = first_id("TicketFurniture")
+    # un meuble que le jeu vend contre un ticket, bon marche (prix du ticket = categorie x (prix / 500 + 1))
+    furn = ev(H, 'foreach (var r in EClass.sources.things.rows.Where(x => x.value > 0 && EClass.sources.categories.map.ContainsKey(x.category) '
+                 '&& EClass.sources.categories.map[x.category].ticket > 0).Take(80)) { var t = ThingGen.Create(r.id); '
+                 'var ok = t.trait.CanBeHeld && t.trait.CanBeStolen && !t.trait.IsDoor && !(t.trait is TraitNewZone) && !t.isMasked && t.GetPrice() < 500; '
+                 't.Destroy(); if (ok) return r.id; } return "";')
+    if not check(f"le jeu a un ticket de meuble et un meuble a acheter ({tk}, {furn})", bool(tk and furn)):
+        return
+    for who, key in both(ctx):
+        port, uid = ctx[key]
+        close_layers()
+        ticket = give(ctx, key, tk, 50, extra="t.refVal = EClass._zone.GetTopZone().uid;")
+        x, z = (int(v) for v in ev(H, f'var p = {chara(H, uid)}.pos.GetNearestPoint(false, false, false, true); return p.x + "," + p.z;').split(","))
+        f = ev(H, f'var t = ThingGen.Create("{furn}"); EClass._zone.AddCard(t, new Point({x}, {z})).Install(); t.isNPCProperty = true; return t.uid.ToString();')
+        on_map = lambda p: ev(p, f'(EClass._map.things.Find(t => t.uid == {f}) != null).ToString()') == "True"  # noqa: E731
+        eventually(lambda: on_map(port), timeout=10)
+        price = int(ev(H, f'var k = {chara(H, uid)}.things.Find(t => t.uid == {ticket}); var m = EClass._map.things.Find(t => t.uid == {f}); '
+                          'return (((TraitTicketFurniture)k.trait).GetPrice(m) * m.Num).ToString();'))
+        bag0, tk0 = count(H, uid, furn), count(H, uid, tk)
+        awake(port)
+        log(f"{who} : {use_held(port, ticket, at=(x, z))}")
+        check(cond=eventually(lambda: count(H, uid, furn) == bag0 + 1, timeout=10), label=f"{who} : le meuble est dans son sac chez l'host ({bag0} -> {count(H, uid, furn)})")
+        check(cond=eventually(lambda: count(H, uid, tk) == tk0 - price, timeout=10), label=f"{who} : le ticket est depense, {price} (chez l'host {tk0} -> {count(H, uid, tk)})")
+        check(f"{who} : son propre jeu voit pareil (meuble {count(port, uid, furn)}, tickets {count(port, uid, tk)})",
+              eventually(lambda: count(port, uid, furn) == bag0 + 1 and count(port, uid, tk) == tk0 - price, timeout=10))
+        check(cond=eventually(lambda: not on_map(H) and not on_map(A), timeout=10), label=f"{who} : le meuble n'est plus sur la carte, ni chez l'host ni chez l'invite")
+        ev(H, f'var c = {chara(H, uid)}; foreach (var t in c.things.Where(m => m.id == "{furn}" || m.id == "{tk}").ToList()) t.Destroy(); "ok"')
+
+
+def g34(ctx):
+    """seringue de gene (L9) : sur lui-meme, l'invite a l'effet (hallucination) et la seringue est consommee, comme l'host
+    (avant : aucun effet, seringue gardee)"""
+    syr = first_id("SyringeGene")
+    if not check(f"le jeu a une seringue de gene ({syr})", bool(syr)):
+        return
+    for who, key in both(ctx):
+        port, uid = ctx[key]
+        clear_conditions(uid)
+        s = give(ctx, key, syr, 3)
+        n0 = count(H, uid, syr)
+        awake(port)
+        log(f"{who} : {use_held(port, s)}")
+        hallu = lambda p: ev(p, f'{chara(p, uid)}.HasCondition<ConHallucination>().ToString()')  # noqa: E731
+        check(cond=eventually(lambda: hallu(H) == "True", timeout=10), label=f"{who} : l'hallucination est chez l'host ({hallu(H)})")
+        check(cond=eventually(lambda: hallu(port) == "True", timeout=10), label=f"{who} : et chez lui ({hallu(port)})")
+        check(cond=eventually(lambda: count(H, uid, syr) == n0 - 1, timeout=10), label=f"{who} : une seringue de moins chez l'host ({n0} -> {count(H, uid, syr)})")
+        check(cond=eventually(lambda: count(port, uid, syr) == n0 - 1, timeout=10), label=f"{who} : et chez lui ({count(port, uid, syr)})")
+        clear_conditions(uid)
+        ev(H, f'var c = {chara(H, uid)}; foreach (var t in c.things.Where(m => m.id == "{syr}").ToList()) t.Destroy(); "ok"')
+
+
+def g35(ctx):
+    """puits (L4) : quand l'invite boit, le puits perd une charge chez l'host, comme quand l'host boit
+    (avant : il ne se vidait jamais). Le puits sacre (compteur du monde, `player.holyWell`) n'est pas joue"""
+    well = first_id("Well")
+    if not check(f"le jeu a un puits ({well})", bool(well)):
+        return
+    for who, key in both(ctx):
+        port, uid = ctx[key]
+        clear_conditions(uid)
+        w, x, z = (int(v) for v in ev(H, f'var t = ThingGen.Create("{well}"); t.c_charges = 5; t.SetInt(26, 0); '
+                                         f'EClass._zone.AddCard(t, {chara(H, uid)}.pos.GetNearestPoint(false, false, false, true)).Install(); '
+                                         'return t.uid + "," + t.pos.x + "," + t.pos.z;').split(","))
+        charges = lambda p: int(ev(p, f'var t = EClass._map.things.Find(m => m.uid == {w}); return t == null ? "-99" : t.c_charges.ToString();'))  # noqa: E731
+        eventually(lambda: charges(port) == 5, timeout=10)
+        awake(port)
+        drink = use_menu(port, (x, z), 'i.act is DynamicAct d && d.id == "actDrink"')
+        log(f"{who} : {drink}")
+        check(cond=eventually(lambda: charges(H) == 4, timeout=10), label=f"{who} boit : le puits perd une charge chez l'host (5 -> {charges(H)})")
+        check(cond=eventually(lambda: charges(port) == 4, timeout=10), label=f"{who} : son jeu voit le meme puits ({charges(port)})")
+        clear_conditions(uid)
+        ev(H, f'var t = EClass._map.things.Find(m => m.uid == {w}); if (t != null) t.Destroy(); "ok"')
+
+
+def free_next_to(port, uid, dist=1):
+    """Une case libre a cote de ce personnage, vue par ce jeu : "x,z" (recopie de council_suite, qui importe ce fichier)."""
+    return ev(port, f'var c = {chara(port, uid)}; for (var dx = -{dist}; dx <= {dist}; dx++) for (var dz = -{dist}; dz <= {dist}; dz++) {{ '
+                    f'if (System.Math.Max(System.Math.Abs(dx), System.Math.Abs(dz)) != {dist}) continue; var p = new Point(c.pos.x + dx, c.pos.z + dz); '
+                    'if (p.IsValid && p.IsInBounds && !p.IsBlocked && !p.HasChara && !p.HasThing && !p.cell.IsTopWaterAndNoSnow) return p.x + "," + p.z; } return "";')
+
+
+def spawn(uid, cid):
+    """L'host fait apparaitre ce personnage, paralyse, a cote de ce joueur ; renvoie son numero (0 : pas de place).
+    (recopie de equal2_suite, qui importe ce fichier)"""
+    spot = ""
+    for dist in (1, 2, 3):
+        spot = free_next_to(H, uid, dist)
+        if spot:
+            break
+    if not spot:
+        return 0
+    x, z = spot.split(",")
+    return int(ev(H, f'var m = CharaGen.Create("{cid}"); m.c_originalHostility = Hostility.Neutral; m.hostility = Hostility.Neutral; '
+                     f'EClass._zone.AddCard(m, new Point({x}, {z})); m.hp = m.MaxHP; m.AddCondition<ConParalyze>(5000, true); '
+                     'return m.uid.ToString();'))
+
+
+def seen(port, m):
+    return ev(port, f'(EClass._map.charas.Find(x => x.uid == {m}) != null).ToString()') == "True"
+
+
+def tame(ctx, cid, key="a"):
+    """Un animal apparait a cote de ce joueur (l'invite par defaut) et il le recrute, dans son propre jeu. Renvoie le
+    numero de l'animal (0 : echec). Le banc le paralyse a l'apparition : l'appelant retire les conditions."""
+    port, uid = ctx[key]
+    m = spawn(uid, cid)
+    if not m or not eventually(lambda: seen(port, m), timeout=15):
+        return 0
+    ev(port, f'EClass._map.charas.Find(x => x.uid == {m}).MakeAlly(false); "ok"')
+    # chez l'host, le compagnon d'un invite porte la marque de son proprietaire ; celui de l'host n'en a pas
+    owner = f'c.GetInt("emp_owner") == {uid}' if key == "a" else "true"
+    owned = eventually(lambda: ev(H, f'var c = EClass._map.charas.Find(x => x.uid == {m}); '
+                                     f'return (c != null && c.party != null && {owner}).ToString();') == "True", timeout=15)
+    return m if owned else 0
+
+
+def drop(uids):
+    for m in uids:
+        ev(H, f'var m = EClass._map.charas.Find(x => x.uid == {m}); if (m != null) m.Destroy(); "ok"')
+
+
+def cell(port, uid):
+    """La case de ce personnage, vue par ce jeu : "x,z"."""
+    return ev(port, f'var c = {chara(port, uid)}; return c == null ? "absent" : c.pos.x + "," + c.pos.z;')
+
+
+def gap(port, a, b):
+    """Distance entre deux personnages, vue par ce jeu (99 : l'un des deux est absent)."""
+    return int(ev(port, f'var a = {chara(port, a)}; var b = {chara(port, b)}; return (a == null || b == null ? 99 : a.Dist(b)).ToString();'))
+
+
+def walk(port, avoid, n=5, tries=25):
+    """Le joueur marche, pas a pas comme au clavier (TryMoveTowards, comme companion_suite.walk_away), d'au moins n cases
+    vers le cote le plus eloigne de la case `avoid` (x, z). Renvoie les cases parcourues."""
+    ax, az = avoid
+    target = ev(port, (
+        'var me = EClass.pc.pos; var best = ""; var far = -1; '
+        'for (var k = 0; k < 4; k++) { var dx = k == 0 ? 6 : (k == 1 ? -6 : 0); var dz = k == 2 ? 6 : (k == 3 ? -6 : 0); '
+        'var p = new Point(me.x + dx, me.z + dz); if (!p.IsValid || !p.IsInBounds) continue; '
+        'p = p.GetNearestPoint(allowChara: false); if (p == null || p.Distance(me) < 5) continue; '
+        'var d = System.Math.Max(System.Math.Abs(p.x - AX), System.Math.Abs(p.z - AZ)); '
+        'if (d > far) { far = d; best = p.x + "," + p.z; } } return best;').replace("AX", str(ax)).replace("AZ", str(az)))
+    if not target:
+        return 0
+    x, z = (int(v) for v in target.split(","))
+    sx, sz = ev(port, 'return EClass.pc.pos.x + "," + EClass.pc.pos.z;').split(",")
+    awake(port)
+    moved = 0
+    for _ in range(tries):
+        ev(port, f'EClass.pc.TryMoveTowards(new Point({x}, {z})); "ok"')
+        time.sleep(0.4)
+        moved = int(ev(port, f'return EClass.pc.pos.Distance(new Point({sx}, {sz})).ToString();'))
+        if moved >= n:
+            break
+    return moved
+
+
+def g36(ctx):
+    """laisse (L10) : l'invite met la laisse a son compagnon, marche, le compagnon le suit (une seule position chez l'host et
+    chez l'invite, pas tire deux fois), il ne suit pas l'host quand l'host marche, « detacher » remet la cle emp_leash a 0 ;
+    meme geste par l'host avec un compagnon a lui, pour comparer
+    Ce que le banc ne joue pas comme un joueur : le clic est l'entree du plan d'actions executee (use_held), pas la souris ;
+    la marche est TryMoveTowards case par case (ce que fait aussi la marche au clavier), pas un clic sur la carte"""
+    leash = first_id("Leash")
+    if not check(f"le jeu a une laisse ({leash})", bool(leash)):
+        return
+    h_uid = ctx["h"][1]
+    for who, key in both(ctx):
+        port, uid = ctx[key]
+        m, item = 0, 0
+        try:
+            close_layers()
+            m = tame(ctx, "cat", key)
+            if not check(f"{who} a recrute un chat ({m})", m):
+                continue
+            clear_conditions(m)
+            item = give(ctx, key, leash)
+            lkey = lambda p: int(ev(p, f'var c = {chara(p, m)}; return c == null ? "-1" : c.GetInt("emp_leash").ToString();'))  # noqa: E731
+            bit = lambda p: ev(p, f'var c = {chara(p, m)}; return c == null ? "absent" : c.isLeashed.ToString();')  # noqa: E731
+            x, z = cell(port, m).split(",")
+            awake(port)
+            pick = 'i.act is DynamicAct d && d.id == "actLeash" && i.tc != null && i.tc.uid == ' + str(m)
+            log(f"{who} : {use_held(port, item, at=(x, z), pick=pick)}")
+            check(cond=eventually(lambda: bit(port) == "True", timeout=10), label=f"{who} : le chat est tenu en laisse dans son jeu ({bit(port)})")
+            if key == "a":
+                check(cond=eventually(lambda: lkey(H) == 1, timeout=10), label=f"{who} : l'host a la cle emp_leash du chat a 1 ({lkey(H)})")
+                check(f"{who} : le bit du jeu reste a faux chez l'host, sinon ses pas tireraient le chat ({bit(H)})", bit(H) == "False")
+            else:
+                check(f"{who} : le bit du jeu est a vrai chez l'host ({bit(H)}), pas de cle emp_leash ({lkey(H)})", bit(H) == "True" and lkey(H) == 0)
+
+            moved = walk(port, avoid=(int(x), int(z)))
+            check(f"{who} a marche d'au moins 5 cases ({moved})", moved >= 5)
+            check(cond=eventually(lambda: gap(H, m, uid) <= 2, timeout=10), label=f"{who} a marche de {moved} cases : le chat le suit, vu par l'host (distance {gap(H, m, uid)})")
+            check(cond=eventually(lambda: cell(H, m) == cell(A, m), timeout=10), label=f"{who} : le chat est a la meme case chez l'host ({cell(H, m)}) et chez l'invite ({cell(A, m)})")
+            if key == "a":
+                before = gap(H, m, h_uid)
+                walk(H, avoid=tuple(int(v) for v in cell(H, m).split(",")))
+                time.sleep(1)
+                after = gap(H, m, h_uid)
+                check(f"l'host marche : le chat de l'invite ne le suit pas (distance {before} -> {after})", after > 2)
+
+            eventually(lambda: gap(H, m, uid) <= 1, timeout=5)
+            cx, cz = cell(port, m).split(",")
+            awake(port)
+            pick = 'i.act is DynamicAct d && d.id == "actUnleash" && i.tc != null && i.tc.uid == ' + str(m)
+            log(f"{who} detache : {use_held(port, item, at=(cx, cz), pick=pick)}")
+            check(cond=eventually(lambda: bit(port) == "False", timeout=10), label=f"{who} : le chat n'est plus en laisse dans son jeu ({bit(port)})")
+            check(cond=eventually(lambda: lkey(H) == 0 and bit(H) == "False", timeout=10), label=f"{who} : chez l'host, emp_leash est revenue a 0 ({lkey(H)}) et le bit est a faux ({bit(H)})")
+        finally:
+            drop([m])
+            ev(H, f'foreach (var t in {chara(H, uid)}.things.Where(k => k.id == "{leash}").ToList()) t.Destroy(); "ok"')
+
+
+def g37(ctx):
+    """stethoscope (L10) : sur son compagnon, les charges baissent de 1 chez l'host et chez l'invite, la fenetre du compagnon
+    s'ouvre chez celui qui s'en sert et chez lui seul, comme l'host
+    Ce que le banc ne joue pas comme un joueur : le clic est l'entree du plan d'actions executee (use_held), pas la souris ;
+    la fenetre est fermee d'un coup (close_layers), pas par la croix"""
+    scope = first_id("Stethoscope")
+    if not check(f"le jeu a un stethoscope ({scope})", bool(scope)):
+        return
+    for who, key in both(ctx):
+        port, uid = ctx[key]
+        other = H if port == A else A
+        m = 0
+        try:
+            close_layers()
+            m = tame(ctx, "cat", key)
+            if not check(f"{who} a recrute un chat ({m})", m):
+                continue
+            clear_conditions(m)
+            s = give(ctx, key, scope, extra="t.c_charges = 5;")
+            charges = lambda p: int(ev(p, f'var t = {chara(p, uid)}.things.Find(x => x.uid == {s}); return t == null ? "-99" : t.c_charges.ToString();'))  # noqa: E731
+            if not check(f"{who} : le stethoscope a 5 charges chez l'host ({charges(H)}) et chez lui ({charges(port)})",
+                         eventually(lambda: charges(H) == 5 and charges(port) == 5, timeout=10)):
+                continue
+            x, z = cell(port, m).split(",")
+            awake(port)
+            pick = 'i.act is DynamicAct d && d.id == "actInvestigate" && i.tc != null && i.tc.uid == ' + str(m)
+            log(f"{who} : {use_held(port, s, at=(x, z), pick=pick)}")
+            check(cond=eventually(lambda: charges(H) == 4, timeout=10), label=f"{who} : une charge de moins chez l'host (5 -> {charges(H)})")
+            check(cond=eventually(lambda: charges(port) == 4, timeout=10), label=f"{who} : et chez lui ({charges(port)})")
+            mine = lambda: ev(port, LAYERS)  # noqa: E731
+            check(cond=eventually(lambda: "LayerChara" in mine().split(","), timeout=10), label=f"{who} : la fenetre du chat s'ouvre chez lui ({mine() or 'rien'})")
+            time.sleep(2)
+            theirs = ev(other, LAYERS)
+            check(f"{who} : aucune fenetre ne s'ouvre chez l'autre joueur ({theirs or 'rien'})", "LayerChara" not in theirs.split(","))
+            close_layers()
+            time.sleep(1)
+            check(f"{who} : la fenetre fermee, il n'en reste aucune chez lui ({ev(port, LAYERS) or 'rien'})", "LayerChara" not in ev(port, LAYERS).split(","))
+        finally:
+            close_layers()
+            drop([m])
+            ev(H, f'foreach (var t in {chara(H, uid)}.things.Where(k => k.id == "{scope}").ToList()) t.Destroy(); "ok"')
+
+
+def samples(port, uid):
+    """Echantillons de sang : dans le sac de ce joueur et par terre, vus par ce jeu."""
+    return int(ev(port, f'var c = {chara(port, uid)}; return ((c == null ? 0 : c.things.Where(t => t.id == "bloodsample").Sum(t => t.Num)) '
+                        '+ EClass._map.things.Where(t => t.id == "bloodsample").Sum(t => t.Num)).ToString();'))
+
+
+def g38(ctx):
+    """seringues de sang, de paradis et de licorne (L9) : sur son compagnon, l'effet est chez l'host et la seringue est
+    consommee des deux cotes, pour l'invite comme pour l'host
+    - sang : un echantillon de sang de plus (chez l'host et chez l'invite, dans le sac ou par terre)
+    - paradis : hallucination du compagnon (chez l'host et chez l'invite)
+    - licorne : l'hallucination du compagnon, mise avant, est guerie (des deux cotes)
+    Ce que le banc ne joue pas comme un joueur : le clic est l'entree du plan d'actions executee (use_held), pas la souris ;
+    l'hallucination de depart (licorne) est mise par l'host dans son jeu"""
+    kinds = []
+    for trait, what in (("SyringeBlood", "sang"), ("SyringeHeaven", "paradis"), ("SyringeUnicorn", "licorne")):
+        syr = first_id(trait)
+        if check(f"le jeu a une seringue de {what} ({syr})", bool(syr)):
+            kinds.append((trait, what, syr))
+    if not kinds:
+        return
+    for who, key in both(ctx):
+        port, uid = ctx[key]
+        m = 0
+        try:
+            clear_conditions(uid)
+            m = tame(ctx, "cat", key)
+            if not check(f"{who} a recrute un chat ({m})", m):
+                continue
+            clear_conditions(m)
+            hallu = lambda p: ev(p, f'var c = {chara(p, m)}; return c == null ? "absent" : c.HasCondition<ConHallucination>().ToString();')  # noqa: E731
+            for trait, what, syr in kinds:
+                s = give(ctx, key, syr, 3)
+                n0, blood0 = count(H, uid, syr), (samples(H, uid), samples(port, uid))
+                if trait == "SyringeUnicorn":
+                    ev(H, f'{chara(H, m)}.AddCondition<ConHallucination>(100); "ok"')
+                    if not check(cond=eventually(lambda: hallu(H) == "True" and hallu(port) == "True", timeout=10),
+                                 label=f"{who} : avant la licorne, le chat a l'hallucination chez l'host ({hallu(H)}) et chez l'invite ({hallu(A)})"):
+                        continue
+                x, z = cell(port, m).split(",")
+                awake(port)
+                log(f"{who}, seringue de {what} : {use_held(port, s, at=(x, z), pick=f'i.tc != null && i.tc.uid == {m}')}")
+                if trait == "SyringeBlood":
+                    check(cond=eventually(lambda: samples(H, uid) == blood0[0] + 1, timeout=10), label=f"{who} : un echantillon de sang de plus chez l'host ({blood0[0]} -> {samples(H, uid)})")
+                    check(cond=eventually(lambda: samples(port, uid) == blood0[1] + 1, timeout=10), label=f"{who} : et chez lui ({blood0[1]} -> {samples(port, uid)})")
+                elif trait == "SyringeHeaven":
+                    check(cond=eventually(lambda: hallu(H) == "True", timeout=10), label=f"{who} : le chat a l'hallucination chez l'host ({hallu(H)})")
+                    check(cond=eventually(lambda: hallu(port) == "True", timeout=10), label=f"{who} : et chez lui ({hallu(port)})")
+                else:
+                    check(cond=eventually(lambda: hallu(H) == "False", timeout=10), label=f"{who} : l'hallucination du chat est guerie chez l'host ({hallu(H)})")
+                    check(cond=eventually(lambda: hallu(port) == "False", timeout=10), label=f"{who} : et chez lui ({hallu(port)})")
+                check(cond=eventually(lambda: count(H, uid, syr) == n0 - 1, timeout=10), label=f"{who} : une seringue de {what} de moins chez l'host ({n0} -> {count(H, uid, syr)})")
+                check(cond=eventually(lambda: count(port, uid, syr) == n0 - 1, timeout=10), label=f"{who} : et chez lui ({count(port, uid, syr)})")
+                clear_conditions(m)
+                ev(H, f'foreach (var t in {chara(H, uid)}.things.Where(k => k.id == "{syr}" || k.id == "bloodsample").ToList()) t.Destroy(); '
+                      'foreach (var t in EClass._map.things.Where(k => k.id == "bloodsample").ToList()) t.Destroy(); "ok"')
+        finally:
+            clear_conditions(uid)
+            drop([m])
+
+
+def g39(ctx):
+    """voeu du puits : l'invite qui a la cle du voeu boit jusqu'a ce que le voeu arrive ; la fenetre du voeu s'ouvre chez lui,
+    une seule cle est depensee (les cles sont communes a tous les joueurs), le « deja souhaite » de l'host ne bouge pas (avant : la fenetre chez l'host)
+    Ce que le banc ne joue pas comme un joueur : la cle est donnee directement ; le tirage est a 1 sur 21 par gorgee, le
+    test boit jusqu'a 200 fois dans un puits a 1000 charges"""
+    port, uid = ctx["a"]
+    well = first_id("Well")
+    keys = lambda p: int(ev(p, 'EClass.player.CountKeyItem("well_wish").ToString()'))  # noqa: E731
+    for p in (H, port):
+        ev(p, 'EClass.player.wellWished = false; EClass.player.ModKeyItem("well_wish", 2 - EClass.player.CountKeyItem("well_wish"), false); "ok"')
+    w, x, z = (int(v) for v in ev(H, f'var t = ThingGen.Create("{well}"); t.c_charges = 1000; t.SetInt(26, 0); '
+                                     f'EClass._zone.AddCard(t, {chara(H, uid)}.pos.GetNearestPoint(false, false, false, true)).Install(); '
+                                     'return t.uid + "," + t.pos.x + "," + t.pos.z;').split(","))
+    eventually(lambda: ev(port, f'(EClass._map.things.Find(m => m.uid == {w}) != null).ToString()') == "True", timeout=10)
+    asked = lambda p: ev(p, 'EClass.ui.layers.Any(l => l is Dialog).ToString()') == "True"  # noqa: E731
+    try:
+        n = 0
+        while n < 200 and not asked(port) and keys(port) == 2:
+            n += 1
+            clear_conditions(uid)
+            awake(port)
+            use_menu(port, (x, z), 'i.act is DynamicAct d && d.id == "actDrink"')
+            time.sleep(0.4)
+        check(f"le voeu arrive chez l'invite au bout de {n} gorgees : une cle depensee sur ses deux ({keys(port)})", keys(port) == 1)
+        check("la fenetre du voeu est chez l'invite", eventually(lambda: asked(port), timeout=5))
+        check("pas chez l'host", not asked(H))
+        check(cond=eventually(lambda: keys(H) == 1, timeout=5), label=f"les cles sont communes (objets d'histoire) : une seule depensee, l'host en voit 1 aussi ({keys(H)})")
+        check("l'host peut encore faire son voeu du jour", ev(H, 'EClass.player.wellWished.ToString()') == "False")
+        check("l'invite a fait le sien", ev(port, 'EClass.player.wellWished.ToString()') == "True")
+    finally:
+        close_layers()
+        clear_conditions(uid)
+        for p in (H, port):
+            ev(p, 'EClass.player.wellWished = false; EClass.player.ModKeyItem("well_wish", -EClass.player.CountKeyItem("well_wish"), false); "ok"')
+        ev(H, f'var t = EClass._map.things.Find(m => m.uid == {w}); if (t != null) t.Destroy(); "ok"')
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--only")
@@ -843,9 +1218,9 @@ def main():
 
     ctx = {"a": (A, state(A)["pc"]["uid"]), "h": (H, state(H)["pc"]["uid"])}
     # G8 en dernier : l'invite y quitte la carte
-    steps = [g5, g3, g2, g11, g1, g4, g6, g7, g9, g10, g12, g14, g15, g16, g19, g21, g23, g24, g25, g30, g31, g32, g8]
+    steps = [g5, g3, g2, g11, g1, g4, g6, g7, g9, g10, g12, g14, g15, g16, g19, g21, g23, g24, g25, g30, g31, g32, g33, g34, g35, g36, g37, g38, g39, g8]
     if a.only:
-        steps = [s for s in (g1, g2, g3, g4, g5, g6, g7, g9, g10, g11, g12, g14, g15, g16, g19, g21, g23, g24, g25, g30, g31, g32, g8)
+        steps = [s for s in (g1, g2, g3, g4, g5, g6, g7, g9, g10, g11, g12, g14, g15, g16, g19, g21, g23, g24, g25, g30, g31, g32, g33, g34, g35, g36, g37, g38, g39, g8)
                  if s.__name__ in a.only.split(",")]
     for step in steps:
         log(f"--- {step.__name__.upper()} : {step.__doc__}")

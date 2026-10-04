@@ -102,6 +102,7 @@ namespace ElinTogether.Models;
 [Union(813, typeof(QuestTakenDelta))]
 [Union(814, typeof(PlayerStandingDelta))]
 [Union(816, typeof(CraftFirstTimeDelta))]
+[Union(817, typeof(CardActReplayDelta))]
 // Act
 [Union(900, typeof(ActThrowDelta))]
 // Element
