@@ -36,6 +36,18 @@ internal class RemoteRideHostPatch
     [HarmonyPatch(typeof(ActRide), nameof(ActRide.Ride))]
     internal static bool OnRideRemoteHost(Chara host, Chara t)
     {
+        // taken: a mount carries one rider. Two players asking for the same beast at the same instant (or a rider
+        // put back on it when waking up) ended with a different rider in each game
+        if (t.host is not null && t.host != host) {
+            EmpLog.Debug("blocked ride, chara {TargetUid} already carries {OwnerUid}", t.uid, t.host.uid);
+
+            if (host.IsPC) {
+                Msg.SayInvalidAction();
+            }
+
+            return false;
+        }
+
         if (!IsRidingBeRiddenTheRide(host, t)) {
             return true;
         }
