@@ -2353,3 +2353,60 @@ Ordre de livraison (rouge puis vert, deux fenêtres) :
 ## La première chose à faire
 Aucun code. Dépôt dossier actuel, deux fenêtres : A héberge `world_depot`, B rejoint avec son personnage et ramasse un seau ; tous deux quittent ; B clique « Take the world ». Lire `EClass.pc.Name`, compter les seaux. Si B se réveille dans le personnage de A, (P) rate le critère 1 et cette réparation devient l'étape 1.
 
+
+### Conseil 7 : duels entre joueurs et base gérée par un invité (2026-10-05, 17h40)
+
+Demandes de l'utilisateur du 5 octobre. Faits et brouillons de tests (D1 à D10, R1 à R6) : `PLAN_duels_et_membres.md`.
+Verdict complet :
+
+# Verdict du conseil : duels et base
+
+## Accord du conseil
+Les cinq : duel sur place d'abord ; « aucune perte », pas de renommée perdue ; compagnons protégés, pas combattants ; pari en or seul, plafonné au sac le plus pauvre, rendu aux deux si déconnexion ; coups mortels entre joueurs bloqués hors duel ; option (a) pour la base ; abandon refusé à l'invité ; option 4 et (c) pas maintenant.
+
+## Désaccords
+- Arène : D seulement si besoin, B après deux vrais PC. Tranché : elle se fait, c'est la demande (« une autre carte »).
+- Renvoi d'un résident : ouvert (A, D, E) ou confirmé par l'autre (B, C). Tranché : ouvert.
+- Extensions de E (classement, tournois, `BaseRights.Can`) : écartées.
+
+## Angles morts relevés
+- Vérifié dans le jeu : des sorts de zone épargnent les alliés (`ActEffect.cs:319-336`). Certains sorts ne toucheront pas l'adversaire en duel : à mesurer.
+- Vérifié : renvoyer un résident ordinaire le détruit avec son équipement (`FactionBranch.cs:1587-1605`).
+- Potions, flèches, charges utilisées en duel restent dépensées : à écrire dans le message du défi.
+- Faim, piège, poison tuent toujours pendant un duel.
+- Invité qui défie un aventurier ou lit un acte de propriété aujourd'hui : demi-état possible, jamais joué.
+- Chargement de l'arène : non prouvable sur un seul PC.
+
+## Verdict
+**1a** Option 1, puis 2, puis 3. Arrêt là.
+**1b** Aucune perte. Les deux sont soignés à la fin.
+**1c** Compagnons présents, PV plafonnés, ne combattent pas.
+**1d** Or seul, 0 / 100 / 1 000 / tout, plafond = sac le plus pauvre, montant affiché dans la boîte Oui/Non. Retenue avec note sauvegardée. Déconnexion, plantage, départ, mort d'autre chose, sauvegarde rechargée : on rend aux deux (compte « dû » si absent). Seul le bouton « Abandonner » fait perdre la mise.
+**1e** Oui. Case host « les joueurs peuvent se tuer hors duel », décochée.
+**2a** (a), avec une case « seul l'host gère la base », décochée, séparée de `GuestBuild`.
+**2b** Abandon : refusé à l'invité, seule inégalité acceptée (perte irréversible). Renvoi et réserve : ouverts à tous, exécutés une seule fois par l'host, message à l'autre joueur.
+**2c** Plus tard. Seul R6 se joue maintenant.
+
+**Duels, dans l'ordre** (jour 100 et 1 000 or sur les deux jeux) :
+1. Plancher à 1 PV hors duel + case. Rouge : l'invité à 1 PV frappé meurt (tombe, or au sol). Vert : vivant, dans les deux sens ; noter quels sorts touchent.
+2. Menu « Défier », boîte Oui/Non, case « Duels » (D1).
+3. Duel sur place : fin au plancher, soin des deux, compagnons plafonnés (D2, D3, D4).
+4. Départ, déconnexion, double défi : fin sans gagnant (D5, D6).
+5. D10 : invité contre aventurier, état des lieux ; si doublon, refus avec message.
+6. Arène : zone créée par l'host, retour de chacun sur sa case, zone détruite (D9). Refusée si aucun duelliste n'est l'host.
+7. Pari + case « Paris » : somme conservée à chaque instant, fin appelée deux fois (D7) ; fenêtre invitée tuée, sauvegarde rechargée (D8).
+
+**Base, dans l'ordre :**
+1. R6, sans code ; si demi-état, refuser l'acte de propriété à l'invité avec message.
+2. Abandon refusé à l'invité.
+3. Servante (R1).
+4. Type de résident, réserve, rappel.
+5. Renvoi.
+6. Réglages de coffre.
+7. Case « seul l'host gère la base » (R2).
+
+**Écarté :** option 4 (trois fenêtres interdites) ; compagnons combattants (hostilité diffusée à tous) ; forfait sur déconnexion (on gagne en coupant le câble) ; plafond dur du pari (mise consentie) ; compteur de victoires, membres (b), base par joueur (c) : données nouvelles en sauvegarde, sans gain à deux.
+
+## La première chose à faire
+Écrire le test rouge de l'étape 1 des duels : jour 100, l'host frappe l'invité à 1 PV (Maj + clic), puis l'inverse ; constater la vraie mort. Puis les ~20 lignes du plancher. Ce risque existe déjà dans la partie de l'utilisateur.
+
