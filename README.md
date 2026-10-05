@@ -11,9 +11,10 @@ The original mod keeps the whole party on the host's map and treats the other pl
 Its authors consider separate maps out of scope; this fork is where that is tried. All credit for the mod itself
 goes to them (see [Credits](#credits)).
 
-> **Status: experimental.** Everything below is tested on one PC with several game windows (automated in-game
-> test suites, see `dev/`). It has been **played only once between two PCs over Steam**, and that one evening
-> found a bug the tests had missed. Back up your saves first: `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
+> **Status: experimental.** Everything below is tested on one PC with two game windows (automated in-game test
+> suites, over 900 checks, see `dev/`). It has been **barely played between two PCs over Steam**: one evening, which
+> found a bug the tests had missed, and the new features of this version have not been tried on two PCs yet. Back up
+> your saves first: `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
 
 ## What the fork adds
 
@@ -27,25 +28,53 @@ goes to them (see [Credits](#credits)).
 | Combat at each player's pace | A monster acts at the pace of the player it fights, not the host's. |
 | Random quests per player | Quests from inhabitants and boards belong to the player who takes them, with the reward, fame and karma. They follow the player everywhere. |
 | Shared story | Story quests are in one log: anyone starts, advances and finishes them. Dialog memory, key items and debt are shared. |
-| Dungeon quests for everyone | A player who is not the host can take a quest that has its own zone and settle it alone. |
+| Dungeon quests for everyone | A player who is not the host can take a quest that has its own zone and settle it, alone or with the other player (next line). |
+| Dungeon quests for two | When one player sets out on a quest, the other sees a Yes/No box to come along. The zone is shared, the reward goes to whoever took the quest. Works both ways; when the guest took the quest: "subdue" quests only for now. |
 | Trade between players | Click another player → "Trade": both put items and gold, both confirm. |
+| Safer trade | It refuses what the solo game refuses to give away, refuses when the other's bag is full, and says why. |
 | Character choice | When joining, a player picks one of their characters in that world or makes a new one. |
 | Karma and crime per player | The player who did it loses the karma; guards only chase that player. |
 | Shared affinity and guilds | An inhabitant's affinity is the same for all; joining a guild counts for the group. |
+| A guest plays like a solo player | Dozens of fixes since 0.26.399: death and will, the god's gifts, traps, spellbooks, healer, blessing, investing, runes, auto-dump, windows that used to open on the host… The list is in [`dev/DOCUMENTATION.md`](dev/DOCUMENTATION.md) (French). |
+| "Keep distance" per player | A companion's distance setting is its player's, not the host's. |
 
-Every one of these is a **checkbox on the host's side** (Esc → Mods → Elin Together → *Server Setting*).
-Unchecked, the mod behaves like the original.
+Most of these are a **checkbox on the host's side** (Esc → Mods → Elin Together → *Server Setting*); unchecked,
+the mod behaves like the original. Dungeon quests for two and the "a guest plays like a solo player" fixes have no
+checkbox.
+
+## Screenshots
+
+| | |
+|---|---|
+| ![Host options: every feature is a checkbox](assets/screens/host-options.jpg) | ![The host leaves on a quest: the guest chooses to go along](assets/screens/quest-ask-guest.jpg) |
+| Host options: every feature is a checkbox | The host leaves on a quest: the guest chooses to go along |
+| ![Both players in the same quest zone](assets/screens/quest-together.jpg) | ![The guest leaves on a quest: the same question for the host](assets/screens/quest-ask-host.jpg) |
+| Both players in the same quest zone | The guest leaves on a quest: the same question for the host |
+| ![Trading between players](assets/screens/trade.jpg) | ![Each player has its own fame and karma](assets/screens/own-fame-karma.jpg) |
+| Trading between players | Each player has its own fame and karma |
+| ![Choosing a character when joining](assets/screens/character-choice.jpg) | ![Base: what a guest cannot set yet is refused, at no cost](assets/screens/base-host-only.jpg) |
+| Choosing a character when joining | Base: what a guest cannot set yet is refused, at no cost |
 
 ## Known limits
 
-- Barely played between two PCs over Steam (one evening).
+- Barely played between two PCs over Steam (one evening); the new features of this version, not yet.
 - The world's clock still follows the host.
-- Story dialogs played by a non-host player are covered by tests that call the game's code directly, not yet by
-  clicking through the real dialogs.
-- Dungeon quests: only the taker enters the quest's zone.
-- Trade: no equipped items, no check for a full bag.
-- A few rare conflicts are known and not fixed (two purchases at the same instant from the same shop, two players
-  building on the same tile, a mount existing twice after a trip).
+- The tests now click through real game dialogs for several points (healer, shop, priestesses), but not for the
+  story: story dialogs played by a non-host player, and taking dungeon quests, are covered by tests that call the
+  game's code directly.
+- Dungeon quests for two, when the guest took the quest: "subdue" quests only. Harvest, music and defense quests
+  are still settled alone.
+- Home base settings changed by a guest: research and hearth skills are refused for now, with a message (before,
+  the guest paid for nothing); beds, sale tags, notes, policies: on the guest's own screen only.
+- When the host returns to a map held by a guest, the guest's screen reloads (the guest is told first). The time it
+  takes has not been measured between two PCs.
+- Trade: equipped items still cannot be traded (the game says why); a full bag is checked.
+- A few fixes have not been played in game yet: drowning in deep water, hostess ticket, a visitor's karma on a map
+  held by a guest, bag sorting, and some others (marked "not played" in the commit messages).
+- Companions' "don't wander" still follows the game that simulates, not its player's setting.
+- A few rare conflicts are known and not fixed (two players building on the same tile, a mount existing twice
+  after a trip). Two purchases at the same instant from the same shop: the second buyer is told the item is gone
+  (not played).
 - Mod compatibility is the original's: keep the mod list short and identical for every player.
 
 The full list, and what is planned, is in [`dev/DOCUMENTATION.md`](dev/DOCUMENTATION.md) (French).
@@ -102,5 +131,5 @@ The mod is the work of the Elin Together team: [DK](https://github.com/gottyduke
 The fork's changes were written with an AI coding assistant (Claude Code), directed by the fork's owner; each change comes with an in-game test, listed in its commit message. No game file and no decompiled game
 code is in this repository.
 
-The original project's README is kept in [中文](README_zh.md) and [日本語](README_ja.md); they describe the original
-mod, not this fork.
+The original project's README is kept in [中文](README_zh.md) and [日本語](README_ja.md): each starts with a
+translation of this fork's description, and the rest of the file describes the original mod, not this fork.

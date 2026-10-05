@@ -11,9 +11,10 @@ Le mod d'origine garde tout le groupe sur la carte de l'host et traite les autre
 Ses auteurs ne prévoient pas les cartes séparées ; cette version est l'endroit où on l'essaie. Tout le mérite du
 mod lui-même leur revient (voir [Crédits](#crédits)).
 
-> **État : expérimental.** Tout ce qui suit est testé sur un seul PC avec plusieurs fenêtres du jeu (suites de
-> tests automatiques en jeu, dossier `dev/`). Ce n'est **joué qu'une seule fois entre deux PC par Steam**, et
-> cette soirée a trouvé un bug que les tests n'avaient pas vu. Faites d'abord une copie de vos sauvegardes :
+> **État : expérimental.** Tout ce qui suit est testé sur un seul PC avec deux fenêtres du jeu (suites de tests
+> automatiques en jeu, plus de 900 vérifications, dossier `dev/`). C'est **très peu joué entre deux PC par
+> Steam** : une seule soirée, qui a trouvé un bug que les tests n'avaient pas vu, et les nouveautés de cette
+> version n'ont pas encore été essayées à deux PC. Faites d'abord une copie de vos sauvegardes :
 > `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
 
 ## Ce que cette version ajoute
@@ -28,25 +29,54 @@ mod lui-même leur revient (voir [Crédits](#crédits)).
 | Combat au rythme de chacun | Un monstre agit au rythme du joueur qu'il combat, pas à celui de l'host. |
 | Quêtes aléatoires par joueur | Les quêtes des habitants et des tableaux sont à celui qui les prend, avec la récompense, la renommée et le karma. Elles le suivent partout. |
 | Histoire commune | Les quêtes d'histoire sont dans un seul journal : n'importe qui les lance, les avance, les termine. Dialogues déjà vus, objets clés et dette sont communs. |
-| Quêtes à donjon pour tous | Un joueur qui n'est pas l'host peut prendre une quête qui a sa propre zone et la régler seul. |
+| Quêtes à donjon pour tous | Un joueur qui n'est pas l'host peut prendre une quête qui a sa propre zone et la régler, seul ou à deux (ligne suivante). |
+| Quêtes à donjon à deux | Quand un joueur part en quête, l'autre voit une boîte Oui/Non pour l'accompagner. La zone est commune, la récompense va à celui qui a pris la quête. Dans les deux sens ; quand c'est l'invité qui a la quête : « subjuguer » seulement pour l'instant. |
 | Échange entre joueurs | Clic sur un autre joueur → « Échanger » : chacun met des objets et de l'or, les deux confirment. |
+| Échange plus sûr | Il refuse ce que le jeu solo refuse de donner, refuse si le sac de l'autre est plein, et dit pourquoi. |
 | Choix du personnage | En rejoignant, un joueur choisit un de ses personnages de cette partie ou en crée un nouveau. |
 | Karma et crime par joueur | C'est le joueur fautif qui perd du karma ; les gardes ne poursuivent que lui. |
 | Affinité et guildes communes | L'affinité d'un habitant est la même pour tous ; rejoindre une guilde vaut pour le groupe. |
+| Un invité joue comme un joueur solo | Des dizaines de corrections depuis la 0.26.399 : mort et testament, cadeaux du dieu, pièges, grimoires, guérisseur, bénédiction, investir, runes, rangement automatique, fenêtres qui s'ouvraient chez l'host… La liste est dans [`dev/DOCUMENTATION.md`](dev/DOCUMENTATION.md). |
+| « Ne pas s'éloigner » propre à chaque joueur | La consigne de distance d'un compagnon est celle de son joueur, pas celle de l'host. |
 
-Chacune est une **case à cocher côté host** (Échap → Mods → Elin Together → *Server Setting*). Décochée, le mod
-se comporte comme l'original.
+Presque toutes sont une **case à cocher côté host** (Échap → Mods → Elin Together → *Server Setting*) ; décochée,
+le mod se comporte comme l'original. Les quêtes à donjon à deux et les corrections « un invité joue comme un joueur
+solo » n'ont pas de case.
+
+## En images
+
+| | |
+|---|---|
+| ![Les options de l'host : chaque nouveauté est une case](assets/screens/host-options.jpg) | ![L'host part en quête : l'invité choisit de l'accompagner](assets/screens/quest-ask-guest.jpg) |
+| Les options de l'host : chaque nouveauté est une case | L'host part en quête : l'invité choisit de l'accompagner |
+| ![Les deux joueurs dans la même zone de quête](assets/screens/quest-together.jpg) | ![L'invité part en quête : la même question chez l'host](assets/screens/quest-ask-host.jpg) |
+| Les deux joueurs dans la même zone de quête | L'invité part en quête : la même question chez l'host |
+| ![L'échange entre joueurs](assets/screens/trade.jpg) | ![Renommée et karma propres à chaque joueur](assets/screens/own-fame-karma.jpg) |
+| L'échange entre joueurs | Renommée et karma propres à chaque joueur |
+| ![Choix du personnage à la connexion](assets/screens/character-choice.jpg) | ![Base : ce qu'un invité ne peut pas encore régler est refusé, sans rien lui faire payer](assets/screens/base-host-only.jpg) |
+| Choix du personnage à la connexion | Base : ce qu'un invité ne peut pas encore régler est refusé, sans rien lui faire payer |
 
 ## Limites connues
 
-- Très peu joué entre deux PC par Steam (une soirée).
+- Très peu joué entre deux PC par Steam (une soirée) ; les nouveautés de cette version, pas encore.
 - Le temps du monde suit encore l'host.
-- Les dialogues d'histoire joués par un autre joueur que l'host sont testés par appels directs au code du jeu, pas
-  encore en cliquant dans les vrais dialogues.
-- Quêtes à donjon : seul celui qui prend la quête entre dans sa zone.
-- Échange : pas d'objets équipés, pas de vérification du sac plein.
-- Quelques conflits rares sont connus et pas corrigés (deux achats au même instant chez le même marchand, deux
-  joueurs qui construisent sur la même case, une monture en double au retour d'un voyage).
+- Les tests cliquent maintenant dans de vrais dialogues du jeu pour plusieurs points (guérisseur, boutique,
+  prêtresses), mais pas pour l'histoire : les dialogues d'histoire joués par un autre joueur que l'host, et la
+  prise des quêtes à donjon, sont testés par appels directs au code du jeu.
+- Quêtes à donjon à deux, quand c'est l'invité qui a la quête : « subjuguer » seulement. Récolte, musique et défense
+  restent à régler seul.
+- Réglages de la base faits par un invité : la recherche et les compétences du foyer sont refusées pour l'instant,
+  avec un message (avant, l'invité payait pour rien) ; lit, étiquettes de vente, notes, politiques : seulement sur
+  son écran.
+- Quand l'host revient sur une carte tenue par un invité, l'écran de l'invité se recharge (il est prévenu avant).
+  La durée n'est pas mesurée entre deux PC.
+- Échange : les objets équipés ne s'échangent toujours pas (le jeu dit pourquoi) ; le sac plein est vérifié.
+- Quelques corrections ne sont pas encore jouées en jeu : noyade en eau profonde, ticket d'hôtesse, karma d'un
+  visiteur chez un invité, tri du sac, et d'autres (marquées « pas joué » dans les messages de commit).
+- « Ne pas vagabonder » des compagnons suit encore le jeu qui simule, pas le réglage de leur joueur.
+- Quelques conflits rares sont connus et pas corrigés (deux joueurs qui construisent sur la même case, une monture
+  en double au retour d'un voyage). Deux achats au même instant chez le même marchand : le second est prévenu que
+  l'objet est parti (pas joué).
 - Compatibilité avec les autres mods : celle de l'original. Liste de mods courte et identique pour tous.
 
 La liste complète, et ce qui est prévu : [`dev/DOCUMENTATION.md`](dev/DOCUMENTATION.md).

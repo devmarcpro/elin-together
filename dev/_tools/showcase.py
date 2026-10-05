@@ -116,7 +116,7 @@ def quests():
           '{ var c = EClass._map.FindChara(id); if (c != null) c.Die(); } e.CheckClear(); "ok"')
     time.sleep(2)
     ev(A, 'EClass.pc.MoveZone(EClass._zone.ParentZone); "ok"')
-    both_joined(H, A, HOME)
+    both_joined(H, A, state(H)["zone"]["uid"])
     time.sleep(4)
     snap("12-quete-rendue-recompense-aux-pieds-du-client", A)
     dismiss_dialogs(A)
@@ -161,11 +161,53 @@ def imported():
         shutil.rmtree(import_suite.SOLO, ignore_errors=True)
 
 
+def together():
+    """quetes a donjon a deux : la boite chez l'autre joueur, dans les deux sens, et les deux dans la meme zone"""
+    import together_suite as ts
+    from travel_suite import host_goto
+    host, guest = ev(H, "EClass.pc.Name"), ev(A, "EClass.pc.Name")
+    ev(H, CLOSE)
+    ev(A, CLOSE)
+    if state(H)["zone"]["uid"] != HOME:
+        host_goto(H, A, HOME)
+    both_joined(H, A, HOME)
+    _, zuid = ts.host_enters()
+    if ts.asked(host):
+        snap("17-quete-a-deux-l-host-part-la-boite-chez-l-invite", A)
+        ts.follow(zuid)
+        time.sleep(3)
+        snap("18-quete-a-deux-les-deux-dans-la-zone-vu-par-l-invite", A)
+    ts.host_leaves()
+    uid, giver = ts.guest_takes()
+    ts.guest_departs(uid, giver)
+    if ts.host_asked(guest):
+        snap("19-quete-a-deux-l-invite-part-la-boite-chez-l-host", H)
+        ts.host_comes()
+        time.sleep(3)
+        snap("20-quete-a-deux-l-host-accompagne-l-invite", H)
+    else:
+        ts.guest_alone_inside()
+    ev(A, ts.LEAVE)
+    ts.back_home()
+
+
+def base():
+    """un invite a la base : la recherche est refusee avec un message, rien n'est debite"""
+    ev(A, CLOSE)
+    ev(A, 'var b = EClass.Branch; if (b.researches.plans.Count == 0) b.researches.AddPlan(ResearchPlan.Create("hearth_stone")); '
+          'EClass.ui.AddLayer<LayerTech>(); "ok"')
+    time.sleep(2)
+    ev(A, 'var b = EClass.Branch; b.researches.CanCompletePlan(b.researches.plans[0]); "ok"')
+    time.sleep(1)
+    snap("21-base-la-recherche-d-un-invite-est-refusee-avec-un-message", A)
+    ev(A, CLOSE)
+
+
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
     OUT.mkdir(exist_ok=True)
     only = sys.argv[1:]
-    for fn in (options, trade, standing, quests, choice, imported):
+    for fn in (options, trade, standing, quests, together, base, choice, imported):
         if not only or fn.__name__ in only:
             log(f"--- {fn.__name__}")
             step(fn)
