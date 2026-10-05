@@ -26,9 +26,11 @@ public class BuildVersionIntegrity : EClass
     public static string GameVersion => $"{core.version.major}.{core.version.minor}.{core.version.batch}.{core.version.fix}";
 
     // HSteamConnection.m_UserData
+    // the version of the game is not part of it: two players on different versions of Elin are let in (and told),
+    // unless the host asks for the same one, see ElinNetHostIntegrity
     public static long VersionStringToLong()
     {
-        return VersionStringToLong(ModInfo.BuildVersion, GameVersion);
+        return VersionStringToLong(ModInfo.BuildVersion, "");
     }
 
     public static long VersionStringToLong(string mod, string version)
@@ -40,9 +42,15 @@ public class BuildVersionIntegrity : EClass
 
     public static bool Ok(string? mod, string? version, APIVersion api = APIVersionLatest)
     {
+        // the same mod, speaking the same protocol. The version of the game is looked at apart (SameGame): a
+        // difference there is a warning, not a wall
         return api == APIVersionLatest &&
-               string.Equals(mod, ModInfo.BuildVersion, StringComparison.Ordinal) &&
-               string.Equals(version, GameVersion, StringComparison.Ordinal);
+               string.Equals(mod, ModInfo.BuildVersion, StringComparison.Ordinal);
+    }
+
+    public static bool SameGame(string? version)
+    {
+        return string.Equals(version, GameVersion, StringComparison.Ordinal);
     }
 
     public static string GtfoReason()

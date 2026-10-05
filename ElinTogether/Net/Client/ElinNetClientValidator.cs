@@ -61,6 +61,12 @@ internal partial class ElinNetClient
         EmpLog.Debug("Host version verified: mod {HostModVersion}, game {HostGameVersion}",
             request.HostModVersion, request.HostGameVersion);
 
+        // not the same version of Elin: the host decides whether that is allowed, this player is told
+        if (!BuildVersionIntegrity.SameGame(request.HostGameVersion)) {
+            EmpPop.Information("emp_game_version_differs".Loc("Host", request.HostGameVersion,
+                BuildVersionIntegrity.GameVersion));
+        }
+
         AdvanceHandshake(NetHandshakePhase.AwaitingIntegrity);
 
         Host.Send(NetIntegrityResponse.Create());

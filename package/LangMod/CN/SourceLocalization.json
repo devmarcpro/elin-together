@@ -215,5 +215,8 @@
     "LangGeneral.emp_travel_recalled_by.text": "{@Peer} 即将来到此地：画面将重新加载以便汇合…",
     "LangGeneral.emp_ui_thing_gone.text": "来晚了：已被其他玩家取走",
     "LangGeneral.emp_base_refused.text": "主机拒绝了请求：基地或你的钱包已无法支付。",
-    "LangGeneral.emp_base_pending.text": "上一个请求仍在等待主机回应。"
+    "LangGeneral.emp_base_pending.text": "上一个请求仍在等待主机回应。",
+    "LangGeneral.emp_game_version_differs.text": "{0} 的 Elin 版本不同（{1}，本机 {2}）。已允许连接；如遇问题请使用相同版本。",
+    "LangGeneral.emp_ui_sv_cfg_same_game_version.text": "要求相同的 Elin 版本",
+    "LangGeneral.emp_ui_sv_desc_same_game_version.text": "开：拒绝 Elin 版本不同的玩家。关：给出提示后允许加入。模组版本始终必须相同。"
 }

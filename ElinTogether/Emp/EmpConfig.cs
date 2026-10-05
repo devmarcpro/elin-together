@@ -123,6 +123,14 @@ internal partial class EmpConfig
             "The zone is simulated by that client and sent back to the host when leaving\n" +
             "客机可以独自前往其他地图，由该客机模拟，离开时回传给主机");
 
+        Server.SameGameVersion = config.Bind(
+            "Server",
+            "SameGameVersion",
+            false,
+            "Refuse players whose version of Elin is not the host's\n" +
+            "Off: they are let in and both are told; the same version of the mod is always required\n" +
+            "拒绝游戏版本与主机不同的玩家");
+
         Server.PlayerCombatTime = config.Bind(
             "Server",
             "PlayerCombatTime",
@@ -282,6 +290,7 @@ internal partial class EmpConfig
         internal static ConfigEntry<bool> SharedAverageSpeed { get; set; } = null!;
         internal static ConfigEntry<bool> TurnBasedCombat { get; set; } = null!;
         internal static ConfigEntry<bool> IndependentTravel { get; set; } = null!;
+        internal static ConfigEntry<bool> SameGameVersion { get; set; } = null!;
         internal static ConfigEntry<bool> PlayerShipping { get; set; } = null!;
         internal static ConfigEntry<bool> PersonalQuests { get; set; } = null!;
         internal static ConfigEntry<bool> ChooseCharacter { get; set; } = null!;

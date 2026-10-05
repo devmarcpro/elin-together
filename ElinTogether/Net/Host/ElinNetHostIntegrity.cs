@@ -119,7 +119,18 @@ internal partial class ElinNetHost
 
     private void OnNetHandshakeResponse(NetIntegrityResponse response, ISteamNetPeer peer)
     {
-        if (!BuildVersionIntegrity.Ok(response.ClientModVersion, response.ClientGameVersion, response.APIVersion)) {
+        // another version of Elin: let in and told, unless the host wants the same one for everyone
+        var otherGame = !BuildVersionIntegrity.SameGame(response.ClientGameVersion);
+        if (otherGame && !EmpConfig.Server.SameGameVersion.Value &&
+            BuildVersionIntegrity.Ok(response.ClientModVersion, response.ClientGameVersion, response.APIVersion)) {
+            EmpLog.Warning("Player {@Peer} runs game {ClientGameVersion}, host {HostGameVersion}: allowed",
+                peer, response.ClientGameVersion, BuildVersionIntegrity.GameVersion);
+            EmpPop.Information("emp_game_version_differs".Loc(peer.User.Name, response.ClientGameVersion,
+                BuildVersionIntegrity.GameVersion));
+        }
+
+        if ((otherGame && EmpConfig.Server.SameGameVersion.Value) ||
+            !BuildVersionIntegrity.Ok(response.ClientModVersion, response.ClientGameVersion, response.APIVersion)) {
             EmpLog.Warning(
                 "Version mismatch from {@Peer}: mod {ClientModVersion} -> {HostModVersion}, " +
                 "game {ClientGameVersion} -> {HostGameVersion}, api {ClientProtocolVersion} -> {HostProtocolVersion}",
