@@ -11,6 +11,11 @@ D4  objets a fenetre (radio, juke-box, livres de la base, detecteur, roue, vue d
     la meme facon mais le banc ne voit pas son mode) : chez celui qui s'en
     sert, rien chez l'autre. Le geste est Trait.OnUse, ce que fait « utiliser » dans le sac.
 D5  faucille : l'ecopo va a celui qui fauche.
+D6  investir dans une boutique (vrai dialogue) : la boutique monte chez l'host.
+D7  benediction d'une pretresse (vrai dialogue, ferme par Close) : le joueur et son compagnon ont le voile sacre.
+D8  parchemin de retour : le retour se prepare dans le jeu du lecteur, il n'est pas teleporte au hasard chez l'host.
+D9  recette lue : chacun l'apprend une fois (avant : l'autre joueur l'apprenait deux fois).
+D11 carte au tresor lue : fenetre chez le lecteur seul, meme carte dans les deux jeux.
 D3  rangement automatique : l'invite range son sac dans un coffre regle pour ca ; les fenetres de l'host restent
     ouvertes et les objets de l'host restent dans son sac.
 
@@ -28,7 +33,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from guest_suite import awake, both, chara, clear_conditions, close_layers, count, first_id, give, use_held  # noqa: E402
+from guest_suite import awake, both, chara, clear_conditions, close_layers, count, first_id, give, give_made, tame, use_held  # noqa: E402
 from equal2_suite import drop, seen, spawn  # noqa: E402
 from mp_test import log, shot, state  # noqa: E402
 from travel_suite import RESULTS, check, ev, eventually, scan_logs  # noqa: E402
@@ -215,6 +220,131 @@ def d5(ctx):
             drop([weed])
 
 
+def d6(ctx):
+    """investir dans une boutique : le joueur paie et la boutique monte chez l'host, l'invite comme l'host
+    (l'investissement dans une ville passe par le meme code, pas joue : il faut le secretaire d'une ville)"""
+    shop = ev(H, 'EClass.sources.charas.rows.First(x => x.trait != null && x.trait.Length > 0 && x.trait[0] == "Healer").id')
+    for who, key in both(ctx):
+        port, uid = ctx[key]
+        keeper = spawn(uid, shop, "Friend")
+        try:
+            if not check(f"{who} : un marchand est a cote de lui ({keeper})", keeper and eventually(lambda: seen(port, keeper), timeout=15)):
+                continue
+            give(ctx, key, "money", 200000)
+            level = lambda p: ev(p, f'var m = EClass._map.charas.Find(x => x.uid == {keeper}); return m.c_invest + "/" + EClass._zone.influence;')  # noqa: E731
+            lv0, gold0 = level(H), count(H, uid, "money")
+            said = talk(port, keeper) and pick(port, "invest") == "clic" and pick(port, "Yes") == "clic"
+            if not check(f"{who} : il demande a investir et dit oui", said):
+                continue
+            check(cond=eventually(lambda: count(H, uid, "money") < gold0, timeout=10), label=f"{who} : il a paye ({gold0} -> {count(H, uid, 'money')})")
+            n0, i0 = (int(v) for v in lv0.split("/"))
+            check(cond=eventually(lambda: level(H) == f"{n0 + 1}/{i0 + 1}", timeout=10),
+                  label=f"{who} : chez l'host la boutique a un niveau de plus et la zone 1 d'influence de plus ({lv0} -> {level(H)})")
+        finally:
+            hang_up(port)
+            drop([keeper])
+            ev(H, f'var c = {chara(H, uid)}; foreach (var t in c.things.Where(m => m.id == "money").ToList()) t.Destroy(); "ok"')
+
+
+def d7(ctx):
+    """benediction d'une pretresse : le joueur et son compagnon la recoivent, l'invite comme l'host"""
+    for who, key in both(ctx):
+        port, uid = ctx[key]
+        clear_conditions(uid)
+        miko = spawn(uid, "miko_mifu", "Friend")
+        pet = tame(ctx, "cat", key)
+        try:
+            if not check(f"{who} : une pretresse est a cote de lui ({miko}), il a un compagnon ({pet})",
+                         miko and pet and eventually(lambda: seen(port, miko), timeout=15)):
+                continue
+            said = talk(port, miko) and pick(port, "blessings") == "clic"
+            for _ in range(4):
+                if ev(port, '(LayerDrama.Instance != null).ToString()') != "True":
+                    break
+                ev(port, 'LayerDrama.Instance.Close(); "ok"')
+                time.sleep(1)
+            if not check(f"{who} : il demande la benediction et ferme le dialogue", said):
+                continue
+            veil = lambda p, c: ev(p, f'var c = EClass._map.charas.Find(x => x.uid == {c}); return (c != null && c.HasCondition<ConHolyVeil>()).ToString();')  # noqa: E731
+            check(cond=eventually(lambda: veil(H, uid) == "True", timeout=10), label=f"{who} : il a le voile sacre, chez l'host ({veil(H, uid)})")
+            check(cond=eventually(lambda: veil(port, uid) == "True", timeout=10), label=f"{who} : et chez lui ({veil(port, uid)})")
+            check(cond=eventually(lambda: veil(H, pet) == "True", timeout=10), label=f"{who} : son compagnon aussi, chez l'host ({veil(H, pet)})")
+        finally:
+            hang_up(port)
+            drop([miko, pet])
+            clear_conditions(uid)
+
+
+def d8(ctx):
+    """parchemin d'evacuation (meme code que le retour, qui demande une destination connue) : le lecteur prepare son depart, il n'est pas teleporte au hasard"""
+    for who, key in both(ctx):
+        port, uid = ctx[key]
+        scroll = give_made(ctx, key, 'var t = ThingGen.CreateScroll(EClass.sources.elements.alias["SpEvac"].id); t.c_IDTState = 0; '
+                                     't.SetBlessedState(BlessedState.Normal);')
+        where = lambda: ev(H, f'var c = {chara(H, uid)}; return c.pos.x + "," + c.pos.z;')  # noqa: E731
+        ev(port, 'EClass.player.returnInfo = null; "ok"')
+        pos0 = where()
+        awake(port)
+        ev(port, f'var t = EClass.pc.things.Find(x => x.uid == {scroll}); EClass.pc.SetAI(new AI_Read {{ target = t }}); "ok"')
+        back = lambda: ev(port, '(EClass.player.returnInfo != null).ToString()') == "True"  # noqa: E731
+        try:
+            check(cond=eventually(lambda: awake(port) and back(), timeout=20), label=f"{who} lit : son retour se prepare, dans son jeu")
+            time.sleep(2)
+            check(f"{who} : il n'a pas bouge sur la carte, vu par l'host ({pos0} -> {where()})", where() == pos0)
+            check(cond=eventually(lambda: ev(H, f'({chara(H, uid)}.things.Find(x => x.uid == {scroll}) == null).ToString()') == "True", timeout=10),
+                  label=f"{who} : le parchemin est use, chez l'host")
+        finally:
+            ev(port, 'EClass.player.returnInfo = null; EClass.pc.SetNoGoal(); "ok"')
+            close_layers()
+
+
+def d9(ctx):
+    """recette lue : tout le monde l'apprend (les recettes sont communes), une seule fois chacun"""
+    item = first_id("Recipe")
+    if not check(f"le jeu a un parchemin de recette ({item})", bool(item)):
+        return
+    for who, key in both(ctx):
+        port, uid = ctx[key]
+        other = H if port == A else A
+        scroll = give(ctx, key, item)
+        rid = ev(H, f'((TraitRecipe){chara(H, uid)}.things.Find(x => x.uid == {scroll}).trait).recipe.id')
+        known = lambda p: int(ev(p, f'EClass.player.recipes.knownRecipes.TryGetValue("{rid}", 0).ToString()'))  # noqa: E731
+        mine0, theirs0 = known(port), known(other)
+        awake(port)
+        ev(port, f'var t = EClass.pc.things.Find(x => x.uid == {scroll}); EClass.pc.SetAI(new AI_Read {{ target = t }}); "ok"')
+        check(cond=eventually(lambda: awake(port) and known(port) == mine0 + 1, timeout=20), label=f"{who} lit la recette {rid} : il l'apprend ({mine0} -> {known(port)})")
+        time.sleep(2)
+        check(f"{who} : l'autre joueur l'apprend aussi (les recettes sont communes), une fois, pas deux ({theirs0} -> {known(other)})",
+              known(other) == theirs0 + 1)
+        check(cond=eventually(lambda: ev(H, f'({chara(H, uid)}.things.Find(x => x.uid == {scroll}) == null).ToString()') == "True", timeout=10),
+              label=f"{who} : le parchemin est use, chez l'host")
+        ev(port, 'EClass.pc.SetNoGoal(); "ok"')
+
+
+def d11(ctx):
+    """carte au tresor lue : la fenetre s'ouvre chez le lecteur seul, et les deux jeux parlent de la meme carte"""
+    item = first_id("ScrollMapTreasure")
+    if not check(f"le jeu a une carte au tresor ({item})", bool(item)):
+        return
+    for who, key in both(ctx):
+        port, uid = ctx[key]
+        other = H if port == A else A
+        close_layers()
+        t = give(ctx, key, item)
+        ref = lambda p: ev(p, f'var t = {chara(p, uid)}.things.Find(x => x.uid == {t}); return t == null ? "absent" : t.refVal.ToString();')  # noqa: E731
+        theirs0 = screen(other)
+        awake(port)
+        ev(port, f'var t = EClass.pc.things.Find(x => x.uid == {t}); t.trait.OnUse(EClass.pc); "ok"')
+        time.sleep(3)
+        check(f"{who} lit sa carte : elle designe un endroit ({ref(port)})", ref(port) not in ("0", "absent"))
+        check(cond=eventually(lambda: ref(H) == ref(A), timeout=10), label=f"{who} : les deux jeux parlent de la meme carte ({ref(H)} et {ref(A)})")
+        check(f"{who} : rien ne bouge chez l'autre joueur ({screen(other)})", screen(other) == theirs0)
+        for p in (H, A):
+            ev(p, 'EClass.ui.layerFloat.RemoveLayer<LayerTreasureMap>(); "ok"')
+        close_layers()
+        ev(H, f'var t = {chara(H, uid)}.things.Find(x => x.uid == {t}); if (t != null) t.Destroy(); "ok"')
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--only")
@@ -223,7 +353,7 @@ def main():
     t0 = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
 
     ctx = {"a": (A, state(A)["pc"]["uid"]), "h": (H, state(H)["pc"]["uid"])}
-    steps = [d1, d2, d3, d4, d5]
+    steps = [d1, d2, d3, d4, d5, d6, d7, d8, d9, d11]
     if a.only:
         steps = [s for s in steps if s.__name__ in a.only.split(",")]
     for step in steps:
