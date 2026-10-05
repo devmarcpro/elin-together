@@ -1,3 +1,4 @@
+using ElinTogether.Helper;
 using ElinTogether.Net;
 using ElinTogether.Patches;
 using MessagePack;
@@ -28,15 +29,31 @@ public class CharaAddConditionDelta : ElinDelta
         return alias is nameof(ConSleep) or nameof(ConBlind) or nameof(ConParalyze);
     }
 
+    /// <summary>
+    ///     What the priestesses' blessing gives (DramaCustomSequence, step _blessing), at its default power
+    /// </summary>
+    internal static bool IsBlessingCondition(string alias)
+    {
+        return alias is nameof(ConHolyVeil) or nameof(ConEuphoric) or nameof(ConNightVision);
+    }
+
     protected override void OnApply(ElinNetBase net)
     {
         if (net is ElinNetHost host) {
             // reject every chara add condition delta from clients, but what a trap does to the player who
             // sent it: that trap was rolled in its game only
-            if (!Remove && host.ActiveRemoteCharas.TryGetValue(OriginPeer, out var sender) && Owner.Find() == sender &&
-                sources.stats.map.TryGetValue(ConditionId, out var asked) && IsTrapCondition(asked.alias)) {
-                using var _ = Simulate();
-                sender.AddCondition(Condition.Create(asked.alias, Power), Force);
+            if (!Remove && host.ActiveRemoteCharas.TryGetValue(OriginPeer, out var sender) &&
+                sources.stats.map.TryGetValue(ConditionId, out var asked)) {
+                if (Owner.Find() == sender && IsTrapCondition(asked.alias)) {
+                    using var _ = Simulate();
+                    sender.AddCondition(Condition.Create(asked.alias, Power), Force);
+                } else if (IsBlessingCondition(asked.alias) && Owner.Find() is Chara { isDead: false } target &&
+                           (target == sender || target.IsCompanionOf(sender))) {
+                    // the blessing of the sender's dialog for itself and its companions: its power is the game's, not
+                    // asked, and it lasts as a perfume does
+                    using var _ = Simulate();
+                    target.AddCondition(Condition.Create(asked.alias, 100))?.SetPerfume();
+                }
             }
 
             return;
