@@ -136,9 +136,19 @@ internal partial class ElinNetHost
         long income = 0;
         var count = 0;
         var exp = 0;
+        // the price reads "the player's" god (Card.GetPrice: Kumiromi, Ehekatl): the shipper's, not the host's
+        var self = player.chara;
+        Dictionary<Thing, int> prices;
+        try {
+            player.chara = game.cards.globalCharas.Find(shipperUid) ?? self;
+            prices = goods.ToDictionary(t => t, t => t.GetPrice(CurrencyType.Money, true, PriceType.Shipping));
+        } finally {
+            player.chara = self;
+        }
+
         foreach (var thing in goods) {
             // same numbers as GameDate.ShipGoods
-            var price = thing.GetPrice(CurrencyType.Money, true, PriceType.Shipping);
+            var price = prices[thing];
             var sum = (long)price * thing.Num;
             income += sum;
             count += thing.Num;
