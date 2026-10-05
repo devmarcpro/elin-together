@@ -27,7 +27,8 @@ def call(url, data=None, headers=None):
 body = io.open(note, encoding='utf-8').read()
 rel = call('https://api.github.com/repos/devmarcpro/elin-together/releases', json.dumps({
     'tag_name': 'independance-' + version, 'target_commitish': commit,
-    'name': f'Indépendance {version} (Elin EA 23.351 Patch 2, Nightly)',
+    # version-elin.txt : écrit par make_release.ps1 dans le dossier à côté du zip
+    'name': f"Indépendance {version} (Elin {open(zip_path[:-4] + '/version-elin.txt').read().strip()})",
     'body': body, 'prerelease': True, 'draft': False}).encode(), {'Content-Type': 'application/json'})
 print('release', rel['html_url'], 'prerelease', rel['prerelease'])
 data = open(zip_path, 'rb').read()

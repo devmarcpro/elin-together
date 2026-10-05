@@ -29,14 +29,16 @@ goes to them (see [Credits](#credits)).
 | Random quests per player | Quests from inhabitants and boards belong to the player who takes them, with the reward, fame and karma. They follow the player everywhere. |
 | Shared story | Story quests are in one log: anyone starts, advances and finishes them. Dialog memory, key items and debt are shared. |
 | Dungeon quests for everyone | A player who is not the host can take a quest that has its own zone and settle it, alone or with the other player (next line). |
-| Dungeon quests for two | When one player sets out on a quest, the other sees a Yes/No box to come along. The zone is shared, the reward goes to whoever took the quest. Works both ways; when the guest took the quest: "subdue" quests only for now. |
+| Dungeon quests for two | When one player sets out on a quest, the other sees a Yes/No box to come along. The zone is shared, the reward goes to whoever took the quest. Works both ways; when the guest took the quest: "subdue", harvest and music quests (defense stays solo). |
 | Trade between players | Click another player → "Trade": both put items and gold, both confirm. |
 | Safer trade | It refuses what the solo game refuses to give away, refuses when the other's bag is full, and says why. |
 | Character choice | When joining, a player picks one of their characters in that world or makes a new one. |
 | Karma and crime per player | The player who did it loses the karma; guards only chase that player. |
 | Shared affinity and guilds | An inhabitant's affinity is the same for all; joining a guild counts for the group. |
-| A guest plays like a solo player | Dozens of fixes since 0.26.399: death and will, the god's gifts, traps, spellbooks, healer, blessing, investing, runes, auto-dump, windows that used to open on the host… The list is in [`dev/DOCUMENTATION.md`](dev/DOCUMENTATION.md) (French). |
+| A guest plays like a solo player | Dozens of fixes since 0.26.399: death and will, the god's gifts, traps, spellbooks, healer, blessing, investing, runes, auto-dump, windows that used to open on the host, a gift taken out of a stack, a mount already taken, a log chopped with an axe, a prayer that heals companions, food in the bag that goes off… The list is in [`dev/DOCUMENTATION.md`](dev/DOCUMENTATION.md) (French). |
 | Companion orders per player | The two tactics checkboxes that rule your companions (follow from further away; stay near you in a fight instead of chasing an enemy you cannot see) are your own, not the host's. |
+| Home base set by a guest | Research and hearth skills are real requests to the host (it checks, pays once, everyone sees the result). Policies, beds, sale tags, notes, the name of the base, of the faction and of a teleporter: seen by the other player, both ways. |
+| Different Elin versions | Only the mod's version must be the same for everyone. Two players on different Elin versions can connect; they are told by a warning. A host checkbox ("Require the same Elin version", unchecked by default) asks for the same Elin version again. |
 
 Most of these are a **checkbox on the host's side** (Esc → Mods → Elin Together → *Server Setting*); unchecked,
 the mod behaves like the original. Dungeon quests for two and the "a guest plays like a solo player" fixes have no
@@ -64,14 +66,17 @@ checkbox.
   game's code directly.
 - Dungeon quests for two, when the guest took the quest: subdue, harvest and music quests. Defense quests are still
   settled alone.
-- Home base settings changed by a guest: research, hearth skills, policies, beds, sale tags and notes work as for
-  the host. Not yet: the maid, a resident's type and reserve, the zone's name, chest settings (on the guest's own
-  screen only).
+- Home base settings changed by a guest: research, hearth skills, policies, beds, sale tags, notes and names (base,
+  faction, teleporter) work as for the host. Not yet: the maid, a resident's type and reserve, chest settings (on
+  the guest's own screen only).
+- A guest's build mode (floors, walls, mine / chop marks) only works on its own screen. For now, the host has to
+  build the base.
+- Different Elin versions: tested on a local connection only; through the Steam lobby, not played.
 - When the host returns to a map held by a guest, the guest's screen reloads (the guest is told first). The time it
   takes has not been measured between two PCs.
 - Trade: equipped items still cannot be traded (the game says why); a full bag is checked.
 - A few fixes have not been played in game yet: drowning in deep water, hostess ticket, a visitor's karma on a map
-  held by a guest, bag sorting, and some others (marked "not played" in the commit messages).
+  held by a guest, bag sorting, the faction name, and some others (marked "not played" in the commit messages).
 - A few rare conflicts are known and not fixed (two players building on the same tile, a mount existing twice
   after a trip). Two purchases at the same instant from the same shop: the second buyer is told the item is gone
   (not played).
@@ -82,8 +87,9 @@ The full list, and what is planned, is in [`dev/DOCUMENTATION.md`](dev/DOCUMENTA
 ## Install
 
 Requires [YK Framework](https://steamcommunity.com/sharedfiles/filedetails/?id=3400020753) and Elin on the
-**Nightly** branch (the fork is built against EA 23.351). **Every player must run the same build of this fork**;
-it does not talk to the Workshop version.
+**Nightly** branch (the fork is built against EA 23.352). **Every player must run the same build of this fork**;
+it does not talk to the Workshop version. A slightly different Elin version between players no longer prevents
+connecting: players are warned, and the host can tick "Require the same Elin version" to ask for the same one.
 
 Download `ElinTogether-independance.zip` from the
 [Releases page](https://github.com/devmarcpro/elin-together/releases), unzip it and run `Installer.bat`: it

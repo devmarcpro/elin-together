@@ -2251,3 +2251,24 @@ réglages de coffre, mesure du rechargement) ; défense à deux. Voir `HANDOFF.m
 - Numéros d'union pris : deltas jusqu'à 829 (824 à 829 utilisés), arguments de tâche jusqu'à 226.
 - Versions : dernière publiée 0.26.442 (compilée pour Elin 23.351). Tout ce qui suit est poussé sur
   `feat/independent-travel` mais pas publié en version : proposer une 0.26.4xx compilée sur 23.352.
+
+### Reprise de 14h45 : version sur Elin 23.352, conseil 5 (mode construction) — reprendre ici
+
+- **`_decomp` refait pour EA 23.352** (l'ancien est gardé dans `_decomp/Elin_23351`). Piège : `ilspycmd.exe` ne dit rien
+  et ne fait rien sans `DOTNET_ROLL_FORWARD=LatestMajor` et `DOTNET_ROLL_FORWARD_TO_PRERELEASE=1`. Ce qui a changé dans
+  le jeu : quête de musique (`QuestMusic.partyLv`, tiré avec la compétence de `EClass.pc` : celui qui génère la quête),
+  nouveaux livres `TraitBlackNote` / `TraitDeathNote` (branche `c.IsPC`), `Zone.cs` (export de carte), `AI_PlayMusic`
+  (plafond de gain), `Chara.cs:3423`, `TraitWhipEgg`, `CharaBody`. **À chasser** : livre noir lu par un invité, niveau
+  de fête d'une quête de musique prise par un invité.
+- **Conseil 5, mode construction d'un invité** (lignes 1, 3, 4 de la deuxième chasse ; faits : `PLAN_construction_invite.md`).
+  Question : cible et ordre pour que l'invité construise comme l'host. **Verdict** : l'invité demande, l'host exécute
+  seul (or 10 par case et matériaux pris une fois : sac de l'invité puis stock de la carte ; pierres et bois dans le
+  sac de l'invité), et un delta « état d'une case » diffuse tout changement de case fait par celui qui simule la carte.
+  Ordre : 1) garde-fou : message au lieu de payer pour rien (préfixe sur `BaseTileSelector.TryProcessTiles`, jamais le
+  premier clic d'« Inspect ») ; 2) delta de case pour sols et murs ; 3) le reste (objets de case, pont, toit, déco,
+  liquide) ; 4) demande « sol et mur » avec réponse fait / refusé, le garde-fou retiré pour ce geste ; 5) miner,
+  creuser, couper ; 6) meuble neuf et objet du stock ; 7) zones, terrain, ranger. **Écarté** : rejouer le geste chez
+  chacun (faux dès que les cartes diffèrent, lit les touches de la mauvaise machine) ; envoyer les marques (personne
+  ne les lit : `GoalTask` n'est créé nulle part) ; aller droit à la cible sans garde-fou ; sac seul ; pierres au sol.
+  Notes du président : avec l'agent comme acteur, `TrySmoothPick` donne la pierre à l'host : il faut une redirection
+  vers le personnage de l'invité (`CharaPickThingEvent.cs`) ; l'expérience de minage va à l'agent en solo aussi.

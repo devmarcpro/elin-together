@@ -30,14 +30,16 @@ mod lui-même leur revient (voir [Crédits](#crédits)).
 | Quêtes aléatoires par joueur | Les quêtes des habitants et des tableaux sont à celui qui les prend, avec la récompense, la renommée et le karma. Elles le suivent partout. |
 | Histoire commune | Les quêtes d'histoire sont dans un seul journal : n'importe qui les lance, les avance, les termine. Dialogues déjà vus, objets clés et dette sont communs. |
 | Quêtes à donjon pour tous | Un joueur qui n'est pas l'host peut prendre une quête qui a sa propre zone et la régler, seul ou à deux (ligne suivante). |
-| Quêtes à donjon à deux | Quand un joueur part en quête, l'autre voit une boîte Oui/Non pour l'accompagner. La zone est commune, la récompense va à celui qui a pris la quête. Dans les deux sens ; quand c'est l'invité qui a la quête : « subjuguer » seulement pour l'instant. |
+| Quêtes à donjon à deux | Quand un joueur part en quête, l'autre voit une boîte Oui/Non pour l'accompagner. La zone est commune, la récompense va à celui qui a pris la quête. Dans les deux sens ; quand c'est l'invité qui a la quête : « subjuguer », récolte et musique (la défense reste à faire seul). |
 | Échange entre joueurs | Clic sur un autre joueur → « Échanger » : chacun met des objets et de l'or, les deux confirment. |
 | Échange plus sûr | Il refuse ce que le jeu solo refuse de donner, refuse si le sac de l'autre est plein, et dit pourquoi. |
 | Choix du personnage | En rejoignant, un joueur choisit un de ses personnages de cette partie ou en crée un nouveau. |
 | Karma et crime par joueur | C'est le joueur fautif qui perd du karma ; les gardes ne poursuivent que lui. |
 | Affinité et guildes communes | L'affinité d'un habitant est la même pour tous ; rejoindre une guilde vaut pour le groupe. |
-| Un invité joue comme un joueur solo | Des dizaines de corrections depuis la 0.26.399 : mort et testament, cadeaux du dieu, pièges, grimoires, guérisseur, bénédiction, investir, runes, rangement automatique, fenêtres qui s'ouvraient chez l'host… La liste est dans [`dev/DOCUMENTATION.md`](dev/DOCUMENTATION.md). |
+| Un invité joue comme un joueur solo | Des dizaines de corrections depuis la 0.26.399 : mort et testament, cadeaux du dieu, pièges, grimoires, guérisseur, bénédiction, investir, runes, rangement automatique, fenêtres qui s'ouvraient chez l'host, objet offert pris dans une pile, monture déjà prise, rondin taillé à la hache, prière qui soigne les compagnons, nourriture du sac qui vieillit… La liste est dans [`dev/DOCUMENTATION.md`](dev/DOCUMENTATION.md). |
 | Consignes des compagnons par joueur | Les deux cases de tactique qui règlent tes compagnons (te suivre de plus loin ; rester près de toi en combat au lieu de courir après un ennemi que tu ne vois pas) sont les tiennes, pas celles de l'host. |
+| Base réglée par un invité | Recherche et compétences du foyer : de vraies demandes à l'host (il vérifie, paie une fois, tout le monde voit le résultat). Politiques, lits, étiquettes de vente, notes, nom de la base, de la faction et d'un téléporteur : vus par l'autre joueur, dans les deux sens. |
+| Versions d'Elin différentes | Seule la version du mod doit être la même pour tous. Deux joueurs sur deux versions d'Elin peuvent se connecter ; ils sont prévenus par un avertissement. Une case côté host (« Require the same Elin version », décochée par défaut) redemande la même version d'Elin. |
 
 Presque toutes sont une **case à cocher côté host** (Échap → Mods → Elin Together → *Server Setting*) ; décochée,
 le mod se comporte comme l'original. Les quêtes à donjon à deux et les corrections « un invité joue comme un joueur
@@ -66,13 +68,16 @@ solo » n'ont pas de case.
 - Quêtes à donjon à deux, quand c'est l'invité qui a la quête : subjuguer, récolte et musique. La défense reste à
   régler seul.
 - Réglages de la base faits par un invité : la recherche, les compétences du foyer, les politiques, les lits, les
-  étiquettes de vente et les notes marchent comme pour l'host. Pas encore : la servante, le type et la mise en
-  réserve d'un résident, le nom de la zone, les réglages des coffres (seulement sur son écran).
+  étiquettes de vente, les notes et les noms (base, faction, téléporteur) marchent comme pour l'host. Pas encore :
+  la servante, le type et la mise en réserve d'un résident, les réglages des coffres (seulement sur son écran).
+- Mode construction d'un invité (sols, murs, marques miner / couper) : il ne se fait que sur son écran. Pour
+  l'instant, c'est l'host qui doit construire la base.
+- Versions d'Elin différentes : testé en connexion locale seulement ; par le salon Steam, pas joué.
 - Quand l'host revient sur une carte tenue par un invité, l'écran de l'invité se recharge (il est prévenu avant).
   La durée n'est pas mesurée entre deux PC.
 - Échange : les objets équipés ne s'échangent toujours pas (le jeu dit pourquoi) ; le sac plein est vérifié.
 - Quelques corrections ne sont pas encore jouées en jeu : noyade en eau profonde, ticket d'hôtesse, karma d'un
-  visiteur chez un invité, tri du sac, et d'autres (marquées « pas joué » dans les messages de commit).
+  visiteur chez un invité, tri du sac, nom de la faction, et d'autres (marquées « pas joué » dans les messages de commit).
 - Quelques conflits rares sont connus et pas corrigés (deux joueurs qui construisent sur la même case, une monture
   en double au retour d'un voyage). Deux achats au même instant chez le même marchand : le second est prévenu que
   l'objet est parti (pas joué).
@@ -83,8 +88,10 @@ La liste complète, et ce qui est prévu : [`dev/DOCUMENTATION.md`](dev/DOCUMENT
 ## Installer
 
 Il faut [YK Framework](https://steamcommunity.com/sharedfiles/filedetails/?id=3400020753) et Elin sur le canal
-**Nightly** (cette version est compilée pour EA 23.351). **Tous les joueurs doivent avoir la même version de ce
-fork** ; elle ne se connecte pas à la version du Workshop.
+**Nightly** (cette version est compilée pour EA 23.352). **Tous les joueurs doivent avoir la même version de ce
+fork** ; elle ne se connecte pas à la version du Workshop. Une version d'Elin un peu différente entre joueurs
+n'empêche plus de se connecter : les joueurs sont prévenus, et l'host peut cocher « Require the same Elin
+version » pour redemander la même.
 
 Télécharger `ElinTogether-independance.zip` sur la
 [page des versions](https://github.com/devmarcpro/elin-together/releases), le décompresser et lancer

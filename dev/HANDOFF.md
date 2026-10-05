@@ -233,3 +233,12 @@ Prairie. Les anciens pièges sont dans `MODLOG.md`.
 - Ensuite : ligne 1 de `PLAN_chasse_differences_2.md` (mode construction d'un invité). L'agent qui devait écrire les
   faits dans `dev/PLAN_construction_invite.md` a été arrêté avant la fin : le relancer.
 - Pour reprendre : coller le contenu de `dev/PROMPT_reprise.md` (à jour à 14h45) dans une nouvelle session.
+
+## Demandes de l'utilisateur du 5 octobre, 15h (à concevoir, conseil d'abord)
+
+- **Un invité doit pouvoir gérer la base de l'host** ; idée : un système de membres par base. Le mode construction de
+  l'invité (conseil 5, `PLAN_construction_invite.md`) en est la première moitié ; reste : qui a le droit (membres), les
+  réglages encore locaux (servante, résidents, coffres).
+- **Duels entre joueurs**, comme contre les aventuriers : les deux joueurs envoyés sur une autre carte, combat à mort, la
+  mort finit seulement le combat, aucune perte des deux côtés, pari possible. Lire d'abord l'arène du jeu (`bout_win`,
+  `Zone_Arena`, section « Pas parcouru » de `PLAN_chasse_differences_2.md`).
