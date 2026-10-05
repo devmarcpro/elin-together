@@ -5,7 +5,7 @@ Test court, sur des instances deja lancees (host + 1 client, tous les deux a la 
     python _tools/setting_suite.py            # ou --only s1,s3
 
 S1  note ecrite sur un meuble.   S2  etiquette de vente (posee puis retiree, avec l'etiquette tenue en main).
-S3  lit : le reclamer, en changer le type.
+S3  lit : le reclamer, en changer le type.   S4  politiques de la base (vraie fenetre, vrai clic sur la politique).
 Avant : chaque jeu ne changeait que sa copie (l'host, qui fait vivre les habitants et sauvegarde, ne voyait rien).
 """
 import argparse
@@ -94,6 +94,38 @@ def s3(ctx):
             ev(H, f'var t = {thing(t)}; if (t != null) t.Destroy(); "ok"')
 
 
+def s4(ctx):
+    """politiques de la base : celle qu'un joueur active ou coupe dans la fenetre des politiques l'est dans les deux jeux"""
+    acts = 'string.Join(",", EClass._zone.branch.policies.list.Where(p => p.active).Select(p => p.id).OrderBy(i => i))'
+    pid = ev(H, 'var b = EClass._zone.branch; var p = b.policies.list.FirstOrDefault(x => !x.active && b.policies.CurrentAP() + x.Cost <= b.MaxAP); '
+                'return p == null ? "" : p.id.ToString();')
+    if not pid:
+        # la base de test n'a pas de politique libre : une politique sans cout est donnee aux deux jeux (comme une recherche le ferait)
+        pid = ev(H, 'EClass.sources.elements.rows.First(r => r.category == "policy" && r.cost.Length > 0 && r.cost[0] == 0).id.ToString()')
+        for p in (H, A):
+            ev(p, f'var b = EClass._zone.branch; if (!b.policies.list.Any(x => x.id == {pid})) b.policies.AddPolicy({pid}, false); "ok"')
+    if not check(f"la base a une politique a activer ({pid}), connue des deux jeux",
+                 bool(pid) and all(ev(p, f'EClass._zone.branch.policies.list.Any(x => x.id == {pid}).ToString()') == "True" for p in (H, A))):
+        return
+    click = ('var l = EClass.ui.GetLayer<LayerPolicy>() ?? EClass.ui.AddLayer<LayerPolicy>(); var b = l.GetComponentsInChildren<UIButton>(true)'
+             f'.FirstOrDefault(x => x.refObj is Policy q && q.id == {pid}); if (b == null) return "bouton absent"; b.onClick.Invoke(); return "clic";')
+    for who, key in both(ctx):
+        port, uid = ctx[key]
+        try:
+            for p in (H, A):
+                ev(p, 'foreach (var l in EClass.ui.layers.ToList()) l.Close(); "ok"')
+            ev(port, 'EClass.ui.AddLayer<LayerPolicy>(); "ok"')
+            time.sleep(2)
+            for want in (True, False):
+                r = ev(port, click)
+                on = lambda p: str(pid) in ev(p, acts).split(",")  # noqa: E731
+                check(cond=eventually(lambda: on(H) == want and on(A) == want, timeout=10),
+                      label=f"{who} {'active' if want else 'coupe'} la politique ({r}) : les deux jeux disent pareil (host [{ev(H, acts)}], invite [{ev(A, acts)}])")
+        finally:
+            for p in (H, A):
+                ev(p, 'foreach (var l in EClass.ui.layers.ToList()) l.Close(); "ok"')
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--only")
@@ -101,7 +133,7 @@ def main():
     sys.stdout.reconfigure(encoding="utf-8")
     t0 = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
     ctx = {"a": (A, state(A)["pc"]["uid"]), "h": (H, state(H)["pc"]["uid"])}
-    steps = [s1, s2, s3]
+    steps = [s1, s2, s3, s4]
     if a.only:
         steps = [s for s in steps if s.__name__ in a.only.split(",")]
     for step in steps:

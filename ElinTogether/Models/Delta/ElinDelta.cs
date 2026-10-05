@@ -110,6 +110,7 @@ namespace ElinTogether.Models;
 [Union(824, typeof(BaseRequestDelta))]
 [Union(825, typeof(BaseStateDelta))]
 [Union(826, typeof(CardSettingDelta))]
+[Union(827, typeof(PolicyStateDelta))]
 // Act
 [Union(900, typeof(ActThrowDelta))]
 // Element
