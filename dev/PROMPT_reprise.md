@@ -49,7 +49,7 @@ machine contient un build de TEST (Debug) : avant de jouer avec quelqu'un, insta
    différente = un avertissement ; une case côté host revient au contrôle strict. Le chemin par le salon Steam n'est pas
    joué : à essayer à deux PC (ma liste d'essais, point 9), rien à réécrire avant.
 2. **Publier une nouvelle version, compilée sur Elin 23.352 : j'ai dit OUI le 5 octobre à 14h40.** C'est la première
-   chose à faire. Dans l'ordre : (a) `devuild.ps1`, puis les suites larges, chacune sur un jeu relancé :
+   chose à faire. Dans l'ordre : (a) `dev\build.ps1`, puis les suites larges, chacune sur un jeu relancé :
    `bash _tools/run_short.sh pub equal2_suite council_suite hunt_suite hunt2_suite together_suite death_suite
    parity_suite sleep_suite recruit_suite quest_suite instance_suite trade_suite base_suite setting_suite
    unplayed_suite version_suite leave_suite guest_suite`, puis `travel_suite` seule (elle lance le jeu elle-même) ; un
@@ -60,7 +60,7 @@ machine contient un build de TEST (Debug) : avant de jouer avec quelqu'un, insta
    de `dev\make_release.ps1` (le numéro de version vient du nombre de commits : lis-le sur la DLL installée), copie
    le zip sous `dev/_release/ElinTogether-independance-<version>.zip`, pousse, puis
    `python dev/_tools/publish_release.py <version> <commit entier> dev/NOTE_version.md dev/_release/ElinTogether-independance.zip`
-   (il vérifie que le zip en ligne est identique). Reviens sur `fix/points-restants` et refais `devuild.ps1`.
+   (il vérifie que le zip en ligne est identique). Reviens sur `fix/points-restants` et refais `dev\build.ps1`.
    (e) Donne-moi le lien et dis-moi ce qui n'a pas été rejoué.
 3. **Étape E = `dev/PLAN_chasse_differences_2.md`** (37 lignes lues dans le code ; 2, 5 et 6 faites). Le plus gros
    d'abord : **ligne 1, le mode construction d'un invité** (il paierait matériaux et or sans que rien ne se construise
