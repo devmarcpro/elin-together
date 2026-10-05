@@ -19,6 +19,20 @@ D5  il quitte : le depot est libre ; le premier joueur le prend a son tour et re
     locale a ete effacee avant : le monde vient bien du depot)
 D6  il ouvre la session, l'autre le rejoint : les deux jouent dans le monde du depot
 
+P1  (depot dossier seulement, a la fin ; seule : DEPOT_ONLY=p1 ou --only p1, sur les fenetres telles que la passe
+    complete les laisse : H heberge le monde du depot, A l'a rejoint avec son personnage) ETAT DES LIEUX, sans code
+    nouveau dans le mod : quand l'invite prend a son tour le monde du depot et l'heberge, quel personnage joue-t-il ?
+    Le sien, ou le personnage principal de la sauvegarde (celui de l'ancien hebergeur) ? Le journal donne les noms,
+    uid, positions, or et sacs de H et de A vus des deux jeux avant, puis ce que A trouve apres. Les trois
+    verifications finales (A joue son personnage ; il a son seau et ses 123 or ; le personnage de H est toujours la,
+    meme sac, meme or, immobile) PEUVENT ETRE ROUGES : c'est la reponse, lire les lignes "avant :" et "apres :".
+    Pas joue comme un joueur : le seau et l'or sont donnes par le pont dans le sac de A (AddThing, ModCurrency), pas
+    ramasses ni gagnes en jouant ; la sauvegarde, la fin de session (ResetSession) et "prendre le monde" sont les
+    fonctions du jeu et du mod, pas les menus ; "ne bouge pas" = deux lectures a 10 s d'ecart sur un jeu au tour par
+    tour que personne ne joue : si le personnage de H est celui que A controle, ce test est sans objet ; un seul
+    depot dossier, un seul passage, deux fenetres.
+    Commande seule : DEPOT_ONLY=p1 python _tools/depot_suite.py (PowerShell : $env:DEPOT_ONLY="p1")
+
     DEPOT_SERVER=1 python _tools/depot_suite.py
 Le meme scenario avec Elin Together Server a la place du dossier : l'application (aucun jeu, aucun dossier partage)
 garde le monde et le verrou, les jeux lui parlent par son adresse.
@@ -375,179 +389,298 @@ def github_key(fake_state, start_ts):
         check(f"A avant sa fermeture : {len(exc)} exception(s)", not exc)
 
 
+# ---- P1 : quel personnage joue l'invite qui prend a son tour le monde du depot ? (etat des lieux, depot dossier)
+
+# un personnage, par son uid, vu par ce jeu : sur la carte, ou a defaut parmi les personnages globaux
+CHARA_INFO = ('var u = UID; var place = "carte"; var c = EClass._map.charas.Find(x => x.uid == u); '
+              'if (c == null) { c = EClass.game.cards.globalCharas.Find(u); place = "global (pas sur la carte)"; } '
+              'if (c == null) return "introuvable"; '
+              'return c.Name + " | uid " + c.uid + " | " + place + " | mort=" + c.isDead + " | pos " + '
+              '(c.pos == null ? "?" : c.pos.x + "," + c.pos.z) + " | or " + c.GetCurrency() + " | seaux " + '
+              'c.things.Flatten().Where(t => t.id == "bucket").Sum(t => t.Num) + " | joueur=" + c.IsPC + " | sac " + '
+              'string.Join(",", c.things.Flatten().Select(t => t.id + "x" + t.Num).OrderBy(n => n));')
+
+
+def info(port, uid):
+    """Ce que le jeu `port` sait du personnage `uid` (uid peut etre une expression C#, ex. EClass.pc.uid)."""
+    raw = ev(port, CHARA_INFO.replace("UID", str(uid)))
+    out = {"raw": raw, "place": raw, "name": "?", "uid": None, "dead": None, "pos": "?", "gold": None, "buckets": None,
+           "pc": None, "bag": "?"}
+    try:
+        f = [x.strip() for x in raw.split(" | ")]
+        out.update(name=f[0], uid=int(f[1][4:]), place=f[2], dead=f[3] == "mort=True", pos=f[4][4:],
+                   gold=int(f[5][3:]), buckets=int(f[6][6:]), pc=f[7] == "joueur=True", bag=f[8][4:])
+    except (IndexError, ValueError):
+        pass
+    return out
+
+
+def p1():
+    log("--- P1")
+    uid_h = int(ev(H, "EClass.pc.uid.ToString()"))
+    uid_a = int(state(A)["pc"]["uid"])
+    seen = {"H vu de H": info(H, uid_h), "H vu de A": info(A, uid_h), "A vu de A": info(A, uid_a), "A vu de H": info(H, uid_a)}
+    for label, it in seen.items():
+        log(f"avant : {label} : {it['raw']}")
+    check(f"P1 depart : H et A jouent deux personnages distincts (H = {seen['H vu de H']['name']} uid {uid_h}, "
+          f"A = {seen['A vu de A']['name']} uid {uid_a})", uid_h != uid_a)
+    a0 = seen["A vu de A"]
+
+    # (2) A recoit un seau et gagne 123 pieces d'or, de son cote (ce que fait un joueur qui ramasse et gagne de l'or)
+    ev(A, 'EClass.pc.AddThing(ThingGen.Create("bucket")); EClass.pc.ModCurrency(123); "ok"')
+    want = lambda it: it["gold"] == a0["gold"] + 123 and it["buckets"] == a0["buckets"] + 1  # noqa: E731
+    synced = eventually(lambda: want(info(H, uid_a)), timeout=15)
+    check(f"P1 l'host voit le seau et l'or de A ({info(H, uid_a)['raw']})", synced)
+    if not synced:
+        log("le seau et l'or de A n'arrivent pas chez l'host : donnes par l'host, pour continuer l'etat des lieux")
+        ev(H, f'var c = EClass._map.charas.Find(x => x.uid == {uid_a}); var t = ThingGen.Create("bucket"); '
+              'c.AddThing(t, false); c.ModCurrency(123); "ok"')
+        eventually(lambda: want(info(A, uid_a)), timeout=15)
+    log(f"A apres le seau et l'or : {info(A, uid_a)['raw']}")
+
+    # (3) H sauvegarde et rend le monde ; A est deconnecte
+    pre_h = info(H, uid_h)
+    stamp = WORLD.stat().st_mtime
+    ev(H, 'EClass.game.Save(false, true).ToString()')
+    check("P1 H sauvegarde : le monde du depot change", eventually(lambda: WORLD.stat().st_mtime > stamp, timeout=20))
+    ev(H, 'ElinTogether.Net.NetSession.Instance.ResetSession(); "ok"')
+    time.sleep(3)
+    if state(H).get("sceneMode") != "Title":
+        to_title(H)
+    if state(A).get("sceneMode") != "Title":
+        ev(A, 'ElinTogether.Net.NetSession.Instance.ResetSession(); "ok"')
+        time.sleep(3)
+        if state(A).get("sceneMode") != "Title":
+            emp.call(A, "eval", {"code": 'EClass.scene.Init(Scene.Mode.Title); "ok"'}, timeout=60)
+    wait(lambda: state(A).get("sceneMode") == "Title" and not state(A)["connected"], "A a l'ecran titre", timeout=60)
+    check("P1 le monde est rendu (plus de verrou dans le depot)", eventually(lambda: holder(A) == "", timeout=10))
+
+    # (4) A prend le monde du depot et l'heberge
+    take(A)
+    wait(loaded(A), "A charge le monde du depot", timeout=180, every=3.0)
+    dismiss_dialogs(A)
+    time.sleep(3)
+
+    # (5) ce que A trouve
+    me = info(A, "EClass.pc.uid")
+    mine = info(A, uid_a)
+    theirs = info(A, uid_h)
+    time.sleep(10)
+    theirs_later = info(A, uid_h)
+    log(f"apres : le personnage que A joue (EClass.pc) : {me['raw']}")
+    log(f"apres : le personnage de A (uid {uid_a}) : {mine['raw']}")
+    log(f"apres : le personnage de H (uid {uid_h}) : {theirs['raw']}")
+    log(f"apres : le personnage de H, 10 s plus tard : {theirs_later['raw']}")
+
+    # (6) verifications (un etat des lieux : elles peuvent etre rouges, le journal dit ce qui a ete trouve)
+    check(f"P1 A joue son propre personnage : il joue {me['name']} (uid {me['uid']}) ; son personnage etait "
+          f"{a0['name']} (uid {uid_a}), celui de H est {pre_h['name']} (uid {uid_h})",
+          me["uid"] == uid_a and me["name"] == a0["name"])
+    check(f"P1 il a son seau et son or : le personnage qu'il joue a {me['buckets']} seau(x) et {me['gold']} or "
+          f"(attendu {a0['buckets'] + 1} et {a0['gold'] + 123}) ; son sac : {me['bag']}",
+          me["buckets"] == a0["buckets"] + 1 and me["gold"] == a0["gold"] + 123)
+    same = (theirs["place"] == "carte" and theirs["dead"] is False and theirs["bag"] == pre_h["bag"]
+            and theirs["gold"] == pre_h["gold"] and theirs["pos"] == pre_h["pos"] == theirs_later["pos"])
+    check(f"P1 le personnage de H est toujours dans le monde, meme sac, meme or, et ne bouge pas : "
+          f"avant {pre_h['name']} ({pre_h['place']}, mort={pre_h['dead']}, pos {pre_h['pos']}, or {pre_h['gold']}, "
+          f"sac {pre_h['bag']}) ; apres ({theirs['place']}, mort={theirs['dead']}, pos {theirs['pos']}, "
+          f"puis {theirs_later['pos']}, or {theirs['gold']}, sac {theirs['bag']}, joue par A : {theirs['pc']})", same)
+
+
 def main():
     global A
     sys.stdout.reconfigure(encoding="utf-8")
     t0 = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
     start_ts = time.time()
     unsent = SAVES / "world_depot.unsent"
+    only = os.environ.get("DEPOT_ONLY", "").lower()
+    if "--only" in sys.argv:
+        only = sys.argv[sys.argv.index("--only") + 1].lower()
+    if only not in ("", "p1"):
+        sys.exit("DEPOT_ONLY / --only : seulement p1")
+    if only == "p1" and (REMOTE or GITHUB):
+        sys.exit("P1 se joue avec le depot dossier (ni DEPOT_SERVER ni DEPOT_GITHUB)")
     server = fake = None
     fake_state = {}
     try:
-        shutil.rmtree(DEPOT, ignore_errors=True)
-        shutil.rmtree(LOCAL, ignore_errors=True)
-        unsent.unlink(missing_ok=True)
-        DEPOT.mkdir(parents=True)
-        if REMOTE:
-            # la sauvegarde est choisie dans le logiciel (ici par sa ligne de commande, comme le bouton "Mettre
-            # cette sauvegarde sur le serveur") : aucun joueur n'a a la deposer
-            server = start_server("--import", str(PRISTINE))
-            log(f"Elin Together Server lance (pid {server.pid}), depot a {ADDRESS}")
-            time.sleep(3)
-        if GITHUB:
-            fake = subprocess.Popen([sys.executable, str(FAKE), "--port", str(GPORT), "--token", TOKEN])
-            log(f"faux GitHub lance (pid {fake.pid}), {API}")
-            wait(lambda: ctl("/__state"), "faux GitHub", timeout=20, every=0.5)
-            ctl("/__repo", name=GREPO, private=True)
+        if only == "p1":
+            # les fenetres sont la ou une passe complete les laisse (H heberge le monde du depot, A l'a rejoint)
             for port in (H, A):
-                # l'adresse d'abord, avant que GitHubDepot soit utilise ; ensuite on relit ce que le jeu en a retenu
-                ev(port, SET_API % API)
-                used = ev(port, USED_API)
-                if used != API:
-                    raise RuntimeError(f"le jeu {port} parle a {used} : GitHubDepot etait deja utilise ; relancer la fenetre "
-                                       f"avec ELINTOGETHER_GITHUB_API={API} dans son environnement")
-                ev(port, RESET)
-            log("les deux jeux parlent au faux GitHub")
-        for port in (H, A):
-            dismiss_dialogs(port)
-            ev(port, SET % depot_for(port))
-            if GITHUB:
-                ev(port, PASSWORD % TOKEN)
-
-        log("--- D1")
-        if REMOTE:
-            check("la sauvegarde choisie dans le logiciel est le monde du serveur", eventually(WORLD.exists, timeout=15))
-        ev(H, CALL % "Put")
-        time.sleep(3)
-        log(f"l'host : {ev(H, DIALOG)}")
-        check("l'host depose sa sauvegarde : le depot contient un monde", world_there())
-        if REMOTE:
-            check("le monde qui s'y trouvait est garde a part", any(DEPOT.glob("replaced-*.zip")))
-        click(H)
-        wait(loaded(H), "l'host recharge le monde depuis le depot", timeout=180, every=3.0)
-        dismiss_dialogs(H)
-        check("son jeu la recharge depuis le depot : c'est le monde du depot qu'il joue", game_id(H) == "world_depot")
-        stamp = version()
-        ev(H, 'EClass.game.Save(false, true).ToString()')
-        check("et ses sauvegardes y vont", eventually(lambda: version() > stamp, timeout=30 if GITHUB else 20))
-        to_title(H)
-        if GITHUB:
-            check("l'host revient au titre : GitHub a sa derniere sauvegarde et le monde est libre",
-                  eventually(lambda: gh_holder() == "" and not unsent.exists(), timeout=30))
-
-        log("--- D2")
-        to_title(A)
-        if REMOTE:
-            emp.call(A, "eval", {"code": JOIN % ADDRESS}, timeout=180)
-            time.sleep(2)
-        elif GITHUB:
-            emp.call(A, "eval", {"code": JOIN % GDEPOT}, timeout=180)
-            time.sleep(2)
+                dismiss_dialogs(port)
+                ev(port, SET % str(DEPOT))
+            if not (game_id(H) == "world_depot" and state(H)["role"] == "Host" and len(state(H).get("players", [])) == 2
+                    and state(A)["connected"]):
+                raise RuntimeError("DEPOT_ONLY=p1 : H doit heberger le monde du depot avec A connecte (deux joueurs) ; "
+                                   "lancer d'abord la passe complete, qui finit dans cet etat")
         else:
-            take(A)
-        wait(loaded(A), "l'autre joueur charge le monde du depot", timeout=180, every=3.0)
-        dismiss_dialogs(A)
-        check("l'autre joueur prend le monde du depot et le charge", game_id(A) == "world_depot")
-        check(f"le depot dit qui heberge ({holder(H)})", eventually(lambda: holder(H) != "", timeout=10))
+            shutil.rmtree(DEPOT, ignore_errors=True)
+            shutil.rmtree(LOCAL, ignore_errors=True)
+            unsent.unlink(missing_ok=True)
+            DEPOT.mkdir(parents=True)
+            if REMOTE:
+                # la sauvegarde est choisie dans le logiciel (ici par sa ligne de commande, comme le bouton "Mettre
+                # cette sauvegarde sur le serveur") : aucun joueur n'a a la deposer
+                server = start_server("--import", str(PRISTINE))
+                log(f"Elin Together Server lance (pid {server.pid}), depot a {ADDRESS}")
+                time.sleep(3)
+            if GITHUB:
+                fake = subprocess.Popen([sys.executable, str(FAKE), "--port", str(GPORT), "--token", TOKEN])
+                log(f"faux GitHub lance (pid {fake.pid}), {API}")
+                wait(lambda: ctl("/__state"), "faux GitHub", timeout=20, every=0.5)
+                ctl("/__repo", name=GREPO, private=True)
+                for port in (H, A):
+                    # l'adresse d'abord, avant que GitHubDepot soit utilise ; ensuite on relit ce que le jeu en a retenu
+                    ev(port, SET_API % API)
+                    used = ev(port, USED_API)
+                    if used != API:
+                        raise RuntimeError(f"le jeu {port} parle a {used} : GitHubDepot etait deja utilise ; relancer la fenetre "
+                                           f"avec ELINTOGETHER_GITHUB_API={API} dans son environnement")
+                    ev(port, RESET)
+                log("les deux jeux parlent au faux GitHub")
+            for port in (H, A):
+                dismiss_dialogs(port)
+                ev(port, SET % depot_for(port))
+                if GITHUB:
+                    ev(port, PASSWORD % TOKEN)
 
-        log("--- D3")
-        to_title(H)
-        worlds = gh_worlds() if GITHUB else 0
-        take(H)
-        said = ev(H, DIALOG)
-        log(f"le premier joueur : {said}")
-        check("pendant ce temps le premier joueur ne peut pas le prendre : on lui dit qui heberge",
-              "is hosting" in said and state(H).get("sceneMode") == "Title")
-        dismiss_dialogs(H)
-        if GITHUB:
+            log("--- D1")
+            if REMOTE:
+                check("la sauvegarde choisie dans le logiciel est le monde du serveur", eventually(WORLD.exists, timeout=15))
+            ev(H, CALL % "Put")
+            time.sleep(3)
+            log(f"l'host : {ev(H, DIALOG)}")
+            check("l'host depose sa sauvegarde : le depot contient un monde", world_there())
+            if REMOTE:
+                check("le monde qui s'y trouvait est garde a part", any(DEPOT.glob("replaced-*.zip")))
             click(H)
-            check("(et GitHub n'a rien recu : le monde n'a pas change)", gh_worlds() == worlds)
-            # une mauvaise cle : refus clair, aucune ecriture, et le jeu ne dit pas qu'un joueur heberge
-            ev(H, PASSWORD % FALSE_KEY)
-            take(H)
-            said = ev(H, DIALOG)
-            log(f"le premier joueur, mauvaise cle : {said}")
-            refused = [e for e in ctl("/__state")["log"] if not e["auth"]]
-            check("mauvaise cle : GitHub la refuse (401), le jeu le dit autrement que \"is hosting\", rien n'est ecrit",
-                  bool(refused) and all(e["status"] == 401 for e in refused) and said != "" and "is hosting" not in said
-                  and gh_worlds() == worlds and state(H).get("sceneMode") == "Title")
-            click(H)
-            ev(H, PASSWORD % TOKEN)
-        if REMOTE:
-            # un mauvais mot de passe : on le dit, au lieu de "password heberge le monde"
-            ev(H, PASSWORD % "faux")
-            check(f"mauvais mot de passe : personne ne s'appelle \"password\" ({holder(H)!r})", holder(H) == "")
+            wait(loaded(H), "l'host recharge le monde depuis le depot", timeout=180, every=3.0)
+            dismiss_dialogs(H)
+            check("son jeu la recharge depuis le depot : c'est le monde du depot qu'il joue", game_id(H) == "world_depot")
+            stamp = version()
+            ev(H, 'EClass.game.Save(false, true).ToString()')
+            check("et ses sauvegardes y vont", eventually(lambda: version() > stamp, timeout=30 if GITHUB else 20))
+            to_title(H)
+            if GITHUB:
+                check("l'host revient au titre : GitHub a sa derniere sauvegarde et le monde est libre",
+                      eventually(lambda: gh_holder() == "" and not unsent.exists(), timeout=30))
+
+            log("--- D2")
+            to_title(A)
+            if REMOTE:
+                emp.call(A, "eval", {"code": JOIN % ADDRESS}, timeout=180)
+                time.sleep(2)
+            elif GITHUB:
+                emp.call(A, "eval", {"code": JOIN % GDEPOT}, timeout=180)
+                time.sleep(2)
+            else:
+                take(A)
+            wait(loaded(A), "l'autre joueur charge le monde du depot", timeout=180, every=3.0)
+            dismiss_dialogs(A)
+            check("l'autre joueur prend le monde du depot et le charge", game_id(A) == "world_depot")
+            check(f"le depot dit qui heberge ({holder(H)})", eventually(lambda: holder(H) != "", timeout=10))
+
+            log("--- D3")
+            to_title(H)
+            worlds = gh_worlds() if GITHUB else 0
             take(H)
             said = ev(H, DIALOG)
             log(f"le premier joueur : {said}")
-            check("mauvais mot de passe : le jeu dit que le serveur refuse le mot de passe", "refused" in said.lower())
+            check("pendant ce temps le premier joueur ne peut pas le prendre : on lui dit qui heberge",
+                  "is hosting" in said and state(H).get("sceneMode") == "Title")
             dismiss_dialogs(H)
-            ev(H, PASSWORD % "")
+            if GITHUB:
+                click(H)
+                check("(et GitHub n'a rien recu : le monde n'a pas change)", gh_worlds() == worlds)
+                # une mauvaise cle : refus clair, aucune ecriture, et le jeu ne dit pas qu'un joueur heberge
+                ev(H, PASSWORD % FALSE_KEY)
+                take(H)
+                said = ev(H, DIALOG)
+                log(f"le premier joueur, mauvaise cle : {said}")
+                refused = [e for e in ctl("/__state")["log"] if not e["auth"]]
+                check("mauvaise cle : GitHub la refuse (401), le jeu le dit autrement que \"is hosting\", rien n'est ecrit",
+                      bool(refused) and all(e["status"] == 401 for e in refused) and said != "" and "is hosting" not in said
+                      and gh_worlds() == worlds and state(H).get("sceneMode") == "Title")
+                click(H)
+                ev(H, PASSWORD % TOKEN)
+            if REMOTE:
+                # un mauvais mot de passe : on le dit, au lieu de "password heberge le monde"
+                ev(H, PASSWORD % "faux")
+                check(f"mauvais mot de passe : personne ne s'appelle \"password\" ({holder(H)!r})", holder(H) == "")
+                take(H)
+                said = ev(H, DIALOG)
+                log(f"le premier joueur : {said}")
+                check("mauvais mot de passe : le jeu dit que le serveur refuse le mot de passe", "refused" in said.lower())
+                dismiss_dialogs(H)
+                ev(H, PASSWORD % "")
 
-        log("--- D4")
-        before = int(ev(A, BUCKETS))
-        stamp = version()
-        if GITHUB:
-            # G1 : GitHub met 3 s a repondre a chaque demande ; l'envoi (verrou, monde...) dure bien plus de 10 s
-            ctl("/__fault", slow=3)
-            ev(A, SAVE_BUCKET)
-            n, worst = probe(A, lambda: version() > stamp)
-            ctl("/__fault")
-            check(f"G1 la sauvegarde part en arriere-plan : le jeu a repondu {n} fois pendant l'envoi, "
-                  f"la plus lente en {worst:.1f} s", version() > stamp and n >= 8 and worst < 4)
-            check("celui qui heberge sauvegarde : le monde du depot change, et le marqueur .unsent disparait",
-                  eventually(lambda: not unsent.exists(), timeout=20))
-        else:
-            ev(A, SAVE_BUCKET)
-            check("celui qui heberge sauvegarde : le monde du depot change", eventually(lambda: version() > stamp, timeout=20))
-            check("pas de reste de copie dans le depot", not any(DEPOT.glob("*.new")) and not (DEPOT / "world.old").exists())
-
-        if REMOTE:
-            # le serveur s'arrete pendant qu'il joue : la sauvegarde suivante n'arrive pas, elle n'est pas perdue
-            server.kill()
-            server.wait()
-            ev(A, SAVE_BUCKET)
-            check("serveur arrete : la sauvegarde est notee comme non recue", eventually(unsent.exists, timeout=30))
-            to_title(A)
-            server = start_server()
-            time.sleep(3)
-            stamp = WORLD.stat().st_mtime
-            emp.call(A, "eval", {"code": JOIN % ADDRESS}, timeout=180)
-            time.sleep(2)
-            said = ev(A, DIALOG)
-            log(f"l'autre joueur : {said}")
-            check("a son retour, le jeu propose de l'envoyer", "never reached" in said)
-            log(f"clic sur Oui : {emp.call(A, 'eval', {'code': YES}, timeout=180)}")
-            wait(loaded(A), "l'autre joueur recharge le monde", timeout=180, every=3.0)
-            dismiss_dialogs(A)
-            check("elle est envoyee : le monde du serveur change, rien n'est perdu",
-                  WORLD.stat().st_mtime > stamp and int(ev(A, BUCKETS)) == before + 2 and not unsent.exists())
-
-        if GITHUB:
-            github_outage(unsent)
-            github_two_saves(unsent, before)
-            if not NOQUIT:
-                github_quit(unsent, before)
+            log("--- D4")
+            before = int(ev(A, BUCKETS))
+            stamp = version()
+            if GITHUB:
+                # G1 : GitHub met 3 s a repondre a chaque demande ; l'envoi (verrou, monde...) dure bien plus de 10 s
+                ctl("/__fault", slow=3)
+                ev(A, SAVE_BUCKET)
+                n, worst = probe(A, lambda: version() > stamp)
+                ctl("/__fault")
+                check(f"G1 la sauvegarde part en arriere-plan : le jeu a repondu {n} fois pendant l'envoi, "
+                      f"la plus lente en {worst:.1f} s", version() > stamp and n >= 8 and worst < 4)
+                check("celui qui heberge sauvegarde : le monde du depot change, et le marqueur .unsent disparait",
+                      eventually(lambda: not unsent.exists(), timeout=20))
             else:
-                log("G4 saute (DEPOT_GITHUB_NOQUIT) : non jouee")
+                ev(A, SAVE_BUCKET)
+                check("celui qui heberge sauvegarde : le monde du depot change", eventually(lambda: version() > stamp, timeout=20))
+                check("pas de reste de copie dans le depot", not any(DEPOT.glob("*.new")) and not (DEPOT / "world.old").exists())
 
-        buckets = int(ev(A, BUCKETS))
-        log("--- D5")
-        to_title(A)
-        check("il quitte : le depot est libre", eventually(lambda: holder(H) == "", timeout=15 if GITHUB else 10))
-        shutil.rmtree(LOCAL, ignore_errors=True)
-        take(H)
-        wait(loaded(H), "le premier joueur charge le monde du depot", timeout=180, every=3.0)
-        dismiss_dialogs(H)
-        check(f"le premier joueur le prend a son tour et retrouve le changement ({ev(H, BUCKETS)} seaux, {before} avant)",
-              int(ev(H, BUCKETS)) == buckets > before)
+            if REMOTE:
+                # le serveur s'arrete pendant qu'il joue : la sauvegarde suivante n'arrive pas, elle n'est pas perdue
+                server.kill()
+                server.wait()
+                ev(A, SAVE_BUCKET)
+                check("serveur arrete : la sauvegarde est notee comme non recue", eventually(unsent.exists, timeout=30))
+                to_title(A)
+                server = start_server()
+                time.sleep(3)
+                stamp = WORLD.stat().st_mtime
+                emp.call(A, "eval", {"code": JOIN % ADDRESS}, timeout=180)
+                time.sleep(2)
+                said = ev(A, DIALOG)
+                log(f"l'autre joueur : {said}")
+                check("a son retour, le jeu propose de l'envoyer", "never reached" in said)
+                log(f"clic sur Oui : {emp.call(A, 'eval', {'code': YES}, timeout=180)}")
+                wait(loaded(A), "l'autre joueur recharge le monde", timeout=180, every=3.0)
+                dismiss_dialogs(A)
+                check("elle est envoyee : le monde du serveur change, rien n'est perdu",
+                      WORLD.stat().st_mtime > stamp and int(ev(A, BUCKETS)) == before + 2 and not unsent.exists())
 
-        log("--- D6")
-        ok(emp.call(H, "command", {"cmd": "emp.add_local"}))
-        wait(lambda: state(H)["role"] == "Host", "demarrage du serveur")
-        join_client(H, A, "client")
-        check("il ouvre la session, l'autre le rejoint : les deux jouent dans le monde du depot",
-              eventually(lambda: len(state(H).get("players", [])) == 2 and state(A)["connected"], timeout=30))
+            if GITHUB:
+                github_outage(unsent)
+                github_two_saves(unsent, before)
+                if not NOQUIT:
+                    github_quit(unsent, before)
+                else:
+                    log("G4 saute (DEPOT_GITHUB_NOQUIT) : non jouee")
+
+            buckets = int(ev(A, BUCKETS))
+            log("--- D5")
+            to_title(A)
+            check("il quitte : le depot est libre", eventually(lambda: holder(H) == "", timeout=15 if GITHUB else 10))
+            shutil.rmtree(LOCAL, ignore_errors=True)
+            take(H)
+            wait(loaded(H), "le premier joueur charge le monde du depot", timeout=180, every=3.0)
+            dismiss_dialogs(H)
+            check(f"le premier joueur le prend a son tour et retrouve le changement ({ev(H, BUCKETS)} seaux, {before} avant)",
+                  int(ev(H, BUCKETS)) == buckets > before)
+
+            log("--- D6")
+            ok(emp.call(H, "command", {"cmd": "emp.add_local"}))
+            wait(lambda: state(H)["role"] == "Host", "demarrage du serveur")
+            join_client(H, A, "client")
+            check("il ouvre la session, l'autre le rejoint : les deux jouent dans le monde du depot",
+                  eventually(lambda: len(state(H).get("players", [])) == 2 and state(A)["connected"], timeout=30))
+        if not (REMOTE or GITHUB):
+            p1()
+        else:
+            log("--- P1 non jouee : seulement avec le depot dossier")
     except Exception as ex:  # noqa: BLE001
         check(f"interrompu : {type(ex).__name__}: {str(ex)[:300]}", False)
         for name, port in (("host", H), ("A", A)):

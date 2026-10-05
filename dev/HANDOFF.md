@@ -11,10 +11,13 @@ Mode d'emploi : `DOCUMENTATION.md`. Règles : `../CLAUDE.md`. Message de départ
   (conseil 7 : servante, type / réserve / rappel / renvoi d'un résident, abandon et acte refusés à l'invité, case
   `HostManagesBase` clé 14, textes), avec les corrections de la relecture ; `dev/_tools/depot_suite.py` (étape P1). Ça
   compile et c'est INSTALLÉ dans le jeu (build Debug). Preuve rouge faite sur l'ancien build ; **vert pas encore lu**.
-- **Tournait à l'arrêt** (peut-être coupé) : `base_suite` → `_shots/base-green13.log` ; `depot_suite` avec P1 (quel
-  personnage joue l'invité qui reprend le monde : état des lieux du conseil 6) → `_shots/depot-p1.log` ; `travel_suite` →
-  `_shots/travel_suite-pub4.log` (au passage d'avant : 34/35, S15 « client rejoint en zone 2 » en délai dépassé, le reste
-  non joué : tirage ou régression, à trancher). Lire ces journaux ; s'ils sont incomplets, relancer.
+- **Lus à 20h20** : `travel_suite` **54/54** (le S15 rouge d'avant était un tirage) ; `base_suite` **176/177** sur la base
+  gérée par un invité, un seul rouge : « l'invité retire la servante du même clic (réel) : host 508, invité 0 » (le
+  retrait de la servante par l'invité n'arrive pas chez l'host : à corriger, puis commiter la base) ; `depot_suite`
+  P1 (`_shots/depot-p1.log`) : **l'invité qui reprend le monde du dépôt joue le personnage de l'HOST** (Josdear, uid 1,
+  son or, son sac), pas le sien (uid 469, resté sur la carte comme un personnage ordinaire) : l'angle mort du conseil 6
+  est confirmé ; c'est la première chose à régler avant la copie du monde par Steam, et cela vaut aussi pour le dépôt
+  GitHub et le dépôt dossier d'aujourd'hui.
 - **Duels, étapes 2 à 4 : écrits, pas joués.** Patch `_shots/duels_2_4.patch` (compile ; fait sur le commit `b7b8cc5`, à
   appliquer avec `git apply --3way` APRÈS avoir commité la base), ses 12 textes dans `_shots/duels_2_4.textes.md`. Puis
   relecture, rouge, vert (`duel_suite.py` D1 à D6).
