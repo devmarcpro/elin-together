@@ -106,8 +106,15 @@ public class NetSessionRules
     [IgnoreMember]
     internal bool GuestsBuild => AllowGuestBuild && !HostManagesBase;
 
+    /// <summary>
+    ///     A player can challenge another to a duel nobody dies of (see PlayerDuel). Off: no such entry in the menu
+    /// </summary>
+    [Key(15)]
+    public bool AllowDuels { get; set; } = true;
+
     public static NetSessionRules Default => new() {
         HostManagesBase = EmpConfig.Server.HostManagesBase.Value,
+        AllowDuels = EmpConfig.Server.Duels.Value,
         AllowPlayerKill = EmpConfig.Server.PlayerKill.Value,
         AllowGuestBuild = EmpConfig.Server.GuestBuild.Value,
         UseSharedSpeed = EmpConfig.Server.SharedAverageSpeed.Value,

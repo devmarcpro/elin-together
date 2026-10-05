@@ -14,7 +14,7 @@ internal static class PlayerTradePatch
     [HarmonyPostfix]
     internal static void OnUpdatePlan(ActPlan __instance)
     {
-        if (!PlayerTrade.Enabled) {
+        if (!PlayerTrade.Enabled && !PlayerDuel.Enabled) {
             return;
         }
 
@@ -23,11 +23,21 @@ internal static class PlayerTradePatch
                 continue;
             }
 
-            __instance.list.Remove(item);
-            __instance.TrySetAct("emp_act_trade", () => {
-                PlayerTrade.Invite(other.uid);
-                return false;
-            }, other, null, 2);
+            if (PlayerTrade.Enabled) {
+                __instance.list.Remove(item);
+                __instance.TrySetAct("emp_act_trade", () => {
+                    PlayerTrade.Invite(other.uid);
+                    return false;
+                }, other, null, 2);
+            }
+
+            // next to it, the challenge to a duel (PlayerDuel)
+            if (PlayerDuel.Enabled) {
+                __instance.TrySetAct("emp_act_duel", () => {
+                    PlayerDuel.Challenge(other.uid);
+                    return false;
+                }, other, null, 2);
+            }
         }
     }
 }

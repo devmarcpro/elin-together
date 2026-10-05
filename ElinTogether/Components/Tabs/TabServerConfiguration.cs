@@ -30,6 +30,7 @@ internal class TabServerConfiguration : TabEmpBase
         Option(own, "guest_build", EmpConfig.Server.GuestBuild);
         Option(own, "player_kill", EmpConfig.Server.PlayerKill);
         Option(own, "host_manages_base", EmpConfig.Server.HostManagesBase);
+        Option(own, "duels", EmpConfig.Server.Duels);
 
         var time = Section("time");
         Option(time, "combat_time", EmpConfig.Server.PlayerCombatTime);

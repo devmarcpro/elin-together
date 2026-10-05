@@ -319,6 +319,7 @@ public static class PlayerTrade
 
         _connection = connection;
         _game = game;
+        PlayerDuel.Clear();
 
         if (View is not null || _sessions.Count > 0) {
             Clear();
@@ -332,6 +333,14 @@ public static class PlayerTrade
         _myGold = 0;
         View = null;
         LayerPlayerTrade.Dismiss();
+    }
+
+    /// <summary>
+    ///     Invited to a trade or in one, as the authority knows it
+    /// </summary>
+    internal static bool Busy(Chara chara)
+    {
+        return _sessions.Exists(s => s.A == chara || s.B == chara);
     }
 
     private static bool Present(Chara chara)

@@ -119,6 +119,8 @@ namespace ElinTogether.Models;
 [Union(833, typeof(TerrainHeightDelta))]
 [Union(834, typeof(AreaStateDelta))]
 [Union(835, typeof(CopyShopDelta))]
+[Union(837, typeof(DuelIntentDelta))]
+[Union(838, typeof(DuelStateDelta))]
 // Act
 [Union(900, typeof(ActThrowDelta))]
 // Element

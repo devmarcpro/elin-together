@@ -183,6 +183,14 @@ internal partial class EmpConfig
             "Off: a strike that would kill it leaves it at 0 hit points\n" +
             "玩家（及其同伴）可以杀死其他玩家的角色；关闭时，致命一击只会让对方的生命值降为 0");
 
+        Server.Duels = config.Bind(
+            "Server",
+            "Duels",
+            true,
+            "A player can challenge another player to a duel from the menu on its character: nobody dies, both are healed at the end, nothing is lost\n" +
+            "Potions, arrows and charges used during the duel stay spent\n" +
+            "玩家可以通过对方角色的菜单发起决斗：不会有人死亡，结束时双方恢复，没有任何损失；决斗中使用的药水、箭矢和充能不会返还");
+
         Server.GuestBuild = config.Bind(
             "Server",
             "GuestBuild",
@@ -321,6 +329,7 @@ internal partial class EmpConfig
         internal static ConfigEntry<bool> GuestBuild { get; set; } = null!;
         internal static ConfigEntry<bool> PlayerKill { get; set; } = null!;
         internal static ConfigEntry<bool> HostManagesBase { get; set; } = null!;
+        internal static ConfigEntry<bool> Duels { get; set; } = null!;
         internal static ConfigEntry<bool> PersonalQuests { get; set; } = null!;
         internal static ConfigEntry<bool> ChooseCharacter { get; set; } = null!;
         internal static ConfigEntry<bool> ImportCharacter { get; set; } = null!;

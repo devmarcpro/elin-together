@@ -39,6 +39,7 @@ internal class CoreSynchronizationContext : SynchronizationContext
         StoryGifts.Flush();
         TileStateDelta.Flush();
         PlayerTrade.Update();
+        PlayerDuel.Update();
         CardCache.Update();
         CharaSynchronizationContext.Update();
         NetProfileSynchronizationContext.Update();
