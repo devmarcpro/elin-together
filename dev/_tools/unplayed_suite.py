@@ -17,6 +17,10 @@ U6 monture deja prise : le second cavalier est refuse, la bete garde son cavalie
 U7 eau profonde : le joueur qui nage perd son souffle (cf62040). La Prairie n'a pas d'eau profonde : le banc en fait
    chez le nageur (deux cases repeintes dans son jeu seul, remises a la fin). D12 de hunt_suite couvre le meme point
    quand la carte a de l'eau profonde ; il n'est pas recopie ici.
+U8 cle a molette sur un coffre (ligne 11 de la deuxieme chasse) : le coffre prend une rangee de plus, meme taille de
+   conteneur chez les deux joueurs, la cle est consommee une seule fois.
+U9 fouet-oeuf sur un animal compagnon (ligne 11) : un oeuf chez les deux, la charge du fouet baisse une fois, le karma est
+   retire a celui qui fouette seulement.
 
 Ce que le banc ne joue pas comme un joueur :
 - U1 : le bouton de tri et l'entree du menu sont cliques par leur appel (onClick.Invoke de l'objet du menu trouve par
@@ -33,6 +37,14 @@ Ce que le banc ne joue pas comme un joueur :
 - U6 : la premiere monte par l'action « monter » du jeu (UseAbility ActRide) ; le second essaie la meme action, puis
   ActRide.Ride dans son jeu et dans celui du cavalier (ce que rejouerait l'envoi de l'autre jeu en cas de course).
 - U7 : voir ci-dessus ; le nageur fait trois pas comme D12.
+- U8 : clic droit avec la cle en main par use_held (le vrai TrySetHeldAct du jeu, la vraie lambda remplacee par le mod),
+  mais sans la souris sur la case ; le coffre est pose par l'host a cote du joueur (comme s1), la cle (3 exemplaires) est
+  donnee par l'host. Seule la cle « agrandir en hauteur » est jouee : pas le lit, le frigo, le coffre magique (memes
+  champs, memes envois, non joues) ni les tentes (elements de la zone-tente, pas un champ d'objet : non synchronises).
+- U9 : meme geste (use_held) avec la souris en moins ; le chat est recrute par MakeAlly (tame), il arrive paralyse et le
+  banc retire ses conditions. Le karma suppose l'option « quetes et karma personnels » (sans elle il est commun et le
+  test de karma ne distingue rien) ; le banc le met a 50 des deux cotes et le remet. Les passe-temps du fouet « amour »
+  ne sont pas joues (rien ne les envoie aux invites).
 """
 import argparse
 import sys
@@ -43,8 +55,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 from base_suite import click_yes, dialog_open, hide_menus  # noqa: E402
 from equal2_suite import drop, seen, spawn  # noqa: E402
-from guest_suite import (LAYERS, awake, both, chara, clear_conditions, close_layers, count, give, give_made, stand, tame,  # noqa: E402
-                         use_held, use_menu)
+from guest_suite import (LAYERS, awake, both, chara, clear_conditions, close_layers, count, first_id, give, give_made, stand,  # noqa: E402
+                         tame, use_held, use_menu)
 from mp_test import log, shot, state  # noqa: E402
 from setting_suite import furniture, thing  # noqa: E402
 from travel_suite import RESULTS, check, ev, eventually, scan_logs  # noqa: E402
@@ -498,6 +510,97 @@ def u7(ctx):
             ev(H, f'var c = {chara(H, uid)}; c.hp = c.MaxHP; "ok"')
 
 
+# ---------------------------------------------------------------------------------------------------------------------
+# U8 : cle a molette sur un coffre
+
+def u8(ctx):
+    """cle a molette « agrandir en hauteur » sur un coffre de la carte : meme taille de conteneur chez l'host, chez l'invite et
+    chez l'autre joueur, la cle consommee une seule fois (ligne 11 de la deuxieme chasse)"""
+    wr = "wrench_extend_v"
+    if not check(f"le jeu a la cle {wr}", ev(H, f'(EClass.sources.things.map.ContainsKey("{wr}")).ToString()') == "True"):
+        return
+    for who, key in both(ctx):
+        port, uid = ctx[key]
+        other = H if port == A else A
+        close_layers()
+        clear_conditions(uid)
+        t = furniture(uid)
+        size = lambda p: ev(p, f'var t = {thing(t)}; return t == null ? "absent" : t.c_containerSize + "/" + t.things.width + "x" + t.things.height;')  # noqa: E731
+        try:
+            s0 = size(H)
+            check(f"{who} : le coffre est pareil dans les deux jeux avant la cle (host {s0}, invite {size(A)})", s0 == size(A) and s0 != "absent")
+            c0 = int(s0.split("/")[0])
+            w, h = c0 // 100, c0 % 100
+            wanted = f"{c0 + 1}/{w}x{h + 1}"
+            tool = give(ctx, key, wr, 3)
+            x, z = (int(v) for v in ev(H, f'var m = {thing(t)}; return m.pos.x + "," + m.pos.z;').split(","))
+            awake(port)
+            r = use_held(port, tool, at=(x, z), pick=f'i.tc != null && i.tc.uid == {t}')
+            log(f"{who} se sert de la cle : {r}")
+            check(f"{who} fait le geste de la cle ({r[:40]})", r.startswith("ok"))
+            check(cond=eventually(lambda: size(H) == wanted and size(A) == wanted, timeout=15),
+                  label=f"{who} : le coffre a une rangee de plus, chez l'host ({size(H)}), chez l'invite ({size(A)}), attendu {wanted}")
+            check(f"{who} : la cle est consommee une fois, chez l'host ({count(H, uid, wr)}) et chez lui ({count(port, uid, wr)})",
+                  eventually(lambda: count(H, uid, wr) == 2 and count(port, uid, wr) == 2, timeout=10))
+            time.sleep(3)
+            check(f"{who} : toujours deux cles apres l'attente (host {count(H, uid, wr)}, lui {count(port, uid, wr)}), l'autre joueur voit {size(other)}",
+                  count(H, uid, wr) == 2 and count(port, uid, wr) == 2 and size(other) == wanted)
+        finally:
+            close_layers()
+            ev(H, f'var m = {thing(t)}; if (m != null) m.Destroy(); "ok"')
+            ev(H, f'var c = {chara(H, uid)}; foreach (var m in c.things.Where(q => q.id == "{wr}").ToList()) m.Destroy(); "ok"')
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# U9 : fouet-oeuf sur un compagnon
+
+def u9(ctx):
+    """fouet-oeuf sur un animal compagnon : un oeuf chez l'host et chez l'invite, la charge du fouet baisse une fois, le karma
+    est retire a celui qui fouette et pas a l'autre (ligne 11 de la deuxieme chasse)"""
+    whip = first_id("WhipEgg")
+    if not check(f"le jeu a un fouet-oeuf ({whip or 'aucun'})", bool(whip)):
+        return
+    eggs = lambda p: int(ev(p, 'EClass._map.things.Count(q => q.id == "_egg" || q.id == "egg_fertilized").ToString()'))  # noqa: E731
+    karma = lambda p: int(ev(p, 'EClass.player.karma.ToString()'))  # noqa: E731
+    for who, key in both(ctx):
+        port, uid = ctx[key]
+        whipper, other = (A, H) if key == "a" else (H, A)
+        close_layers()
+        clear_conditions(uid)
+        pet = tame(ctx, "cat", key)
+        if not check(f"{who} a un compagnon ({pet})", bool(pet)):
+            continue
+        saved = {p: karma(p) for p in (H, A)}
+        try:
+            for p in (H, A):
+                ev(p, 'EClass.player.karma = 50; "ok"')
+            clear_conditions(pet)
+            tool = give(ctx, key, whip)
+            charges = lambda p: ev(p, f'var c = {chara(p, uid)}; var q = c == null ? null : c.things.Find(m => m.uid == {tool}); return q == null ? "absent" : q.c_charges.ToString();')  # noqa: E731
+            c0, e0 = charges(H), {p: eggs(p) for p in (H, A)}
+            x, z = (int(v) for v in ev(H, f'var m = EClass._map.charas.Find(q => q.uid == {pet}); return m.pos.x + "," + m.pos.z;').split(","))
+            awake(port)
+            r = use_held(port, tool, at=(x, z), pick=f'i.tc != null && i.tc.uid == {pet}')
+            log(f"{who} fouette son compagnon : {r}")
+            check(f"{who} fait le geste du fouet ({r[:40]})", r.startswith("ok"))
+            check(cond=eventually(lambda: eggs(H) == e0[H] + 1 and eggs(A) == e0[A] + 1, timeout=15),
+                  label=f"{who} : un oeuf de plus, chez l'host ({e0[H]} -> {eggs(H)}) et chez l'invite ({e0[A]} -> {eggs(A)})")
+            wanted = str(int(c0) - 1)
+            check(f"{who} : la charge du fouet baisse d'un cran, chez l'host ({c0} -> {charges(H)}) et chez lui ({charges(port)})",
+                  eventually(lambda: charges(H) == wanted and charges(port) == wanted, timeout=10))
+            check(f"{who} : le karma est retire a celui qui fouette ({saved[whipper]} -> {karma(whipper)})",
+                  eventually(lambda: karma(whipper) == 49, timeout=10))
+            time.sleep(3)
+            check(f"{who} : l'autre joueur garde son karma ({karma(other)}), un seul oeuf et une seule charge en moins (oeufs {eggs(H)}/{eggs(A)}, charge {charges(H)}/{charges(port)})",
+                  karma(other) == 50 and eggs(H) == e0[H] + 1 and eggs(A) == e0[A] + 1 and charges(H) == wanted and charges(port) == wanted)
+        finally:
+            for p in (H, A):
+                ev(p, f'EClass.player.karma = {saved[p]}; "ok"')
+            ev(H, 'foreach (var m in EClass._map.things.Where(q => q.id == "_egg" || q.id == "egg_fertilized").ToList()) m.Destroy(); "ok"')
+            ev(H, f'var c = {chara(H, uid)}; foreach (var m in c.things.Where(q => q.id == "{whip}").ToList()) m.Destroy(); "ok"')
+            drop([pet])
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--only")
@@ -508,8 +611,8 @@ def main():
     ctx = {"a": (A, state(A)["pc"]["uid"]), "h": (H, state(H)["pc"]["uid"])}
     # u2 (bouton partage d'un coffre : le banc ne trouve pas le bouton), u4 (aucun parchemin d'alias dans les donnees du jeu)
     # et u7 (l'eau profonde fabriquee par le banc n'etouffe personne, pas meme l'host) ne sont pas jouables : `--only` pour y revenir
-    steps = [u1, u3, u5, u6]
-    every = [u1, u2, u3, u4, u5, u6, u7]
+    steps = [u1, u3, u5, u6, u8, u9]
+    every = [u1, u2, u3, u4, u5, u6, u7, u8, u9]
     if a.only:
         steps = [s for s in every if s.__name__ in a.only.split(",")]
     for step in steps:

@@ -72,7 +72,8 @@ public class CardActReplayDelta : ElinDelta
         // only the entries of the closed list, held by the sender or within its reach
         var root = card.GetRootCard();
         if (Held
-                ? card.trait is not (TraitTicketFurniture or TraitSyringe or TraitStethoscope or TraitLeash) ||
+                ? card.trait is not (TraitTicketFurniture or TraitSyringe or TraitStethoscope or TraitLeash or TraitWrench or
+                    TraitEcoMark or TraitToolBrushStrip or TraitToolHammerStrip or TraitWhipLove) ||
                   root != sender
                 : card.trait is not TraitWell || root.pos.Distance(sender.pos) > 2) {
             return;
@@ -110,7 +111,9 @@ public class CardActReplayDelta : ElinDelta
         }
 
         using var told = MsgRelayContext.RedirectTo(sender);
-        using var standIn = RemoteCraft.AsCrafter(sender);
+        // the sender stands in as "the player", and what it costs in karma (the egg whip) is taken from it, not the host
+        // (with one karma for all, the host's own moves as before)
+        using var standIn = PersonalQuests.Enabled ? PlayerStandIn.For(host, OriginPeer, sender) : RemoteCraft.AsCrafter(sender);
 
         var plan = new ActPlan { input = ActInput.RightMouse };
         plan.pos.Set(pos);

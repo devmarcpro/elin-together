@@ -12,8 +12,11 @@ namespace ElinTogether.Patches;
 /// <summary>
 ///     The actions of these items and furniture are lambdas that only ran in the client's game, where it cannot give
 ///     itself a condition, change a stack or a charge, or keep what it creates: injecting did nothing and kept the
-///     syringe, a furniture ticket gave the furniture for free, a well never ran dry <br />
+///     syringe, a furniture ticket gave the furniture for free, a well never ran dry. The wrench, the eco mark, the
+///     brush and the hammer changed fields of the object on that copy only, a whip's egg was lost with its charge <br />
 ///     The entry the client picks is a request, the host runs it for the client's character <br />
+///     What the host runs, for a guest or for itself, it tells the others where it changed fields of the objects of
+///     the tile (<see cref="CardSettingDelta.Fields" />) <br />
 ///     Closed list: another trait goes through here only after its window and its "player" are looked at, as for
 ///     <c>CardOnUseDelta</c>
 /// </summary>
@@ -25,6 +28,8 @@ internal static class CardActReplayEvent
         foreach (var type in new[] {
                      typeof(TraitTicketFurniture), typeof(TraitSyringeBlood), typeof(TraitSyringeGene),
                      typeof(TraitSyringeHeaven), typeof(TraitSyringeUnicorn), typeof(TraitStethoscope), typeof(TraitLeash),
+                     typeof(TraitWrench), typeof(TraitEcoMark), typeof(TraitToolBrushStrip), typeof(TraitToolHammerStrip),
+                     typeof(TraitWhipLove), typeof(TraitWhipEgg),
                  }) {
             yield return AccessTools.DeclaredMethod(type, nameof(Trait.TrySetHeldAct));
         }
@@ -41,7 +46,7 @@ internal static class CardActReplayEvent
     [HarmonyPostfix]
     internal static void After(Trait __instance, ActPlan p, ActPlan.Item[] __state)
     {
-        if (NetSession.Instance.Connection is not ElinNetClient client || ElinDelta.IsApplying) {
+        if (NetSession.Instance.Connection is not { } connection || ElinDelta.IsApplying) {
             return;
         }
 
@@ -50,7 +55,16 @@ internal static class CardActReplayEvent
         foreach (var item in p.list.Where(i => !__state.Contains(i)).ToArray()) {
             if (item.act is DynamicAct act) {
                 var (rank, own) = (index, act.onPerform);
-                act.onPerform = () => Request(client, __instance, item, act, rank, own);
+                act.onPerform = connection is ElinNetClient client
+                    ? () => Request(client, __instance, item, act, rank, own)
+                    : () => {
+                        // the host's own gesture, and the replay of a guest's request (it runs simulated, so it lands
+                        // here too): the others are told the fields it changes
+                        var before = CardSettingDelta.Snapshot(item.pos);
+                        var done = own?.Invoke() ?? false;
+                        CardSettingDelta.TellChanged(before);
+                        return done;
+                    };
             }
 
             index++;
@@ -95,7 +109,8 @@ internal static class CardActReplayEvent
             return own?.Invoke() ?? false;
         }
 
-        return trait is not TraitTicketFurniture;
+        // the ticket and the four tools end no turn, the whips do (as in the game)
+        return trait is not (TraitTicketFurniture or TraitWrench or TraitEcoMark or TraitToolBrushStrip or TraitToolHammerStrip);
     }
 }
 
