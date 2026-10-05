@@ -213,5 +213,7 @@
     "LangGeneral.emp_trade_bound.text": "交易取消：提供的物品已与某个角色绑定",
     "LangGeneral.emp_trade_full.text": "交易取消：有玩家的背包空位不足，放不下将收到的物品",
     "LangGeneral.emp_travel_recalled_by.text": "{@Peer} 即将来到此地：画面将重新加载以便汇合…",
-    "LangGeneral.emp_ui_thing_gone.text": "来晚了：已被其他玩家取走"
+    "LangGeneral.emp_ui_thing_gone.text": "来晚了：已被其他玩家取走",
+    "LangGeneral.emp_base_refused.text": "主机拒绝了请求：基地或你的钱包已无法支付。",
+    "LangGeneral.emp_base_pending.text": "上一个请求仍在等待主机回应。"
 }

@@ -1,3 +1,4 @@
+using System;
 using ElinTogether.Models;
 using ElinTogether.Net;
 using HarmonyLib;
@@ -6,14 +7,17 @@ namespace ElinTogether.Patches;
 
 /// <summary>
 ///     Four things of the base are paid for and then made in this game's own copy of the base, which the host never
-///     sees: the research board (knowledge), the plans sold by a merchant (the base's money), the hearth upgrade
-///     (the player's gold) and the skills of the hearth (platinum). The payment reaches the host, the effect does not:
-///     the player pays for nothing. Until they are real requests to the host (step 2), a client says "only the host
-///     can do this for now" and nothing is paid, nothing is made <br />
+///     sees: the research board (knowledge), the hearth skills (platinum), the plans sold by a merchant (the base's
+///     money) and the hearth upgrade (the player's gold) <br />
+///     Research and hearth skills are requests to the host, see <see cref="BaseRequestDelta" />: the client keeps the
+///     game's own steps up to the choice ("buy", the yes of the box) and sends the request in place of the payment, it
+///     pays and changes nothing. The two dialog steps (merchant plans, hearth upgrade) say "only the host can do this
+///     for now" and nothing is paid, nothing is made <br />
 ///     "Client" is <c>Connection is ElinNetClient</c>: a player on the host's map, and the host itself visiting a zone
-///     simulated by a guest (its zone session is a client one, the guest's game is the one that keeps the zone: same
-///     rule). Null while alone in an away zone (the game runs as single player there) and a host session otherwise:
-///     the game runs as it always did
+///     simulated by a guest (its zone session is a client one, the guest's game is the one that keeps the zone). The
+///     second one cannot ask: the game that would answer holds a copy of the zone, not the world's base, so it is
+///     refused as before. Null while alone in an away zone (the game runs as single player there) and a host session
+///     otherwise: the game runs as it always did
 /// </summary>
 [HarmonyPatch]
 internal static class RemoteBasePaidPatch
@@ -21,7 +25,18 @@ internal static class RemoteBasePaidPatch
     // ItemResearch.SetPlan asks CanCompletePlan to colour the price: the refusal is for the click only
     private static bool _listing;
 
+    // the element whose hearth click is running: its yes/no box is the one to hook
+    private static Element? _skill;
+
     private static bool IsClient => NetSession.Instance.Connection is ElinNetClient && !ElinDelta.IsApplying;
+
+    // a player of the host's map, whose requests the host answers
+    private static bool IsRequester =>
+        NetSession.Instance.Connection is ElinNetClient { IsZoneSession: false } && !ElinDelta.IsApplying;
+
+    // the host in the zone of a guest
+    private static bool IsVisiting =>
+        NetSession.Instance.Connection is ElinNetClient { IsZoneSession: true } && !ElinDelta.IsApplying;
 
     private static void Refuse(bool beep)
     {
@@ -33,8 +48,8 @@ internal static class RemoteBasePaidPatch
     }
 
     /// <summary>
-    ///     Research: the click of a plan asks CanCompletePlan before it opens the "buy" menu, whose button takes the
-    ///     knowledge and completes the plan. Said no here, the menu never opens (the game beeps by itself)
+    ///     Research, the host in a guest's zone: the click of a plan asks CanCompletePlan before it opens the "buy"
+    ///     menu. Said no here, the menu never opens (the game beeps by itself)
     /// </summary>
     [HarmonyPrefix]
     [HarmonyPatch(typeof(ItemResearch), nameof(ItemResearch.SetPlan))]
@@ -54,13 +69,54 @@ internal static class RemoteBasePaidPatch
     [HarmonyPatch(typeof(ResearchManager), nameof(ResearchManager.CanCompletePlan))]
     private static bool OnCanCompletePlan(ref bool __result)
     {
-        if (_listing || !IsClient) {
+        if (_listing || !IsVisiting) {
             return true;
         }
 
         Refuse(false);
         __result = false;
         return false;
+    }
+
+    /// <summary>
+    ///     Research, a player of the host's map: the click opens the "buy" menu as the game does (the price is coloured
+    ///     by this copy of the knowledge). The menu is made right after <c>SetHighlightTarget(button1)</c> of the plan,
+    ///     which tells the plan from the button: "buy" sends the request in place of paying and completing here
+    /// </summary>
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(UIContextMenu), nameof(UIContextMenu.AddButton), typeof(string), typeof(Action), typeof(bool))]
+    private static void OnAddButton(UIContextMenu __instance, string idLang, ref Action action)
+    {
+        if (idLang != "buy" || !IsRequester || !__instance.highlightTarget ||
+            __instance.highlightTarget.GetComponentInParent<ItemResearch>() is not { plan: { } plan }) {
+            return;
+        }
+
+        var id = plan.id;
+        action = () => BaseRequestDelta.Send(BaseRequestKind.Research, id);
+    }
+
+    /// <summary>
+    ///     Research, the host: every plan it completes (its own click, or a request it served) tells the clients the new
+    ///     state. What changed besides the plans (policies, feats) is told by comparing with what it was before
+    /// </summary>
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(ResearchManager), nameof(ResearchManager.CompletePlan))]
+    private static void OnCompletePlan(ResearchManager __instance, out BaseStateDelta.Before? __state)
+    {
+        __state = NetSession.Instance.Connection is ElinNetHost { IsZoneSession: false } && __instance.branch is { } branch &&
+                  branch == EClass._zone.branch
+            ? new(branch)
+            : null;
+    }
+
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(ResearchManager), nameof(ResearchManager.CompletePlan))]
+    private static void OnPlanCompleted(ResearchManager __instance, BaseStateDelta.Before? __state)
+    {
+        if (__state is not null && NetSession.Instance.Connection is ElinNetHost host) {
+            host.Delta.AddRemote(BaseStateDelta.ForResearch(__instance.branch, __state));
+        }
     }
 
     /// <summary>
@@ -82,7 +138,8 @@ internal static class RemoteBasePaidPatch
 
     /// <summary>
     ///     Skills of the hearth: the click reads its callback from the list at each click, so it is wrapped there
-    ///     (the click does the check of the price, the yes/no box, the payment and the new level)
+    ///     (the click does the check of the price, the yes/no box, the payment and the new level). The host in a
+    ///     guest's zone is refused; for the others the box is the game's own, see <see cref="OnYesNo" />
     /// </summary>
     [HarmonyPostfix]
     [HarmonyPatch(typeof(LayerHome), nameof(LayerHome.RefreshFeat))]
@@ -93,10 +150,43 @@ internal static class RemoteBasePaidPatch
         }
 
         callbacks.onClick = (element, button) => {
-            if (IsClient) {
+            if (IsVisiting) {
                 Refuse(true);
-            } else {
+                return;
+            }
+
+            _skill = element;
+            try {
                 original(element, button);
+            } finally {
+                _skill = null;
+            }
+        };
+    }
+
+    /// <summary>
+    ///     The box of the click: for a player of the host's map its "yes" sends the request in place of the payment, for
+    ///     the host it makes what the game makes and then tells the clients the new level
+    /// </summary>
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(Dialog), nameof(Dialog.YesNo))]
+    private static void OnYesNo(ref Action actionYes)
+    {
+        if (_skill is not { } element) {
+            return;
+        }
+
+        var id = element.id;
+        if (IsRequester) {
+            actionYes = () => BaseRequestDelta.Send(BaseRequestKind.HomeSkill, id.ToString());
+            return;
+        }
+
+        var yes = actionYes;
+        actionYes = () => {
+            yes();
+            if (NetSession.Instance.Connection is ElinNetHost { IsZoneSession: false } host && EClass._zone.branch is { } branch) {
+                host.Delta.AddRemote(BaseStateDelta.ForSkill(branch, id));
             }
         };
     }

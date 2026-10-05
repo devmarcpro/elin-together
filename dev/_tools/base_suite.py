@@ -1,31 +1,43 @@
-"""La base (le foyer) : quatre gestes qui se paient puis agissent sur la copie locale de la base. Un invite payait pour
-rien (le paiement arrive chez l'host, l'effet n'existe que chez lui) ; en attendant de vraies demandes a l'host (etape 2),
-il est refuse avec un message (RemoteBasePaidPatch). Pour chaque ligne, le meme geste par l'invite puis par l'host. Test
-court, sur des instances deja lancees (host + 1 client, tous les deux a la Prairie, qui est une base).
+"""La base (le foyer) : quatre gestes qui se paient. La recherche et les competences du foyer sont de vraies demandes a
+l'host (BaseRequestDelta, etape 2 du conseil 4) : l'host verifie le paiement dans son etat, paie, fait, repond, et l'etat
+de la base revient chez tous les joueurs (BaseStateDelta). Les plans du marchand et l'amelioration du foyer (etapes de
+dialogue `_buyPlan` et `_upgradeHearth`) restent refuses a l'invite avec un message (RemoteBasePaidPatch) : ils payaient
+pour rien. Pour chaque ligne, le meme geste par l'invite puis par l'host. Test court, sur des instances deja lancees
+(host + 1 client, tous les deux a la Prairie, qui est une base).
 
     python _tools/mp_test.py
     python _tools/base_suite.py            # ou --only b1,b3
 
 B1  recherche : la fenetre du tableau de recherche (LayerTech), clic sur un plan puis « buy » : l'host paie en connaissance
-    et le plan avance ; l'invite est refuse, ni connaissance debitee chez l'host, ni plan qui avance, chez l'un ou l'autre.
+    et le plan avance ; l'invite aussi, par une demande a l'host : payee une fois chez l'host, le plan avance chez l'host
+    ET dans la copie de l'invite (connaissance, plans, fenetre rafraichie) ; l'host refuse quand sa connaissance ne suffit
+    pas (la copie de l'invite, en retard, le croyait riche) : rien ne change nulle part ; sans de quoi payer le menu ne
+    s'ouvre pas. Apres une recherche de l'HOST, l'invite voit la meme connaissance et les memes plans.
 B2  plans du marchand : l'argent de la base paie un plan (ResearchManager.AddPlan) : l'host l'achete ; l'invite est refuse,
     ni argent de la base debite, ni plan en plus.
 B3  amelioration du foyer : l'or du joueur paie, le foyer monte de niveau : l'host l'obtient ; l'invite est refuse, ni or
     debite ni niveau en plus.
 B4  competence du foyer (fenetre du foyer, onglet competences) : le platine du joueur paie, la competence monte de un :
-    l'host l'obtient ; l'invite est refuse, ni platine debite ni competence en plus.
+    l'host l'obtient ; l'invite aussi, par une demande a l'host (la boite « oui / non » du jeu reste) : platine debite une
+    fois (chez l'host et dans son sac), competence montee chez l'host ET dans la copie de l'invite ; sans de quoi payer la
+    boite ne s'ouvre pas. Apres la competence de l'HOST, l'invite voit le meme niveau.
 
 Ce que le banc ne joue pas comme un joueur :
+- B1 : le menu « buy » du jeu se referme sans souris dessus ; le banc refait ce menu a l'identique (meme cible, meme
+  entree, meme action que le clic du plan) et clique son bouton.
 - B1, B4 : les fenetres s'ouvrent par l'appel que font le tableau de recherche et le bouton du foyer (AddLayer<LayerTech>,
   AddLayer<LayerHome> puis RefreshFeat, ce que fait l'onglet « skills ») ; les clics sont les vrais (le plan, le menu
-  « buy », la competence, « Yes » de la boite). Les ressources de la base sont posees directement (champ `value`, sans
-  passer par Mod, donc sans delta) dans les deux jeux, et remises ensuite.
+  « buy » ou son clic sur le bouton du menu, la competence, « Yes » de la boite). Les ressources de la base sont posees
+  directement (champ `value`, sans passer par Mod, donc sans delta) dans les deux jeux, et remises ensuite. Si le menu
+  « buy » de l'host n'est pas retrouve, le banc fait ce que fait « buy » (Mod puis CompletePlan).
 - B2, B3 : aucun personnage du jeu installe ne propose ces deux choix (le dialogue du foyer et du marchand de plans :
   etapes `_buyPlan` et `_upgradeHearth` de DramaCustomSequence, aucune feuille de dialogue du jeu n'y saute ; le foyer monte
   tout seul avec son experience). Le banc parle a un guerisseur (vrai dialogue) puis fait le saut que ferait le choix :
   DramaSequence.Play("_buyPlan") ; ce qui suit (fenetre des plans, clic sur un plan ; « Yes » du foyer, fermeture du
   dialogue qui fait monter le foyer) est comme un joueur.
-- ce que le banc ne verifie pas : le texte affiche a l'invite (« Only the host can do this for now. », une fenetre du mod, pas une ligne du journal du jeu) ; il le voit a l'ecran.
+- ce que le banc ne verifie pas : les textes affiches a l'invite (« Only the host can do this for now. », la ligne de refus
+  de l'host, « une demande attend sa reponse » : des fenetres du mod, pas des lignes du journal du jeu) ; il les voit a
+  l'ecran. Ni les recettes, regles ou talents du foyer qu'une recherche peut donner (cela depend du plan choisi).
 - les ressources et les plans sont remis a la fin ; le niveau et l'experience du foyer aussi (le reste de Upgrade() ne l'est pas).
 """
 import argparse
@@ -96,8 +108,30 @@ def step_played(port, step):
     return ev(port, 'LayerDrama.Instance.drama.sequence.lastStep ?? "-"')
 
 
+def same_research(a, b):
+    """Les deux copies de la recherche d'une base : connaissance, plans, plans finis, somme des rangs."""
+    return all(a[k] == b[k] for k in ("kn", "plans", "done", "ranks"))
+
+
+def open_plan(port, pid):
+    """Ouvre le tableau de recherche de ce joueur et clique le plan : le nombre de choix du menu « buy » qui s'ouvre (None si la fenetre ne montre pas le plan)."""
+    hide_menus(port)
+    ev(port, 'EClass.ui.RemoveLayer<LayerTech>(); EClass.ui.AddLayer<LayerTech>(); "ok"')
+    find = f'var l = EClass.ui.layers.OfType<LayerTech>().FirstOrDefault(); var it = l == null ? null : l.GetComponentsInChildren<ItemResearch>().FirstOrDefault(x => x.plan != null && x.plan.id == "{pid}"); '
+    if not eventually(lambda: ev(port, find + '(it != null).ToString()') == "True", timeout=10):
+        return None
+    # le menu « buy » du jeu se referme tout de suite quand aucune souris n'est dessus : le banc ne peut pas le cliquer.
+    # On regarde la porte que le clic du plan regarde (CanCompletePlan), et `buy` refait ce menu a l'identique
+    return 1 if ev(port, find + 'EClass.Branch.researches.CanCompletePlan(it.plan).ToString()') == "True" else 0
+
+
+def window_shows(port, pid):
+    """La fenetre de recherche ouverte de ce joueur montre-t-elle encore ce plan ?"""
+    return ev(port, f'var l = EClass.ui.layers.OfType<LayerTech>().FirstOrDefault(); (l != null && l.GetComponentsInChildren<ItemResearch>().Any(x => x.plan != null && x.plan.id == "{pid}")).ToString()') == "True"
+
+
 def b1(ctx):
-    """recherche : le joueur ouvre le tableau, clique un plan puis « buy » ; l'host paie en connaissance et le plan avance, l'invite est refuse"""
+    """recherche : le joueur ouvre le tableau, clique un plan puis « buy » ; l'host paie (une fois) et le plan avance, la copie de l'invite suit ; refus propre sans de quoi payer"""
     for who, key in both(ctx):
         port, uid = ctx[key]
         close_layers()
@@ -115,49 +149,99 @@ def b1(ctx):
                 added.append(p)
             else:
                 kept[p] = ev(p, f'var x = {BRANCH}.researches.plans.First(y => y.id == "{pid}"); return x.rank + "," + x.exp;')
-            put(p, kn=tech * 3 + 100)
-        before = {p: snap(p) for p in (H, A)}
+
+        def put_plan(p, present=True):
+            """Remet ce plan, tel qu'au depart (rang et experience d'avant, ou tout neuf), dans ce jeu ; ou l'en retire."""
+            ev(p, f'var b = {BRANCH}; b.researches.finished.RemoveAll(x => x.id == "{pid}"); b.researches.plans.RemoveAll(x => x.id == "{pid}"); "ok"')
+            if present and p in added:
+                ev(p, f'{BRANCH}.researches.AddPlan("{pid}"); "ok"')
+            elif present:
+                rank, exp = kept[p].split(",")
+                ev(p, f'var n = ResearchPlan.Create("{pid}"); n.rank = {rank}; n.exp = {exp}; {BRANCH}.researches.AddPlan(n); "ok"')
+            ev(p, f'{BRANCH}.researches.newPlans.Clear(); "ok"')
+
+        def setup(kn_host, kn_guest):
+            """Le plan neuf dans les deux jeux et la connaissance de chacun (le champ, pas Mod : aucun delta) ; renvoie ce que voit chacun."""
+            for p, kn in ((H, kn_host), (A, kn_guest)):
+                put_plan(p)
+                put(p, kn=kn)
+            return {p: snap(p) for p in (H, A)}
+
+        def buy():
+            # le menu que fait le clic du plan dans le jeu (ItemResearch) : meme cible, meme entree « buy », meme action ;
+            # le banc clique son bouton sans attendre l'affichage
+            ev(port, f'var l = EClass.ui.layers.OfType<LayerTech>().First(); var it = l.GetComponentsInChildren<ItemResearch>().First(x => x.plan != null && x.plan.id == "{pid}"); '
+                     'var m = EClass.ui.CreateContextMenuInteraction().SetHighlightTarget(it.button1); '
+                     'var b = m.AddButton("buy", () => { var br = EClass.Branch; br.resources.knowledge.Mod(-it.plan.source.tech); br.researches.CompletePlan(it.plan); l.RefreshTech(); }); '
+                     'b.onClick.Invoke(); "ok"')
+
         try:
-            check(f"{who} : le plan {pid} ({tech} de connaissance) est dans les deux jeux, la connaissance suffit ({before[H]['kn']} et {before[A]['kn']})",
-                  before[H]["plans"] > 0 and before[A]["plans"] > 0 and before[A]["kn"] >= tech)
-            awake(port)
-            ev(port, 'EClass.ui.AddLayer<LayerTech>(); "ok"')
-            find = f'var l = EClass.ui.layers.OfType<LayerTech>().FirstOrDefault(); var it = l == null ? null : l.GetComponentsInChildren<ItemResearch>().FirstOrDefault(x => x.plan != null && x.plan.id == "{pid}"); '
-            if not check(f"{who} : la fenetre de recherche montre le plan",
-                         eventually(lambda: ev(port, find + '(it != null).ToString()') == "True", timeout=10)):
-                continue
-            ev(port, find + 'it.button1.onClick.Invoke(); "ok"')
-            time.sleep(1)
             if who == "l'invite":
-                check(f"{who} : le menu « buy » ne s'ouvre pas ({menu_items(port)} choix)", menu_items(port) == 0)
-            else:
-                # le banc ne retrouve pas le menu « buy » de l'host (menu contextuel du jeu) : on verifie que le jeu le lui
-                # permet toujours (la porte que le mod ferme a l'invite), puis on fait ce que fait « buy »
-                allowed = ev(port, f'var b = {BRANCH}; return b.researches.CanCompletePlan(b.researches.plans.First(x => x.id == "{pid}")).ToString();')
-                if not check(f"{who} : la recherche lui reste permise ({allowed})", allowed == "True"):
+                # 1) de quoi payer : le menu « buy » s'ouvre ; la demande part a l'host, qui paie une fois et fait avancer le plan
+                before = setup(tech * 3 + 100, tech * 3 + 100)
+                check(f"{who} : le plan {pid} ({tech} de connaissance) est dans les deux jeux, la connaissance suffit ({before[H]['kn']} et {before[A]['kn']})",
+                      before[H]["plans"] > 0 and before[A]["plans"] > 0 and before[A]["kn"] >= tech)
+                awake(port)
+                n = open_plan(port, pid)
+                if not check(f"{who} : le menu « buy » s'ouvre ({n} choix)", n == 1):
                     continue
-                ev(port, f'var b = {BRANCH}; var q = b.researches.plans.First(x => x.id == "{pid}"); b.resources.knowledge.Mod(-q.source.tech); b.researches.CompletePlan(q); "ok"')
-                time.sleep(1)
-            after = {p: snap(p) for p in (H, A)}
-            if who == "l'invite":
-                check(f"{who} : rien n'est debite chez l'host (connaissance {before[H]['kn']} -> {after[H]['kn']})", after[H]["kn"] == before[H]["kn"])
-                check(f"{who} : aucun plan n'avance chez l'host ({before[H]['plans']},{before[H]['done']},{before[H]['ranks']} -> {after[H]['plans']},{after[H]['done']},{after[H]['ranks']})",
-                      (after[H]["plans"], after[H]["done"], after[H]["ranks"]) == (before[H]["plans"], before[H]["done"], before[H]["ranks"]))
-                check(f"{who} : rien ne change dans sa copie ({before[A]} -> {after[A]})", after[A] == before[A])
+                buy()
+                if not check(f"{who} : la connaissance de la base est debitee chez l'host",
+                             eventually(lambda: snap(H)["kn"] != before[H]["kn"], timeout=15)):
+                    continue
+                time.sleep(3)  # un deuxieme paiement, s'il y en avait un, arriverait ici
+                after = {p: snap(p) for p in (H, A)}
+                check(f"{who} : payee une fois, chez l'host (connaissance {before[H]['kn']} -> {after[H]['kn']}, plan a {tech})", after[H]["kn"] == before[H]["kn"] - tech)
+                check(f"{who} : le plan avance chez l'host ({before[H]['done']},{before[H]['ranks']} -> {after[H]['done']},{after[H]['ranks']})",
+                      after[H]["done"] > before[H]["done"] or after[H]["ranks"] > before[H]["ranks"])
+                check(f"{who} : sa copie de la base suit l'host ({snap(A)} / {snap(H)})",
+                      eventually(lambda: same_research(snap(A), snap(H)), timeout=10))
+                check(f"{who} : sa fenetre de recherche est rafraichie (plan encore liste : {window_shows(port, pid)}, encore a faire : {snap(A)['plans'] > 0})",
+                      window_shows(port, pid) == (ev(A, f'{BRANCH}.researches.plans.Any(x => x.id == "{pid}").ToString()') == "True"))
+                # 2) l'invite croit pouvoir payer (sa copie de la connaissance), l'host non : refus, rien ne change nulle part
+                before = setup(tech - 1, tech * 3 + 100)
+                n = open_plan(port, pid)
+                if check(f"{who} : (sa copie le croit riche) le menu « buy » s'ouvre ({n} choix)", n == 1):
+                    buy()
+                    time.sleep(3)
+                    after = {p: snap(p) for p in (H, A)}
+                    check(f"{who} : l'host refuse : rien n'est debite ni ne change chez lui ({before[H]} -> {after[H]})", after[H] == before[H])
+                    check(f"{who} : rien ne change dans sa copie ({before[A]} -> {after[A]})", after[A] == before[A])
+                # 3) pas de quoi payer, meme dans sa copie : le prix est rouge, le jeu ne propose rien
+                before = setup(tech - 1, tech - 1)
+                n = open_plan(port, pid)
+                check(f"{who} : sans de quoi payer le menu « buy » ne s'ouvre pas ({n} choix)", n == 0)
+                after = {p: snap(p) for p in (H, A)}
+                check(f"{who} : rien ne change chez l'host ni chez lui ({before} -> {after})", after == before)
             else:
+                before = setup(tech * 3 + 100, tech * 3 + 100)
+                check(f"{who} : le plan {pid} ({tech} de connaissance) est dans les deux jeux, la connaissance suffit ({before[H]['kn']} et {before[A]['kn']})",
+                      before[H]["plans"] > 0 and before[A]["plans"] > 0 and before[H]["kn"] >= tech)
+                awake(port)
+                n = open_plan(port, pid)
+                if n:
+                    buy()
+                else:
+                    # le banc ne retrouve pas toujours le menu « buy » de l'host (menu contextuel du jeu) : on verifie que le jeu lui
+                    # laisse la recherche, puis on fait ce que fait « buy »
+                    allowed = ev(port, f'var b = {BRANCH}; return b.researches.CanCompletePlan(b.researches.plans.First(x => x.id == "{pid}")).ToString();')
+                    if not check(f"{who} : la recherche lui reste permise ({allowed})", allowed == "True"):
+                        continue
+                    ev(port, f'var b = {BRANCH}; var q = b.researches.plans.First(x => x.id == "{pid}"); b.resources.knowledge.Mod(-q.source.tech); b.researches.CompletePlan(q); "ok"')
+                time.sleep(1)
+                after = {p: snap(p) for p in (H, A)}
                 check(f"{who} : la connaissance est debitee ({before[H]['kn']} -> {after[H]['kn']}, plan a {tech})", after[H]["kn"] == before[H]["kn"] - tech)
                 check(f"{who} : le plan avance ({before[H]['done']},{before[H]['ranks']} -> {after[H]['done']},{after[H]['ranks']})",
                       after[H]["done"] > before[H]["done"] or after[H]["ranks"] > before[H]["ranks"])
+                # la base revient chez l'invite : sa copie n'avait pas bouge (connaissance posee a part), elle prend celle de l'host
+                check(f"{who} : l'invite voit la meme chose ({snap(A)} / {snap(H)})",
+                      eventually(lambda: same_research(snap(A), snap(H)), timeout=10))
         finally:
             hide_menus(port)
             ev(port, 'EClass.ui.RemoveLayer<LayerTech>(); "ok"')
             for p in (H, A):
-                ev(p, f'var b = {BRANCH}; b.researches.finished.RemoveAll(x => x.id == "{pid}"); b.researches.plans.RemoveAll(x => x.id == "{pid}"); "ok"')
-                if p not in added:
-                    rank, exp = kept[p].split(",")
-                    ev(p, f'var n = ResearchPlan.Create("{pid}"); n.rank = {rank}; n.exp = {exp}; {BRANCH}.researches.AddPlan(n); "ok"')
+                put_plan(p, present=p not in added)
                 put(p, kn=saved[p]["kn"])
-                ev(p, f'var b = {BRANCH}; b.researches.newPlans.Clear(); "ok"')
 
 
 def zone_name(port):
@@ -269,7 +353,7 @@ def b3(ctx):
 
 
 def b4(ctx):
-    """competence du foyer : le platine du joueur paie, la competence monte de un ; l'host l'obtient, l'invite est refuse (ni platine debite, ni competence en plus)"""
+    """competence du foyer : le platine du joueur paie, la competence monte de un ; payee une fois chez l'host, la copie de l'invite suit ; refus propre sans de quoi payer"""
     pick_skill = (f'var b = {BRANCH}; var e = b.elements.dict.Values.Where(x => (x.Value > 0 || x.vBase > 0) && x.source.category != "policy" && x.source.category != "landfeat" && '
                   '!x.HasTag("hidden") && x.ValueWithoutLink > 0 && x.source.cost[0] != 0 && b.GetTechUpgradeCost(x) > 0).FirstOrDefault(); ')
     for who, key in both(ctx):
@@ -280,11 +364,14 @@ def b4(ctx):
         sid = ev(H, pick_skill + 'return e == null ? "" : e.id.ToString();')
         if not check(f"{who} : le foyer a une competence a monter ({sid or 'aucune'})", bool(sid)):
             continue
-        cost = int(ev(H, f'{BRANCH}.GetTechUpgradeCost({BRANCH}.elements.GetElement({sid})).ToString()'))
+        price = lambda: int(ev(H, f'{BRANCH}.GetTechUpgradeCost({BRANCH}.elements.GetElement({sid})).ToString()'))  # noqa: E731
+        cost = price()
         give(ctx, key, "money2", cost + 5)
         gold0 = count(H, uid, "money2")
         level = lambda p: int(ev(p, f'{BRANCH}.elements.Value({sid}).ToString()'))  # noqa: E731
         before = (level(H), level(A))
+        # le bouton de la competence dans la liste du foyer de ce joueur (la liste est refaite quand l'etat de la base change)
+        find = f'var it = LayerHome.Instance.listFeat.GetComponentsInChildren<ButtonElement>().FirstOrDefault(x => x.e != null && x.e.id == {sid}); '
         try:
             check(f"{who} : il a de quoi payer ({gold0} de platine pour {cost})", gold0 >= cost)
             awake(port)
@@ -292,26 +379,43 @@ def b4(ctx):
             if not check(f"{who} : la fenetre du foyer est ouverte", eventually(lambda: ev(port, '(LayerHome.Instance != null).ToString()') == "True", timeout=10)):
                 continue
             ev(port, 'LayerHome.Instance.RefreshFeat(); "ok"')
-            find = f'var it = LayerHome.Instance.listFeat.GetComponentsInChildren<ButtonElement>().FirstOrDefault(x => x.e != null && x.e.id == {sid}); '
             if not check(f"{who} : la liste des competences montre celle-la", eventually(lambda: ev(port, find + '(it != null).ToString()') == "True", timeout=10)):
                 continue
             ev(port, find + 'it.onClick.Invoke(); "ok"')
             time.sleep(1)
+            if not check(f"{who} : la boite « oui / non » s'ouvre", eventually(lambda: dialog_open(port), timeout=5)):
+                continue
+            log(f"{who} dit oui : {click_yes(port)}")
             if who == "l'invite":
-                check(f"{who} : la boite « oui / non » ne s'ouvre pas", not dialog_open(port))
-            else:
-                if not check(f"{who} : la boite « oui / non » s'ouvre", eventually(lambda: dialog_open(port), timeout=5)):
+                # la demande part a l'host : il debite le platine de l'invite (dans le sac qu'il tient) et monte la competence
+                if not check(f"{who} : la competence monte chez l'host", eventually(lambda: level(H) == before[0] + 1, timeout=15)):
                     continue
-                log(f"{who} dit oui : {click_yes(port)}")
-                time.sleep(1.5)
-            gold1 = count(H, uid, "money2")
-            after = (level(H), level(A))
-            if who == "l'invite":
-                check(f"{who} : le platine n'est pas debite chez l'host ({gold0} -> {gold1}) ni chez lui ({count(port, uid, 'money2')})", gold1 == gold0 == count(port, uid, "money2"))
-                check(f"{who} : la competence ne monte pas, chez l'host ({before[0]} -> {after[0]}) ni chez lui ({before[1]} -> {after[1]})", after == before)
+                time.sleep(3)  # un deuxieme paiement, s'il y en avait un, arriverait ici
+                gold1 = count(H, uid, "money2")
+                check(f"{who} : le platine est debite une fois chez l'host ({gold0} -> {gold1}, prix {cost})", gold1 == gold0 - cost)
+                check(f"{who} : le platine est debite dans son sac ({gold0} -> {count(port, uid, 'money2')})",
+                      eventually(lambda: count(port, uid, "money2") == gold0 - cost, timeout=10))
+                check(f"{who} : la competence a monte de un chez l'host ({before[0]} -> {level(H)}) et dans sa copie ({before[1]} -> {level(A)})",
+                      level(H) == before[0] + 1 and eventually(lambda: level(A) == level(H), timeout=10))
+                # pas de quoi payer la suivante : le jeu refuse avant la boite, rien ne part
+                left = count(port, uid, "money2")
+                if left < price():
+                    mark = (level(H), level(A), count(H, uid, "money2"))
+                    eventually(lambda: ev(port, find + '(it != null).ToString()') == "True", timeout=10)
+                    ev(port, find + 'it.onClick.Invoke(); "ok"')
+                    time.sleep(2)
+                    check(f"{who} : sans de quoi payer ({left} de platine pour {price()}) la boite ne s'ouvre pas", not dialog_open(port))
+                    check(f"{who} : rien ne change nulle part ({mark} -> {(level(H), level(A), count(H, uid, 'money2'))})",
+                          (level(H), level(A), count(H, uid, "money2")) == mark)
+                else:
+                    log(f"{who} : il lui reste assez de platine ({left}) : refus sans de quoi payer non verifie")
             else:
+                time.sleep(1.5)
+                gold1 = count(H, uid, "money2")
                 check(f"{who} : le platine est debite ({gold0} -> {gold1}, prix {cost})", gold1 == gold0 - cost)
-                check(f"{who} : la competence monte de un, chez l'host ({before[0]} -> {after[0]})", after[0] == before[0] + 1)
+                check(f"{who} : la competence monte de un, chez l'host ({before[0]} -> {level(H)})", level(H) == before[0] + 1)
+                # la base revient chez l'invite : sa copie prend la valeur de l'host
+                check(f"{who} : l'invite voit la meme competence ({before[1]} -> {level(A)})", eventually(lambda: level(A) == level(H), timeout=10))
         finally:
             ev(port, 'EClass.ui.RemoveLayer<LayerHome>(); "ok"')
             close_layers()
