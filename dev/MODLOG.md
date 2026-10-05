@@ -1960,7 +1960,7 @@ Pièges de test notés ce jour-là :
 - **À faire ensuite** : voir `dev/HANDOFF.md` (état au 1h05). En tête : quêtes à donjon à deux, sens « l'invité a la
   quête » (E5, E6 de `PLAN_quetes_donjon_a_deux.md`, en cours), puis `PLAN_chasse_differences.md`.
 
-### Étapes B et C (2026-10-05, 1h05 → 2h45) — reprendre ici
+### Étapes B et C (2026-10-05, 1h05 → 2h45)
 
 - **But** : finir les quêtes à donjon à deux (étape B), puis passer la chasse aux différences au banc, un test rouge
   puis vert par point (étape C). Un commit par point sur `fix/points-restants`. Rien poussé, rien publié.
@@ -2031,3 +2031,45 @@ correction, puis le vert.
   les limites de B et les « pas joué » de C ci-dessus ; le vol à la tire (n°14) ; la ville pour « investir ».
 - **À faire ensuite** : voir `dev/HANDOFF.md` (état à 2h45). En tête : finir la chasse (liste « pas encore traités »),
   puis l'étape D, puis l'étape E.
+
+### Conseil 4 : l'étape D (2026-10-05, 3h30) — reprendre ici
+
+- **Faits rassemblés avant le conseil** (deux agents, lecture seule ; rapports non gardés dans le dépôt, l'essentiel ici).
+  Base : l'invité règle sa copie, rien ne remonte ; quatre actions font payer pour rien (recherche, plans, foyer,
+  compétence du foyer). Consigne des compagnons : l'IA tourne chez l'host avec les deux cases de l'host. Karma : sur
+  une carte tenue par un invité, un visiteur n'est jamais criminel (`IsCriminal` rend faux en session de zone).
+  Échange : pas de contrôle du sac plein (l'objet arrive « en dépassement »), s'échangent des objets que le solo refuse
+  de donner. Retour de l'host : l'invité recharge tout (1 à 2 s sur le banc, pas mesuré à deux PC). **Le repos qui
+  finit en sommeil est corrigé depuis `a9fe6ee` (2 octobre) : la remarque de `PLAN_egalite_invites.md` est périmée.**
+  Vu en passant : quand un joueur trie son sac, c'est le tri de l'autre qui change (`InvSaveDataDelta`).
+- **Question** : cinq décisions liées, « que fait-on quand un réglage ou un état appartient à un joueur mais vit chez
+  l'autre ? » (base, consigne des compagnons, karma chez un teneur de carte, échange, retour de l'host), plus les
+  accidents rares.
+- **Verdict du président** (aucune case côté host : ce sont des corrections) :
+  - *Base* : bloquer d'abord les 4 actions payantes chez l'invité (message « à régler par l'host »), puis en faire
+    des demandes vérifiées par l'host (réponse succès/échec, jamais exécutées deux fois), puis lit, étiquettes de
+    vente, notes, politiques. Reporté : réserve et rappel d'un résident, servante, type de résident, bannir, changer
+    de maison, noms. Pas de remboursement rétroactif. Écarté : interdire toute la base ; tout faire d'un bloc.
+  - *Consigne* : les deux cases de l'invité valent pour ses compagnons (rangées sur son personnage chez l'host). Les
+    cinq réglages par compagnon : plus tard. Écarté : « la consigne est celle de l'host ».
+  - *Karma* : le visiteur annonce son karma au teneur de la carte, gardé en mémoire seulement, effacé à son départ.
+    Écarté : le ranger dans la sauvegarde du teneur ; ne rien faire.
+  - *Échange* : message clair pour un objet équipé (pas de déséquipement automatique) ; refus avant transfert si le sac
+    de celui qui reçoit est plein ; refus du jeu solo copiés (non lâchable, propriété d'un PNJ, cadeau, lié).
+  - *Retour de l'host* : prévenir l'invité maintenant, mesurer à la soirée d'essai ; alléger seulement au-delà de 5 s ;
+    le « rappel doux » (500 à 700 lignes) écarté jusqu'à la mesure.
+  - *Accidents rares* : message « déjà vendu » au second acheteur ; monture déjà prise refusée avec un message ; deux
+    poses sur la même case et plantage du teneur : rien, documenté. *Tri du sac* : correction à part.
+- **Angles morts relevés par la relecture, à garder en tête** : le blocage n'est qu'une étape (l'invité n'a pas le
+  résultat) ; une demande ne doit jamais être exécutée deux fois ; vérifier le sens inverse (l'host visiteur chez
+  l'invité) ; le rechargement au retour de l'host efface les réglages restés locaux ; deux versions différentes du
+  mod et les nouveaux messages.
+- **Ordre** : blocage des 4 payantes, refus de l'échange, sac plein, tri du sac, demandes payantes, consigne, message
+  de retour, objets de la carte (lit, étiquette, note), karma, politiques, mesure après la soirée.
+- **Non-régression (3h)** : `guest_suite` 309/313 puis g34 et g36 verts seuls : les 4 échecs venaient d'une panne de
+  mémoire du jeu (« OutOfMemoryException » du pont de test) après 35 minutes d'`eval` à la chaîne. **Piège : ne pas
+  enchaîner les grandes suites sur les mêmes fenêtres** (et `guest_suite` finit avec l'invité parti de la carte) :
+  `bash _tools/run_short.sh <nom> suite1 suite2…` relance le jeu entre deux suites. Test de la source chaude : partir
+  points de vie pleins, sinon le repos s'arrête dès qu'on est guéri, avant le bain (comme en solo).
+- Corrections de la chasse faites après 2h45 : pied-de-biche (D13, vert) ; **pas jouées** : noyade en eau profonde
+  (pas d'eau profonde à la Prairie), ticket d'hôtesse, fenêtres d'alias / du retour du vide / de la caisse de ferme.

@@ -297,8 +297,10 @@ def e4(ctx):
         ev(H, f'var c = {chara(H, uid)}; if (c.IsPCC && c.pccData.state != PCCState.Undie) c.SetPCCState(PCCState.Undie); "ok"')
         if not check(f"l'invite se tient dans l'eau ({spot}), vu par l'host", stand(port, uid, x, z)):
             return
-        ev(port, 'EClass.pc.sleepiness.Set(0); EClass.pc.SetNoGoal(); "ok"')
-        time.sleep(2)
+        # points de vie et mana pleins : un repos commence blesse s'arrete des qu'on est gueri (comme en solo), avant le bain
+        ev(H, f'var c = {chara(H, uid)}; c.hp = c.MaxHP; "ok"')
+        ev(port, 'EClass.pc.mana.Set(EClass.pc.mana.max); EClass.pc.sleepiness.Set(0); EClass.pc.SetNoGoal(); "ok"')
+        time.sleep(3)
         ev(port, 'EClass.pc.UseAbility("AI_Meditate", EClass.pc); "ok"')
         got = eventually(lambda: awake(port) and has(H, uid), timeout=150)
         check("l'invite a la source chaude, chez l'host", got)
