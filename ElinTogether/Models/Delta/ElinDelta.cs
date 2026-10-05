@@ -107,6 +107,7 @@ namespace ElinTogether.Models;
 [Union(821, typeof(CharaEffectRequestDelta))]
 [Union(822, typeof(ZoneInvestDelta))]
 [Union(823, typeof(PlayerTacticsDelta))]
+[Union(826, typeof(CardSettingDelta))]
 // Act
 [Union(900, typeof(ActThrowDelta))]
 // Element
