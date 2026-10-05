@@ -1,3 +1,4 @@
+using System.Linq;
 using ElinTogether.Helper;
 using ElinTogether.Models;
 using ElinTogether.Net;
@@ -45,10 +46,13 @@ internal static class ActPrayEvent
         c.Say("pray2", c, c.faith.Name);
         c.PlaySound("pray");
         c.PlayEffect("revive");
-        c.HealHP(999999L);
-        c.mana.Mod(999999);
-        c.Cure(CureType.Prayer, 999999);
-        c.RemoveCondition<ConDeathSentense>();
+        // as for the local player: the one who prays and its companions (ActPray.Pray heals "the player's" party)
+        foreach (var member in CompanionHelper.CompanionsOf(c).Prepend(c)) {
+            member.HealHP(999999L);
+            member.mana.Mod(999999);
+            member.Cure(CureType.Prayer, 999999);
+            member.RemoveCondition<ConDeathSentense>();
+        }
 
         return false;
     }
