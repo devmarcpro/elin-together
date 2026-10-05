@@ -96,3 +96,9 @@ détail à confirmer en jeu ; « à vérifier » = on ne sait pas encore si le d
 - Religion : humeur du dieu (`Religion.mood`, `OnChangeHour`) ne sert qu'au texte ; statues non machine et sanctuaires (`OpensForPlayer` + `AsCrafter`) ; quitter son dieu (`CharaFaithDelta`) ; offrande à l'autel de son propre dieu (exp calculée chez l'invité).
 - Zones sans branche `IsPC` utile : Arena, Casino, Tent, Void, Hospital, Asylum, TruceGround, EternalGarden, Gathering, Music, Harvest, Shelter, Underground ; événements de quête dans une zone à bail personnel où `EClass.pc` est le bon joueur.
 - Chute/déplacement : encontres sur la carte du monde (`Chara.Tick`), pousser un habitant (`RemoteNoPushPatch.cs`), sortie par escalier (`TraitNewZone.OnStepped`).
+
+
+## État au 2026-10-05, 14h35
+
+Corrigés et testés (`hunt2_suite.py`) : ligne 2 (rondin à la hache), ligne 5 (prière et compagnons), ligne 6 (nourriture
+du sac). Tout le reste est à faire, en commençant par la ligne 1.

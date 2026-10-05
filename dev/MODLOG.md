@@ -2154,7 +2154,7 @@ refusée ; mesurer le rechargement au retour de l'host ; puis les points de la c
 machine à gènes, 17, 19, 25 à 28) et l'étape E. Écrire des tests pour tout ce qui est « PAS JOUÉ ». Voir `HANDOFF.md`
 (état à 9h30).
 
-### Étape D suite, Elin 23.352 (2026-10-05, 9h30 → 14h15) — reprendre ici
+### Étape D suite, Elin 23.352 (2026-10-05, 9h30 → 14h15)
 
 - **But** : finir le conseil 4 côté base (ce qu'un invité règle doit valoir pour l'autre), prouver par des tests les
   corrections « jamais jouées », puis chercher la suite (deuxième chasse). L'utilisateur était absent de 11h à 13h30.
@@ -2232,3 +2232,22 @@ suites non relancées sur 23.352 (la plupart : seules hunt, together T1–T2 et 
 republier une version compilée sur 23.352 avec l'accord de l'utilisateur ; étape E = `PLAN_chasse_differences_2.md`
 en commençant par les lignes hautes (1, 2) ; ce qui reste du conseil 4 (servante, type et réserve d'un résident,
 réglages de coffre, mesure du rechargement) ; défense à deux. Voir `HANDOFF.md` (état à 14h15).
+
+### Étape E commencée : deuxième chasse (2026-10-05, 14h15 → 14h35) — reprendre ici
+
+- Suite `dev/_tools/hunt2_suite.py` (E1…), même forme que `hunt_suite`. Rouge vu en jeu puis vert, 21/21 sur Elin 23.352 :
+  - ligne 2, tailler un rondin à la hache : la tâche est maintenant envoyée à l'host (`TaskChopWoodArgs`, union 226) ;
+  - ligne 5, prière : les compagnons de l'invité sont soignés aussi (`ActPrayEvent`) ;
+  - ligne 6, nourriture du sac : l'host fait vieillir le sac de chaque invité à chaque heure (`RemoteDecayPatch`) et
+    lui envoie l'état (`CardDecayDelta`, union 828). Piège : lors d'un saut de temps, la date arrive chez l'invité
+    par deux chemins (instantané du monde et `WorldDateAdvanceDelta`) : ne pas compter sur le rattrapage d'heures côté
+    client.
+- Barrière de version d'Elin levée (`ee374b7`, `version_suite` 8/8) : seule la version du mod doit être la même ; case
+  host « Require the same Elin version » (décochée par défaut). Le chemin du salon Steam n'est pas joué.
+- **À faire ensuite** : le reste de `PLAN_chasse_differences_2.md`, dans l'ordre : ligne 1 (mode construction d'un
+  invité : écrire d'abord un test rouge, c'est le plus gros), 8 (ressusciter un compagnon), 7 (réglages de coffre :
+  étendre `InvSaveDataDelta`), 9 (copie chez Kettle), 3, 4, puis les lignes « Bas ». Puis ce qui reste du conseil 4
+  (servante, type et réserve d'un résident, mesure du rechargement) et la défense à deux.
+- Numéros d'union pris : deltas jusqu'à 829 (824 à 829 utilisés), arguments de tâche jusqu'à 226.
+- Versions : dernière publiée 0.26.442 (compilée pour Elin 23.351). Tout ce qui suit est poussé sur
+  `feat/independent-travel` mais pas publié en version : proposer une 0.26.4xx compilée sur 23.352.

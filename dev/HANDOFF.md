@@ -214,3 +214,12 @@ label=f"...")` : Python évalue les arguments nommés dans l'ordre écrit, la co
 l'inverse affiche la valeur d'AVANT l'attente (« 0 -> 0 » marqué OK = faux vert). Le jeu n'appelle jamais à l'aide
 dans une base du joueur (`Chara.DoHostileAction`, `!EClass._zone.IsPCFaction`) : tester ça à Vernis, pas à la
 Prairie. Les anciens pièges sont dans `MODLOG.md`.
+
+
+## Ajout de 14h35 (étape E commencée)
+
+- Trois lignes de la deuxième chasse corrigées et vertes (`python _tools/hunt2_suite.py`, 21/21) : rondin à la hache,
+  prière qui soigne aussi les compagnons de l'invité, nourriture du sac de l'invité qui vieillit.
+- Reprendre par la ligne 1 de `PLAN_chasse_differences_2.md` (mode construction d'un invité), test rouge d'abord ;
+  détail et ordre dans la dernière entrée de `MODLOG.md`.
+- À proposer à l'utilisateur : publier une version compilée sur Elin 23.352 (la 0.26.442 date de 23.351).
