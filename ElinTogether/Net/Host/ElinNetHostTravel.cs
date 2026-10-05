@@ -354,10 +354,13 @@ internal partial class ElinNetHost
 
     /// <summary>
     ///     The host and that player stand on the same map, and the host knows the quest and who gave it. <br />
-    ///     Hunts only for now. A harvest and a concert count what is delivered or played in the quest log of the
-    ///     game where it happens (QuestManager.Get&lt;QuestHarvest&gt;, Get&lt;QuestMusic&gt;): on the host that is
-    ///     nobody's, what the host delivers would be lost. A defense is played with a horn only the one running
-    ///     the zone can blow. Those stay the taker's alone, as before
+    ///     Hunts, harvests and concerts. What is delivered or played is counted by the game that has the quest in
+    ///     its log (QuestManager.Get&lt;QuestHarvest&gt;, Get&lt;QuestMusic&gt;), the taker's: a delivery and a
+    ///     tune are replayed in every game (InvOwnerOnProcessDelta, CharaTaskDelta), so the host's count there
+    ///     too, and the host reads the total the taker tells it (AccompaniedQuest). <br />
+    ///     Not a defense: its horn acts on the copy of the zone of whoever blows it, its waves are only counted
+    ///     where the zone runs, and the reward is paid by the wave reached in the taker's game. It stays the
+    ///     taker's alone, as before
     /// </summary>
     private bool CanRunQuestZoneFor(ISteamNetPeer peer, LeaseZoneBlueprint blueprint, out Chara taker)
     {
@@ -369,7 +372,7 @@ internal partial class ElinNetHost
         }
 
         taker = chara;
-        return new LZ4Bytes { Bytes = data }.Decompress<Quest>() is QuestSubdue;
+        return new LZ4Bytes { Bytes = data }.Decompress<Quest>() is QuestSubdue or QuestHarvest or QuestMusic;
     }
 
     private void UpdateQuestAsk()
@@ -515,8 +518,8 @@ internal partial class ElinNetHost
     ///     runs the zone from here and settles it when it leaves, as if it had come alone. <br />
     ///     Otherwise everyone leaves (the taker walked out, the quest is decided, or the taker is still loading
     ///     the zone and cannot keep it): the taker hears how it went and settles its quest in town, where the
-    ///     host gives the reward once (see PersonalQuests.OnHostSettled, CompletePersonal). <br />
-    ///     Hunts only (see CanRunQuestZoneFor): nothing is weighed or taken back from the bags on the way out
+    ///     host gives the reward once (see PersonalQuests.OnHostSettled, CompletePersonal). What leaving decides
+    ///     (a harvest weighed, the crops not delivered taken back from every bag) is decided here, once
     /// </summary>
     /// <returns>the player keeping the zone, 0 when everyone leaves</returns>
     private int LeaveAccompaniedZone()
@@ -537,8 +540,29 @@ internal partial class ElinNetHost
                 SendQuestZoneState(taker, zone);
             }
 
+            // the bag of the one walking out of a harvest before the end is searched, the host's like a
+            // player's (see DepartFromHostMap)
+            if (zone.events.GetEvent<ZoneEventHarvest>() is not null) {
+                TakeBackOwnCrops();
+            }
+
             _questZones.Add(zone.uid);
         } else if (connected) {
+            if (ActiveRemoteCharas.TryGetValue(along.PeerId, out var taker)) {
+                try {
+                    // a harvest is weighed and the crops not delivered are taken back from every bag of the
+                    // party, as the game does for the one who took the quest: it is told, and it pays for it
+                    using var told = MsgRelayContext.RedirectTo(taker);
+                    using var standIn = PlayerStandIn.For(this, along.PeerId, taker);
+                    foreach (var zoneEvent in zone.events.list.OfType<ZoneEventQuest>().ToList()) {
+                        zoneEvent.OnLeaveZone();
+                    }
+                } catch (Exception ex) {
+                    EmpLog.Warning(ex, "Leaving quest zone {ZoneFullName} failed for player {CharaUid}",
+                        zone.ZoneFullName, along.CharaUid);
+                }
+            }
+
             // also to a taker still loading the zone: it comes along, and its quest must not stay open for ever
             SendDeltaTo(along.PeerId, new QuestFollowDelta {
                 Kind = instance.status == ZoneInstance.Status.Success ? QuestFollowDelta.Won : QuestFollowDelta.Lost,
@@ -558,6 +582,29 @@ internal partial class ElinNetHost
         _accompanied = null;
 
         return alone ? along.PeerId : 0;
+    }
+
+    private static void TakeBackOwnCrops()
+    {
+        var taken = new List<Thing>();
+        foreach (var member in CompanionHelper.CompanionsOf(pc).Prepend(pc)) {
+            member.things.Foreach(t => {
+                if (t.GetBool(115) && EClass.rnd(2) != 0) {
+                    taken.Add(t);
+                }
+            });
+        }
+
+        if (taken.Count == 0) {
+            return;
+        }
+
+        Msg.Say("harvest_confiscate", taken.Count.ToString());
+        foreach (var thing in taken) {
+            thing.Destroy();
+        }
+
+        EClass.player.ModKarma(-1);
     }
 
     /// <summary>

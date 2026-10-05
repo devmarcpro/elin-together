@@ -1,10 +1,10 @@
 """Quetes a zone propre jouees a deux (PLAN_quetes_donjon_a_deux.md). T1 a T6, sens S1 : l'host prend la quete,
-l'invite l'accompagne (etapes E1 a E4). T7 a T11, sens S2 : l'invite prend la quete, l'host l'accompagne et simule
-la zone (etapes E5 et E6 ; quetes "subjuguer" seulement, les autres restent a l'invite seul). Test court, sur des instances deja lancees (host + 1 client, tous les deux a la Prairie,
+l'invite l'accompagne (etapes E1 a E4). T7 a T13, sens S2 : l'invite prend la quete, l'host l'accompagne et simule
+la zone (etapes E5 et E6 ; "subjuguer", recolte et musique ; la defense reste a l'invite seul). Test court, sur des instances deja lancees (host + 1 client, tous les deux a la Prairie,
 options « voyage independant » et « quetes par joueur » cochees).
 
     python _tools/mp_test.py
-    python _tools/together_suite.py            # ou --only t1,t2   (~16 minutes en entier)
+    python _tools/together_suite.py            # ou --only t1,t2   (~22 minutes en entier)
 
 T1  l'host prend une quete "subjuguer" et entre : l'invite, reste en ville, voit la boite Oui/Non, clique Oui et
     arrive dans la zone ; memes monstres des deux cotes, pas de doublon, la quete absente de son journal
@@ -26,12 +26,20 @@ T10 l'host a dit Oui puis rentre seul en ville avant la fin : l'invite garde la 
     finit seul, ressort, recompense pour lui
 T11 l'host sauvegarde dans la zone accompagnee : le fichier ecrit n'a ni evenement de quete ni numero de quete
     (la quete d'un autre n'entre pas dans la sauvegarde de l'host), et la zone en jeu n'a pas bouge ; une quete de
-    recolte prise par l'invite n'ouvre pas de boite (elle reste a lui seul)
+    defense prise par l'invite n'ouvre pas de boite (elle reste a lui seul)
+T12 recolte prise par l'invite, l'host dit Oui : meme compteur des deux cotes ; l'host livre a la caisse (bouton
+    « tout livrer »), puis l'invite : chaque livraison compte pour la quete de l'invite, rien n'est perdu sans
+    credit ; l'invite sort : les recoltes non livrees des deux sacs sont fouillees, une recompense, pour l'invite
+T13 musique prise par l'invite, l'host dit Oui : meme compteur des deux cotes, la zone de l'host lit la quete de
+    l'invite ; l'invite sort, quete reglee chez lui seul. Le banc ne joue pas d'instrument : le score qui monte
+    quand l'un ou l'autre joue n'est PAS verifie ici
 
 Prendre la quete : les deux appels que fait le dialogue du jeu au choix « accepter » (DramaCustomSequence,
 etape _questAccept_instance), pas le dialogue lui-meme : le banc ne sait pas derouler un LayerDrama.
 Sortir de la zone : l'appel que fait Player.ExitBorder au bord de la carte, sans marcher jusqu'au bord ni passer
-par la boite « quitter ? » du jeu. T7 a T11 ne jouent pas non plus le dialogue de remerciement du donneur chez
+par la boite « quitter ? » du jeu. T12 livre par le bouton « tout livrer » de la vraie fenetre de la caisse, ouverte
+par l'appel que fait la caisse quand on l'utilise ; deposer une recolte a la main sur la caisse n'est pas joue, et
+les recoltes sont mises dans les sacs par l'host (marque 115). T7 a T13 ne jouent pas non plus le dialogue de remerciement du donneur chez
 l'invite (le banc le ferme). T2 depend de T1, T8 de T7 (la zone ou les deux se trouvent).
 """
 import argparse
@@ -504,7 +512,7 @@ def t10(ctx):
 
 
 def t11(ctx):
-    """l'host sauvegarde dans la zone accompagnee : rien de la quete de l'invite dans le fichier ; pas de boite pour une recolte
+    """l'host sauvegarde dans la zone accompagnee : rien de la quete de l'invite dans le fichier ; pas de boite pour une defense
     Ce que le banc ne joue pas comme un joueur : la sauvegarde est un appel (Game.Save), pas le menu"""
     a = ctx["a"]
     r = together(ctx)
@@ -533,11 +541,11 @@ def t11(ctx):
           eventually(lambda: not in_log(A, uid), timeout=25) and eventually(lambda: str(uid) not in kept(a).split(","), timeout=10)
           and fame(A) <= fa)
 
-    # une recolte reste a l'invite seul : pas de boite, il part tout de suite
-    uid, giver = guest_takes("QuestHarvest")
+    # une defense reste a l'invite seul : pas de boite, il part tout de suite
+    uid, giver = guest_takes("QuestDefenseGame")
     guest_departs(uid, giver)
     zuid = guest_alone_inside()
-    check("quete de recolte de l'invite : pas de boite chez l'host, l'invite est seul dans sa zone",
+    check("quete de defense de l'invite : pas de boite chez l'host, l'invite est seul dans sa zone",
           host_box() == "" and zone_uid(H) == HOME and client_settled(A, zuid, True)())
     ev(A, LEAVE)
     back_home()
@@ -545,7 +553,122 @@ def t11(ctx):
 
 
 
-TESTS = {"t1": t1, "t2": t2, "t3": t3, "t4": t4, "t5": t5, "t6": t6, "t7": t7, "t8": t8, "t9": t9, "t10": t10, "t11": t11}
+DELIVER = ('var chest = EClass._map.things.Find(t => t.trait is TraitFarmChest); if (chest == null) return "pas de caisse"; '
+           'var l = LayerDragGrid.CreateDeliver(InvOwnerDeliver.Mode.Crop, chest); l.buttonDeliver.onClick.Invoke(); return "ok";')
+
+
+def give(who, thing, num):
+    """L'host met dans le sac du personnage `who` une pile marquee « recolte de la quete ». Renvoie son poids."""
+    return int(ev(H, f'var c = EClass._map.charas.Find(x => x.uid == {who}); var t = ThingGen.Create("{thing}"); t.SetNum({num}); '
+                     't.SetBool(115, true); var w = t.SelfWeight * t.Num; c.AddThing(t, false); return w.ToString();'))
+
+
+def has(port, thing):
+    return int(ev(port, f'EClass.pc.things.List(t => t.id == "{thing}").Sum(t => t.Num).ToString()'))
+
+
+def t12(ctx):
+    """recolte prise par l'invite, a deux : chaque livraison compte pour lui, fouille des deux sacs, une recompense
+    Ce que le banc ne joue pas comme un joueur : les recoltes sont mises dans les sacs par l'host ; livraison par le bouton « tout livrer »"""
+    a, h = ctx["a"], state(H)["pc"]["uid"]
+    r = together(ctx, "QuestHarvest")
+    if r is None:
+        guest_alone_inside()
+        ev(A, LEAVE)
+        back_home()
+        return
+    uid, zuid = r
+    text = 'var e = EClass._zone.events.GetEvent<ZoneEventHarvest>(); return e == null ? "pas d evenement" : e.TextWidgetDate;'
+    w_guest = lambda: int(ev(A, f'((QuestHarvest)EClass.game.quests.list.Find(q => q.uid == {uid})).weightDelivered.ToString()'))  # noqa: E731
+    w_host = lambda: int(ev(H, 'EClass._zone.events.GetEvent<ZoneEventHarvest>().questHarvest.weightDelivered.ToString()'))  # noqa: E731
+    check(f"le compteur de la recolte s'affiche des deux cotes, le meme (host {ev(H, text)!r}, invite {ev(A, text)!r})",
+          len(ev(H, text)) > 0 and eventually(lambda: ev(H, text) == ev(A, text), timeout=10))
+    check("la quete est au journal de l'invite, pas de l'host", in_log(A, uid) and not in_log(H, uid))
+
+    crop = ev(H, 'EClass.sources.things.rows.First(r => r.category == "vegi").id')
+    unit = int(ev(H, f'ThingGen.Create("{crop}").SelfWeight.ToString()'))
+    dest = int(ev(A, f'((QuestHarvest)EClass.game.quests.list.Find(q => q.uid == {uid})).destWeight.ToString()'))
+    if not check(f"une recolte a livrer ({crop}, {unit} l'unite, {dest} demandes)", unit > 0 and dest > 0):
+        ev(A, LEAVE)
+        back_home()
+        return
+
+    # l'host livre le premier : il n'a pas la quete a son journal
+    wh = give(h, crop, 2)
+    done = ev(H, DELIVER)
+    check(f"l'host livre a la caisse ({done}) : ses recoltes quittent son sac", done == "ok" and eventually(lambda: has(H, crop) == 0, timeout=10))
+    check(f"ce que l'host livre compte pour la quete de l'invite ({wh} attendus, {w_guest()} chez l'invite)",
+          eventually(lambda: w_guest() == wh, timeout=15))
+    check(f"et l'host lit le meme poids ({w_host()})", eventually(lambda: w_host() == wh, timeout=15))
+
+    # l'invite livre de quoi reussir la quete
+    wa = give(a, crop, dest // unit + 1)
+    done = ev(A, DELIVER)
+    check(f"l'invite livre a la caisse ({done}) : ses recoltes quittent son sac, chez lui et chez l'host",
+          done == "ok" and eventually(lambda: has(A, crop) == 0, timeout=10)
+          and eventually(lambda: ev(H, f'EClass._map.charas.Find(x => x.uid == {a}).things.List(t => t.id == "{crop}").Count.ToString()') == "0", timeout=10))
+    check(f"ce que l'invite livre compte, une fois ({wh + wa} attendus, {w_guest()} chez l'invite)",
+          eventually(lambda: w_guest() == wh + wa, timeout=15))
+    check(f"l'host lit le meme poids ({w_host()}) et le meme compteur", eventually(lambda: w_host() == wh + wa, timeout=15)
+          and eventually(lambda: ev(H, text) == ev(A, text), timeout=10))
+    time.sleep(3)
+    check(f"le poids ne bouge plus tout seul (pas de double compte : {w_guest()})", w_guest() == wh + wa)
+
+    # des recoltes non livrees dans les deux sacs, puis l'invite sort
+    ev(H, f'foreach (var c in new[] {{ EClass.pc, EClass._map.charas.Find(x => x.uid == {a}) }}) for (var i = 0; i < 30; i++) {{ '
+          'var t = ThingGen.Create("bucket"); t.SetBool(115, true); c.AddThing(t, false); } "ok"')
+    check("30 recoltes non livrees dans chaque sac", eventually(lambda: has(A, "bucket") >= 30 and has(H, "bucket") >= 30, timeout=15))
+    n = {"a": has(A, "bucket"), "h": has(H, "bucket")}
+    before = {"fa": fame(A), "fh": fame(H), "kh": int(ev(H, "EClass.player.karma.ToString()"))}
+    ev(A, LEAVE)
+    back_home()
+    check(f"une partie des recoltes non livrees de l'invite a ete reprise, pas tout ({n['a']} -> {has(A, 'bucket')})",
+          eventually(lambda: n["a"] - 30 < has(A, "bucket") < n["a"], timeout=15))
+    check(f"celles de l'host aussi ({n['h']} -> {has(H, 'bucket')})", n["h"] - 30 < has(H, "bucket") < n["h"])
+    check("la quete est rendue : sortie du journal de l'invite, l'host ne la garde plus",
+          eventually(lambda: not in_log(A, uid), timeout=25) and eventually(lambda: str(uid) not in kept(a).split(","), timeout=10))
+    check(f"reussie : renommee pour l'invite ({before['fa']} -> {fame(A)}), recompense a ses pieds",
+          eventually(lambda: fame(A) > before["fa"], timeout=10) and eventually(lambda: things_at_pc(H, a) > 0, timeout=10))
+    time.sleep(5)
+    dismiss_dialogs(A)
+    won = fame(A)
+    check(f"rien pour l'host : ni renommee ({before['fh']} -> {fame(H)}), ni karma ({before['kh']} -> {ev(H, 'EClass.player.karma.ToString()')}), ni quete",
+          fame(H) == before["fh"] and int(ev(H, "EClass.player.karma.ToString()")) == before["kh"] and not in_log(H, uid))
+    time.sleep(5)
+    check(f"une seule recompense ({won} -> {fame(A)})", fame(A) == won)
+    for port in (H, A):
+        ev(port, 'foreach (var t in EClass.pc.things.Where(t => t.id == "bucket").ToList()) t.Destroy(); "ok"')
+
+
+def t13(ctx):
+    """musique prise par l'invite, a deux : meme compteur, la zone de l'host lit la quete de l'invite, sortie reglee chez lui
+    Ce que le banc ne joue pas : personne ne joue d'instrument, le score qui monte n'est pas verifie"""
+    a = ctx["a"]
+    r = together(ctx, "QuestMusic")
+    if r is None:
+        guest_alone_inside()
+        ev(A, LEAVE)
+        back_home()
+        return
+    uid, zuid = r
+    text = 'var e = EClass._zone.events.GetEvent<ZoneEventMusic>(); return e == null ? "pas d evenement" : e.TextWidgetDate;'
+    check(f"le compteur du concert s'affiche des deux cotes, le meme (host {ev(H, text)!r}, invite {ev(A, text)!r})",
+          len(ev(H, text)) > 0 and eventually(lambda: ev(H, text) == ev(A, text), timeout=10))
+    check("la zone de l'host lit la quete de l'invite, qui n'est pas a son journal",
+          ev(H, f'var e = EClass._zone.events.GetEvent<ZoneEventMusic>(); return (e.questMusic != null && e.questMusic.uid == {uid}).ToString();') == "True"
+          and in_log(A, uid) and not in_log(H, uid))
+    there = lambda p: ev(p, CHARAS).split(",")  # noqa: E731
+    check(f"meme public des deux cotes ({len(there(H))} chez l'host)", eventually(lambda: there(H) == there(A), timeout=20))
+    before = {"fa": fame(A), "fh": fame(H)}
+    ev(A, LEAVE)
+    back_home()
+    check("l'invite sort sans avoir joue : quete reglee (ratee) chez lui, l'host ne la garde plus",
+          eventually(lambda: not in_log(A, uid), timeout=25) and eventually(lambda: str(uid) not in kept(a).split(","), timeout=10))
+    check(f"rien pour l'host ({before['fh']} -> {fame(H)})", fame(H) == before["fh"] and fame(A) <= before["fa"])
+
+
+TESTS = {"t1": t1, "t2": t2, "t3": t3, "t4": t4, "t5": t5, "t6": t6, "t7": t7, "t8": t8, "t9": t9, "t10": t10, "t11": t11,
+         "t12": t12, "t13": t13}
 
 
 def main():
