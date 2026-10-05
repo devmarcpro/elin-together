@@ -603,6 +603,7 @@ def t12(ctx):
 
     # l'invite livre de quoi reussir la quete
     wa = give(a, crop, dest // unit + 1)
+    eventually(lambda: has(A, crop) > 0, timeout=10)  # la pile mise par l'host doit etre arrivee dans le jeu de l'invite
     done = ev(A, DELIVER)
     check(f"l'invite livre a la caisse ({done}) : ses recoltes quittent son sac, chez lui et chez l'host",
           done == "ok" and eventually(lambda: has(A, crop) == 0, timeout=10)
