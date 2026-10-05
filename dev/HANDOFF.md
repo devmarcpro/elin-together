@@ -3,6 +3,28 @@
 À lire en premier par la session suivante. Détail daté : fin de `MODLOG.md` (« Étape D suite, Elin 23.352 »).
 Mode d'emploi : `DOCUMENTATION.md`. Règles : `../CLAUDE.md`. Message de départ : `PROMPT_reprise.md`.
 
+## État à l'arrêt de 20h (le plus récent : lire ceci d'abord)
+
+- **Publiée : 0.26.463** (Elin EA 23.352). Depuis : tout est commité et poussé jusqu'à `b7b8cc5` (mode construction de l'invité
+  complet, terrain, zones, coffres, autel, résurrection, Kettle, outils, pas de mort entre joueurs, dépôt GitHub, docs).
+- **NON COMMITÉ dans l'arbre de travail (ne pas l'écraser : `git status`, `git diff`)** : la base gérée par un invité
+  (conseil 7 : servante, type / réserve / rappel / renvoi d'un résident, abandon et acte refusés à l'invité, case
+  `HostManagesBase` clé 14, textes), avec les corrections de la relecture ; `dev/_tools/depot_suite.py` (étape P1). Ça
+  compile et c'est INSTALLÉ dans le jeu (build Debug). Preuve rouge faite sur l'ancien build ; **vert pas encore lu**.
+- **Tournait à l'arrêt** (peut-être coupé) : `base_suite` → `_shots/base-green13.log` ; `depot_suite` avec P1 (quel
+  personnage joue l'invité qui reprend le monde : état des lieux du conseil 6) → `_shots/depot-p1.log` ; `travel_suite` →
+  `_shots/travel_suite-pub4.log` (au passage d'avant : 34/35, S15 « client rejoint en zone 2 » en délai dépassé, le reste
+  non joué : tirage ou régression, à trancher). Lire ces journaux ; s'ils sont incomplets, relancer.
+- **Agent des duels (étapes 2 à 4 : menu Défier, boîte Oui/Non, duel sur place)** : écrivait `_shots/duels_2_4.patch` dans
+  une copie isolée ; s'il n'existe pas, relancer (consigne : `PLAN_duels_et_membres.md` partie 1 + verdict du conseil 7 ;
+  unions à partir de 837, règle clé 15).
+- **À faire ensuite, dans l'ordre** : 1) lire les trois journaux, corriger, commiter la base (un commit), pousser ;
+  2) S15 du voyage ; 3) duels 2-4 (appliquer le patch, relecture, rouge puis vert) ; 4) dépôt GitHub : fermer le jeu
+  pendant un envoi (G4 rouge) ; 5) conseil 6 : copie du monde chez chaque joueur par Steam (selon P1) ; 6) passe large
+  (`run_short.sh` + `travel_suite`) puis proposer une 0.26.49x à l'utilisateur ; 7) reste de la deuxième chasse.
+- **Consigne de l'utilisateur (20h)** : effort faible, moins de jetons : réponses courtes, peu d'agents.
+- Ses dépôts GitHub sont tous privés sauf `elin-together` (fait à sa demande) ; dépôt d'essai `elin-together-monde-essai`.
+
 ## État à 19h30 (le plus récent : lire ceci d'abord ; tout le reste du fichier date de 14h15 à 17h et est marqué)
 
 Fait d'après `git log 895d5b0..HEAD` et `git status` à 19h30. Ce qui n'est pas joué est écrit « pas joué ».
