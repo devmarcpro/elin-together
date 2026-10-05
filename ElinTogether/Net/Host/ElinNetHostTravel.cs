@@ -231,6 +231,11 @@ internal partial class ElinNetHost
             ? chara
             : pc;
 
+        if (taker != pc) {
+            // the monsters are in by now (ZoneEvent.OnVisit ran when the host walked in)
+            SendQuestZoneState(taker, zone);
+        }
+
         foreach (var peer in Socket.Peers) {
             // the one keeping that town since the host left it, a player elsewhere has its own business
             if (!_departed.Contains(peer.Id) || !_leases.TryGetValue(peer.Id, out var zones) ||
@@ -433,14 +438,12 @@ internal partial class ElinNetHost
         _accompaniedQuest = null;
 
         Zone? zone = null;
-        SpatialGenEvent.Quiet = true;
         try {
-            // not announced: the players coming along receive it whole, with its events, see ZoneDataResponse
+            // announced to everyone like a zone of the host's own quest (SpatialGenDelta): a client only loads
+            // the map of a zone it knows
             zone = AccompaniedQuest(blueprint.QuestUid)?.CreateInstanceZone(giver);
         } catch (Exception ex) {
             EmpLog.Warning(ex, "Quest zone of player {CharaUid} could not be made on the host", taker.uid);
-        } finally {
-            SpatialGenEvent.Quiet = false;
         }
 
         if (zone is null) {
@@ -472,10 +475,11 @@ internal partial class ElinNetHost
         EmpLog.Information("Host comes along with {@Peer} to quest zone {ZoneFullName} {ZoneUid}",
             peer, zone.ZoneFullName, zone.uid);
 
-        // the zone it made for itself is dropped, see ElinNetClient.OnZoneLeaseDenied. Sent before the host's
-        // zone reaches it (frames later, see ZoneActivateEvent)
+        // the zone it made for itself becomes this one, by its number, see ElinNetClient.OnZoneLeaseDenied.
+        // Sent before the announcement and the map of the zone reach it (frames later, see SpatialGenEvent and
+        // ZoneActivateEvent)
         peer.Send(new ZoneLeaseDenied {
-            ZoneUid = request.ZoneUid,
+            ZoneUid = zone.uid,
             Reason = QuestFollowDelta.Coming,
         });
         return true;
@@ -527,7 +531,12 @@ internal partial class ElinNetHost
                     instance.status == ZoneInstance.Status.Running;
 
         if (alone) {
-            // its taker holds it from now on, and it is gone when that player hands it back
+            // its taker runs it from now on, from where the hunt stands, and it is gone when that player hands
+            // it back
+            if (ActiveRemoteCharas.TryGetValue(along.PeerId, out var taker)) {
+                SendQuestZoneState(taker, zone);
+            }
+
             _questZones.Add(zone.uid);
         } else if (connected) {
             // also to a taker still loading the zone: it comes along, and its quest must not stay open for ever
@@ -549,6 +558,21 @@ internal partial class ElinNetHost
         _accompanied = null;
 
         return alone ? along.PeerId : 0;
+    }
+
+    /// <summary>
+    ///     What the quest events of the zone hold here, for the copy of the zone its taker made itself, see
+    ///     ElinNetClient.OnQuestZoneState
+    /// </summary>
+    private void SendQuestZoneState(Chara taker, Zone zone)
+    {
+        var peerId = ActiveRemoteCharas.FirstOrDefault(pair => pair.Value == taker).Key;
+        SendDeltaTo(peerId, new QuestFollowDelta {
+            Kind = QuestFollowDelta.ZoneState,
+            Name = pc.Name,
+            ZoneUid = zone.uid,
+            Events = LZ4Bytes.Create(zone.events.list.Where(e => e is ZoneEventQuest).ToList()),
+        });
     }
 
     /// <summary>

@@ -373,9 +373,12 @@ def t7(ctx):
     check(f"memes personnages des deux cotes ({len(h)} chez l'host, {len(g)} chez l'invite)", same)
     check("pas de doublon", len(set(h)) == len(h) and len(set(g)) == len(g))
     n = int(ev(H, 'EClass._zone.events.GetEvent<ZoneEventSubdue>().enemies.Count.ToString()'))
-    check(f"les monstres de la quete ne sont apparus qu'une fois ({n} chez l'host)",
-          n > 0 and ev(A, 'var e = EClass._zone.events.GetEvent<ZoneEventSubdue>(); return e == null ? "-1" : e.enemies.Count.ToString();') == str(n))
+    seen_by_guest = 'var e = EClass._zone.events.GetEvent<ZoneEventSubdue>(); return e == null ? "-1" : e.enemies.Count.ToString();'
+    check(f"les monstres de la quete ne sont apparus qu'une fois ({n} chez l'host), et l'invite en connait le compte ({ev(A, seen_by_guest)})",
+          n > 0 and eventually(lambda: ev(A, seen_by_guest) == str(n), timeout=15))
     check("la quete est au journal de l'invite, pas de l'host", in_log(A, uid) and not in_log(H, uid))
+    check("chez l'invite la zone est une zone de quete, la sienne (meme numero que chez l'host)",
+          ev(A, '(EClass._zone.instance as ZoneInstanceRandomQuest).uidQuest.ToString()') == str(uid))
     reads = 'var e = EClass._zone.events.GetEvent<ZoneEventSubdue>(); return (e != null && e.quest != null && e.quest.uid == %d).ToString();' % uid
     check("chez l'host, la zone lit la quete de l'invite", ev(H, reads) == "True")
     check(f"l'invite ne connait qu'une zone de quete de plus, celle de l'host, pas celle qu'il s'etait faite ({known} -> {ev(A, QUEST_ZONES)})",

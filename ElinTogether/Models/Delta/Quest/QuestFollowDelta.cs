@@ -36,6 +36,12 @@ public class QuestFollowDelta : ElinDelta
     public const int Lost = 6;
 
     /// <summary>
+    ///     Host to that player: what the quest events of the zone hold on the host (the monsters to hunt). Its
+    ///     copy of the zone is the one it made when taking the quest, with an event that never ran
+    /// </summary>
+    public const int ZoneState = 7;
+
+    /// <summary>
     ///     Not a refusal: the reason of the <see cref="ZoneLeaseDenied" /> a player gets for the zone of its
     ///     quest when the host comes along and makes that zone itself
     /// </summary>
@@ -65,6 +71,12 @@ public class QuestFollowDelta : ElinDelta
     [Key(4)]
     public int Giver { get; init; }
 
+    /// <summary>
+    ///     ZoneState: the quest events of the zone, a list of ZoneEvent
+    /// </summary>
+    [Key(5)]
+    public LZ4Bytes? Events { get; init; }
+
     protected override void OnApply(ElinNetBase net)
     {
         switch (net) {
@@ -76,6 +88,9 @@ public class QuestFollowDelta : ElinDelta
                 break;
             case ElinNetClient { IsZoneSession: false } when Kind == Asked:
                 Msg.Say("emp_quest_follow_asked".Loc(Name));
+                break;
+            case ElinNetClient { IsZoneSession: false } client when Kind == ZoneState:
+                client.OnQuestZoneState(ZoneUid, Events);
                 break;
             case ElinNetClient { IsZoneSession: false } when Kind is Won or Lost:
                 PersonalQuests.OnHostSettled(QuestUid, Giver, Kind == Lost);

@@ -551,13 +551,14 @@ internal partial class ElinNetClient
         EmpLog.Information("Zone lease {ZoneUid} denied: {Reason}",
             denied.ZoneUid, denied.Reason);
 
-        // not a refusal: the host comes along to our quest and makes its zone itself. The one made here must
-        // not be found in its place (it has our quest but none of what the host put in the zone), we follow
-        // the host into its own
+        // not a refusal: the host comes along to our quest and runs its zone itself. The zone made here takes
+        // the number of the host's (as a leased one does) and is the one its map lands in when we follow the
+        // host there: it knows the quest, who gave it and where to go back to. What the host put in it comes
+        // with the map, and with OnQuestZoneState
         if (denied.Reason == QuestFollowDelta.Coming) {
-            if (_pendingTravel is { } asked && asked.Zone.uid == denied.ZoneUid && _pendingGrant is null) {
+            if (_pendingTravel is { } asked && asked.Zone.IsInstance && _pendingGrant is null) {
                 _pendingTravel = null;
-                ForgetLocalZone(asked.Zone);
+                AdoptHostUid(asked.Zone, denied.ZoneUid);
             }
 
             return;
@@ -590,17 +591,21 @@ internal partial class ElinNetClient
     }
 
     /// <summary>
-    ///     A zone made here that nobody will ever enter: out of the world, as if never made
+    ///     Net event: the host runs the zone of our quest, this is what its quest events hold there. Shown here
+    ///     (how many monsters are left), and run from here if the host goes back alone and leaves us the zone
     /// </summary>
-    private void ForgetLocalZone(Zone zone)
+    internal void OnQuestZoneState(int zoneUid, LZ4Bytes? events)
     {
-        _localZones.Remove(zone);
-
-        if (game.spatials.map.TryGetValue(zone.uid, out var known) && known == zone) {
-            game.spatials.map.Remove(zone.uid);
+        if (events is null || game.spatials.Find(zoneUid) is not { IsInstance: true } zone) {
+            return;
         }
 
-        zone.parent?.RemoveChild(zone);
+        zone.events.list.RemoveAll(e => e is ZoneEventQuest);
+        foreach (var zoneEvent in events.Decompress<List<ZoneEvent>>()) {
+            // as a loaded one: not ZoneEventManager.Add, which starts it anew
+            zoneEvent.zone = zone;
+            zone.events.list.Add(zoneEvent);
+        }
     }
 
     /// <summary>
