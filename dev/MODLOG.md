@@ -2410,3 +2410,10 @@ Les cinq : duel sur place d'abord ; « aucune perte », pas de renommée perdue 
 ## La première chose à faire
 Écrire le test rouge de l'étape 1 des duels : jour 100, l'host frappe l'invité à 1 PV (Maj + clic), puis l'inverse ; constater la vraie mort. Puis les ~20 lignes du plancher. Ce risque existe déjà dans la partie de l'utilisateur.
 
+## 2026-10-05, 21h30 : base gérée par un invité et duels 2 à 4 commités
+
+- `23041ef` base : rouge « servante retirée par l'invité » = `BaseStateDelta` listait tous les onglets de `LayerPeople`
+  dans la liste partagée ; seul l'onglet montré est relisté. `send_raw` (banc) n'envoyait rien : faux verts réparés, témoin ajouté.
+- `e77ea83` duels 2 à 4 : patch appliqué (3 conflits avec la base, les deux cases gardées), relu ; correction : celui
+  qui reste à 0 PV perd, quel que soit l'auteur du coup. `duel_suite` 90/91, D3 seul 13/13 (le test ne plaçait pas l'attaquant).
+- Piège : compiler juste après la fermeture du jeu peut ne rien installer ; mémoire du PC pleine en soirée (B12 interrompu).

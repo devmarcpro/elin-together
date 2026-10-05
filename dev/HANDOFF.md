@@ -3,7 +3,27 @@
 À lire en premier par la session suivante. Détail daté : fin de `MODLOG.md` (« Étape D suite, Elin 23.352 »).
 Mode d'emploi : `DOCUMENTATION.md`. Règles : `../CLAUDE.md`. Message de départ : `PROMPT_reprise.md`.
 
-## État à l'arrêt de 20h (le plus récent : lire ceci d'abord)
+## État à 21h30 (le plus récent : lire ceci d'abord ; il remplace « État à l'arrêt de 20h »)
+
+- **Publiée : 0.26.463.** Arbre propre, tout commité et poussé. Le jeu de cette machine a le build de test (Debug).
+- **Base gérée par un invité : commitée (`23041ef`).** Le rouge (servante retirée par l'invité) venait de la fenêtre des
+  habitants de l'invité, mal redessinée à la réponse de l'host (tous les onglets listés dans la même liste : la ligne
+  cachée, le clic suivant redevenait celui du jeu). `base_suite` : B1 à B11 verts ; B12 vert au passage d'avant (le
+  dernier passage s'est arrêté en B12 sur un manque de mémoire du PC). **Piège trouvé** : `send_raw` de `base_suite`
+  n'envoyait rien (`Delta` est un champ, pas une propriété) : les trois « l'host refuse quand même » étaient de faux
+  verts ; réparé, avec un témoin (case décochée, le même envoi passe).
+- **Duels, étapes 2 à 4 : commités (`e77ea83`).** Menu « Challenge to a duel », boîte oui/non, compte à rebours, duel
+  sur place, personne ne meurt, les deux soignés ; case host `Duels` (règle 15, cochée) ; deltas 837, 838 (prochain :
+  839). `duel_suite` 90/91 puis D3 seul 13/13 (le rouge était le test). Pas faits : arène, pari, bouton Abandonner.
+  Pas joués : deux PC, sorts et flèches, trois joueurs.
+- **Piège** : `build.ps1` lancé tout de suite après la fermeture du jeu peut ne rien installer (DLL encore tenue) sans
+  le dire dans un `grep` : attendre quelques secondes et lire « 0 Erreur(s) ».
+- **Le PC était plein (300 Mo libres, un autre jeu ouvert)** : pas de passe large ce soir.
+- **À faire ensuite, dans l'ordre** : 1) dépôt : l'invité qui reprend le monde doit jouer SON personnage (`depot_suite`
+  P1 rouge) ; 2) dépôt GitHub : fermer le jeu pendant un envoi (G4) ; 3) conseil 6 : copie du monde par Steam ;
+  4) passe large (`run_short.sh` + `travel_suite`), PC libre, puis proposer une 0.26.49x ; 5) reste de la chasse 2.
+
+## État à l'arrêt de 20h (dépassé par 21h30)
 
 - **Publiée : 0.26.463** (Elin EA 23.352). Depuis : tout est commité et poussé jusqu'à `b7b8cc5` (mode construction de l'invité
   complet, terrain, zones, coffres, autel, résurrection, Kettle, outils, pas de mort entre joueurs, dépôt GitHub, docs).

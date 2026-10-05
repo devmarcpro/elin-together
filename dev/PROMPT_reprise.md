@@ -1,4 +1,4 @@
-> **Mise à jour du 5 octobre, 20h.** Avant tout : lis `dev/HANDOFF.md`, section « État à l'arrêt de 20h » : elle remplace
+> **Mise à jour du 5 octobre, 21h30.** Avant tout : lis `dev/HANDOFF.md`, section « État à 21h30 » : elle remplace
 > les points « Le travail » ci-dessous (la 0.26.463 est publiée ; un travail NON COMMITÉ est dans l'arbre : la base gérée
 > par un invité ; ne l'écrase pas). Effort faible : réponses courtes, peu d'agents. Le reste de ce message (but, façon de
 > travailler, interdits, résumés) vaut toujours.
