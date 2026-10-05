@@ -50,8 +50,9 @@ Les numéros T de la colonne « Test » pour E1 à E4 sont ceux du plan ; `toget
 - **T9** : Non ou pas de réponse : comme avant, l'invité simule sa zone seul, ressort, la quête est ratée pour lui seul.
 - **T10** : l'host peut rentrer seul : la zone passe à l'invité, qui finit seul et touche la récompense.
 - **T11** : la sauvegarde de l'host ne contient rien de la quête de l'invité (ni événement ni numéro de quête).
-- **Limites** : seulement les quêtes « subjuguer » (récolte, musique, défense restent en solo pour l'invité : les
-  livraisons sont comptées par le jeu du preneur). Le test prend la quête, tue et sort par les appels du jeu, pas par
+- **Limites** : au départ (`26756bf`) seulement les quêtes « subjuguer » ; récolte et musique ouvertes ensuite
+  (ci-dessous) ; la défense reste en solo pour l'invité. Le test
+  prend la quête, tue et sort par les appels du jeu, pas par
   le dialogue ni au combat (le banc sait pourtant dérouler un vrai dialogue depuis `hunt_suite.py`). Pas de test de
   déconnexion dans la zone. À trois joueurs : pas essayé. `instance_suite` et le bot attendront 15 s à chaque entrée
   (boîte sans réponse chez l'host).
@@ -59,6 +60,16 @@ Les numéros T de la colonne « Test » pour E1 à E4 sont ceux du plan ; `toget
   exist, waiting for new spatial gen », puis déconnexion « invalid zone ») : l'invité garde la zone qu'il s'était
   faite et adopte le numéro de celle de l'host. Un gel de la fenêtre host au chargement n'est pas dû à ce code (gel
   occasionnel déjà noté dans `mp_test.py`). Ne pas compiler pendant qu'un agent écrit dans le même dossier.
+
+## Sens S2, récolte et musique (`af18078`, T12, T13)
+
+- **Fait (5 octobre, 14h15)** : quand l'invité a une quête de récolte ou de musique, ce que livre l'un ou l'autre
+  joueur compte pour le preneur, avec le même poids affiché ; les deux sacs sont fouillés à la sortie ; une seule
+  récompense. Le bouton « tout livrer » passe par le même chemin qu'un dépôt à la main
+  (`Patches/ZoneEvents/QuestDeliverAllPatch.cs`). Tests : `together_suite.py` T12 (récolte), T13 (musique).
+- **Reste en solo : la défense.** Le cor, les vagues et la prime sont tenus par celui qui simule la zone : trop gros
+  pour ce lot, à confier au conseil. Le score d'un concert joué par l'host n'est pas testé. Pas de test par le vrai
+  dialogue ni de déconnexion dans la zone ; à trois joueurs : pas essayé.
 
 Pas vérifié par l'agent : si `OnVisit` tourne chez un client qui charge la carte de l'host ; Wedding et escorte.
 Les décisions ouvertes (récompense, geste, sortie du preneur, case) sont tranchées par le conseil : voir `MODLOG.md`.

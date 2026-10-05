@@ -63,8 +63,8 @@ solo » n'ont pas de case.
 - Les tests cliquent maintenant dans de vrais dialogues du jeu pour plusieurs points (guérisseur, boutique,
   prêtresses), mais pas pour l'histoire : les dialogues d'histoire joués par un autre joueur que l'host, et la
   prise des quêtes à donjon, sont testés par appels directs au code du jeu.
-- Quêtes à donjon à deux, quand c'est l'invité qui a la quête : « subjuguer » seulement. Récolte, musique et défense
-  restent à régler seul.
+- Quêtes à donjon à deux, quand c'est l'invité qui a la quête : subjuguer, récolte et musique. La défense reste à
+  régler seul.
 - Réglages de la base faits par un invité : la recherche, les compétences du foyer, les politiques, les lits, les
   étiquettes de vente et les notes marchent comme pour l'host. Pas encore : la servante, le type et la mise en
   réserve d'un résident, le nom de la zone, les réglages des coffres (seulement sur son écran).

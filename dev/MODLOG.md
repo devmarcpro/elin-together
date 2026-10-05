@@ -2074,7 +2074,7 @@ correction, puis le vert.
 - Corrections de la chasse faites après 2h45 : pied-de-biche (D13, vert) ; **pas jouées** : noyade en eau profonde
   (pas d'eau profonde à la Prairie), ticket d'hôtesse, fenêtres d'alias / du retour du vide / de la caisse de ferme.
 
-### Version 0.26.442, étape D premier lot (2026-10-05, 2h45 → 9h30) — reprendre ici
+### Version 0.26.442, étape D premier lot (2026-10-05, 2h45 → 9h30)
 
 - **But** : appliquer le premier lot du conseil 4 (étape D), prouver qu'il ne casse rien, puis publier. Un commit par
   point sur `fix/points-restants` (`fb7a507` à `211658e`).
@@ -2153,3 +2153,82 @@ refusée ; mesurer le rechargement au retour de l'host ; puis les points de la c
 8
 machine à gènes, 17, 19, 25 à 28) et l'étape E. Écrire des tests pour tout ce qui est « PAS JOUÉ ». Voir `HANDOFF.md`
 (état à 9h30).
+
+### Étape D suite, Elin 23.352 (2026-10-05, 9h30 → 14h15) — reprendre ici
+
+- **But** : finir le conseil 4 côté base (ce qu'un invité règle doit valoir pour l'autre), prouver par des tests les
+  corrections « jamais jouées », puis chercher la suite (deuxième chasse). L'utilisateur était absent de 11h à 13h30.
+  Chaque lot est poussé sur GitHub (`feat/independent-travel` = `fix/points-restants`). **Dernière version publiée :
+  toujours 0.26.442** ; depuis, une douzaine de commits non publiés (`git log --oneline 2935741..HEAD`).
+
+**Ce qui est fait et testé (commits sur `fix/points-restants`)**
+
+| Point | Commit | Test |
+|---|---|---|
+| Monture déjà prise refusée à un second cavalier | `31faaac` | `unplayed_suite` U6 |
+| Notes, étiquettes de vente, lits (qui le tient, son type) : réglés par un joueur, vus par l'autre, deux sens | `eccc52a` | `setting_suite` S1–S3 |
+| Recherche et compétences du foyer d'un invité = vraies demandes à l'host : il vérifie, paie une fois, l'état de la base revient chez les joueurs ; la recherche faite par l'host arrive chez l'invité | `b559952` | `base_suite` B1 20/20, B4 |
+| « Ne pas vagabonder » propre à chaque joueur (en plus de « garder ses distances ») | `0b48902` | `hunt_suite` D14, 17/17 |
+| Politiques de la base, dans les deux sens | `e3b4de3` | `setting_suite` S4 (vraie fenêtre, clic), 20/20 |
+| Nom de la base, de la faction, d'un téléporteur, dans les deux sens | `ed99a6b` | `setting_suite` S5, S6, 25/25 (le nom de faction n'est pas joué) |
+| Don d'un objet pris dans une pile par un invité : arrive chez l'host | `7cd9db2` | `unplayed_suite` |
+| Quêtes à donjon à deux, sens invité : RÉCOLTE et MUSIQUE ouvertes | `af18078` | `together_suite` T12, T13 |
+| Deuxième chasse aux différences (37 lignes lues, rien de joué) | `e8dbc47` | |
+| Documentation et README | `3419f50` | |
+
+- **Vrai défaut trouvé par les tests de corrections jamais jouées (`7cd9db2`)** : le don d'un objet pris dans une
+  pile par un invité n'arrivait jamais chez l'host. Le geste « donner » détache un exemplaire qui n'existe que chez
+  l'invité : l'objet n'était pas consommé et le don restait sans effet chez l'host. L'host annulait aussi le massage
+  lancé par le jeu de l'invité. Corrigé.
+- **`unplayed_suite.py`** (nouvelle suite, tests de corrections jamais jouées) : U1 tri du sac, U5 deux acheteurs (un
+  seul exemplaire, un seul payeur), U6 monture, U3 ticket d'hôtesse : verts. **Non jouables par le banc** (seulement
+  avec `--only`) : U2 bouton partagé d'un coffre (bouton introuvable), U4 parchemin d'alias (aucun dans les données du
+  jeu), U7 eau profonde (l'eau fabriquée par le banc n'étouffe personne, même pas l'host).
+- **Quêtes à donjon à deux, sens invité** : ce que livre l'un ou l'autre compte pour le preneur, même poids affiché,
+  fouille des deux sacs, une seule récompense ; le bouton « tout livrer » passe par le même chemin qu'un dépôt à la
+  main (`QuestDeliverAllPatch.cs`). **La DÉFENSE reste en solo** : le cor, les vagues et la prime sont tenus par celui
+  qui simule, trop gros. Le score d'un concert joué par l'host n'est pas testé.
+- **Constat** : un joueur peut « monter » un autre joueur qui se tient sur la même case (comportement du mod d'origine,
+  pas jugé).
+- **Deuxième chasse aux différences** : `PLAN_chasse_differences_2.md`, 37 lignes lues dans le code, **rien de joué**.
+  Deux hautes : le mode construction d'un invité (il paie, rien ne se construit chez l'host) et tailler un rondin à la
+  hache. Puis : nourriture du sac de l'invité qui ne pourrit jamais, prière qui ne soigne que l'invité, résurrection
+  d'un compagnon, réglages de coffre, copie chez Kettle… C'est la liste de travail de l'étape E.
+
+**Elin s'est mis à jour pendant la pause : EA 23.351 → EA 23.352** (Steam, `version.json` dit canal « Stable »).
+
+- Les copies de test `_lab` pointaient vers les anciens fichiers : connexion refusée (« Version mismatch … game
+  0.23.351.2 -> 0.23.352.0 »). **Refaire `python _tools/make_lab.py Elin2 2` après chaque mise à jour d'Elin** (fait).
+- Le mod compilé contre 23.352 se charge sans erreur. Rejoué sur 23.352 : hunt D1 8/8, together 128/133 puis T1–T2
+  19/19 (les rouges étaient des tirages : un monstre non tué en 40 coups, deux vérifications du test faites trop
+  tôt), unplayed 51/53 (les deux rouges ne sont pas notés ici : relire le journal de `_shots`).
+- Le code décompilé `_decomp` est celui de 23.351 : **à refaire avant de s'y fier** pour ce qui a changé.
+- **La version publiée 0.26.442 a été compilée pour 23.351** : à republier, compilée sur 23.352, quand l'utilisateur le
+  voudra.
+
+**Demande de l'utilisateur (14h)** : « rendre les futures versions du mod compatibles avec les futures versions d'Elin
+sans forcément le mettre à jour, ne pas avoir de barrière ». Réponse donnée : le mod s'accroche au jeu par les noms de
+ses fonctions, il n'y a pas de verrou de version ; la seule vraie barrière est le refus de connexion quand deux joueurs
+n'ont pas la même version d'Elin (quatre contrôles : clé de connexion Steam, filtre des salons, poignée de main côté
+client, côté host). **Fait à 14h15, commit `ee374b7`** (après les notes ci-dessus, écrites quand le travail était encore
+en cours) : seule la version du MOD doit être la même ; une version d'Elin différente = les joueurs sont prévenus ; une
+case côté host redemande la même version d'Elin. `version_suite.py` 8/8 en connexion locale ; le chemin par le salon
+Steam utilise le même contrôle, **pas joué**. La 0.26.442 publiée n'a pas ce changement.
+
+**Pas testé / PAS JOUÉ** (à dire tel quel) : la retenue de « ne pas vagabonder » elle-même (un ennemi hors de vue du
+joueur) ; le nom de faction ; le score d'un concert joué par l'host ; U2, U4, U7 ; tout ce que la deuxième chasse
+annonce (rien de joué) ; tout ce qui a été fait depuis la 0.26.442 n'a été joué qu'au banc, pas à deux PC ; les
+suites non relancées sur 23.352 (la plupart : seules hunt, together T1–T2 et unplayed l'ont été).
+
+**Pièges**
+
+- La panne de mémoire du banc (« OutOfMemoryException » du pont) revient après ~30 minutes de tests sur les mêmes
+  fenêtres : relancer le jeu entre les grandes suites.
+- `mp_test.py` peut rester bloqué à « connexion demandée » : le relancer.
+- Le menu contextuel « buy » du jeu se referme sans souris dessus : le test le reconstruit à l'identique.
+- Ne pas lancer `Stop-Process` par bash avec `\$_` (ça ne tue rien) : `taskkill /PID <n> /F` depuis PowerShell.
+
+**À faire ensuite** : jouer la barrière de version à deux PC (salon Steam) ;
+republier une version compilée sur 23.352 avec l'accord de l'utilisateur ; étape E = `PLAN_chasse_differences_2.md`
+en commençant par les lignes hautes (1, 2) ; ce qui reste du conseil 4 (servante, type et réserve d'un résident,
+réglages de coffre, mesure du rechargement) ; défense à deux. Voir `HANDOFF.md` (état à 14h15).

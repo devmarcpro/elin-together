@@ -3,6 +3,11 @@
 Rendu par un agent, par **lecture seule** du jeu décompilé et du mod. **Rien n'a été joué** à l'écriture : chaque
 ligne est à prouver par un test rouge avant d'être corrigée. Déjà connu ou corrigé : `PLAN_egalite_invites.md`.
 
+**État au 2026-10-05, 14h15** : n°19 corrigé (notes, noms), n°4 presque fait (recherche et foyer en demandes à
+l'host, politiques, lits, étiquettes ; reste servante, type et réserve d'un résident, réglages de coffre) ; « ne pas
+vagabonder » par joueur (`0b48902`, D14). Reste de cette liste : 8 (machine à gènes), 13 (pluie), 17, 25 à 28, tombe
+d'épée (21). **La suite de la chasse est `PLAN_chasse_differences_2.md`** (37 lignes, étape E).
+
 **État au 2026-10-05, 9h30** : voir le dernier paragraphe de ce bloc, qui complète celui de 2h45 (suite jusqu'à
 D14 ; version 0.26.442 publiée).
 
@@ -32,7 +37,7 @@ Deux mécanismes nouveaux :
 | 1 | un invité sous 20 % de points de vie reçoit « peur » et ne peut plus frapper | `Card.cs:4972`, `ActMelee.cs:110`, `ActRanged.cs:181` | ignorer `ConFear` venant de `DamageHP` pour un joueur distant | probable | corrigé `392266d`, D1 (rouge confirmé) |
 | 2 | guérisseur payant : l'invité paie, les soins sont effacés | `DramaCustomSequence.cs:1646-1669`, `ActEffect.cs:2579` | demander à l'host `HealHP` et `Cure`, comme la prière | probable | corrigé `3d27d3f`, D2 (vrai dialogue) |
 | 3 | rangement automatique (`TaskDump`) d'un invité : l'host voit ses fenêtres se fermer, ses objets peuvent partir dans un coffre | `TaskDump.cs:67, 94, 172` | retirer `TaskDump` de la table des tâches (l'invité range chez lui) | probable | corrigé `f4c5b44`, D3 (pire que prévu : l'invité vidait aussi le sac de l'host) |
-| 4 | base réglée par l'invité (politiques, recherche, métiers, servante, foyer) : il paie, rien n'arrive chez l'host | `LayerPolicy.cs:39`, `TraitResearchBoard.cs:9`, `TraitResidentBoard.cs:11`, `DramaCustomSequence.cs:437-505, 1139-1163` | un message par famille (M14 étendu), ou dire « la base se règle chez l'host » | probable | partiel : recherche et compétences du foyer refusées pour un invité `06a0f94` (`base_suite` 53/53 ; « plans » et « foyer » absents des dialogues du jeu installé) ; en demandes à l'host : en cours ; politiques, métiers, lit, étiquettes, notes : à faire |
+| 4 | base réglée par l'invité (politiques, recherche, métiers, servante, foyer) : il paie, rien n'arrive chez l'host | `LayerPolicy.cs:39`, `TraitResearchBoard.cs:9`, `TraitResidentBoard.cs:11`, `DramaCustomSequence.cs:437-505, 1139-1163` | un message par famille (M14 étendu), ou dire « la base se règle chez l'host » | probable | presque fait (5 octobre, 14h15) : recherche et compétences du foyer en vraies demandes à l'host `b559952` (`base_suite` B1 20/20, B4 ; « plans » et « foyer » absents des dialogues du jeu installé) ; politiques `e3b4de3` (`setting_suite` S4) ; lit, étiquettes, notes `eccc52a` (S1–S3) ; reste : servante, type et réserve d'un résident, réglages de coffre |
 | **Moyen** | | | | | |
 | 5 | radio, juke-box, liste de lecture : fenêtre chez tout le monde | `TraitRadio.cs:17`, `TraitJukeBox.cs:15`, `TraitEditPlaylist.cs:3` | les ajouter à la liste de `TraitOnUsePatch.cs` | probable | corrigé `ea93c88`, D4 |
 | 6 | caisse de ferme (quête de récolte) | `TraitFarmChest.cs:9` | idem | probable | corrigé `2239dde`, pas joué (la fenêtre ne s'ouvre plus chez l'host ; la livraison marchait déjà) |
@@ -49,7 +54,7 @@ Deux mécanismes nouveaux :
 | 17 | les habitants ne remarquent que l'host (rumeurs, cadeaux, « bon retour ») | `AI_Idle.cs:621-695` | à décider (conseil) | — | à faire (conseil) |
 | 18 | tickets d'hôtesse : c'est l'host qui est massé | `Chara.cs:8869-8879` | `AsCrafter(from)` chez l'host | probable | corrigé `ab73333`, pas joué |
 | **Bas** | | | | | |
-| 19 | note, nom de téléporteur, nom de zone écrits par un invité | `TraitNote.cs:29`, `TraitTeleporter.cs:38`, `TraitWaystone.cs:25` | les ajouter à la liste de `CardActReplayEvent.cs` | probable | à faire |
+| 19 | note, nom de téléporteur, nom de zone écrits par un invité | `TraitNote.cs:29`, `TraitTeleporter.cs:38`, `TraitWaystone.cs:25` | les ajouter à la liste de `CardActReplayEvent.cs` | probable | corrigé `eccc52a` (note), `ed99a6b` (téléporteur, base, faction), `setting_suite` S1–S6 ; nom de faction non joué |
 | 20 | pinceau, vue de carte : le mode d'action de l'host change | `TraitPainter.cs:19`, `TraitViewMap.cs:9` | liste de `TraitOnUsePatch.cs` | à vérifier | pinceau et vue de carte corrigés `ea93c88`, D4 (pinceau non observable) |
 | 21 | détecteur, tombe d'épée : saisie ou scène chez l'host | `TraitDetector.cs:19`, `TraitDaggerGrave.cs:13-52` | idem | probable | détecteur corrigé `ea93c88`, D4 ; tombe d'épée à faire |
 | 22 | changement d'alias, retour du vide : fenêtre chez l'host | `ActEffect.cs:1659, 1694` | sauter chez l'host pour un joueur distant | probable | corrigé `2239dde`, pas joué (alias, retour du vide) |

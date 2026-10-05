@@ -125,7 +125,8 @@ python _tools/make_lab.py Elin3 3
 python _tools/make_lab.py Elin4 4
 ```
 
-À refaire après chaque mise à jour d'Elin. Pour que le bouton « Add a bot player » du menu trouve ces copies,
+À refaire **après chaque mise à jour d'Elin par Steam** (sinon la connexion de test est refusée : « Version mismatch …
+game 0.23.351.2 -> 0.23.352.0 »). Pour que le bouton « Add a bot player » du menu trouve ces copies,
 définir la variable d'environnement utilisateur `ELINTOGETHER_LAB` sur `<dépôt>\dev\_lab`.
 
 ## 6. Le code du jeu, pour le lire (jamais publié)

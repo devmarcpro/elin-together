@@ -12,6 +12,13 @@ Le mécanisme qui revient le plus : **tout ce qui est une action de menu (lambda
 absente de la table de `CharaTaskRemoteEvent.cs`, ou une marque posée sur la carte, ne tourne que chez l'invité**.
 L'objet créé là est détruit (K3), la pile ne baisse pas (K2), les champs d'un objet de l'host ne sont pas renvoyés.
 
+**État au 2026-10-05, 14h15 : aucune ligne n'est jouée ni corrigée.** Ordre de travail pour l'étape E : les deux
+lignes **hautes** (1 mode construction d'un invité, 2 tailler un rondin à la hache), puis les lignes « sûr » (6, 25,
+26, 30, 33, 36), puis les « probable ». Pour chaque ligne : un test rouge (le même geste par l'invité puis par l'host,
+dans `hunt_suite.py`, D15 et suivants, ou `unplayed_suite.py`), puis la correction, puis un commit ; écrire ici
+« corrigé `hash`, test » ou « faux » à la place de la confiance. Elin est passé en EA 23.352 : relire dans le code
+décompilé à refaire (`_decomp` est celui de 23.351) avant de se fier aux numéros de ligne.
+
 Confiance : « sûr » = le code le dit et le mod ne le traite pas ; « probable » = chaîne lue de bout en bout, un
 détail à confirmer en jeu ; « à vérifier » = on ne sait pas encore si le défaut se voit.
 

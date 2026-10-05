@@ -62,8 +62,8 @@ checkbox.
 - The tests now click through real game dialogs for several points (healer, shop, priestesses), but not for the
   story: story dialogs played by a non-host player, and taking dungeon quests, are covered by tests that call the
   game's code directly.
-- Dungeon quests for two, when the guest took the quest: "subdue" quests only. Harvest, music and defense quests
-  are still settled alone.
+- Dungeon quests for two, when the guest took the quest: subdue, harvest and music quests. Defense quests are still
+  settled alone.
 - Home base settings changed by a guest: research, hearth skills, policies, beds, sale tags and notes work as for
   the host. Not yet: the maid, a resident's type and reserve, the zone's name, chest settings (on the guest's own
   screen only).
