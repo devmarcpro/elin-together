@@ -7,6 +7,7 @@ Test court, sur des instances deja lancees (host + 1 client, tous les deux a la 
 S1  note ecrite sur un meuble.   S2  etiquette de vente (posee puis retiree, avec l'etiquette tenue en main).
 S3  lit : le reclamer, en changer le type.   S5  nom de la base.   S6  nom d'un teleporteur.
 S4  politiques de la base (vraie fenetre, vrai clic sur la politique).
+S7  reglages d'un coffre de la base (menu du bouton de tri : priorite, pas de pourri, categories, filtre, drapeaux).
 Avant : chaque jeu ne changeait que sa copie (l'host, qui fait vivre les habitants et sauvegarde, ne voyait rien).
 """
 import argparse
@@ -16,7 +17,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from guest_suite import awake, both, chara, first_id, give, use_held  # noqa: E402
+from guest_suite import awake, both, chara, close_layers, first_id, give, use_held, use_menu  # noqa: E402
 from mp_test import log, shot, state  # noqa: E402
 from travel_suite import RESULTS, check, ev, eventually, scan_logs  # noqa: E402
 
@@ -164,6 +165,56 @@ def s6(ctx):
             ev(H, f'var t = {thing(t)}; if (t != null) t.Destroy(); "ok"')
 
 
+def s7(ctx):
+    """reglages d'un coffre de la base (priorite, pas de pourri, categories, filtre, drapeaux) : lus par l'autre jeu, dans les deux sens ;
+    la mise en page de la fenetre reste a chacun ; l'objet pourri est refuse chez l'host (ce que verifient ses habitants qui rangent)
+    Ce que le banc ne joue pas comme un joueur : il ne clique pas les curseurs et les cases du sous-menu, il pose les valeurs que leurs
+    lambdas posent (window.saveData), puis ferme le vrai menu (UIContextMenu.Hide, par ou passe onDestroy) ; la boite de saisie du
+    filtre (Dialog.InputName), le bouton de collage, les boutons d'autodump et la fermeture du menu d'un clic a cote ne sont pas joues ;
+    ce ne sont pas les habitants de l'host qui rangent (AI_Haul) mais Zone.FindSharedContainer appele a la main"""
+    if ev(H, 'EClass._zone.IsPCFaction.ToString()') != "True":
+        print("    [SAUTE] S7 : la carte n'est pas une base, les reglages de rangement n'y servent pas")
+        return
+    for who, key in both(ctx):
+        port, uid = ctx[key]
+        other = H if port == A else A
+        close_layers()
+        t = furniture(uid, extra="t.c_lockLv = 0;")
+        win = f'LayerInventory.listInv.Find(l => l.invs[0].owner.Container == {thing(t)})'
+        rules = lambda p: ev(p, f'var d = {thing(t)}.c_windowSaveData; return d == null ? "aucun" : d.priority + "/" + d.noRotten + "/" + (int)d.flag + "/" + d.sharedType + "/" '  # noqa: E731
+                                '+ d.filter + "/" + string.Join(",", d.cats.OrderBy(i => i));')
+        size = lambda p: ev(p, f'var d = {thing(t)}.c_windowSaveData; return d == null ? "aucun" : d.size.ToString();')  # noqa: E731
+        # un objet que le rangement de l'host pose dans ce coffre (ou pas) : Zone.FindSharedContainer, comme AI_Haul
+        goes_in = lambda decay: ev(H, f'var m = ThingGen.Create("meat"); m.decay = {decay}; var c = EClass._zone.FindSharedContainer(m); '  # noqa: E731
+                                      f'var r = c != null && c.uid == {t}; m.Destroy(); return r.ToString();')
+        try:
+            x, z = (int(v) for v in ev(H, f'var t = {thing(t)}; return t.pos.x + "," + t.pos.z;').split(","))
+            awake(port)
+            opened_by = use_menu(port, (x, z), 'i.act is DynamicAct d && d.id == "actContainer"')
+            log(f"{who} ouvre le coffre : {opened_by}")
+            if not eventually(lambda: ev(port, f'({win} != null).ToString()') == "True", timeout=8):
+                log(f"{who} : le clic n'a pas ouvert le coffre, l'ouverture du jeu est appelee (TraitContainer.TryOpen)")
+                ev(port, f'((TraitContainer){thing(t)}.trait).TryOpen(); "ok"')
+            if not check(f"{who} : la fenetre du coffre est ouverte chez lui", eventually(lambda: ev(port, f'({win} != null).ToString()') == "True", timeout=10)):
+                continue
+            # le vrai menu : le bouton de tri le fabrique ; on fait ce que font ses entrees (elles changent window.saveData), puis on le ferme
+            ev(port, f'{win}.invs[0].window.buttonSort.onClick.Invoke(); "ok"')
+            ev(port, f'var d = {win}.invs[0].window.saveData; d.priority = 7; d.noRotten = true; d.sharedType = ContainerSharedType.Shared; '
+                     'd.flag |= ContainerFlag.weapon; d.filter = "meat"; d.cats.Add(EClass.sources.categories.map["food"].uid); d.size = 5; "ok"')
+            ev(port, 'EClass.ui.contextMenu.currentMenu.Hide(); "ok"')    # c'est la fermeture qui envoie (a l'image suivante)
+            want = rules(port)
+            check(cond=eventually(lambda: rules(other) == want and rules(H) == want and rules(A) == want, timeout=10),
+                  label=f"{who} regle le coffre : les deux jeux disent pareil (voulu {want}, host {rules(H)}, invite {rules(A)})")
+            check(f"{who} : la taille de sa fenetre reste a lui (chez l'autre : {size(other)})", size(other) in ("0", "aucun"))
+            # ce que fait un habitant de l'host : l'objet pourri est refuse par ce coffre, un frais est accepte (priorite 7, filtre « meat »)
+            rotten, fresh = goes_in(99999), goes_in(0)
+            check(f"{who} : l'host refuse l'objet pourri pour ce coffre ({rotten})", rotten == "False")
+            check(f"{who} : l'host range un objet frais dans ce coffre ({fresh})", fresh == "True")
+        finally:
+            close_layers()
+            ev(H, f'var t = {thing(t)}; if (t != null) t.Destroy(); "ok"')
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--only")
@@ -171,7 +222,7 @@ def main():
     sys.stdout.reconfigure(encoding="utf-8")
     t0 = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
     ctx = {"a": (A, state(A)["pc"]["uid"]), "h": (H, state(H)["pc"]["uid"])}
-    steps = [s1, s2, s3, s4, s5, s6]
+    steps = [s1, s2, s3, s4, s5, s6, s7]
     if a.only:
         steps = [s for s in steps if s.__name__ in a.only.split(",")]
     for step in steps:
