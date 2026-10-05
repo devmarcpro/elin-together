@@ -51,6 +51,21 @@ internal static class CharaAddConditionEvent
             });
         }
 
+        // the priestess' blessing, given when this game's dialog closes to the player and its companions (not to
+        // the other players of the party): the host gives it, and sets it as a perfume as the dialog does. Nothing
+        // else adds these three on this side at that moment
+        if (DramaBlessingPatch.IsClosingDrama && !ElinDelta.IsApplying &&
+            CharaAddConditionDelta.IsBlessingCondition(c.source.alias) &&
+            (__instance.IsPC || __instance.IsCompanionOf(EClass.pc)) &&
+            NetSession.Instance.Connection is ElinNetClient asker) {
+            asker.Delta.AddRemote(new CharaAddConditionDelta {
+                Owner = __instance,
+                ConditionId = c.id,
+                Power = c.power,
+                Force = force,
+            });
+        }
+
         return false;
     }
 
