@@ -16,6 +16,11 @@ public class InvOwnerOnProcessDelta : ElinDelta
         Unknown = 0,
         Refuel = 1,
         Effect = 2,
+
+        /// <summary>
+        ///     Rune or plug (InvOwnerMod): Dest is the rune or plug, Thing the item that takes it
+        /// </summary>
+        Mod = 3,
     }
 
     // draglet effect
@@ -79,6 +84,11 @@ public class InvOwnerOnProcessDelta : ElinDelta
         // effect draglets has fake inv
         if (OwnerType == RemoteInvOwnerType.Effect) {
             ApplyEffect(net, thing);
+            return;
+        }
+
+        if (OwnerType == RemoteInvOwnerType.Mod) {
+            ApplyMod(net, thing);
             return;
         }
 
@@ -237,6 +247,52 @@ public class InvOwnerOnProcessDelta : ElinDelta
         if (Consume?.Find() is Thing { isDestroyed: false } consume) {
             consume.ModNum(-1);
         }
+    }
+
+    /// <summary>
+    ///     InvOwnerMod._OnProcess. Nothing syncs the runes and sockets of an item, so every game puts it on
+    ///     itself (deterministic), and only the host uses the rune up: a client cannot, its stack change is
+    ///     what the host's CardModNumDelta brings
+    /// </summary>
+    private void ApplyMod(ElinNetBase net, Thing thing)
+    {
+        if (Dest?.Find() is not Thing { isDestroyed: false } mod || mod.trait is not TraitMod traitMod) {
+            return;
+        }
+
+        if (net is ElinNetHost host) {
+            // the sender's own rune and item, and what the window's own guide lets through
+            if (!host.ActiveRemoteCharas.TryGetValue(OriginPeer, out var owner) ||
+                thing.GetRootCard() != owner || mod.GetRootCard() != owner ||
+                !new InvOwnerMod(mod).ShouldShowGuide(thing)) {
+                EmpLog.Warning("Refusing mod {ModUid} on {Uid} from peer {PeerIndex}",
+                    mod.uid, thing.uid, OriginPeer);
+                return;
+            }
+
+            host.Delta.AddRemote(this);
+        }
+
+        // only the player who used it, the others get the result
+        if (thing.GetRootCard() is Chara { IsPC: true }) {
+            Msg.Say("modded", thing, mod);
+            SE.Play(traitMod is TraitRune ? "intonation" : "reloaded");
+            pc.PlayEffect(traitMod is TraitRune ? "intonation" : "identify");
+        }
+
+        using var _ = Simulate(net.IsHost);
+
+        if (traitMod is TraitRune) {
+            thing.AddRune(mod);
+            if (net.IsHost) {
+                mod.ModNum(-1);
+            }
+        } else if (thing.sockets is not null) {
+            // the plug is destroyed by the host alone
+            thing.ApplySocket(traitMod.source.id, mod.encLV, net.IsHost ? mod : null);
+        }
+
+        LayerInventory.SetDirty(thing);
     }
 
     private void ApplyRefuel(ElinNetHost host, Thing thing, Card dest)

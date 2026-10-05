@@ -38,6 +38,13 @@ internal static class InvOwnerOnProcessEvent
         }
 
         var refuel = __instance is InvOwnerRefuel;
+        var mod = __instance is InvOwnerMod;
+
+        // the rune or plug is a host card too
+        if (mod && connection.IsClient &&
+            (!CardCache.Contains(__instance.owner) || PendingUid.IsPending(__instance.owner.uid))) {
+            return;
+        }
 
         // host refuels locally, wait for CardChargeDelta
         if (connection.IsHost && refuel) {
@@ -71,7 +78,9 @@ internal static class InvOwnerOnProcessEvent
             Dest = __instance.owner,
             OwnerType = refuel
                 ? InvOwnerOnProcessDelta.RemoteInvOwnerType.Refuel
-                : InvOwnerOnProcessDelta.RemoteInvOwnerType.Unknown,
+                : mod
+                    ? InvOwnerOnProcessDelta.RemoteInvOwnerType.Mod
+                    : InvOwnerOnProcessDelta.RemoteInvOwnerType.Unknown,
         });
     }
 
@@ -160,6 +169,20 @@ internal static class InvOwnerEffectEvent
     internal static bool OnEffectProcess()
     {
         // client wait for delta
+        return NetSession.Instance.Connection is not { IsClient: true } || ElinDelta.IsApplying;
+    }
+}
+
+/// <summary>
+///     The rune or plug of a client is put on by InvOwnerOnProcessDelta, in every game: its own game would put it
+///     on twice, and cannot use the rune up
+/// </summary>
+[HarmonyPatch(typeof(InvOwnerMod), nameof(InvOwnerMod._OnProcess))]
+internal static class InvOwnerModEvent
+{
+    [HarmonyPrefix]
+    internal static bool OnMod()
+    {
         return NetSession.Instance.Connection is not { IsClient: true } || ElinDelta.IsApplying;
     }
 }
