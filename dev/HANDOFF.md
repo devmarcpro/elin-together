@@ -15,9 +15,9 @@ Mode d'emploi : `DOCUMENTATION.md`. Règles : `../CLAUDE.md`. Message de départ
   personnage joue l'invité qui reprend le monde : état des lieux du conseil 6) → `_shots/depot-p1.log` ; `travel_suite` →
   `_shots/travel_suite-pub4.log` (au passage d'avant : 34/35, S15 « client rejoint en zone 2 » en délai dépassé, le reste
   non joué : tirage ou régression, à trancher). Lire ces journaux ; s'ils sont incomplets, relancer.
-- **Agent des duels (étapes 2 à 4 : menu Défier, boîte Oui/Non, duel sur place)** : écrivait `_shots/duels_2_4.patch` dans
-  une copie isolée ; s'il n'existe pas, relancer (consigne : `PLAN_duels_et_membres.md` partie 1 + verdict du conseil 7 ;
-  unions à partir de 837, règle clé 15).
+- **Duels, étapes 2 à 4 : écrits, pas joués.** Patch `_shots/duels_2_4.patch` (compile ; fait sur le commit `b7b8cc5`, à
+  appliquer avec `git apply --3way` APRÈS avoir commité la base), ses 12 textes dans `_shots/duels_2_4.textes.md`. Puis
+  relecture, rouge, vert (`duel_suite.py` D1 à D6).
 - **À faire ensuite, dans l'ordre** : 1) lire les trois journaux, corriger, commiter la base (un commit), pousser ;
   2) S15 du voyage ; 3) duels 2-4 (appliquer le patch, relecture, rouge puis vert) ; 4) dépôt GitHub : fermer le jeu
   pendant un envoi (G4 rouge) ; 5) conseil 6 : copie du monde chez chaque joueur par Steam (selon P1) ; 6) passe large
