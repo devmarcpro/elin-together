@@ -1,4 +1,4 @@
-# Elin Together « indépendance » 0.26.493
+# Elin Together « indépendance » 0.26.494
 
 (English below / version anglaise plus bas)
 
@@ -71,14 +71,14 @@ Si quelque chose ne va pas : [les tickets](https://github.com/devmarcpro/elin-to
 ## Installer
 
 Il faut [YK Framework](https://steamcommunity.com/sharedfiles/filedetails/?id=3400020753) et Elin sur le canal
-**Nightly** (compilé pour EA 23.352). Chacun télécharge `ElinTogether-independance-0.26.493.zip`, le décompresse et
+**Nightly** (compilé pour EA 23.352). Chacun télécharge `ElinTogether-independance-0.26.494.zip`, le décompresse et
 lance `Installer.bat` (`Desinstaller.bat` fait l'inverse). **Tous les joueurs doivent avoir exactement ce zip.**
 `LISEZMOI.txt` dans le zip explique le reste. Pour héberger : lancer Elin par Steam, charger une partie qui a un
 terrain revendiqué, puis Échap → Mods → Elin Together.
 
 ---
 
-# Elin Together "independence" 0.26.493
+# Elin Together "independence" 0.26.494
 
 ## Who it is for
 
@@ -149,7 +149,7 @@ If something goes wrong: [the issues](https://github.com/devmarcpro/elin-togethe
 ## Install
 
 Requires [YK Framework](https://steamcommunity.com/sharedfiles/filedetails/?id=3400020753) and Elin on the
-**Nightly** branch (built for EA 23.352). Each player downloads `ElinTogether-independance-0.26.493.zip`, unzips it
+**Nightly** branch (built for EA 23.352). Each player downloads `ElinTogether-independance-0.26.494.zip`, unzips it
 and runs `Installer.bat` (`Desinstaller.bat` switches back). **Every player must have exactly this zip.** The
 installer and its notes (`LISEZMOI.txt` in the zip) are in French. To host: launch Elin through Steam, load a save
 that has a claimed land, then Esc → Mods → Elin Together.

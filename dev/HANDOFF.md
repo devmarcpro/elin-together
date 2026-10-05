@@ -5,6 +5,13 @@ Mode d'emploi : `DOCUMENTATION.md`. Règles : `../CLAUDE.md`. Message de départ
 
 ## État à 22h45 (le plus récent : lire ceci d'abord)
 
+- **23h : la 0.26.494 remplace la 0.26.493** (accord de l'utilisateur) : les boîtes de saisie du dépôt, de la clé GitHub et
+  de l'adresse coupaient le texte vers 22 caractères (trouvé par l'utilisateur en jeu) ; `characterLimit = 0` (`8eb5286`),
+  compilé, pas rejoué au banc. Le jeu de cette machine a le build RELEASE 0.26.494 (l'utilisateur essaie lui-même) :
+  **refaire `devuild.ps1` (Debug) avant tout test**. La 0.26.493 est toujours en ligne (la retirer : à lui demander).
+- Piège : `make_release.ps1` ne marche pas si un Elin tourne ; `scratchpad/rel.ps1` de la session compilait dans un
+  dossier à part (`-p:OutputPath=`) puis faisait le même zip.
+
 - **Publiée : 0.26.493** (2026-10-05 au soir, à la demande de l'utilisateur : « commit tout et sort une release »),
   compilée pour Elin EA 23.352 = build Steam 25723206, qui est aussi la dernière « nightly » (vérifié sur les données
   publiques de Steam ; le jeu de cette machine est sur la branche nightly). Elle contient tout jusqu'au commit de cette note.
