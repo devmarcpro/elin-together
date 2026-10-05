@@ -26,6 +26,12 @@ internal static class ActPrayEvent
             return false;
         }
 
+        // no god: no healing, only the faith experience its own game already gave (ActPray.TryPray, Eyth branch)
+        if (c.faith.IsEyth && !c.HasElement(1228)) {
+            c.Say("pray", c);
+            return false;
+        }
+
         // the gifts of its god, as for a player praying alone: before the daily prayer, and instead of it
         // (its own count of them: RemoteGodGiftPatch). The pet follows the one who prayed
         using (ElinDelta.Simulate())

@@ -6,6 +6,8 @@ l'host. Test court, sur des instances deja lancees (host + 1 client, tous les de
 
 E1  tailler un rondin a la hache (ligne 2) : la planche sort et le rondin baisse, chez l'host aussi.
 E2  priere (ligne 5) : celui qui prie est soigne, et son compagnon aussi.
+E4  priere sans dieu (ligne 25) : pas de soin.
+E5  un jour passe (ligne 33) : compteur de jours et cout de relance des quetes, chez l'invite aussi.
 E3  nourriture du sac (ligne 6) : elle vieillit d'heure en heure dans le sac de l'invite comme dans celui de l'host.
 
 Ce que le banc ne joue pas comme un joueur :
@@ -109,6 +111,48 @@ def e3(ctx):
             ev(H, f'var t = {chara(H, ctx[key][1])}.things.Find(x => x.uid == {made[key]}); if (t != null) t.Destroy(); "ok"')
 
 
+def e4(ctx):
+    """priere sans dieu (ligne 25) : pas de soin, pour l'invite comme pour l'host"""
+    for who, key in both(ctx):
+        port, uid = ctx[key]
+        clear_conditions(uid)
+        old = ev(port, 'EClass.pc.faith.id')
+        try:
+            for p in {port, H}:
+                ev(p, f'{chara(p, uid)}.SetFaith("eyth"); "ok"')
+            ev(port, 'EClass.player.prayed = false; "ok"')
+            ev(H, f'var c = {chara(H, uid)}; c.hp = System.Math.Max(1, c.MaxHP / 4); "ok"')
+            time.sleep(3)
+            hp = lambda: ev(H, f'var c = {chara(H, uid)}; return c.hp + "/" + c.MaxHP;')  # noqa: E731
+            before = hp()
+            awake(port)
+            ev(port, 'ACT.Create(6050).Perform(EClass.pc); "ok"')
+            time.sleep(6)
+            a, b = (int(v) for v in hp().split("/"))
+            check(f"{who} sans dieu prie : pas de soin, chez l'host ({before} -> {a}/{b})", a < b // 2)
+        finally:
+            for p in {port, H}:
+                ev(p, f'var c = {chara(p, uid)}; c.SetFaith("{old}"); c.hp = c.MaxHP; "ok"')
+
+
+def e5(ctx):
+    """un jour passe (ligne 33) : le compteur de jours monte et la relance du tableau de quetes baisse, chez l'invite comme chez l'host"""
+    read = lambda p: tuple(int(v) for v in ev(p, 'EClass.player.stats.days + "," + EClass.player.questRerollCost').split(","))  # noqa: E731
+    for p in (H, A):
+        ev(p, 'EClass.player.questRerollCost = 9; EClass.player.prayed = true; "ok"')
+    before = {p: read(p) for p in (H, A)}
+    # heure par heure, comme une attente : un saut d'un coup arrive chez l'invite par l'instantane du monde
+    for _ in range(24):
+        ev(H, 'EClass.world.date.AdvanceMin(60); "ok"', timeout=300)
+        time.sleep(1.5)
+    time.sleep(5)
+    for who, p in (("host", H), ("invite", A)):
+        d, r = read(p)
+        check(f"{who} : un jour de plus au compteur ({before[p][0]} -> {d})", d == before[p][0] + 1)
+        check(f"{who} : la relance des quetes coute 3 de moins ({before[p][1]} -> {r})", r == 6)
+        check(f"{who} : il peut de nouveau prier (la priere du jour est remise a zero)", ev(p, 'EClass.player.prayed.ToString()') == "False")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--only")
@@ -116,7 +160,7 @@ def main():
     sys.stdout.reconfigure(encoding="utf-8")
     t0 = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
     ctx = {"a": (A, state(A)["pc"]["uid"]), "h": (H, state(H)["pc"]["uid"])}
-    steps = [e1, e2, e3]
+    steps = [e1, e2, e3, e5, e4]  # e4 apres e5 : la priere du jour (E2) doit etre passee
     if a.only:
         steps = [s for s in steps if s.__name__ in a.only.split(",")]
     for step in steps:

@@ -31,8 +31,9 @@ public class WorldDateAdvanceDelta : ElinDelta
             return;
         }
 
-        var hours = world.date.GetRaw() / 60;
-        var days = world.date.GetRawDay();
+        // from the delta itself, not from this game's date: the world snapshot may have set the date already
+        var now = WorldDateAdvanceEvent.Minutes([..GameDate]);
+        var before = now - Minutes;
 
         SetClientDate([..GameDate]);
 
@@ -40,35 +41,54 @@ public class WorldDateAdvanceDelta : ElinDelta
             zoneEvent.minElapsed += Minutes;
         }
 
-        var ticks = Minutes * 4 / 6;
-        if (ticks <= 0 || pc.isDead) {
+        if (pc.isDead) {
             return;
         }
 
-        EmpLog.Debug("Catching up host time adv {AdvancedMins} {NeedTicks}",
-            Minutes, ticks);
-
         using var _ = Simulate();
+        // a jump of the host's time (sleep, rest): in normal play the host advances minute by minute, 0 tick
+        var ticks = Minutes * 4 / 6;
+        if (ticks > 0) {
+            EmpLog.Debug("Catching up host time adv {AdvancedMins} {NeedTicks}", Minutes, ticks);
+        }
+
         for (var i = 0; i < ticks && !pc.isDead; ++i) {
             pc.TickConditions();
         }
 
-        hours = world.date.GetRaw() / 60 - hours;
-        days = world.date.GetRawDay() - days;
+        // what GameDate.AdvanceHour, Day, Month and Year do for the player of a game that owns its date
+        var hours = now / Date.HourToken - before / Date.HourToken;
         if (hours is > 0 and <= 24 && !pc.isDead) {
             for (var h = 0; h < hours; h++) {
                 player.OnAdvanceHour();
             }
+        }
 
-            if (!player.prayed && pc.Evalue(FEAT.featModelBeliever) > 0) {
-                ActPray.TryPray(pc, true);
+        var days = now / Date.DayToken - before / Date.DayToken;
+        if (days is > 0 and <= 3 && !pc.isDead) {
+            for (var d = 0; d < days; d++) {
+                player.stats.days++;
+                player.questRerollCost = System.Math.Max(0, player.questRerollCost - 3);
+                if (!player.prayed && pc.Evalue(FEAT.featModelBeliever) > 0) {
+                    ActPray.TryPray(pc, true);
+                }
+
+                player.OnAdvanceDay();
             }
         }
 
-        if (days is > 0 and <= 3 && !pc.isDead) {
-            for (var d = 0; d < days; d++) {
-                player.OnAdvanceDay();
+        if (now / Date.MonthToken > before / Date.MonthToken) {
+            player.stats.months++;
+            player.nums.OnAdvanceMonth();
+            if (world.date.month % 2 == 0) {
+                player.holyWell++;
             }
+        }
+
+        if (now / Date.YearToken > before / Date.YearToken) {
+            player.flags.santa = 0;
+            player.wellWished = false;
+            player.nums.OnAdvanceYear();
         }
     }
 
