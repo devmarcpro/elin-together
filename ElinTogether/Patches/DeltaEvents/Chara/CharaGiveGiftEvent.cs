@@ -15,14 +15,17 @@ internal static class CharaGiveGiftEvent
             return;
         }
 
-        if (connection.IsClient && (!__instance.IsPC || !CardCache.Contains(t))) {
+        // the "give" gesture hands one out of the held stack: that one only exists here, the host knows the stack
+        // it came from (how many is in the reference)
+        var gift = PendingSplit.Split(t);
+        if (connection.IsClient && (!__instance.IsPC || CardCache.Find(gift.Uid) is null)) {
             return;
         }
 
         connection.Delta.AddRemote(new CharaGiveGiftDelta {
             From = __instance,
             To = c,
-            Thing = t,
+            Thing = gift,
         });
     }
 

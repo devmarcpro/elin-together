@@ -1,5 +1,6 @@
 using System.Linq;
 using ElinTogether.Elements;
+using ElinTogether.Helper;
 using ElinTogether.Models;
 using ElinTogether.Models.AI;
 using ElinTogether.Net;
@@ -16,6 +17,12 @@ internal static class CharaTaskRemoteEvent
     {
         if (NetSession.Instance.Connection is not { } connection) {
             return true;
+        }
+
+        // the task a gift gives its giver (a massage) is set in the giver's own game: set here too, on the host it
+        // would cancel that player's own
+        if (CharaGiveGiftDelta.IsReplaying && __instance.IsRemotePlayer) {
+            return false;
         }
 
         // propagate every host event and client player event
