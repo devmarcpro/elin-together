@@ -81,6 +81,8 @@ internal static class InvOwnerOnProcessEvent
                 : mod
                     ? InvOwnerOnProcessDelta.RemoteInvOwnerType.Mod
                     : InvOwnerOnProcessDelta.RemoteInvOwnerType.Unknown,
+            // this game plays the offering right after (InvOwnerOffering._OnProcess), with the same dice
+            Seed = __instance is InvOwnerOffering ? AltarDice.Roll() : 0,
         });
     }
 

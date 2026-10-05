@@ -65,6 +65,13 @@ public class InvOwnerOnProcessDelta : ElinDelta
     [Key(9)]
     public RemoteCard? Consume { get; init; }
 
+    /// <summary>
+    ///     Offering on an altar: the dice the offerer rolled, so that the duel of faiths ends the same in every game
+    ///     (0 from an older peer: each game rolls its own)
+    /// </summary>
+    [Key(10)]
+    public int Seed { get; init; }
+
     protected override void OnApply(ElinNetBase net)
     {
         if (Thing.Find() is not Thing { isDestroyed: false } thing) {
@@ -153,6 +160,9 @@ public class InvOwnerOnProcessDelta : ElinDelta
                     offerHost.Delta.AddRemote(this);
                 }
 
+                // the host plays it as its own gesture, so that what it makes (the reforged artifact) is announced
+                using var simulate = Simulate(net.IsHost);
+                AltarDice.Next = Seed;
                 altar.OnOffer(offerer, thing);
                 return;
             }
