@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using ElinTogether.Helper;
 using ElinTogether.Helper.Extensions;
+using ElinTogether.LangMod;
 using ElinTogether.Models;
 using ElinTogether.Net.Steam;
 using HeathenEngineering.SteamworksIntegration;
@@ -122,6 +123,11 @@ internal partial class ElinNetHost
     /// </summary>
     internal bool TryEnterZone(Zone zone, ZoneTransition transition)
     {
+        // not a move, the game does nothing of it
+        if (zone == _zone) {
+            return true;
+        }
+
         // out of the zone of a quest the game goes back to where it came from whatever was asked (Chara.MoveZone):
         // that town may be held by the player who stayed there
         if (_zone?.instance is { } leaving) {
@@ -132,7 +138,7 @@ internal partial class ElinNetHost
             return false;
         }
 
-        LeavePlayersBehind(zone);
+        LeavePlayersBehind(zone, LeaveAccompaniedZone());
         return true;
     }
 
@@ -142,7 +148,8 @@ internal partial class ElinNetHost
     ///     the others join its zone session (on the world map everyone has its own copy) <br />
     ///     To follow the host, a player takes the same way out
     /// </summary>
-    private void LeavePlayersBehind(Zone destination)
+    /// <param name="keeper">the player whose quest zone this is, when the host who came along goes back alone</param>
+    private void LeavePlayersBehind(Zone destination, int keeper = 0)
     {
         if (IsZoneSession || !Session.Rules.AllowIndependentTravel || _zone is not { } zone || destination == zone) {
             return;
@@ -150,14 +157,16 @@ internal partial class ElinNetHost
 
         // nobody stays in the zone of a quest without the one who took it: whoever came along leaves with
         // the host and arrives where it arrives, as its party does. The quest is settled by the host's own move
-        if (zone.instance is ZoneInstanceRandomQuest) {
+        if (zone.instance is ZoneInstanceRandomQuest && keeper == 0) {
             _settled.Clear();
             return;
         }
 
         // only those standing here: a player still loading this map (it was called back for this very move,
         // or just joined) comes along as before
-        var staying = Socket.Peers.Where(p => ActiveRemoteCharas.ContainsKey(p.Id) && _settled.Contains(p.Id)).ToList();
+        // the one whose quest it is keeps its zone, before anyone else
+        var staying = Socket.Peers.Where(p => ActiveRemoteCharas.ContainsKey(p.Id) && _settled.Contains(p.Id))
+            .OrderByDescending(p => p.Id == keeper).ToList();
         _settled.Clear();
         if (staying.Count == 0) {
             return;
@@ -216,6 +225,17 @@ internal partial class ElinNetHost
             return;
         }
 
+        // the quest of the player the host came along with is that player's, and so is the reward
+        var taker = _accompanied is { } along && along.ZoneUid == zone.uid &&
+                    ActiveRemoteCharas.TryGetValue(along.PeerId, out var chara)
+            ? chara
+            : pc;
+
+        if (taker != pc) {
+            // the monsters are in by now (ZoneEvent.OnVisit ran when the host walked in)
+            SendQuestZoneState(taker, zone);
+        }
+
         foreach (var peer in Socket.Peers) {
             // the one keeping that town since the host left it, a player elsewhere has its own business
             if (!_departed.Contains(peer.Id) || !_leases.TryGetValue(peer.Id, out var zones) ||
@@ -227,9 +247,394 @@ internal partial class ElinNetHost
 
             SendDeltaTo(peer.Id, new QuestFollowDelta {
                 Kind = QuestFollowDelta.Invite,
-                Name = pc.Name,
+                Name = taker.Name,
                 ZoneUid = zone.uid,
             });
+        }
+    }
+
+    /// <summary>
+    ///     How long the question "come along?" stays open on the host's screen, no answer is a no
+    /// </summary>
+    private const float QuestAskSeconds = 15f;
+
+    /// <summary>
+    ///     The question open on the host's screen, and the request of the player it holds back meanwhile
+    /// </summary>
+    private (ZoneLeaseRequest Request, ISteamNetPeer Peer, Dialog Box, float Deadline)? _questAsk;
+
+    /// <summary>
+    ///     The player whose quest zone the host runs since it came along, until the host leaves that zone.
+    ///     In memory only: nothing of it is in the save, see QuestZoneSavePatch
+    /// </summary>
+    private (int PeerId, int CharaUid, int QuestUid, int ZoneUid, bool Leaving)? _accompanied;
+
+    private byte[]? _accompaniedData;
+    private Quest? _accompaniedQuest;
+
+    /// <summary>
+    ///     The quest the host was last asked along to: asked once, a request coming again for it is not
+    /// </summary>
+    private int _lastQuestAsked;
+
+    /// <summary>
+    ///     The session ends (the host stops it, or loads another game): the zone it came along to is a plain one
+    ///     from here, nothing of another player's quest stays in the host's game or in its save
+    /// </summary>
+    internal override void Stop()
+    {
+        ForgetQuestCompanion(null);
+        base.Stop();
+    }
+
+    protected override void Update()
+    {
+        base.Update();
+        UpdateQuestAsk();
+    }
+
+    /// <summary>
+    ///     The quest of the player the host came along with, as that player last told it (it counts what is
+    ///     delivered, the host only reads). The same object until it tells something new
+    /// </summary>
+    internal Quest? AccompaniedQuest(int questUid)
+    {
+        if (_accompanied is not { } along || along.QuestUid != questUid) {
+            return null;
+        }
+
+        if (PersonalQuestLogs.TryGetValue(along.CharaUid, out var log) && log.TryGetValue(questUid, out var data) &&
+            !ReferenceEquals(data, _accompaniedData)) {
+            _accompaniedData = data;
+            _accompaniedQuest = new LZ4Bytes { Bytes = data }.Decompress<Quest>();
+        }
+
+        return _accompaniedQuest?.uid == questUid ? _accompaniedQuest : null;
+    }
+
+    /// <summary>
+    ///     A player standing on the host's map leaves for the zone of a quest it took: the host is asked along
+    ///     (the same question a player gets when the host leaves, see ElinNetClient.OnQuestFollowInvite). <br />
+    ///     Yes: the host makes that zone itself and runs it, the player follows it there as anywhere else. The
+    ///     quest and its reward stay the player's. No, or no answer: as before, the player holds the zone alone
+    /// </summary>
+    /// <returns>true when the request waits for the host's answer</returns>
+    private bool AskAlongToQuestZone(ZoneLeaseRequest request, ISteamNetPeer peer)
+    {
+        if (IsZoneSession || !PersonalQuests.InstancesEnabled || GetPeerDenyReason(peer) is not null ||
+            request.Blueprint is not { Instance: true, QuestUid: not 0 } blueprint) {
+            return false;
+        }
+
+        // only with nothing else going on here: no question open, no quest zone of its own or of someone else,
+        // no trade, and not asked for that quest already
+        if (_questAsk is not null || _accompanied is not null || _pendingHostMove is not null ||
+            _lastQuestAsked == blueprint.QuestUid ||
+            !CanRunQuestZoneFor(peer, blueprint, out var taker) ||
+            game.quests.list.Any(q => q.UseInstanceZone && PersonalQuests.IsPersonal(q)) ||
+            PlayerTrade.View is { Phase: PlayerTrade.Invited or PlayerTrade.Open }) {
+            EmpLog.Debug("Not asking the host along to the quest zone of {@Peer}", peer);
+            return false;
+        }
+
+        EmpLog.Information("Asking the host along to the quest zone of {@Peer}", peer);
+        _lastQuestAsked = blueprint.QuestUid;
+
+        var box = Dialog.YesNo("emp_quest_follow_ask".Loc(taker.Name),
+            () => AnswerQuestAsk(true),
+            () => AnswerQuestAsk(false));
+        _questAsk = (request, peer, box, UnityEngine.Time.realtimeSinceStartup + QuestAskSeconds);
+
+        SendDeltaTo(peer.Id, new QuestFollowDelta {
+            Kind = QuestFollowDelta.Asked,
+            Name = pc.Name,
+        });
+        return true;
+    }
+
+    /// <summary>
+    ///     The host and that player stand on the same map, and the host knows the quest and who gave it. <br />
+    ///     Hunts only for now. A harvest and a concert count what is delivered or played in the quest log of the
+    ///     game where it happens (QuestManager.Get&lt;QuestHarvest&gt;, Get&lt;QuestMusic&gt;): on the host that is
+    ///     nobody's, what the host delivers would be lost. A defense is played with a horn only the one running
+    ///     the zone can blow. Those stay the taker's alone, as before
+    /// </summary>
+    private bool CanRunQuestZoneFor(ISteamNetPeer peer, LeaseZoneBlueprint blueprint, out Chara taker)
+    {
+        taker = null!;
+        if (_zone is not { IsRegion: false, IsInstance: false } || pc.isDead || !_settled.Contains(peer.Id) ||
+            !ActiveRemoteCharas.TryGetValue(peer.Id, out var chara) || _map.FindChara(blueprint.GiverUid) is null ||
+            !PersonalQuestLogs.TryGetValue(chara.uid, out var log) || !log.TryGetValue(blueprint.QuestUid, out var data)) {
+            return false;
+        }
+
+        taker = chara;
+        return new LZ4Bytes { Bytes = data }.Decompress<Quest>() is QuestSubdue;
+    }
+
+    private void UpdateQuestAsk()
+    {
+        if (_questAsk is not { } ask) {
+            return;
+        }
+
+        // closed without a click
+        if (ask.Box == null) {
+            AnswerQuestAsk(false);
+            return;
+        }
+
+        if (UnityEngine.Time.realtimeSinceStartup < ask.Deadline) {
+            return;
+        }
+
+        _questAsk = null;
+        ask.Box.Close();
+        ResolveQuestAsk(ask.Request, ask.Peer, false, QuestFollowDelta.NoAnswer);
+    }
+
+    private void AnswerQuestAsk(bool along)
+    {
+        if (_questAsk is not { } ask) {
+            return;
+        }
+
+        _questAsk = null;
+        ResolveQuestAsk(ask.Request, ask.Peer, along, QuestFollowDelta.Declined);
+    }
+
+    private void ResolveQuestAsk(ZoneLeaseRequest request, ISteamNetPeer peer, bool along, int refusal)
+    {
+        if (along && TakeQuestZone(request, peer)) {
+            return;
+        }
+
+        if (!along) {
+            SendDeltaTo(peer.Id, new QuestFollowDelta {
+                Kind = refusal,
+                Name = pc.Name,
+            });
+        }
+
+        // as before: that player holds the zone of its quest and runs it alone
+        LeaseZone(request, peer);
+    }
+
+    /// <summary>
+    ///     The host said yes: it makes the zone of that player's quest as the game does for its own, and enters
+    ///     it. The player's request is void, it comes along like a player still loading this map
+    /// </summary>
+    private bool TakeQuestZone(ZoneLeaseRequest request, ISteamNetPeer peer)
+    {
+        // what was true when asking may not be anymore
+        if (request.Blueprint is not { } blueprint || _accompanied is not null ||
+            !CanRunQuestZoneFor(peer, blueprint, out var taker) || _map.FindChara(blueprint.GiverUid) is not { } giver) {
+            return false;
+        }
+
+        // from here the zone reads that quest, see AccompaniedQuest
+        _accompanied = (peer.Id, taker.uid, blueprint.QuestUid, 0, false);
+        _accompaniedData = null;
+        _accompaniedQuest = null;
+
+        Zone? zone = null;
+        try {
+            // announced to everyone like a zone of the host's own quest (SpatialGenDelta): a client only loads
+            // the map of a zone it knows
+            zone = AccompaniedQuest(blueprint.QuestUid)?.CreateInstanceZone(giver);
+        } catch (Exception ex) {
+            EmpLog.Warning(ex, "Quest zone of player {CharaUid} could not be made on the host", taker.uid);
+        }
+
+        if (zone is null) {
+            _accompanied = null;
+            return false;
+        }
+
+        _accompanied = (peer.Id, taker.uid, blueprint.QuestUid, zone.uid, false);
+
+        // back in town, everyone stands where the taker left from, as it would alone
+        if (zone.instance is { } instance) {
+            instance.x = taker.pos.x;
+            instance.z = taker.pos.z;
+        }
+
+        // not left behind in town with the others, see LeavePlayersBehind
+        _settled.Remove(peer.Id);
+        pc.MoveZone(zone, ZoneTransition.EnterState.Center);
+
+        if (pc.currentZone != zone) {
+            // the move did not happen: nothing of it stays, that player goes alone as before
+            EmpLog.Warning("Host could not enter quest zone {ZoneFullName}, leaving it to {@Peer}", zone.ZoneFullName, peer);
+            _accompanied = null;
+            _settled.Add(peer.Id);
+            zone.Destroy();
+            return false;
+        }
+
+        EmpLog.Information("Host comes along with {@Peer} to quest zone {ZoneFullName} {ZoneUid}",
+            peer, zone.ZoneFullName, zone.uid);
+
+        // the zone it made for itself becomes this one, by its number, see ElinNetClient.OnZoneLeaseDenied.
+        // Sent before the announcement and the map of the zone reach it (frames later, see SpatialGenEvent and
+        // ZoneActivateEvent)
+        peer.Send(new ZoneLeaseDenied {
+            ZoneUid = zone.uid,
+            Reason = QuestFollowDelta.Coming,
+        });
+        return true;
+    }
+
+    /// <summary>
+    ///     Net event: the player whose quest it is walks out of the zone the host runs for it. Everyone leaves,
+    ///     by the host's own move
+    /// </summary>
+    internal void OnQuestTakerLeaves(int peerId)
+    {
+        if (_accompanied is not { } along || along.Leaving || along.PeerId != peerId ||
+            _zone is not { instance: { } instance } zone || zone.uid != along.ZoneUid) {
+            return;
+        }
+
+        EmpLog.Information("The taker of the quest leaves zone {ZoneFullName}, everyone does", zone.ZoneFullName);
+
+        // kept: the town may have to be recalled first, see CanEnterNow
+        _accompanied = (along.PeerId, along.CharaUid, along.QuestUid, along.ZoneUid, true);
+
+        // not while that message is applied: the move, and what it takes from the bags, is the host's own doing
+        CoroutineHelper.Deferred(() => {
+            if (_accompanied is { } still && still.Leaving && _zone == zone) {
+                pc.MoveZone(game.spatials.Find(instance.uidZone) ?? pc.homeZone);
+            }
+        });
+    }
+
+    /// <summary>
+    ///     The host leaves the zone of a quest it came along to. <br />
+    ///     Alone before the end (the quest still running, its taker standing there): the quest goes on, its taker
+    ///     runs the zone from here and settles it when it leaves, as if it had come alone. <br />
+    ///     Otherwise everyone leaves (the taker walked out, the quest is decided, or the taker is still loading
+    ///     the zone and cannot keep it): the taker hears how it went and settles its quest in town, where the
+    ///     host gives the reward once (see PersonalQuests.OnHostSettled, CompletePersonal). <br />
+    ///     Hunts only (see CanRunQuestZoneFor): nothing is weighed or taken back from the bags on the way out
+    /// </summary>
+    /// <returns>the player keeping the zone, 0 when everyone leaves</returns>
+    private int LeaveAccompaniedZone()
+    {
+        if (_accompanied is not { } along || _zone is not { instance: ZoneInstanceRandomQuest instance } zone ||
+            zone.uid != along.ZoneUid) {
+            return 0;
+        }
+
+        var connected = ActiveRemoteCharas.ContainsKey(along.PeerId);
+        var alone = connected && _settled.Contains(along.PeerId) && !along.Leaving &&
+                    instance.status == ZoneInstance.Status.Running;
+
+        if (alone) {
+            // its taker runs it from now on, from where the hunt stands, and it is gone when that player hands
+            // it back
+            if (ActiveRemoteCharas.TryGetValue(along.PeerId, out var taker)) {
+                SendQuestZoneState(taker, zone);
+            }
+
+            _questZones.Add(zone.uid);
+        } else if (connected) {
+            // also to a taker still loading the zone: it comes along, and its quest must not stay open for ever
+            SendDeltaTo(along.PeerId, new QuestFollowDelta {
+                Kind = instance.status == ZoneInstance.Status.Success ? QuestFollowDelta.Won : QuestFollowDelta.Lost,
+                Name = pc.Name,
+                ZoneUid = zone.uid,
+                QuestUid = along.QuestUid,
+                Giver = instance.uidClient,
+            });
+        }
+
+        EmpLog.Information("Host leaves quest zone {ZoneFullName} of player {CharaUid}, alone {Alone}, status {Status}",
+            zone.ZoneFullName, along.CharaUid, alone, instance.status);
+
+        // nothing of that quest is left for the game to run or to settle when the host moves
+        zone.events.list.RemoveAll(e => e is ZoneEventQuest);
+        instance.uidQuest = 0;
+        _accompanied = null;
+
+        return alone ? along.PeerId : 0;
+    }
+
+    /// <summary>
+    ///     What the quest events of the zone hold here, for the copy of the zone its taker made itself, see
+    ///     ElinNetClient.OnQuestZoneState
+    /// </summary>
+    private void SendQuestZoneState(Chara taker, Zone zone)
+    {
+        var peerId = ActiveRemoteCharas.FirstOrDefault(pair => pair.Value == taker).Key;
+        SendDeltaTo(peerId, new QuestFollowDelta {
+            Kind = QuestFollowDelta.ZoneState,
+            Name = pc.Name,
+            ZoneUid = zone.uid,
+            Events = LZ4Bytes.Create(zone.events.list.Where(e => e is ZoneEventQuest).ToList()),
+        });
+    }
+
+    /// <summary>
+    ///     The game fails the quest when the local player dies in its zone: here that is the taker, not the host
+    /// </summary>
+    internal void OnDeathInQuestZone(Chara dead, ZoneInstance.Status before)
+    {
+        if (_accompanied is not { } along || _zone is not { instance: ZoneInstanceRandomQuest instance } zone ||
+            zone.uid != along.ZoneUid) {
+            return;
+        }
+
+        if (dead.IsPC) {
+            instance.status = before;
+        } else if (ActiveRemoteCharas.TryGetValue(along.PeerId, out var taker) && dead == taker) {
+            instance.status = ZoneInstance.Status.Fail;
+        }
+    }
+
+    /// <summary>
+    ///     While the host's game is saved: the zone it came along to holds no quest. Returns what puts it back
+    /// </summary>
+    internal Action? HideAccompaniedQuest()
+    {
+        if (_accompanied is not { } along ||
+            game.spatials.Find(along.ZoneUid) is not { instance: ZoneInstanceRandomQuest instance } zone) {
+            return null;
+        }
+
+        var events = zone.events.list.Where(e => e is ZoneEventQuest).ToList();
+        var questUid = instance.uidQuest;
+        zone.events.list.RemoveAll(e => e is ZoneEventQuest);
+        instance.uidQuest = 0;
+
+        return () => {
+            zone.events.list.AddRange(events);
+            instance.uidQuest = questUid;
+        };
+    }
+
+    /// <summary>
+    ///     That player is gone, or the session ends (no peer): the question about it is void, and the zone the
+    ///     host runs for it is a plain one (its quest is dropped at no cost when it connects again, see
+    ///     PersonalQuests.Restore)
+    /// </summary>
+    private void ForgetQuestCompanion(ISteamNetPeer? peer)
+    {
+        if (_questAsk is { } ask && (peer is null || ask.Peer.Id == peer.Id)) {
+            _questAsk = null;
+            if (ask.Box != null) {
+                ask.Box.Close();
+            }
+        }
+
+        if (_accompanied is not { } along || (peer is not null && along.PeerId != peer.Id)) {
+            return;
+        }
+
+        _accompanied = null;
+        if (core?.game?.spatials?.Find(along.ZoneUid) is { instance: ZoneInstanceRandomQuest instance } zone) {
+            zone.events.list.RemoveAll(e => e is ZoneEventQuest);
+            instance.uidQuest = 0;
         }
     }
 
@@ -272,6 +677,14 @@ internal partial class ElinNetHost
     ///     Net event: Client wants to travel to a zone the host is not in
     /// </summary>
     private void OnZoneLeaseRequest(ZoneLeaseRequest request, ISteamNetPeer peer)
+    {
+        // the zone of a quest, and the host stands next to that player: it is asked along first
+        if (!AskAlongToQuestZone(request, peer)) {
+            LeaseZone(request, peer);
+        }
+    }
+
+    private void LeaseZone(ZoneLeaseRequest request, ISteamNetPeer peer)
     {
         var zone = request.Blueprint is { } blueprint && GetPeerDenyReason(peer) is null
             ? CreateClientZone(blueprint)
@@ -1024,6 +1437,7 @@ internal partial class ElinNetHost
 
     private void ReleaseLeaseOnDisconnect(ISteamNetPeer peer)
     {
+        ForgetQuestCompanion(peer);
         _returnSpots.Remove(peer.Id);
         _settled.Remove(peer.Id);
         _departed.Remove(peer.Id);

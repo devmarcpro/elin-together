@@ -203,5 +203,6 @@
     "LangGeneral.emp_ui_depot_password_ask.text": "仓库密码（如果在 Elin Together Server 中设置了）",
     "LangGeneral.emp_quest_follow_ask.text": "{0} 出发去做任务了：要同行吗？报酬归 {0}。",
     "LangGeneral.emp_quest_follow_declined.text": "{0} 拒绝了同行。",
-    "LangGeneral.emp_quest_follow_no_answer.text": "{0} 没有回应。"
+    "LangGeneral.emp_quest_follow_no_answer.text": "{0} 没有回应。",
+    "LangGeneral.emp_quest_follow_asked.text": "正在询问 {0} 是否同行……"
 }

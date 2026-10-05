@@ -26,6 +26,33 @@ internal static class QuestZoneVisitorPatch
     }
 
     /// <summary>
+    ///     The local player is in the zone of a quest that is not settled by this game: someone else's, or its
+    ///     own while the host who came along runs the zone (the host says how it went, see
+    ///     ElinNetHost.LeaveAccompaniedZone). The game moving the player out must not weigh, search or settle
+    /// </summary>
+    internal static bool IsSettledElsewhere(int uidQuest)
+    {
+        return IsVisitor(uidQuest) ||
+               (uidQuest != 0 && PersonalQuests.InstancesEnabled && NetSession.Instance.Connection is ElinNetClient);
+    }
+
+    /// <summary>
+    ///     On the host, in the zone of a quest it came along to: the quest is its taker's, kept in no quest log
+    ///     here. What the zone reads of it (how hard, how much is delivered) is what that player last told
+    /// </summary>
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(QuestManager), nameof(QuestManager.Get), typeof(int))]
+    internal static void OnGetQuest(int uid, ref Quest? __result)
+    {
+        // nothing of this outside of a session hosted here
+        if (NetSession.Instance.Transport is not ElinNetHost host) {
+            return;
+        }
+
+        __result ??= host.AccompaniedQuest(uid);
+    }
+
+    /// <summary>
     ///     The overrides of a ZoneEvent method written by the events of quests (subdue, harvest, defense...)
     /// </summary>
     internal static IEnumerable<MethodBase> QuestEventOverrides(string methodName)
@@ -52,7 +79,7 @@ internal static class QuestZoneVisitorPatch
     [HarmonyPatch(typeof(ZoneInstanceRandomQuest), nameof(ZoneInstanceRandomQuest.OnLeaveZone))]
     internal static bool OnLeaveInstance(ZoneInstanceRandomQuest __instance)
     {
-        return !IsVisitor(__instance.uidQuest);
+        return !IsSettledElsewhere(__instance.uidQuest);
     }
 
     [HarmonyPrefix]
@@ -115,6 +142,67 @@ internal static class QuestZoneLeavePatch
     [HarmonyPrefix]
     internal static bool OnLeaveZone(ZoneEvent __instance)
     {
-        return __instance is not ZoneEventQuest quest || !QuestZoneVisitorPatch.IsVisitor(quest.uidQuest);
+        return __instance is not ZoneEventQuest quest || !QuestZoneVisitorPatch.IsSettledElsewhere(quest.uidQuest);
+    }
+}
+
+/// <summary>
+///     The game fails the quest of a zone when the local player dies in it. Where the host came along to a
+///     player's quest, that is the death of that player, not the host's
+/// </summary>
+[HarmonyPatch(typeof(Chara), nameof(Chara.Die))]
+internal static class QuestZoneDeathPatch
+{
+    [HarmonyPrefix]
+    internal static void OnDie(out ZoneInstance.Status? __state)
+    {
+        __state = null;
+
+        // nothing of this outside of a session hosted here
+        if (NetSession.Instance.Transport is not ElinNetHost) {
+            return;
+        }
+
+        __state = (EClass.game?.activeZone?.instance as ZoneInstanceRandomQuest)?.status;
+    }
+
+    [HarmonyPostfix]
+    internal static void OnDied(Chara __instance, ZoneInstance.Status? __state)
+    {
+        if (NetSession.Instance.Transport is not ElinNetHost host) {
+            return;
+        }
+
+        if (__state is { } before) {
+            host.OnDeathInQuestZone(__instance, before);
+        }
+    }
+}
+
+/// <summary>
+///     The save of the host never holds the quest of another player: while it is written, the zone the host
+///     came along to is a plain one (no quest event, nothing to settle on the way out), which a game loading it
+///     later, with or without this mod, walks out of without looking for a quest it does not have
+/// </summary>
+[HarmonyPatch(typeof(Game), nameof(Game.Save))]
+internal static class QuestZoneSavePatch
+{
+    [HarmonyPrefix]
+    internal static void OnSave(out System.Action? __state)
+    {
+        __state = null;
+
+        // nothing of this outside of a session hosted here
+        if (NetSession.Instance.Transport is not ElinNetHost host) {
+            return;
+        }
+
+        __state = host.HideAccompaniedQuest();
+    }
+
+    [HarmonyPostfix]
+    internal static void OnSaved(System.Action? __state)
+    {
+        __state?.Invoke();
     }
 }

@@ -78,6 +78,19 @@ internal partial class ElinNetClient
         if (pc.currentZone?.instance is { } instance) {
             zone = game.spatials.Find(instance.uidZone) ?? pc.homeZone;
 
+            // the zone of our quest, run by the host who came along: it takes everyone out, and tells us how
+            // the quest went on the way, see ElinNetHost.LeaveAccompaniedZone
+            if (!Session.IsAway && PersonalQuests.InstancesEnabled &&
+                instance is ZoneInstanceRandomQuest { uidQuest: not 0 } ours &&
+                game.quests.list.Exists(q => q.uid == ours.uidQuest && PersonalQuests.IsPersonal(q))) {
+                Delta.AddRemote(new QuestFollowDelta {
+                    Kind = QuestFollowDelta.Leave,
+                    Name = pc.Name,
+                    ZoneUid = pc.currentZone.uid,
+                });
+                return false;
+            }
+
             // how the quest went is settled now: where we arrive may be someone else's map
             PersonalQuests.LeaveInstance(pc.currentZone);
         }
@@ -538,6 +551,19 @@ internal partial class ElinNetClient
         EmpLog.Information("Zone lease {ZoneUid} denied: {Reason}",
             denied.ZoneUid, denied.Reason);
 
+        // not a refusal: the host comes along to our quest and runs its zone itself. The zone made here takes
+        // the number of the host's (as a leased one does) and is the one its map lands in when we follow the
+        // host there: it knows the quest, who gave it and where to go back to. What the host put in it comes
+        // with the map, and with OnQuestZoneState
+        if (denied.Reason == QuestFollowDelta.Coming) {
+            if (_pendingTravel is { } asked && asked.Zone.IsInstance && _pendingGrant is null) {
+                _pendingTravel = null;
+                AdoptHostUid(asked.Zone, denied.ZoneUid);
+            }
+
+            return;
+        }
+
         // out of the zone of a quest there is no staying: it is over, back to the host
         if (Session.IsAway && pc.currentZone?.IsInstance == true && _pendingGrant is null && !_rejoining) {
             _pendingTravel = null;
@@ -561,6 +587,24 @@ internal partial class ElinNetClient
         if (_pendingGrant is not null) {
             _pendingGrant = null;
             SendRejoin();
+        }
+    }
+
+    /// <summary>
+    ///     Net event: the host runs the zone of our quest, this is what its quest events hold there. Shown here
+    ///     (how many monsters are left), and run from here if the host goes back alone and leaves us the zone
+    /// </summary>
+    internal void OnQuestZoneState(int zoneUid, LZ4Bytes? events)
+    {
+        if (events is null || game.spatials.Find(zoneUid) is not { IsInstance: true } zone) {
+            return;
+        }
+
+        zone.events.list.RemoveAll(e => e is ZoneEventQuest);
+        foreach (var zoneEvent in events.Decompress<List<ZoneEvent>>()) {
+            // as a loaded one: not ZoneEventManager.Add, which starts it anew
+            zoneEvent.zone = zone;
+            zone.events.list.Add(zoneEvent);
         }
     }
 
