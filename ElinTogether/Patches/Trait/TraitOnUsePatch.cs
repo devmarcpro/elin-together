@@ -37,6 +37,8 @@ internal class TraitOnUsePatch
             AccessTools.Method(typeof(TraitGeneratorWheel), nameof(TraitGeneratorWheel.OnUse), [typeof(Chara)]),
             // runes and plugs (TraitRune, TraitModRanged inherit it): the pick goes back by InvOwnerOnProcessDelta
             AccessTools.Method(typeof(TraitMod), nameof(TraitMod.OnUse), [typeof(Chara)]),
+            // the delivery chest of a harvest
+            AccessTools.Method(typeof(TraitFarmChest), nameof(TraitFarmChest.OnUse), [typeof(Chara)]),
             // the action mode of the local player
             AccessTools.Method(typeof(TraitPainter), nameof(TraitPainter.OnUse), [typeof(Chara)]),
             AccessTools.Method(typeof(TraitViewMap), nameof(TraitViewMap.OnUse), [typeof(Chara)]),
@@ -52,6 +54,11 @@ internal class TraitOnUsePatch
     internal static bool OnRemotePlayerUse(Trait __instance, Chara c)
     {
         if (!NetSession.Instance.HasActiveConnection || c is not { IsPC: false, IsRemotePlayer: true }) {
+            return true;
+        }
+
+        // on a base that chest is only sold for its 50 coins: no window, the host does it
+        if (__instance is TraitFarmChest && EClass._zone.IsPCFaction) {
             return true;
         }
 

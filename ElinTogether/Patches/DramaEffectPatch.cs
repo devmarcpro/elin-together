@@ -28,3 +28,19 @@ internal static class DramaEffectPatch
         });
     }
 }
+
+/// <summary>
+///     A new alias and the return to the Void ask "the player" in a window: the scroll of another player read
+///     here asked this game's player. Its own game asks it
+/// </summary>
+[HarmonyPatch(typeof(ActEffect), nameof(ActEffect.Proc), typeof(EffectId), typeof(int), typeof(BlessedState), typeof(Card),
+    typeof(Card), typeof(ActRef))]
+internal static class RemoteWindowEffectPatch
+{
+    [HarmonyPrefix]
+    internal static bool OnProc(EffectId id, Card cc)
+    {
+        return id is not (EffectId.ChangeAlias or EffectId.ReturnVoid) || !NetSession.Instance.HasActiveConnection ||
+               cc is not Chara { IsPC: false, IsRemotePlayer: true };
+    }
+}
