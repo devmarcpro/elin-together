@@ -78,7 +78,7 @@ internal static class CharaTaskRemoteEvent
             TaskWater task => TaskWaterArgs.Create(task),
             // TaskBaseBuild task => TaskBaseBuildArgs.Create(task),
             // TaskBuild task => TaskBuildArgs.Create(task),
-            // TaskChopWood task => TaskChopWoodArgs.Create(task),
+            TaskChopWood task => TaskChopWoodArgs.Create(task),
             // TaskCraft task => TaskCraftArgs.Create(task),
             // TaskDesignation task => TaskDesignationArgs.Create(task),
             // TaskMoveInstalled task => TaskMoveInstalledArgs.Create(task),
