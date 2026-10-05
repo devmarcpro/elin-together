@@ -1,3 +1,161 @@
+# Elin Together « indépendance » 0.26.493
+
+(English below / version anglaise plus bas)
+
+## Pour qui
+
+Pour ceux qui jouent déjà avec la 0.26.463, et pour ceux qui veulent essayer à deux, ou plus, un Elin où l'invité
+joue comme un joueur solo. **Tous les joueurs doivent installer le même zip** : cette version ne se connecte ni à
+la version du Workshop, ni à une autre version du fork. Elle est compilée pour Elin EA 23.352 (la dernière version
+« nightly » d'Elin chez Steam).
+
+**État : expérimental.** Tout est testé sur un seul PC avec deux fenêtres du jeu (suites de tests en jeu). Presque
+rien de ce qui est nouveau dans cette version n'a été joué entre deux vrais PC. Faites une copie de vos sauvegardes
+avant (`%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`).
+
+## Ce qui est nouveau
+
+- **Construire dans la base, côté invité.** Un invité utilise le mode construction comme l'host : sols, murs,
+  meubles du menu, miner, creuser, couper, zones, outil de terrain. Ce que l'un construit se voit chez l'autre tout
+  de suite. Case côté host : « GuestBuild » (cochée).
+- **Gérer la base, côté invité.** Recherche, foyer et politiques marchaient déjà ; maintenant aussi la servante, le
+  type d'un résident (résident ou bétail), la réserve, le rappel et le renvoi. Les réglages de coffre (priorité,
+  filtre…) passent dans les deux sens. Case côté host : « seul l'host gère la base » (HostManagesBase, décochée).
+- **Duels entre joueurs.** Dans le menu sur le personnage d'un autre joueur : « Challenge to a duel ». L'autre
+  répond par une boîte oui/non, puis compte à rebours. Personne ne meurt, les deux sont soignés à la fin, rien n'est
+  perdu. Case côté host : « Duels » (cochée). Pas encore : l'arène, le pari, le bouton abandonner.
+- **Un joueur ne peut plus tuer un autre joueur hors duel.** Case côté host : « PlayerKill » (décochée).
+- **Pour l'invité, comme en solo** : ressusciter un compagnon chez le barman ; laisser un objet à copier chez Kettle
+  et un grimoire chez Demitas ; duel d'autel au même résultat pour tous ; outils et fouets (clé à molette, etc.) qui
+  agissent sur le monde de l'host ; prière sans dieu qui ne soigne plus ; jours et heures qui passent ; prix
+  d'expédition ; carte à gratter du casino.
+- **Garder le monde sur GitHub.** Un dépôt GitHub privé peut garder le monde partagé (troisième sorte de dépôt,
+  réglage « github:proprietaire/depot », une seule clé). Fermer le jeu pendant un envoi attend maintenant la fin et
+  rend le monde (corrigé ce soir).
+- **Monde qui change de main (dépôt).** Celui qui reprend le monde joue SON personnage, pas celui de l'ancien host ;
+  l'ancien host retrouve le sien quand il rejoint. Limite : un monde hébergé pour la dernière fois avec une ancienne
+  version ne sait pas à qui est son personnage : l'ancien host doit l'héberger une fois avec cette version avant
+  qu'un autre le reprenne.
+
+## Ce qui n'est pas encore testé en vrai
+
+Testé à deux fenêtres sur un seul PC. **Presque rien de ce qui est nouveau n'a été joué entre deux vrais PC.** Pas
+joué du tout :
+
+- construction : objet du stock ou du sac posé par le menu, pont, glisser sur plusieurs cases, creuser, mode rampe,
+  la case décochée, une carte tenue par un invité ; plans de construction et mode toit : refusés avec un message ;
+- réglages de coffre : la boîte du filtre, le collage, les boutons de rangement automatique ;
+- duels : deux vrais PC, sorts et flèches, trois joueurs ;
+- un joueur qui tue un joueur : saignement, poison, feu, condamnation à mort, sorts et projectiles ;
+- résurrection par parchemin ou sort ; tentes et fouets « passe-temps » et « métier » ; prix d'expédition ; carte à
+  gratter ;
+- dépôt GitHub : le vrai GitHub depuis le jeu, deux PC, la clé expirée, un dépôt vide ; monde qui change de main : deux
+  PC ;
+- la base gérée par un invité : rien joué en vrai.
+
+Limites connues : le temps du monde suit encore l'host ; la défense à deux n'existe pas ; quelques accidents rares
+(deux joueurs qui construisent sur la même case, monture en double au retour d'un voyage). Liste complète :
+`dev/DOCUMENTATION.md`.
+
+## À essayer à deux
+
+1. Un invité qui construit (sol, mur, meuble, miner, zone) : l'host le voit-il tout de suite ? Et l'inverse.
+2. Un invité qui gère la base : servante, résident / bétail, réserve, rappel, renvoi, réglage d'un coffre.
+3. Un duel dans les deux sens : accepter, refuser, quitter pendant le duel.
+4. Le dépôt GitHub avec une vraie clé, et un monde repris par un autre joueur : chacun retrouve-t-il son personnage ?
+5. Ressusciter un compagnon chez le barman, copie chez Kettle, outils et fouets, carte à gratter.
+
+Si quelque chose ne va pas : [les tickets](https://github.com/devmarcpro/elin-together/issues), avec les fichiers
+`Player.log` et `ElinMP/Logs/Session_<date>.log` des deux joueurs.
+
+## Installer
+
+Il faut [YK Framework](https://steamcommunity.com/sharedfiles/filedetails/?id=3400020753) et Elin sur le canal
+**Nightly** (compilé pour EA 23.352). Chacun télécharge `ElinTogether-independance-0.26.493.zip`, le décompresse et
+lance `Installer.bat` (`Desinstaller.bat` fait l'inverse). **Tous les joueurs doivent avoir exactement ce zip.**
+`LISEZMOI.txt` dans le zip explique le reste. Pour héberger : lancer Elin par Steam, charger une partie qui a un
+terrain revendiqué, puis Échap → Mods → Elin Together.
+
+---
+
+# Elin Together "independence" 0.26.493
+
+## Who it is for
+
+For those already playing with 0.26.463, and for those who want to try, with one or more friends, an Elin where the
+guest plays like a solo player. **Every player must install the same zip**: this version does not connect to the
+Workshop version, nor to any other version of the fork. It is built for Elin EA 23.352 (Steam's latest "nightly"
+Elin).
+
+**Status: experimental.** Everything is tested on one PC with two game windows (in-game test suites). Almost nothing
+that is new in this version has been played between two real PCs. Back up your saves first
+(`%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`).
+
+## What is new
+
+- **Building in the base, as a guest.** A guest uses build mode like the host: floors, walls, menu furniture,
+  mining, digging, cutting, zones, the terrain tool. What one builds is seen by the other at once. Host checkbox:
+  "GuestBuild" (checked).
+- **Managing the base, as a guest.** Research, hearth and policies already worked; now also the maid, a resident's
+  type (resident or livestock), the reserve, recall and sending away. Chest settings (priority, filter...) go both
+  ways. Host checkbox: "only the host manages the base" (HostManagesBase, unchecked).
+- **Duels between players.** In the menu on another player's character: "Challenge to a duel". The other answers a
+  yes/no box, then a countdown. Nobody dies, both are healed at the end, nothing is lost. Host checkbox: "Duels"
+  (checked). Not yet: the arena, betting, the give-up button.
+- **A player can no longer kill another player outside a duel.** Host checkbox: "PlayerKill" (unchecked).
+- **For the guest, as in solo**: bringing a companion back at the barman's; leaving an item to copy at Kettle's and
+  a spellbook at Demitas'; the altar duel with the same result for everyone; tools and whips (wrench, etc.) that act
+  on the host's world; a prayer with no god that no longer heals; days and hours that pass; shipping prices; the
+  casino's scratch card.
+- **Keeping the world on GitHub.** A private GitHub repository can keep the shared world (third kind of depot,
+  setting "github:owner/repository", one key). Closing the game during an upload now waits for it to finish and
+  frees the world (fixed tonight).
+- **A world that changes hands (depot).** Whoever takes the world over plays THEIR OWN character, not the former
+  host's; the former host gets theirs back when joining. Limit: a world last hosted with an older version does not
+  know whose character is whose: the former host must host it once with this version before anyone else takes it
+  over.
+
+## What has not been tested for real yet
+
+Tested with two windows on one PC. **Almost nothing that is new has been played between two real PCs.** Not played
+at all:
+
+- building: a stock or bag item placed from the menu, bridges, dragging over several tiles, digging, ramp mode, the
+  checkbox unchecked, a map held by a guest; blueprints and roof mode are refused with a message;
+- chest settings: the filter box, pasting, the auto-dump buttons;
+- duels: two real PCs, spells and arrows, three players;
+- a player killing a player: bleeding, poison, fire, the death sentence, spells and missiles;
+- bringing back a companion with a scroll or spell; tents and the "hobby" and "work" whips; shipping prices; the
+  scratch card;
+- the GitHub depot: the real GitHub from inside the game, two PCs, an expired key, an empty repository; a world that
+  changes hands: two PCs;
+- the base managed by a guest: nothing played for real.
+
+Known limits: the world's clock still follows the host; defense quests for two do not exist; a few rare accidents
+(two players building on the same tile, a mount existing twice after a trip). Full list: `dev/DOCUMENTATION.md` (in
+French).
+
+## To try with two players
+
+1. A guest building (floor, wall, furniture, mining, zone): does the host see it at once? And the other way round.
+2. A guest managing the base: maid, resident / livestock, reserve, recall, sending away, a chest's settings.
+3. A duel both ways: accept, refuse, leave during the duel.
+4. The GitHub depot with a real key, and a world taken over by another player: does each get their own character?
+5. Bringing a companion back at the barman's, copying at Kettle's, tools and whips, the scratch card.
+
+If something goes wrong: [the issues](https://github.com/devmarcpro/elin-together/issues), with both players'
+`Player.log` and `ElinMP/Logs/Session_<date>.log`.
+
+## Install
+
+Requires [YK Framework](https://steamcommunity.com/sharedfiles/filedetails/?id=3400020753) and Elin on the
+**Nightly** branch (built for EA 23.352). Each player downloads `ElinTogether-independance-0.26.493.zip`, unzips it
+and runs `Installer.bat` (`Desinstaller.bat` switches back). **Every player must have exactly this zip.** The
+installer and its notes (`LISEZMOI.txt` in the zip) are in French. To host: launch Elin through Steam, load a save
+that has a claimed land, then Esc → Mods → Elin Together.
+
+---
+
 # Elin Together « indépendance » 0.26.463
 
 (English below / version anglaise plus bas)

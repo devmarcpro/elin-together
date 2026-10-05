@@ -3,7 +3,24 @@
 À lire en premier par la session suivante. Détail daté : fin de `MODLOG.md` (« Étape D suite, Elin 23.352 »).
 Mode d'emploi : `DOCUMENTATION.md`. Règles : `../CLAUDE.md`. Message de départ : `PROMPT_reprise.md`.
 
-## État à 21h30 (le plus récent : lire ceci d'abord ; il remplace « État à l'arrêt de 20h »)
+## État à 22h45 (le plus récent : lire ceci d'abord)
+
+- **Publiée : 0.26.493** (2026-10-05 au soir, à la demande de l'utilisateur : « commit tout et sort une release »),
+  compilée pour Elin EA 23.352 = build Steam 25723206, qui est aussi la dernière « nightly » (vérifié sur les données
+  publiques de Steam ; le jeu de cette machine est sur la branche nightly). Elle contient tout jusqu'au commit de cette note.
+- **Depuis 21h30** : dépôt GitHub, fermer le jeu pendant un envoi (G4) : corrigé (`a577cfa`, 36/36) ; **monde qui change
+  de main : celui qui le reprend joue SON personnage** (`0a254ca`, `Net/Host/ElinNetHostHandOver.cs`, `depot_suite` P1
+  22/22 ; choisi sans conseil, option A de `PLAN_depot_personnage.md`). Limite : un monde hébergé pour la dernière fois
+  par une ancienne version ne sait pas à qui est son personnage.
+- **Pas rejoué avant la publication** : la passe large (`run_short.sh` complet, `travel_suite`). Rejoués sur le build
+  final : base, duels, dépôt dossier et GitHub, puis trade 122/122 et quest 59/59 (arrêt des tests demandé par l'utilisateur avant recruit, setting, build2 ;
+  `_shots/*-rel.log`). À faire après, PC libre.
+- **Graphify** (demandé par l'utilisateur) : installé par lui (pipx, `~/.local/bin`), dossier `graphify-out/` hors git
+  (`.git/info/exclude`) ; le code est analysé, la carte reste à finir.
+- **À faire ensuite** : 1) passe large + `travel_suite` ; 2) conseil 6 : copie du monde par Steam ; 3) reste de la
+  chasse 2 ; 4) duels : arène, pari, abandon.
+
+## État à 21h30 (dépassé par 22h45)
 
 - **Publiée : 0.26.463.** Arbre propre, tout commité et poussé. Le jeu de cette machine a le build de test (Debug).
 - **Base gérée par un invité : commitée (`23041ef`).** Le rouge (servante retirée par l'invité) venait de la fenêtre des

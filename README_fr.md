@@ -13,8 +13,8 @@ mod lui-même leur revient (voir [Crédits](#crédits)).
 
 > **État : expérimental.** Tout ce qui suit est testé sur un seul PC avec deux fenêtres du jeu (suites de tests
 > automatiques en jeu, plus de 900 vérifications, dossier `dev/`). C'est **très peu joué entre deux PC par
-> Steam** : une seule soirée, qui a trouvé un bug que les tests n'avaient pas vu, et les nouveautés de cette
-> version n'ont pas encore été essayées à deux PC. Faites d'abord une copie de vos sauvegardes :
+> Steam** : une seule soirée, qui a trouvé un bug que les tests n'avaient pas vu, et presque rien de ce qui est nouveau dans cette
+> version (0.26.493) n'a encore été essayé à deux vrais PC. Faites d'abord une copie de vos sauvegardes :
 > `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
 
 ## Ce que cette version ajoute
@@ -38,8 +38,14 @@ mod lui-même leur revient (voir [Crédits](#crédits)).
 | Affinité et guildes communes | L'affinité d'un habitant est la même pour tous ; rejoindre une guilde vaut pour le groupe. |
 | Un invité joue comme un joueur solo | Des dizaines de corrections depuis la 0.26.399 : mort et testament, cadeaux du dieu, pièges, grimoires, guérisseur, bénédiction, investir, runes, rangement automatique, fenêtres qui s'ouvraient chez l'host, objet offert pris dans une pile, monture déjà prise, rondin taillé à la hache, prière qui soigne les compagnons, nourriture du sac qui vieillit… La liste est dans [`dev/DOCUMENTATION.md`](dev/DOCUMENTATION.md). |
 | Consignes des compagnons par joueur | Les deux cases de tactique qui règlent tes compagnons (te suivre de plus loin ; rester près de toi en combat au lieu de courir après un ennemi que tu ne vois pas) sont les tiennes, pas celles de l'host. |
-| Base réglée par un invité | Recherche et compétences du foyer : de vraies demandes à l'host (il vérifie, paie une fois, tout le monde voit le résultat). Politiques, lits, étiquettes de vente, notes, nom de la base, de la faction et d'un téléporteur : vus par l'autre joueur, dans les deux sens. |
+| Base réglée par un invité | Recherche, foyer et politiques sont de vraies demandes à l'host (il vérifie, paie une fois, tout le monde voit le résultat). Aussi la servante, le type d'un résident (résident ou bétail), la réserve, le rappel et le renvoi ; réglages de coffre (priorité, filtre…) dans les deux sens. Lits, étiquettes, notes et noms sont vus par l'autre joueur, dans les deux sens. Case de l'host « seul l'host gère la base » (HostManagesBase, décochée). |
 | Versions d'Elin différentes | Seule la version du mod doit être la même pour tous. Deux joueurs sur deux versions d'Elin peuvent se connecter ; ils sont prévenus par un avertissement. Une case côté host (« Require the same Elin version », décochée par défaut) redemande la même version d'Elin. |
+| Construire côté invité | Un invité utilise le mode construction de la base comme l'host : sols, murs, meubles du menu, miner, creuser, couper, zones, outil de terrain. Ce que l'un construit se voit chez l'autre tout de suite. Case de l'host « GuestBuild » (cochée). |
+| Duels entre joueurs | « Challenge to a duel » dans le menu sur le personnage d'un autre joueur ; l'autre répond par une boîte oui/non, puis compte à rebours. Personne ne meurt, les deux sont soignés, rien n'est perdu. Case de l'host « Duels » (cochée). Pas encore : arène, pari, bouton abandonner. |
+| Pas de meurtre entre joueurs | Un joueur ne peut plus tuer un autre joueur hors duel. Case de l'host « PlayerKill » (décochée). |
+| L'invité de plus en plus comme en solo | Résurrection d'un compagnon chez le barman, objet à copier chez Kettle, grimoire chez Demitas, duel d'autel au même résultat pour tous, outils et fouets (clé à molette…) qui agissent sur le monde de l'host, prière sans dieu, jours et heures de l'invité, prix d'expédition, carte à gratter du casino. |
+| Monde gardé sur GitHub | Un dépôt GitHub privé peut garder le monde partagé (troisième sorte de dépôt, réglage « github:proprietaire/depot », une clé). Fermer le jeu pendant un envoi attend la fin et rend le monde. |
+| Monde qui change de main | Celui qui reprend le monde du dépôt joue son propre personnage, pas celui de l'ancien host ; l'ancien host retrouve le sien quand il rejoint. |
 
 Presque toutes sont une **case à cocher côté host** (Échap → Mods → Elin Together → *Server Setting*) ; décochée,
 le mod se comporte comme l'original. Les quêtes à donjon à deux et les corrections « un invité joue comme un joueur
@@ -67,11 +73,15 @@ solo » n'ont pas de case.
   prise des quêtes à donjon, sont testés par appels directs au code du jeu.
 - Quêtes à donjon à deux, quand c'est l'invité qui a la quête : subjuguer, récolte et musique. La défense reste à
   régler seul.
-- Réglages de la base faits par un invité : la recherche, les compétences du foyer, les politiques, les lits, les
-  étiquettes de vente, les notes et les noms (base, faction, téléporteur) marchent comme pour l'host. Pas encore :
-  la servante, le type et la mise en réserve d'un résident, les réglages des coffres (seulement sur son écran).
-- Mode construction d'un invité (sols, murs, marques miner / couper) : il ne se fait que sur son écran. Pour
-  l'instant, c'est l'host qui doit construire la base.
+- Base : les réglages d'un invité (recherche, foyer, politiques, résidents, coffres) passent par l'host ; rien de cela n'a
+  encore été joué en vrai.
+- Pas joué en vrai : la construction d'un invité (objet du stock ou du sac posé par le menu, pont, glisser, creuser, mode
+  rampe, case décochée), plans de construction et mode toit (refusés avec un message), boîte du filtre d'un coffre, duels
+  (deux vrais PC, sorts, flèches, trois joueurs), meurtre entre joueurs par saignement, poison, feu ou sort, résurrection par
+  parchemin ou sort, prix d'expédition, carte à gratter, le vrai GitHub depuis le jeu, deux PC.
+- Duels : pas encore d'arène, de pari ni de bouton abandonner.
+- Monde qui change de main : un monde hébergé pour la dernière fois avec une ancienne version ne sait pas à qui est son
+  personnage ; l'ancien host doit l'héberger une fois avec cette version avant qu'un autre le reprenne.
 - Versions d'Elin différentes : testé en connexion locale seulement ; par le salon Steam, pas joué.
 - Quand l'host revient sur une carte tenue par un invité, l'écran de l'invité se recharge (il est prévenu avant).
   La durée n'est pas mesurée entre deux PC.

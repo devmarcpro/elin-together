@@ -13,7 +13,7 @@ goes to them (see [Credits](#credits)).
 
 > **Status: experimental.** Everything below is tested on one PC with two game windows (automated in-game test
 > suites, over 900 checks, see `dev/`). It has been **barely played between two PCs over Steam**: one evening, which
-> found a bug the tests had missed, and the new features of this version have not been tried on two PCs yet. Back up
+> found a bug the tests had missed, and almost nothing new in this version (0.26.493) has been tried on two real PCs yet. Back up
 > your saves first: `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
 
 ## What the fork adds
@@ -37,8 +37,14 @@ goes to them (see [Credits](#credits)).
 | Shared affinity and guilds | An inhabitant's affinity is the same for all; joining a guild counts for the group. |
 | A guest plays like a solo player | Dozens of fixes since 0.26.399: death and will, the god's gifts, traps, spellbooks, healer, blessing, investing, runes, auto-dump, windows that used to open on the host, a gift taken out of a stack, a mount already taken, a log chopped with an axe, a prayer that heals companions, food in the bag that goes off… The list is in [`dev/DOCUMENTATION.md`](dev/DOCUMENTATION.md) (French). |
 | Companion orders per player | The two tactics checkboxes that rule your companions (follow from further away; stay near you in a fight instead of chasing an enemy you cannot see) are your own, not the host's. |
-| Home base set by a guest | Research and hearth skills are real requests to the host (it checks, pays once, everyone sees the result). Policies, beds, sale tags, notes, the name of the base, of the faction and of a teleporter: seen by the other player, both ways. |
+| Home base set by a guest | Research, hearth skills and policies are real requests to the host (it checks, pays once, everyone sees the result). Also the maid, a resident's type (resident or livestock), reserve, recall and sending away; chest settings (priority, filter...) both ways. Beds, sale tags, notes and names are seen by the other player, both ways. Host checkbox "only the host manages the base" (HostManagesBase, unchecked). |
 | Different Elin versions | Only the mod's version must be the same for everyone. Two players on different Elin versions can connect; they are told by a warning. A host checkbox ("Require the same Elin version", unchecked by default) asks for the same Elin version again. |
+| Building as a guest | A guest uses the base's build mode like the host: floors, walls, menu furniture, mining, digging, cutting, zones, the terrain tool. What one builds is seen by the other at once. Host checkbox "GuestBuild" (checked). |
+| Duels between players | "Challenge to a duel" in the menu on another player's character; the other answers a yes/no box, then a countdown. Nobody dies, both are healed, nothing is lost. Host checkbox "Duels" (checked). Not yet: arena, betting, give-up button. |
+| No killing between players | A player can no longer kill another player outside a duel. Host checkbox "PlayerKill" (unchecked). |
+| More solo behaviour for a guest | Bringing a companion back at the barman's, an item to copy at Kettle's, a spellbook at Demitas', the altar duel with the same result for all, tools and whips (wrench...) acting on the host's world, a prayer with no god, the guest's days and hours, shipping prices, the casino's scratch card. |
+| World kept on GitHub | A private GitHub repository can keep the shared world (third kind of depot, setting "github:owner/repository", one key). Closing the game during an upload waits for it and frees the world. |
+| A world that changes hands | Whoever takes the world over from the depot plays their own character, not the former host's; the former host gets theirs back when joining. |
 
 Most of these are a **checkbox on the host's side** (Esc → Mods → Elin Together → *Server Setting*); unchecked,
 the mod behaves like the original. Dungeon quests for two and the "a guest plays like a solo player" fixes have no
@@ -66,11 +72,15 @@ checkbox.
   game's code directly.
 - Dungeon quests for two, when the guest took the quest: subdue, harvest and music quests. Defense quests are still
   settled alone.
-- Home base settings changed by a guest: research, hearth skills, policies, beds, sale tags, notes and names (base,
-  faction, teleporter) work as for the host. Not yet: the maid, a resident's type and reserve, chest settings (on
-  the guest's own screen only).
-- A guest's build mode (floors, walls, mine / chop marks) only works on its own screen. For now, the host has to
-  build the base.
+- Home base: a guest's research, hearth, policies, resident settings and chest settings go through the host; nothing of this
+  has been played for real yet.
+- Not played for real: a guest's building (stock or bag items placed from the menu, bridges, dragging, digging, ramp mode, the
+  checkbox unchecked), blueprints and roof mode (refused with a message), chest filter box, duels (two real PCs, spells,
+  arrows, three players), killing between players by bleeding, poison, fire or spells, bringing a companion back with a
+  scroll or spell, shipping prices, the scratch card, the real GitHub from inside the game, two PCs.
+- Duels: no arena, betting or give-up button yet.
+- A world that changes hands: a world last hosted with an older version does not know whose character is whose; the
+  former host must host it once with this version before another player takes it over.
 - Different Elin versions: tested on a local connection only; through the Steam lobby, not played.
 - When the host returns to a map held by a guest, the guest's screen reloads (the guest is told first). The time it
   takes has not been measured between two PCs.

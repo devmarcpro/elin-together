@@ -2417,3 +2417,14 @@ Les cinq : duel sur place d'abord ; « aucune perte », pas de renommée perdue 
 - `e77ea83` duels 2 à 4 : patch appliqué (3 conflits avec la base, les deux cases gardées), relu ; correction : celui
   qui reste à 0 PV perd, quel que soit l'auteur du coup. `duel_suite` 90/91, D3 seul 13/13 (le test ne plaçait pas l'attaquant).
 - Piège : compiler juste après la fermeture du jeu peut ne rien installer ; mémoire du PC pleine en soirée (B12 interrompu).
+
+## 2026-10-05, 22h45 : G4, reprise du monde, version 0.26.493
+
+- `a577cfa` G4 : la libération du dépôt à la fermeture se faisait à `Application.quitting`, où le jeu n'est plus lisible ;
+  elle part de `NetShutdown.Shutdown`. Le premier essai (un drapeau) n'avait rien changé : rouge revu, puis 36/36.
+- `0a254ca` reprise du monde : `pc_owner` écrit à l'ouverture d'une session ; au chargement par un autre joueur qui a un
+  personnage dans le monde, échange (local, chef de groupe, compagnons, renommée, karma, quêtes aléatoires), sauvegarde,
+  rechargement. Pièges : au banc les deux fenêtres ont le même compte Steam (identité = `EmpConfig.Dev.Identity`) ; une
+  classe `internal` s'atteint dans un `eval` par `AccessTools.TypeByName` ; l'ancien host recevait la hache de départ.
+- Publication 0.26.493 demandée par l'utilisateur (« fais attention à ce que la release corresponde bien à la dernière
+  version nightly d'elin ») : branche nightly de Steam = build 25723206 = celui installé (EA 23.352).

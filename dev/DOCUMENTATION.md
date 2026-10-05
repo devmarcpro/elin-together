@@ -10,9 +10,8 @@ joueurs**. Chacun va où il veut, avec ses compagnons, et le monde (quêtes, bas
 - Journal détaillé (pièges, essais, dates) : `MODLOG.md`. Ce document-ci dit ce qui existe et comment s'en servir.
 - Les chemins `_tools/`, `_lab/`, `_shots/`, `_release/` de ce document sont relatifs à `dev/`. Le journal parle
   encore de `Documents\ElinMods\` : c'était leur place avant le 2026-10-02.
-- État : 2026-10-05, 19h30. Version **0.26.463** publiée (15h35, commit `895d5b0`, compilée pour Elin EA 23.352). Depuis,
-  20 commits testés et poussés (dernier : `1d698a5`), plus un travail écrit, en test, pas encore commité (base gérée
-  par un invité, section 7). Voir `HANDOFF.md` pour le détail à jour. Dossier de travail : `G:\ElinMods`.
+- État : 2026-10-05, soir. Dernière version publiée : **0.26.493** (compilée pour Elin EA 23.352 ; elle remplace la 0.26.463,
+  commit `895d5b0`). Voir `HANDOFF.md` pour le détail à jour. Dossier de travail : `G:\ElinMods`.
 - Ce document a été complété à 19h30 pour tout ce qui est nouveau depuis la 0.26.463 : les lignes ajoutées sont dans
   les tableaux de la section 1, les options (section 2), le dépôt GitHub (sections 3 et 4), les suites (section 5), les
   limites (section 6) et le reste à faire (section 7). Les paragraphes plus anciens gardent leur date.
@@ -89,11 +88,12 @@ aléatoires, renommée et karma personnels ; histoire commune), 5 pour tout le g
 | Personnage d'une sauvegarde solo (`ImportCharacter`, décochée par défaut) | le joueur peut amener le personnage d'une de ses sauvegardes | choix absent |
 | Mode construction pour les autres joueurs (`GuestBuild`, règle de session n° 12, cochée par défaut) | un invité construit dans la base, c'est le jeu qui tient la carte qui construit pour lui | refus avec un message, seul le jeu qui tient la carte construit |
 | Les joueurs peuvent se tuer (`PlayerKill`, règle n° 13, **décochée**) | un coup d'un joueur peut tuer le personnage d'un autre | le coup mortel laisse l'autre à 0 point de vie |
-| Seul l'host gère la base (`HostManagesBase`, règle n° 14, décochée) — **écrite, en test, pas commitée** | ce que les autres joueurs demandent à la base (recherche, compétences du foyer, politiques, noms, réglages d'objets, résidents, mode construction) est refusé avec un message ; l'host leur renvoie l'état qu'il tient ; quitter la base pour de bon reste à l'host dans tous les cas | chaque joueur gère la base comme l'host |
+| Seul l'host gère la base (`HostManagesBase`, règle n° 14, décochée, `23041ef`) | ce que les autres joueurs demandent à la base (recherche, compétences du foyer, politiques, noms, réglages d'objets, résidents, mode construction) est refusé avec un message ; l'host leur renvoie l'état qu'il tient ; quitter la base pour de bon reste à l'host dans tous les cas | chaque joueur gère la base comme l'host |
+| Duels entre joueurs (`AllowDuels`, règle n° 15, cochée) | « Challenge to a duel » dans le menu sur le personnage d'un autre joueur, boîte oui/non, compte à rebours, duel sur place ; personne ne meurt, les deux sont soignés, rien n'est perdu | pas de menu de duel |
 
 Les options sont envoyées aux clients à la connexion (`NetSessionRules`). Toute nouvelle fonction doit avoir sa case.
-Règles de session prises jusqu'à la clé 14 (12 `AllowGuestBuild`, 13 `AllowPlayerKill`, 14 `HostManagesBase`, cette
-dernière pas commitée) : la prochaine est la clé 15. Le dépôt GitHub n'a pas de case de l'host : c'est un réglage de chaque joueur (onglet « Client
+Règles de session prises jusqu'à la clé 15 (12 `AllowGuestBuild`, 13 `AllowPlayerKill`, 14 `HostManagesBase`, 15
+`AllowDuels`, `e77ea83`) : la prochaine est la clé 16. Le dépôt GitHub n'a pas de case de l'host : c'est un réglage de chaque joueur (onglet « Client
 Settings », comme les autres dépôts), voir section 3.
 
 ## 3. Installer
@@ -101,18 +101,19 @@ Settings », comme les autres dépôts), voir section 3.
 **Pour jouer (toi et ton ami, même zip des deux côtés)** : `_release/ElinTogether-independance.zip`, puis
 `Installer.bat`. `Desinstaller.bat` remet le mod du Workshop. Refaire le zip : `make_release.ps1`. Le zip n'est
 pas dans le dépôt : il se fabrique sur chaque machine.
-La dernière version publiée est la **0.26.463** (2026-10-05, 15h35, commit `895d5b0`, compilée pour Elin EA 23.352,
-https://github.com/devmarcpro/elin-together/releases/tag/independance-0.26.463). La 0.26.442 (commit `f096255`) était
-compilée pour 23.351 : remplacée. **Tout ce qui est décrit dans ce document comme « depuis la 0.26.463 » n'est pas dans
-cette version** (mode construction d'un invité complet, terrain, zones, dépôt GitHub, etc.) : une nouvelle version
-n'est pas faite, elle se publie seulement avec l'accord de l'utilisateur. Le zip de `_release` est celui de la dernière
+La dernière version publiée est la **0.26.493** (2026-10-05, au soir, compilée pour Elin EA 23.352,
+https://github.com/devmarcpro/elin-together/releases/tag/independance-0.26.493). Elle remplace la 0.26.463 (15h35, commit
+`895d5b0`) et la 0.26.442 (commit `f096255`, compilée pour 23.351). **Tout ce qui est décrit dans ce document comme « depuis
+la 0.26.463 » est dans la 0.26.493** (mode construction d'un invité complet, terrain, zones, base gérée par un invité,
+duels, dépôt GitHub, etc.) ; ce qui est écrit « depuis la 0.26.493 » n'y est pas : une nouvelle version se publie
+seulement avec l'accord de l'utilisateur. Le zip de `_release` est celui de la dernière
 publication ; il est aussi sur la page des versions du dépôt (https://github.com/devmarcpro/elin-together/releases) :
 c'est le lien à donner à un ami. La note de version est `NOTE_version.md`, les README des quatre langues ont
 8 captures dans `assets/screens/` (prises par `_tools/showcase.py`).
-**Le jeu de cette machine a un build de TEST plus récent que la 0.26.463** (`build.ps1`) : avant de jouer avec
+**Le jeu de cette machine peut avoir un build de TEST plus récent que la 0.26.493** (`build.ps1`) : avant de jouer avec
 quelqu'un, relancer `Installer.bat` du zip publié, sinon la connexion est refusée (versions différentes).
 
-**Garder le monde sur GitHub (dépôt « GitHub », depuis `1d698a5`, pas dans la 0.26.463).** C'est la troisième sorte de
+**Garder le monde sur GitHub (dépôt « GitHub », depuis `1d698a5`, dans la 0.26.493).** C'est la troisième sorte de
 dépôt du mode « sans Elin », avec un dossier partagé et Elin Together Server. Les quatre étapes sont aussi écrites dans
 le mod (onglet « Client Settings »). Celui qui est propriétaire du dépôt :
 1. crée sur github.com un dépôt **vide et privé**, uniquement pour ce monde (jamais le dépôt public du mod) ;

@@ -4,7 +4,7 @@ Fork du mod multijoueur ElinTogether pour le jeu Elin. But fixé par l'utilisate
 entre l'host et les autres joueurs**. Dépôt : https://github.com/devmarcpro/elin-together (public). Branche de
 travail : `fix/points-restants` ; `feat/independent-travel` (celle de GitHub) est au même commit. **Après chaque lot
 validé, pousser `feat/independent-travel`** (l'utilisateur suit le dépôt) ; **publier une nouvelle version demande
-toujours son accord** (dernière publiée : 0.26.463, 2026-10-05, compilée pour Elin EA 23.352). `upstream` (ElinTogether/ElinTogether) est le projet
+toujours son accord** (dernière publiée : 0.26.493, 2026-10-05, compilée pour Elin EA 23.352, la nightly du jour). `upstream` (ElinTogether/ElinTogether) est le projet
 d'origine : ne jamais y pousser.
 
 ## Par où commencer
