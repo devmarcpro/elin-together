@@ -627,7 +627,8 @@ internal partial class ElinNetClient
             Session.AwayZone.ZoneFullName);
 
         SendRejoin();
-        EmpPop.Information("emp_travel_recalled".lang());
+        // the screen reloads when the host answers: say who is coming and why
+        EmpPop.Information("emp_travel_recalled_by".lang(), Host);
     }
 
     /// <summary>

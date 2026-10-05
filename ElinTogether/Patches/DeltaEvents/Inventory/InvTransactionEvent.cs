@@ -45,9 +45,14 @@ internal static class InvTransactionEvent
             .Create(__instance.thing, __instance.num)
             .Send()
             .Then(thing => {
+                // the host gave what was left of the stack: pay for and take that, not what was asked
+                if (thing.Num > 0 && thing.Num < __instance.num) {
+                    __instance.num = thing.Num;
+                }
+
                 __instance.thing = thing;
                 __instance.Process(startTransaction);
-            });
+            }, () => EmpPop.Information("emp_ui_thing_gone".lang()));
 
         return false;
     }
