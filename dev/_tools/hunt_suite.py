@@ -16,6 +16,8 @@ D7  benediction d'une pretresse (vrai dialogue, ferme par Close) : le joueur et 
 D8  parchemin de retour : le retour se prepare dans le jeu du lecteur, il n'est pas teleporte au hasard chez l'host.
 D9  recette lue : chacun l'apprend une fois (avant : l'autre joueur l'apprenait deux fois).
 D11 carte au tresor lue : fenetre chez le lecteur seul, meme carte dans les deux jeux.
+D10 rune : fenetre chez celui qui s'en sert, rune posee et consommee dans les deux jeux (le choix est l'appel que
+    fait le clic dans la fenetre).
 D3  rangement automatique : l'invite range son sac dans un coffre regle pour ca ; les fenetres de l'host restent
     ouvertes et les objets de l'host restent dans son sac.
 
@@ -345,6 +347,40 @@ def d11(ctx):
         ev(H, f'var t = {chara(H, uid)}.things.Find(x => x.uid == {t}); if (t != null) t.Destroy(); "ok"')
 
 
+def d10(ctx):
+    """rune : la fenetre de choix s'ouvre chez celui qui s'en sert seulement, la rune est posee sur l'objet choisi chez
+    l'host et chez lui, et elle est consommee, l'invite comme l'host"""
+    for who, key in both(ctx):
+        port, uid = ctx[key]
+        other = H if port == A else A
+        close_layers()
+        rune = give_made(ctx, key, 'var t = ThingGen.CreateRune(66, 5);')
+        # un equipement qui accepte cette rune, cree par l'host dans le sac du joueur
+        gear = int(ev(H, f'var c = {chara(H, uid)}; var r = c.things.Find(x => x.uid == {rune}); for (var i = 0; i < 40; i++) {{ '
+                         'var t = ThingGen.CreateFromCategory(i % 2 == 0 ? "armor" : "weapon"); if (t.CanAddRune((TraitMod)r.trait)) '
+                         '{ return c.AddThing(t, false).uid.ToString(); } t.Destroy(); } return "0";'))
+        if not check(f"{who} : il a une rune ({rune}) et un equipement qui l'accepte ({gear})", bool(gear)
+                     and eventually(lambda: ev(port, f'(EClass.pc.things.Find(x => x.uid == {gear}) != null).ToString()') == "True", timeout=10)):
+            continue
+        runes = lambda p: ev(p, f'var t = {chara(p, uid)}.things.Find(x => x.uid == {gear}); return t == null ? "absent" : t.CountRune().ToString();')  # noqa: E731
+        theirs0 = screen(other)
+        awake(port)
+        ev(port, f'var t = EClass.pc.things.Find(x => x.uid == {rune}); t.trait.OnUse(EClass.pc); "ok"')
+        opened = eventually(lambda: "LayerDragGrid" in screen(port), timeout=10)
+        check(f"{who} se sert de la rune : la fenetre de choix s'ouvre chez lui ({screen(port)})", opened)
+        check(f"{who} : rien ne bouge chez l'autre joueur ({screen(other)})", screen(other) == theirs0)
+        r = ev(port, f'var g = LayerDragGrid.Instance; var t = EClass.pc.things.Find(x => x.uid == {gear}); '
+                     'if (g == null || t == null || !EClass.ui.layers.Contains(g)) return "fenetre ou objet absent"; '
+                     'var b = g.owner.buttons[g.currentIndex]; b.SetCardGrid(t, b.invOwner); g.owner.OnProcess(t); return "ok";')
+        check(cond=eventually(lambda: runes(H) == "1", timeout=10), label=f"{who} choisit l'equipement ({r}) : la rune y est, chez l'host ({runes(H)})")
+        check(cond=eventually(lambda: runes(A) == "1", timeout=10), label=f"{who} : et chez l'invite ({runes(A)})")
+        check(cond=eventually(lambda: ev(H, f'({chara(H, uid)}.things.Find(x => x.uid == {rune}) == null).ToString()') == "True"
+                              and ev(port, f'(EClass.pc.things.Find(x => x.uid == {rune}) == null).ToString()') == "True", timeout=10),
+              label=f"{who} : la rune est consommee, dans les deux jeux")
+        close_layers()
+        ev(H, f'var c = {chara(H, uid)}; foreach (var u in new[] {{ {rune}, {gear} }}) {{ var t = c.things.Find(x => x.uid == u); if (t != null) t.Destroy(); }} "ok"')
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--only")
@@ -353,7 +389,7 @@ def main():
     t0 = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
 
     ctx = {"a": (A, state(A)["pc"]["uid"]), "h": (H, state(H)["pc"]["uid"])}
-    steps = [d1, d2, d3, d4, d5, d6, d7, d8, d9, d11]
+    steps = [d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11]
     if a.only:
         steps = [s for s in steps if s.__name__ in a.only.split(",")]
     for step in steps:

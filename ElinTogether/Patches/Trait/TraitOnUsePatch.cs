@@ -35,6 +35,8 @@ internal class TraitOnUsePatch
             AccessTools.Method(typeof(TraitBookRoster), nameof(TraitBookRoster.OnUse), [typeof(Chara)]),
             AccessTools.Method(typeof(TraitDetector), nameof(TraitDetector.OnUse), [typeof(Chara)]),
             AccessTools.Method(typeof(TraitGeneratorWheel), nameof(TraitGeneratorWheel.OnUse), [typeof(Chara)]),
+            // runes and plugs (TraitRune, TraitModRanged inherit it): the pick goes back by InvOwnerOnProcessDelta
+            AccessTools.Method(typeof(TraitMod), nameof(TraitMod.OnUse), [typeof(Chara)]),
             // the action mode of the local player
             AccessTools.Method(typeof(TraitPainter), nameof(TraitPainter.OnUse), [typeof(Chara)]),
             AccessTools.Method(typeof(TraitViewMap), nameof(TraitViewMap.OnUse), [typeof(Chara)]),
