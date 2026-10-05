@@ -1,3 +1,4 @@
+using ElinTogether.Helper;
 using ElinTogether.LangMod;
 using UnityEngine;
 
@@ -38,12 +39,17 @@ internal class TabClientConfiguration : TabEmpBase
 
         var password = EmpConfig.Client.DepotPassword;
         btnGroup.Button("emp_ui_depot_password".Loc(password.Value.Length > 0 ? "***" : "-"), () => {
-            Dialog.InputName("emp_ui_depot_password_ask", password.Value, (cancel, text) => {
-                if (!cancel) {
+            // a password or an access key is never shown again: the box opens empty. Left empty, a GitHub key is
+            // kept (a depot of Elin Together Server may have no password: there, empty removes it)
+            Dialog.InputName("emp_ui_depot_password_ask", "", (cancel, text) => {
+                if (!cancel && !(SaveDepot.GitHub && text.Trim().Length == 0)) {
                     password.Value = text.Trim();
                     LayerElinTogether.Instance?.Reopen();
                 }
             });
         }).SetTooltipLang(password.Description.Description);
+
+        // how a private GitHub repository becomes the depot, where it is set
+        Text("emp_ui_depot_gh_help".lang());
     }
 }
