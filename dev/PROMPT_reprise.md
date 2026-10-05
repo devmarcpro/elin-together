@@ -2,7 +2,7 @@
 
 Pour un travail **sans arrêt**, tape `/loop` puis colle le texte ci-dessous juste après, dans une nouvelle session
 ouverte dans **`G:\ElinMods`** (le dossier a été déplacé le 2026-10-04 ;
-`C:\Users\steamdeckwin\Documents\ElinMods` n'est plus qu'un raccourci vers lui). État décrit : 2026-10-05, 14h15.
+`C:\Users\steamdeckwin\Documents\ElinMods` n'est plus qu'un raccourci vers lui). État décrit : 2026-10-05, 14h45 (session arrêtée à ma demande pour compacter ; rien en cours, arbre propre).
 
 ---
 
@@ -19,7 +19,7 @@ avec un seul ami comme host : chaque chose doit marcher dans les deux sens à de
 
 1. Charge le skill `ponytail:ponytail` (le plus petit changement qui marche) et garde-le. Active Remote Control.
 2. Lis : `CLAUDE.md`, puis `dev/HANDOFF.md` en entier (l'état exact, les branches, ce qui est « pas joué »), la fin de
-   `dev/MODLOG.md` à partir de « Étape D suite, Elin 23.352 », `dev/PLAN_chasse_differences_2.md` (la liste de travail
+   `dev/MODLOG.md` à partir de « Étape D suite, Elin 23.352 » (deux entrées : celle-là et « Étape E commencée »), `dev/PLAN_chasse_differences_2.md` (la liste de travail
    de l'étape E), puis au besoin `dev/PLAN_egalite_invites.md`, `dev/PLAN_chasse_differences.md`, `dev/NOTE_version.md`.
 3. Vérifie l'état : `git status` et `git branch` dans `G:\ElinMods\ElinTogether`. Tu dois être sur
    **`fix/points-restants`** (la branche de travail). `feat/independent-travel` est au même commit et **poussée sur
@@ -38,21 +38,42 @@ avec un seul ami comme host : chaque chose doit marcher dans les deux sens à de
 **Fait** (ne le refais pas) : tout ce qui est dans la 0.26.442 ; depuis, la base réglée par un invité (recherche et
 foyer en demandes à l'host, politiques, lits, étiquettes, notes, noms), « ne pas vagabonder » par joueur, le don d'un
 objet pris dans une pile, la monture déjà prise, les quêtes de récolte et de musique de l'invité à deux, la deuxième
-chasse aux différences (lue, pas jouée). Tout est poussé sur GitHub.
+chasse aux différences (lue ; ses lignes 2, 5 et 6 sont corrigées et testées : rondin à la hache, prière qui soigne
+les compagnons, nourriture du sac ; `hunt2_suite.py` 21/21), la barrière de version d'Elin levée (`version_suite`
+8/8). Tout est poussé sur GitHub ; le dernier commit est `docs: step E started, state for a restart`. Le jeu de cette
+machine contient un build de TEST (Debug) : avant de jouer avec quelqu'un, installe le zip de la version publiée.
 
 1. **Jouer la barrière de version** (faite à 14h15, commit `ee374b7`, `version_suite` 8/8 en connexion locale). Ma
    demande : « rendre les futures versions du mod compatibles avec les futures versions d'Elin sans forcément le mettre
    à jour, ne pas avoir de barrière ». Maintenant seule la version du MOD doit être la même ; une version d'Elin
    différente = un avertissement ; une case côté host revient au contrôle strict. Le chemin par le salon Steam n'est pas
    joué : à essayer à deux PC (ma liste d'essais, point 9), rien à réécrire avant.
-2. **Republier une version compilée sur 23.352** : propose-le moi dans ton résumé, je dirai oui. Avant : refaire
-   tourner les suites larges sur 23.352 (`run_short.sh`, puis `travel_suite` et `shared_suite` seules).
-3. **Étape E = `dev/PLAN_chasse_differences_2.md`** (37 lignes lues dans le code, rien de joué), en commençant par les
-   lignes hautes : 1 (mode construction d'un invité : il paie, rien ne se construit chez l'host) et 2 (tailler un
-   rondin à la hache). Puis les « sûr » : 6 nourriture du sac de l'invité qui ne pourrit jamais, 25 prière sans dieu,
-   26 prix d'expédition, 30 carte à gratter du casino, 33 jours et relance des quêtes, 36 Mifu / Nefu / Aquli ; puis les
-   « probable » (5 prière qui ne soigne que l'invité, 8 résurrection d'un compagnon, 7 réglages de coffre, 9 copie chez
-   Kettle…). Un test rouge puis vert par ligne ; écris l'état dans le plan.
+2. **Publier une nouvelle version, compilée sur Elin 23.352 : j'ai dit OUI le 5 octobre à 14h40.** C'est la première
+   chose à faire. Dans l'ordre : (a) `devuild.ps1`, puis les suites larges, chacune sur un jeu relancé :
+   `bash _tools/run_short.sh pub equal2_suite council_suite hunt_suite hunt2_suite together_suite death_suite
+   parity_suite sleep_suite recruit_suite quest_suite instance_suite trade_suite base_suite setting_suite
+   unplayed_suite version_suite leave_suite guest_suite`, puis `travel_suite` seule (elle lance le jeu elle-même) ; un
+   rouge isolé se relance seul avant de conclure. (b) Mets à jour les README (4 langues : nouveautés et limites depuis
+   la 0.26.442, « compilé pour EA 23.352 », la ligne sur les versions d'Elin différentes) et refais les captures
+   (`python _tools/showcase.py`) si une nouveauté se montre. (c) `dev/NOTE_version.md` : nouvelle note (français puis
+   anglais) pour cette version. (d) Avance `feat/independent-travel`, `git checkout feat/independent-travel` le temps
+   de `dev\make_release.ps1` (le numéro de version vient du nombre de commits : lis-le sur la DLL installée), copie
+   le zip sous `dev/_release/ElinTogether-independance-<version>.zip`, pousse, puis
+   `python dev/_tools/publish_release.py <version> <commit entier> dev/NOTE_version.md dev/_release/ElinTogether-independance.zip`
+   (il vérifie que le zip en ligne est identique). Reviens sur `fix/points-restants` et refais `devuild.ps1`.
+   (e) Donne-moi le lien et dis-moi ce qui n'a pas été rejoué.
+3. **Étape E = `dev/PLAN_chasse_differences_2.md`** (37 lignes lues dans le code ; 2, 5 et 6 faites). Le plus gros
+   d'abord : **ligne 1, le mode construction d'un invité** (il paierait matériaux et or sans que rien ne se construise
+   chez l'host ; ses marques « miner / couper… » ne seraient jamais vues des habitants ; ce que l'host construit
+   n'apparaîtrait pas chez l'invité) avec les lignes 3 et 4. Marche à suivre : un agent `sonnet` en lecture seule écrit
+   les faits dans `dev/PLAN_construction_invite.md` (comment marche le mode construction en solo, ce que fait le mod
+   pour chaque geste, comment les cases de la carte sont tenues à jour entre les jeux, 2 à 4 options avec leur coût,
+   comment un test peut faire le geste) ; un test rouge prouve le défaut ; le conseil tranche ; puis écriture, relecture,
+   test. (Cet agent avait été lancé puis arrêté à 14h45 : le fichier n'existe peut-être pas, relance-le.) Ensuite :
+   8 résurrection d'un compagnon, 7 réglages de coffre (étendre `InvSaveDataDelta`), 9 copie chez Kettle, 10 duel
+   d'autel, 11, puis les « sûr » du bas : 25 prière sans dieu, 26 prix d'expédition, 30 carte à gratter du casino,
+   33 jours et relance des quêtes, 36 Mifu / Nefu / Aquli. Un test rouge puis vert par ligne ; écris l'état dans le
+   plan.
 4. **Ce qui reste du conseil 4** : servante, type et réserve d'un résident, réglages de coffre ; **mesurer le
    rechargement de l'invité au retour de l'host** pendant ma soirée d'essai (n'alléger qu'au-delà de 5 s).
 5. **Défense à deux** (quêtes à donjon, quand l'invité a la quête : le cor, les vagues et la prime sont tenus par celui
@@ -107,8 +128,8 @@ chasse aux différences (lue, pas jouée). Tout est poussé sur GitHub.
 
 ## Ce qu'il ne faut pas faire
 
-- Ne publie pas de nouvelle version et ne retire aucune ancienne version sans mon accord : propose-le dans ton résumé,
-  je dirai oui. (La dernière publiée : 0.26.442.) Ne pousse jamais sur `upstream`.
+- Ne publie pas d'autre version que celle du point 2 (déjà accordée) et ne retire aucune ancienne version sans mon
+  accord : propose-le dans ton résumé, je dirai oui. (La dernière publiée : 0.26.442.) Ne pousse jamais sur `upstream`.
 - Ne touche jamais à mes vraies sauvegardes (les tests utilisent `world_lab`) ni à mon dossier
   `Documents\ElinTogetherServer`.
 - Ne déplace pas `_lab` : les copies de test du jeu sont des liens vers le jeu Steam, elles doivent rester sur C:.
@@ -127,6 +148,5 @@ simple, sans t'arrêter ensuite :
 - les questions qui restent pour moi.
 
 Questions déjà ouvertes, auxquelles je répondrai quand je pourrai : ma soirée d'essai avec la 0.26.442 et les
-nouveautés depuis (la liste d'essais est dans `HANDOFF.md`) et l'essai de la carte au trésor à deux ; republier une
-version compilée sur 23.352 ; la barrière de version faite (Elin différent = avertissement, case côté host pour le
+nouveautés depuis (la liste d'essais est dans `HANDOFF.md`) et l'essai de la carte au trésor à deux ; (republier sur 23.352 : j'ai dit oui) ; la barrière de version faite (Elin différent = avertissement, case côté host pour le
 contrôle strict) : est-ce bien ce que je voulais ? ; quel mod fournit les quêtes `dmp_quest_*`.

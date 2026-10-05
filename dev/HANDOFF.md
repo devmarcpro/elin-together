@@ -223,3 +223,13 @@ Prairie. Les anciens pièges sont dans `MODLOG.md`.
 - Reprendre par la ligne 1 de `PLAN_chasse_differences_2.md` (mode construction d'un invité), test rouge d'abord ;
   détail et ordre dans la dernière entrée de `MODLOG.md`.
 - À proposer à l'utilisateur : publier une version compilée sur Elin 23.352 (la 0.26.442 date de 23.351).
+
+## Arrêt de 14h45 (demandé par l'utilisateur, pour compacter la session)
+
+- Rien en cours : arbre propre, tout poussé, aucun Elin ouvert, aucun agent en route. Le jeu de cette machine contient
+  un build de test (Debug) du dernier commit : avant de jouer avec quelqu'un, `Installer.bat` du zip publié.
+- **L'utilisateur a dit oui (14h40) à une nouvelle version compilée sur Elin 23.352** : c'est la première chose à
+  faire à la reprise ; la marche à suivre exacte est le point 2 de `PROMPT_reprise.md` (suites larges d'abord).
+- Ensuite : ligne 1 de `PLAN_chasse_differences_2.md` (mode construction d'un invité). L'agent qui devait écrire les
+  faits dans `dev/PLAN_construction_invite.md` a été arrêté avant la fin : le relancer.
+- Pour reprendre : coller le contenu de `dev/PROMPT_reprise.md` (à jour à 14h45) dans une nouvelle session.
