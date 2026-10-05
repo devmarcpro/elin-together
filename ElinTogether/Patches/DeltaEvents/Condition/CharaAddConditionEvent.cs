@@ -66,6 +66,18 @@ internal static class CharaAddConditionEvent
             });
         }
 
+        // deep water takes the breath of "the player" only, and the host does not see another player as one: this
+        // game says when its own player is under, the host gives the condition (and its phases come back from there)
+        if (__instance.IsPC && c is ConSuffocation && !ElinDelta.IsApplying &&
+            NetSession.Instance.Connection is ElinNetClient diver) {
+            diver.Delta.AddRemote(new CharaAddConditionDelta {
+                Owner = __instance,
+                ConditionId = c.id,
+                Power = c.power,
+                Force = force,
+            });
+        }
+
         return false;
     }
 

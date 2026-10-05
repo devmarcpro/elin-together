@@ -26,7 +26,8 @@ public class CharaAddConditionDelta : ElinDelta
 
     internal static bool IsTrapCondition(string alias)
     {
-        return alias is nameof(ConSleep) or nameof(ConBlind) or nameof(ConParalyze);
+        // and the breath lost under deep water, which only the diver's own game notices
+        return alias is nameof(ConSleep) or nameof(ConBlind) or nameof(ConParalyze) or nameof(ConSuffocation);
     }
 
     /// <summary>
