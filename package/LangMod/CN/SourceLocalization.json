@@ -204,5 +204,14 @@
     "LangGeneral.emp_quest_follow_ask.text": "{0} 出发去做任务了：要同行吗？报酬归 {0}。",
     "LangGeneral.emp_quest_follow_declined.text": "{0} 拒绝了同行。",
     "LangGeneral.emp_quest_follow_no_answer.text": "{0} 没有回应。",
-    "LangGeneral.emp_quest_follow_asked.text": "正在询问 {0} 是否同行……"
+    "LangGeneral.emp_quest_follow_asked.text": "正在询问 {0} 是否同行……",
+    "LangGeneral.emp_base_host_only.text": "目前只有主机可以这样做。",
+    "LangGeneral.emp_trade_equipped.text": "交易取消：提供的物品已被装备",
+    "LangGeneral.emp_trade_nodrop.text": "交易取消：提供的物品无法丢弃或转让",
+    "LangGeneral.emp_trade_npcprop.text": "交易取消：提供的物品属于NPC",
+    "LangGeneral.emp_trade_gifted.text": "交易取消：提供的物品是礼物，无法交易",
+    "LangGeneral.emp_trade_bound.text": "交易取消：提供的物品已与某个角色绑定",
+    "LangGeneral.emp_trade_full.text": "交易取消：有玩家的背包空位不足，放不下将收到的物品",
+    "LangGeneral.emp_travel_recalled_by.text": "{@Peer} 即将来到此地：画面将重新加载以便汇合…",
+    "LangGeneral.emp_ui_thing_gone.text": "来晚了：已被其他玩家取走"
 }
