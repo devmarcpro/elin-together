@@ -5,7 +5,8 @@ Test court, sur des instances deja lancees (host + 1 client, tous les deux a la 
     python _tools/setting_suite.py            # ou --only s1,s3
 
 S1  note ecrite sur un meuble.   S2  etiquette de vente (posee puis retiree, avec l'etiquette tenue en main).
-S3  lit : le reclamer, en changer le type.   S4  politiques de la base (vraie fenetre, vrai clic sur la politique).
+S3  lit : le reclamer, en changer le type.   S5  nom de la base.   S6  nom d'un teleporteur.
+S4  politiques de la base (vraie fenetre, vrai clic sur la politique).
 Avant : chaque jeu ne changeait que sa copie (l'host, qui fait vivre les habitants et sauvegarde, ne voyait rien).
 """
 import argparse
@@ -126,6 +127,43 @@ def s4(ctx):
                 ev(p, 'foreach (var l in EClass.ui.layers.ToList()) l.Close(); "ok"')
 
 
+def s5(ctx):
+    """nom de la base : celui qu'un joueur lui donne est lu par l'autre
+    Ce que le banc ne joue pas comme un joueur : la saisie ; il pose le nom comme la validation de la boite le fait"""
+    name0 = ev(H, "EClass._zone.name ?? \"\"")
+    for who, key in both(ctx):
+        port, uid = ctx[key]
+        other = H if port == A else A
+        name = f"Base de {key}"
+        ev(port, f'EClass._zone.name = "{name}"; EClass._zone.idPrefix = 0; WidgetDate.Refresh(); "ok"')
+        read = lambda p: ev(p, "EClass._zone.name ?? \"\"")  # noqa: E731
+        check(cond=eventually(lambda: read(other) == name, timeout=10), label=f"{who} renomme la base : l'autre joueur lit le nouveau nom ({read(other)!r})")
+    if name0:
+        ev(H, f'EClass._zone.name = "{name0}"; "ok"')
+        eventually(lambda: ev(A, "EClass._zone.name ?? \"\"") == name0, timeout=10)
+
+
+def s6(ctx):
+    """nom d'un teleporteur : celui qu'un joueur lui donne arrive chez l'autre, avec le registre qui relie les teleporteurs
+    Ce que le banc ne joue pas comme un joueur : la saisie ; il fait ce que fait la validation (id puis teleports.SetID)"""
+    tp = first_id("Teleporter")
+    if not check(f"le jeu a un teleporteur ({tp})", bool(tp)):
+        return
+    for who, key in both(ctx):
+        port, uid = ctx[key]
+        other = H if port == A else A
+        t = furniture(uid, f'ThingGen.Create("{tp}")')
+        try:
+            name = f"porte-{key}"
+            ev(port, f'var t = (TraitTeleporter){thing(t)}.trait; t.id = "{name}"; EClass.game.teleports.SetID(t, EClass._zone.uid); "ok"')
+            read = lambda p: ev(p, f'var t = {thing(t)}; if (t == null) return "absent"; var i = EClass.game.teleports.items.TryGetValue(t.uid); '  # noqa: E731
+                                   'return ((TraitTeleporter)t.trait).id + "/" + (i == null ? "" : i.id);')
+            check(cond=eventually(lambda: read(other) == f"{name}/{name}", timeout=10),
+                  label=f"{who} nomme le teleporteur : l'autre joueur a le nom et le registre ({read(other)})")
+        finally:
+            ev(H, f'var t = {thing(t)}; if (t != null) t.Destroy(); "ok"')
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--only")
@@ -133,7 +171,7 @@ def main():
     sys.stdout.reconfigure(encoding="utf-8")
     t0 = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
     ctx = {"a": (A, state(A)["pc"]["uid"]), "h": (H, state(H)["pc"]["uid"])}
-    steps = [s1, s2, s3, s4]
+    steps = [s1, s2, s3, s4, s5, s6]
     if a.only:
         steps = [s for s in steps if s.__name__ in a.only.split(",")]
     for step in steps:

@@ -48,6 +48,16 @@ internal static class CardSettingEvent
 
 }
 
+[HarmonyPatch(typeof(TeleportManager), nameof(TeleportManager.SetID))]
+internal static class TeleporterSettingEvent
+{
+    [HarmonyPostfix]
+    internal static void OnSetId(TraitTeleporter t)
+    {
+        CardSettingEvent.Tell(t.owner, CardSettingDelta.Teleporter);
+    }
+}
+
 [HarmonyPatch]
 internal static class BedSettingEvent
 {
