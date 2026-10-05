@@ -99,21 +99,23 @@ internal static class SaveDepot
     private static bool Holding => Enabled && EClass.core.IsGameStarted && Game.id == WorldId &&
                                    NetSession.Instance.Transport is not ElinNetClient;
 
-    static SaveDepot()
+    /// <summary>
+    ///     The game closes without going through the title screen: the last save still goes to GitHub and the world
+    ///     is freed, the time it takes. Called while the game is still whole (NetShutdown): later, at
+    ///     Application.quitting, its objects are gone and nothing here can be read
+    /// </summary>
+    internal static void OnQuit()
     {
-        // the game closed without going through the title screen: the last save still goes to GitHub and the
-        // world is freed, the time it takes
-        Application.quitting += () => {
-            try {
-                if (GitHub && Holding) {
-                    ReleaseAtTitle(Scene.Mode.Title);
-                }
-
-                _asking.Wait(30000);
-            } catch (Exception) {
-                // the save is on this PC, and the lock expires by itself
+        try {
+            if (GitHub && Holding) {
+                ReleaseAtTitle(Scene.Mode.Title);
             }
-        };
+
+            _asking.Wait(30000);
+        } catch (Exception ex) {
+            // the save is on this PC, and the lock expires by itself
+            EmpLog.Warning(ex, "Could not free the depot at the exit");
+        }
     }
 
     /// <summary>
