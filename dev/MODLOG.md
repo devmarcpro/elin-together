@@ -2032,7 +2032,7 @@ correction, puis le vert.
 - **À faire ensuite** : voir `dev/HANDOFF.md` (état à 2h45). En tête : finir la chasse (liste « pas encore traités »),
   puis l'étape D, puis l'étape E.
 
-### Conseil 4 : l'étape D (2026-10-05, 3h30) — reprendre ici
+### Conseil 4 : l'étape D (2026-10-05, 3h30)
 
 - **Faits rassemblés avant le conseil** (deux agents, lecture seule ; rapports non gardés dans le dépôt, l'essentiel ici).
   Base : l'invité règle sa copie, rien ne remonte ; quatre actions font payer pour rien (recherche, plans, foyer,
@@ -2073,3 +2073,83 @@ correction, puis le vert.
   points de vie pleins, sinon le repos s'arrête dès qu'on est guéri, avant le bain (comme en solo).
 - Corrections de la chasse faites après 2h45 : pied-de-biche (D13, vert) ; **pas jouées** : noyade en eau profonde
   (pas d'eau profonde à la Prairie), ticket d'hôtesse, fenêtres d'alias / du retour du vide / de la caisse de ferme.
+
+### Version 0.26.442, étape D premier lot (2026-10-05, 2h45 → 9h30) — reprendre ici
+
+- **But** : appliquer le premier lot du conseil 4 (étape D), prouver qu'il ne casse rien, puis publier. Un commit par
+  point sur `fix/points-restants` (`fb7a507` à `211658e`).
+
+**Version 0.26.442 publiée (vers 9h25)**
+
+- Préversion `independance-0.26.442` : https://github.com/devmarcpro/elin-together/releases/tag/independance-0.26.442
+  (commit `f096255`, suivi de `2935741` pour la note de version ; zip vérifié identique à celui fabriqué). L'utilisateur
+  l'a demandée (« ça fait un moment que t'as pas fait de release ni mis à jour le readme », puis « oui publie », puis
+  « rajoute des captures d'écran au readme »).
+- `feat/independent-travel` a été avancée sur `fix/points-restants` et **poussée sur GitHub** : les deux branches sont
+  au
+  même commit (`2935741`). `wip/lots-non-compiles` reste en retard, gardée.
+- README des quatre langues mis à jour, avec 8 captures dans `assets/screens/`, prises par `dev/_tools/showcase.py` (qui
+  sait maintenant photographier les quêtes à deux et le message de la base). Note de version : `dev/NOTE_version.md`.
+- **Le jeu de cette machine a la version publiée (build Release)** : `dev/build.ps1` avant tout test.
+- **Nouvelle habitude demandée par l'utilisateur** (« ça fait 11h que t'as pas commit » : il suit le dépôt sur GitHub) :
+  **pousser `feat/independent-travel` après chaque lot validé** (l'avancer sur `fix/points-restants`, sans changer de
+  branche courante, puis `git push origin feat/independent-travel`). Une nouvelle version publiée demande toujours son
+  accord. L'ancienne règle « ne
+  rien pousser » est abandonnée (corrigée dans `CLAUDE.md`, `PROMPT_reprise.md`, `HANDOFF.md`).
+
+**Étape D, premier lot (conseil 4), commits `9155835` à `211658e`**
+
+- **Consigne « ne pas s'éloigner »** propre à chaque joueur, pour ses compagnons (`9155835`, `hunt_suite` D14 vert). «
+  Ne
+  pas vagabonder » lit encore le jeu qui simule.
+- **Karma d'un visiteur** chez un teneur de carte : le visiteur le lui annonce, gardé en mémoire seulement (`927f342`).
+  PAS JOUÉ.
+- **Base réglée par un invité** (`06a0f94`) : recherche et compétences du foyer refusées avec un message (avant : payé
+  pour
+  rien). Nouvelle suite `base_suite.py`, 53/53. **Constat** : les étapes de dialogue « acheter des plans » et «
+  améliorer
+  le foyer » n'existent dans aucun dialogue du jeu installé (le foyer monte tout seul) : rien à bloquer là. Reste : en
+  faire de vraies demandes à l'host (en cours d'écriture à 9h30).
+- **Échange** (`9cd8062`) : refuse ce que le jeu solo refuse de donner (non lâchable, propriété d'un PNJ, cadeau, lié),
+  refuse avant tout transfert si le sac de l'autre est plein, message pour un objet équipé. `trade_suite` R6 à R11,
+  122/122.
+- **Tri du sac** (`5ffa169`) : ne change plus le tri de l'autre joueur ; seul le réglage partagé / personnel d'un
+  conteneur
+  de la carte voyage. PAS JOUÉ.
+- **Messages** (`211658e`) : « déjà vendu » au second acheteur du même objet ; message qui nomme l'host avant le
+  rechargement de l'écran de l'invité. PAS JOUÉS.
+- **Chasse, suite** : pied-de-biche forcé aussi chez l'host (`fb7a507`, D13 vert, le rouge lu dans le code) ; noyade en
+  eau
+  profonde (`cf62040`, D12 saute : pas d'eau profonde sur la carte de test), ticket d'hôtesse (`ab73333`), fenêtres
+  d'alias,
+  de retour du vide et de caisse de ferme (`2239dde`) : corrigés, PAS JOUÉS.
+
+**Non-régression avant publication** : chaque suite sur un jeu relancé (`run_short.sh`, journaux `_shots/*-regr3.log`,
+`*-regr4.log`, `travel_suite-regr5.log`) : equal2 35/35, together 107/107, death 11/11, parity 15/15, sleep 32/32,
+recruit
+45/45, quest 59/59, instance 32/32, trade 122/122, hunt (D1 à D14) vert, base 53/53, guest 317/317, leave 13/13, travel
+54/54, council vert (C5 pièges : 9/9 seul). **Non relancées** : `shared_suite` et `trio_suite` (trois fenêtres),
+`companion_suite`, les suites du serveur.
+
+**Pièges du matin**
+
+- `run_short.sh` ne sait pas lancer les suites qui lancent elles-mêmes le jeu (`travel_suite`, `shared_suite`) : les
+  lancer seules, jeu fermé.
+- Un test qui dépend d'un tirage du jeu peut échouer une fois : C5 (quatre pièges de sommeil évités de suite) ; D3 (la
+  matière d'un seau est tirée au hasard et le coffre ne prend que ce qui s'empile : le test copie maintenant les mêmes
+  seaux).
+- Le « Yes. » des boîtes du jeu a un point : chercher le bouton par `StartsWith`.
+- Une fenêtre Elin peut rester après `Stop-Process` : vérifier, puis `taskkill /PID <n> /F`.
+
+**Pas testé** (à dire tel quel) : tout ce qui est marqué PAS JOUÉ ci-dessus ; tout ce que l'utilisateur doit jouer à
+deux
+PC (voir sa liste dans `HANDOFF.md`) ; les suites non relancées ; le temps de rechargement de l'invité au retour de
+l'host
+(à chronométrer pendant la soirée d'essai).
+
+**À faire ensuite, dans l'ordre du conseil** : recherche et compétences du foyer d'un invité en vraies demandes à l'host
+(en cours) ; objets de la carte réglés par un invité (lit, étiquettes de vente, notes) ; politiques ; monture déjà prise
+refusée ; mesurer le rechargement au retour de l'host ; puis les points de la chasse non traités (n°4 reste de la base,
+8
+machine à gènes, 17, 19, 25 à 28) et l'étape E. Écrire des tests pour tout ce qui est « PAS JOUÉ ». Voir `HANDOFF.md`
+(état à 9h30).

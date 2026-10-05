@@ -12,7 +12,8 @@ ligne est à prouver par un test rouge avant d'être corrigée. Le rapport compl
 ligne) n'est pas dans le dépôt ; il se refait en relisant les classes citées.
 
 **Suite, 2026-10-05** : la chasse aux différences (`PLAN_chasse_differences.md`, `hunt_suite.py`) a repris cette
-liste et l'a prolongée ; M14 (réglages de la base) recoupe son n°4, encore à faire.
+liste et l'a prolongée ; M14 (réglages de la base) recoupe son n°4, en cours (recherche et compétences du foyer :
+refusées pour un invité, `06a0f94`, `base_suite` ; le reste : voir plus bas, « Mis à jour le 2026-10-05, 9h30 »).
 
 ## Les sept mécanismes
 
@@ -113,8 +114,9 @@ clé (faux), teinture (`88f1241`)… sans effet ou pas consommés · L10 petits 
 codex, fièvre de pêche…) · L11 un invité déjà repu qui mange perd la nourriture pour rien. Aussi corrigés avec
 `equal2_suite` : laisse (`8f39634`, G36), appel à l'aide (`cf4797d`, E1), abattage (`299c8bd`, E2).
 
-Vu en passant, pareil pour tous : pendant une session, se reposer finit vite en sommeil (ou en demande de
-sommeil), parce que le mod rend « peut dormir » toujours vrai. À voir avec H1.
+Vu en passant, pareil pour tous : pendant une session, se reposer finissait vite en sommeil (ou en demande de
+sommeil), parce que le mod rend « peut dormir » toujours vrai. **Corrigé depuis `a9fe6ee` (2 octobre, avec H1)** :
+la remarque est périmée (revérifié le 2026-10-05 : `sleep_suite` 32/32).
 
 ### Soupçons, pas suivis dans le code
 Tirages faits une fois de chaque côté (mutations, maladie de l'éther) ; mana ou endurance changés par quelqu'un
@@ -151,6 +153,19 @@ tableau ci-dessus et `MODLOG.md`.
 **Mis à jour le 2026-10-05, 1h05** : tout ce qui est marqué corrigé ci-dessous l'est, avec son commit et son
 test (branche `fix/points-restants`). Restent : consigne « ne pas s'éloigner », karma sur la carte d'un invité,
 mutations, M14.
+
+**Mis à jour le 2026-10-05, 9h30** (version 0.26.442, branche `fix/points-restants`) :
+- consigne « ne pas s'éloigner » : **corrigée** `9155835` (propre à chaque joueur ; D14). « Ne pas vagabonder » lit
+  encore
+  le jeu qui simule ;
+- karma sur la carte d'un invité : **corrigé** `927f342` (le visiteur l'annonce au teneur, en mémoire seulement ;
+  **pas joué**) ;
+- M14 : recherche et compétences du foyer refusées pour un invité, avec un message (`06a0f94`, `base_suite` 53/53). Les
+  étapes « acheter des plans » et « améliorer le foyer » n'existent dans aucun dialogue du jeu installé. **À faire** :
+  en demandes vérifiées par l'host ; puis lit, étiquettes de vente, notes (objets de la carte), puis politiques ;
+- échange (objets non lâchables, sac plein, objet équipé) : `9cd8062`, `trade_suite` R6–R11 ;
+- tri du sac qui change chez l'autre joueur : **corrigé** `5ffa169` (pas joué) ;
+- reste : mutations (équipement d'éther).
 
 Vérifié dans le code par un agent le même soir (rien joué) :
 

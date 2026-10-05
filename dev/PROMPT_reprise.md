@@ -18,20 +18,25 @@ avec un seul ami comme host : chaque chose doit marcher dans les deux sens à de
 ## Pour commencer, dans cet ordre
 
 1. Charge le skill `ponytail:ponytail` (le plus petit changement qui marche) et garde-le. Active Remote Control.
-2. Lis : `CLAUDE.md`, puis `dev/HANDOFF.md` en entier (l'état exact, les branches, ce qui est rouge), la fin de
-   `dev/MODLOG.md` à partir de « Points restants traités en autonomie », `dev/PLAN_egalite_invites.md`,
-   `dev/PLAN_quetes_donjon_a_deux.md`, `dev/PLAN_chasse_differences.md`.
+2. Lis : `CLAUDE.md`, puis `dev/HANDOFF.md` en entier (l'état exact, les branches, ce qui est « pas joué »), la fin de
+   `dev/MODLOG.md` à partir de « Version 0.26.442, étape D premier lot », `dev/PLAN_egalite_invites.md`,
+   `dev/PLAN_chasse_differences.md`, `dev/NOTE_version.md`.
 3. Vérifie l'état : `git status` et `git branch` dans `G:\ElinMods\ElinTogether`. Tu dois être sur
-   **`wip/lots-non-compiles`**, sans changement en attente. Cette branche et `fix/points-restants` **n'existent que
-   sur cette machine** : pas de `git pull`, ne les supprime pas, ne reviens pas sur `feat/independent-travel`.
-4. Vérifie qu'aucun Elin ne tourne (ferme par numéro de processus, jamais un jeu que j'ai lancé), puis
-   `powershell -ExecutionPolicy Bypass -File dev\build.ps1`.
+   **`fix/points-restants`** (la branche de travail), sans changement en attente. `feat/independent-travel` est au même
+   commit et **poussée sur GitHub** ; `wip/lots-non-compiles` est en retard, ne la supprime pas ; ne change pas de
+   branche courante. Version publiée : **0.26.442** (5 octobre).
+4. Vérifie qu'aucun Elin ne tourne (ferme par numéro de processus, jamais un jeu que j'ai lancé). Le jeu de cette
+   machine a la version publiée (Release) : `powershell -ExecutionPolicy Bypass -File dev\build.ps1` avant tout test.
 5. Dis-moi en cinq lignes ce que tu as compris de l'état, puis enchaîne sans attendre ma réponse.
 
 ## Le travail, dans cet ordre
 
-**A. Valider la branche `wip/lots-non-compiles`.** Elle contient trois lots écrits par des agents : ils compilent, le
-jeu se lance, mais ils ne sont pas validés. Depuis `dev/`, avec `PYTHONPATH=_tools/pylib` :
+**A, B, C : faites** (publiées dans la 0.26.442) : les trois lots de la nuit validés, les quêtes à donjon à deux dans
+les deux sens, la chasse aux différences jusqu'à D14. Les consignes qui suivent restent comme historique ; ne les
+refais pas.
+
+**A. (fait) Valider la branche `wip/lots-non-compiles`.** Elle contenait trois lots écrits par des agents. Depuis
+`dev/`, avec `PYTHONPATH=_tools/pylib` :
 `python _tools/mp_test.py` (host + 1 client ; s'il échoue juste après une autre suite, relance-le), puis :
 - `python _tools/equal2_suite.py` : il était à 19/25. À comprendre **en premier** : pendant l'abattage d'un animal
   par l'invité, l'host lève `NullReferenceException` dans `CharaTickDelta` et l'animal n'est pas abattu chez lui.
@@ -46,17 +51,20 @@ jeu se lance, mais ils ne sont pas validés. Depuis `dev/`, avec `PYTHONPATH=_to
 Chaque point devenu vert est reporté sur `fix/points-restants` par un commit à lui (`git cherry-pick` ou un commit
 propre), avec son test. Ce qui reste rouge après trois essais : note-le dans `MODLOG.md` et change d'approche.
 
-**B. Quêtes à donjon à deux quand c'est l'invité qui a pris la quête** : étapes E5 et E6 de
+**B. (fait, `26756bf`) Quêtes à donjon à deux quand c'est l'invité qui a pris la quête** : étapes E5 et E6 de
 `dev/PLAN_quetes_donjon_a_deux.md`. Les décisions sont déjà prises (conseil 3, dans `MODLOG.md`) : ne les rouvre pas.
 
-**C. `dev/PLAN_chasse_differences.md`** : 28 différences trouvées en lisant le code, rien de joué. Pour chacune, un
+**C. (en grande partie fait) `dev/PLAN_chasse_differences.md`** : 28 différences trouvées en lisant le code. Pour
+chacune, un
 test rouge d'abord (le même geste par l'invité puis par l'host), puis la correction. Commence par la peur à 20 % de
 points de vie, le guérisseur payant, le rangement automatique, puis la liste des objets dont la fenêtre s'ouvre chez
 tout le monde.
 
-**D. Le reste de ma liste**, détaillé au point 4 de « À faire ensuite » dans `HANDOFF.md` : réglages de la base par
-un invité, consigne « ne pas s'éloigner », karma sur la carte d'un invité, échange d'objets équipés, repos, retour
-de l'host, autres mods, serveur, accidents rares.
+**D. Le reste de ma liste (premier lot fait et publié ; la suite, dans l'ordre du conseil 4)**, détaillée dans « À faire
+ensuite » de `HANDOFF.md` : recherche et compétences du foyer d'un invité en vraies demandes à l'host (en cours) ;
+objets de la carte réglés par un invité (lit, étiquettes de vente, notes) ; politiques ; monture déjà prise refusée ;
+mesurer le rechargement au retour de l'host pendant ma soirée d'essai ; puis les points de la chasse non traités (n°4 le
+reste de la base, 8 machine à gènes, 17, 19, 25 à 28). Écris aussi des tests pour tout ce qui est « pas joué ».
 
 **E. Quand tout cela est fini, cherche la suite toi-même** : relis le code du jeu là où la chasse n'est pas allée
 (liste à la fin de `PLAN_chasse_differences.md`), fais jouer le bot (`dev/_tools/bot.py`), relis les commentaires du
@@ -98,8 +106,11 @@ Workshop notés dans `MODLOG.md`. Ne rends pas la main tant qu'il reste une diff
 
 ## Ce qu'il ne faut pas faire
 
-- Ne publie pas de version, ne pousse rien sur GitHub, ne retire aucune ancienne version : propose-le dans ton
-  résumé, je dirai oui.
+- **Pousse `feat/independent-travel` après chaque lot validé** (je suis le dépôt sur GitHub : « ça fait 11h que t'as
+  pas commit ») : avance-la sur `fix/points-restants` sans changer de branche courante, puis
+  `git push origin feat/independent-travel`. Ne pousse jamais sur `upstream`.
+- Ne publie pas de nouvelle version et ne retire aucune ancienne version sans mon accord : propose-le dans ton résumé,
+  je dirai oui. (La dernière publiée : 0.26.442.)
 - Ne touche jamais à mes vraies sauvegardes (les tests utilisent `world_lab`) ni à mon dossier
   `Documents\ElinTogetherServer`.
 - Ne déplace pas `_lab` : les copies de test du jeu sont des liens vers le jeu Steam, elles doivent rester sur C:.
@@ -115,5 +126,5 @@ simple, sans t'arrêter ensuite :
 - ce qui n'a pas été fait, et pourquoi ;
 - les questions qui restent pour moi.
 
-Questions déjà ouvertes, auxquelles je répondrai quand je pourrai : ma soirée d'essai avec la 0.26.399 et l'essai
-de la carte au trésor à deux ; quel mod fournit les quêtes `dmp_quest_*`.
+Questions déjà ouvertes, auxquelles je répondrai quand je pourrai : ma soirée d'essai avec la 0.26.442 (la liste
+d'essais est dans `HANDOFF.md`) et l'essai de la carte au trésor à deux ; quel mod fournit les quêtes `dmp_quest_*`.

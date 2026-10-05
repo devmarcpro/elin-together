@@ -3,13 +3,15 @@
 Fork du mod multijoueur ElinTogether pour Elin. But : **en jeu, aucune différence entre l'host et les autres
 joueurs**. Chacun va où il veut, avec ses compagnons, et le monde (quêtes, base, argent de la base) reste commun.
 
-- Dépôt : https://github.com/devmarcpro/elin-together (public), branche `feat/independent-travel`. Le code du
-  mod est dans `ElinTogether/`, tout ce qui sert à développer et tester dans `dev/` (ce dossier).
+- Dépôt : https://github.com/devmarcpro/elin-together (public), branche `feat/independent-travel` (poussée après chaque
+  lot validé ; on travaille sur `fix/points-restants`, au même commit). Le code du mod est dans `ElinTogether/`, tout
+  ce qui sert à développer et tester dans `dev/` (ce dossier).
 - Installer une nouvelle machine : `SETUP.md`. Consignes pour une session Claude : `CLAUDE.md` à la racine.
 - Journal détaillé (pièges, essais, dates) : `MODLOG.md`. Ce document-ci dit ce qui existe et comment s'en servir.
 - Les chemins `_tools/`, `_lab/`, `_shots/`, `_release/` de ce document sont relatifs à `dev/`. Le journal parle
   encore de `Documents\ElinMods\` : c'était leur place avant le 2026-10-02.
-- État : 2026-10-05, 1h05 (voir `HANDOFF.md` pour le détail à jour). Dossier de travail : `G:\ElinMods`.
+- État : 2026-10-05, 9h30, version 0.26.442 publiée (voir `HANDOFF.md` pour le détail à jour). Dossier de travail :
+  `G:\ElinMods`.
 
 ## 1. Ce que le fork apporte, vu du joueur
 
@@ -28,9 +30,13 @@ joueurs**. Chacun va où il veut, avec ses compagnons, et le monde (quêtes, bas
 | Quêtes à donjon pour tous (avec les options « voyage » et « quêtes par joueur ») | Un joueur qui n'est pas l'host peut prendre une quête qui a sa propre zone (subjuguer, récolte, escorte…) : la zone est à lui, il y entre seul, et la quête se règle quand il en ressort. | `instance_suite.py` |
 | Quêtes à donjon à deux, l'host a la quête (avec les options « voyage » et « quêtes par joueur », sans case à elle) | Quand l'host part en quête, une boîte Oui/Non s'ouvre chez l'invité (« X part en quête : l'accompagner ? La récompense revient à X », 15 s, sans réponse = non ; l'host voit le refus ; pas de boîte si l'invité a déjà une quête à donjon ou un échange). Oui : l'invité arrive dans la zone simulée par l'host. La récompense est à celui qui a pris la quête ; quand il sort, tout le monde sort ; l'accompagnant peut aussi rentrer seul en ville (pour une récolte, il est fouillé comme chez l'host : moitié des récoltes non livrées reprises, 1 de karma). L'host qui sort reprend bien la ville tenue par l'invité. | `together_suite.py` T1–T6 |
 | Quêtes à donjon à deux, l'invité a la quête (mêmes options, sans case à elle ; `26756bf`) | Quand l'invité accepte une quête « subjuguer » et part, la demande de zone est retenue chez l'host, qui voit la boîte Oui/Non (15 s ; l'invité lit « on demande à X… »). Oui : l'host crée la zone et la simule, l'invité y est un client ordinaire, la quête reste à son journal (l'host la lit sans l'avoir au sien). Quand l'invité sort, tout le monde sort ; la récompense est donnée une fois, à l'invité. L'host peut rentrer seul : la zone passe à l'invité, qui finit seul. Non ou pas de réponse : comme avant, l'invité simule sa zone seul. La sauvegarde de l'host ne contient rien de la quête de l'invité. Seulement les quêtes « subjuguer » : récolte, musique et défense restent en solo pour l'invité. | `together_suite.py` T7–T11 (107/107 avec T1–T6) |
-| Chasse aux différences host / invité (5 octobre, `PLAN_chasse_differences.md`) | Un invité sous 20 % de vie ne prend plus peur et peut frapper (`392266d`) ; le guérisseur payant le soigne vraiment, lui et ses compagnons (`3d27d3f`) ; le rangement automatique est propre à chaque joueur : celui de l'invité n'emporte plus les objets de l'host, celui de l'host ne ferme plus les fenêtres de l'invité (`f4c5b44`) ; radio, juke-box, liste de lecture, livres des résidents et de l'équipe, détecteur, roue, vue de carte, pinceau : la fenêtre ne s'ouvre que chez celui qui s'en sert (`ea93c88`) ; l'ecopo de la faucille va à l'invité qui fauche, et son vol à la tire ne coûte plus d'endurance à l'host (`f00f5a6`) ; investir dans une boutique ou une ville arrive chez l'host au lieu d'être payé pour rien (`f63a879`) ; la bénédiction des prêtresses atteint l'invité et ses compagnons (`9046034`) ; une recette lue par un joueur n'est apprise qu'une fois par l'autre (`15d6e05`) ; runes et prises : fenêtre chez l'utilisateur seul, rune posée et usée dans les deux jeux (`3ccad87`). Déjà bons : parchemin d'évacuation, carte au trésor lue. | `hunt_suite.py` D1–D11 |
+| Chasse aux différences host / invité (5 octobre, `PLAN_chasse_differences.md`) | Un invité sous 20 % de vie ne prend plus peur et peut frapper (`392266d`) ; le guérisseur payant le soigne vraiment, lui et ses compagnons (`3d27d3f`) ; le rangement automatique est propre à chaque joueur : celui de l'invité n'emporte plus les objets de l'host, celui de l'host ne ferme plus les fenêtres de l'invité (`f4c5b44`) ; radio, juke-box, liste de lecture, livres des résidents et de l'équipe, détecteur, roue, vue de carte, pinceau : la fenêtre ne s'ouvre que chez celui qui s'en sert (`ea93c88`) ; l'ecopo de la faucille va à l'invité qui fauche, et son vol à la tire ne coûte plus d'endurance à l'host (`f00f5a6`) ; investir dans une boutique ou une ville arrive chez l'host au lieu d'être payé pour rien (`f63a879`) ; la bénédiction des prêtresses atteint l'invité et ses compagnons (`9046034`) ; une recette lue par un joueur n'est apprise qu'une fois par l'autre (`15d6e05`) ; runes et prises : fenêtre chez l'utilisateur seul, rune posée et usée dans les deux jeux (`3ccad87`). Déjà bons : parchemin d'évacuation, carte au trésor lue. Ensuite (0.26.442) : le pied-de-biche d'un invité force aussi le coffre chez l'host (`fb7a507`, D13) ; sous l'eau profonde l'invité perd son souffle (`cf62040`), son ticket d'hôtesse masse l'invité (`ab73333`), ses fenêtres d'alias, de retour du vide et de caisse de ferme ne s'ouvrent plus chez l'host (`2239dde`) : **pas joués**. | `hunt_suite.py` D1–D14 (D12 saute : pas d'eau profonde sur la carte de test) |
 | Gestes tenus en main d'un invité | Ticket de meuble, seringues (gène, sang, paradis, licorne), puits, stéthoscope, laisse : le geste est rejoué chez l'host, l'objet est dépensé des deux côtés. Au puits, le vœu est tiré dans le jeu de l'invité (1 chance sur 21 par gorgée), pas chez l'host. Autres corrections de la nuit du 5 octobre : un invité qui abat un animal ne fait plus perdre l'endurance de l'host ; un habitant ami frappé par un invité appelle ses voisins (dans une ville ; le jeu n'appelle jamais dans une base) ; quitter son dieu punit l'invité ; la source chaude profite à l'invité et à son compagnon, pas à l'host. | `guest_suite.py` G33–G39, `equal2_suite.py` |
-| Échange entre joueurs (option) | Clic sur un autre joueur → « Échanger » : une fenêtre où chacun met des objets et de l'or, puis confirme. Rien ne change de mains tant que les deux n'ont pas confirmé ; s'éloigner annule. | `trade_suite.py` |
+| Base réglée par un invité (`06a0f94`, sans case) | La recherche et les compétences du foyer sont refusées chez l'invité avec un message « à régler par l'host » : avant, il payait sans rien obtenir. Les étapes « acheter des plans » et « améliorer le foyer » n'existent dans aucun dialogue du jeu installé (le foyer monte tout seul). Étape suivante, en cours : en faire des demandes vérifiées par l'host. | `base_suite.py` 53/53 |
+| Consigne « ne pas s'éloigner » (`9155835`) | C'est le réglage du joueur du compagnon, pas celui de l'host. « Ne pas vagabonder » lit encore le jeu qui simule. | `hunt_suite.py` D14 |
+| Karma d'un visiteur (`927f342`) | Sur une carte tenue par un autre joueur que l'host, les gardes voient le karma d'un visiteur : il l'annonce au teneur de la carte, gardé en mémoire seulement, effacé à son départ. | pas joué |
+| Messages d'achat et de retour (`211658e`) | Le second acheteur d'un même objet apprend qu'il est parti ; l'invité est prévenu de qui revient sur sa carte avant le rechargement de son écran. Tri du sac propre à chaque joueur (`5ffa169`) : seul le réglage partagé / personnel d'un conteneur de la carte voyage. | pas joués |
+| Échange entre joueurs (option) | Clic sur un autre joueur → « Échanger » : une fenêtre où chacun met des objets et de l'or, puis confirme. Rien ne change de mains tant que les deux n'ont pas confirmé ; s'éloigner annule. Depuis `9cd8062` : refus de ce que le jeu solo refuse de donner (objet qu'on ne peut pas lâcher, propriété d'un habitant, cadeau, objet lié), refus avant tout transfert si le sac de l'autre est plein, message qui explique pourquoi pour un objet équipé (pas de déséquipement automatique). | `trade_suite.py` (R6–R11, 122/122) |
 | Choix du personnage (option) | À la connexion, le joueur choisit parmi ses personnages de cette partie ou en crée un nouveau. | `chara_suite.py` |
 | Karma et crime par joueur (avec l'option « quêtes par joueur ») | Tuer un habitant, voler, creuser la rue : c'est le joueur qui l'a fait qui perd du karma, plus l'host ni les autres. Les gardes de l'host ne poursuivent que le joueur criminel. | `parity_suite.py` Y3–Y4 |
 | Affinité et guildes communes | L'affinité d'un habitant est la même pour tous ; rejoindre une guilde ou y monter en grade vaut pour le groupe. | `parity_suite.py` |
@@ -71,8 +77,11 @@ Les options sont envoyées aux clients à la connexion (`NetSessionRules`). Tout
 **Pour jouer (toi et ton ami, même zip des deux côtés)** : `_release/ElinTogether-independance.zip`, puis
 `Installer.bat`. `Desinstaller.bat` remet le mod du Workshop. Refaire le zip : `make_release.ps1`. Le zip n'est
 pas dans le dépôt : il se fabrique sur chaque machine.
-La dernière version publiée est la 0.26.399 (préversion `independance-0.26.399`), pour Elin EA 23.351 ; le zip de `_release` est celui de la dernière publication. Il est aussi sur la page des versions
-du dépôt (https://github.com/devmarcpro/elin-together/releases) : c'est le lien à donner à un ami.
+La dernière version publiée est la **0.26.442** (2026-10-05, préversion `independance-0.26.442`, commit `f096255`),
+pour Elin EA 23.351 ; le zip de `_release` est celui de la dernière publication. Il est aussi sur la page des versions
+du dépôt (https://github.com/devmarcpro/elin-together/releases) : c'est le lien à donner à un ami. Le jeu de cette
+machine a cette version (build Release). La note de version est `NOTE_version.md`, les README des quatre langues ont
+8 captures dans `assets/screens/` (prises par `_tools/showcase.py`).
 Après un `build.ps1` (tests), le jeu de cette machine n'a plus la version du zip : relancer `Installer.bat`
 avant de jouer avec quelqu'un, sinon la connexion est refusée (versions différentes).
 
@@ -172,7 +181,7 @@ python _tools/bot.py --minutes 5 --seed 1
 | `leave_suite.py` | l'host change de carte | 2 | ~1 min |
 | `quest_suite.py` | quêtes (par joueur, histoire), souvenirs de dialogue | 2 | ~4 min |
 | `instance_suite.py` | quêtes à donjon prises par un client | 2 | ~3 min |
-| `trade_suite.py` | échange entre joueurs | 2 | ~2 min |
+| `trade_suite.py` | échange entre joueurs, dont les refus (objet non lâchable, sac plein, objet équipé : R6–R11) | 2 | ~3 min |
 | `chara_suite.py` | choix du personnage à la connexion | 2 | ~3 min |
 | `parity_suite.py` | affinité, guildes, karma et gardes | 2 | ~1 min |
 | `transfer_suite.py` | ce qui se passe pendant un changement de carte | 2 | ~3 min |
@@ -185,7 +194,8 @@ python _tools/bot.py --minutes 5 --seed 1
 | `guest_suite.py` | le même geste par l'invité puis par l'host : repos, pêche, baguette, coffres de pari, bouteille vide, gestes tenus en main (G33–G39 : ticket, seringues, puits, laisse, stéthoscope ; `--only g33,g34,g35,g36,g37,g38,g39`) | 2 | ~3 min |
 | `equal2_suite.py` | invité et host à égalité : abattage (E2), appel à l'aide à Vernis (E1), dieu quitté (E3), source chaude (E4) | 2 | ~5 min |
 | `together_suite.py` | quêtes à donjon à deux, dans les deux sens : boîte Oui/Non, entrer, sortir, fouille de l'accompagnant (T1–T6, l'host a la quête) ; l'invité a la quête, boîte chez l'host, récompense, l'host rentre seul, sauvegarde de l'host (T7–T11) ; `--only t7,t8` | 2 | ~16 min |
-| `hunt_suite.py` | chasse aux différences host / invité, un test par ligne de `PLAN_chasse_differences.md` : peur, guérisseur, rangement, objets à fenêtre, faucille, investir, prêtresses, évacuation, recette, rune, carte au trésor (D1–D11 ; `--only d1,d3`). Sait dérouler un vrai dialogue (`talk`, `pick`, `hang_up` : choix cliqué par son texte anglais) | 2 | ~10 min |
+| `hunt_suite.py` | chasse aux différences host / invité, un test par ligne de `PLAN_chasse_differences.md` : peur, guérisseur, rangement, objets à fenêtre, faucille, investir, prêtresses, évacuation, recette, rune, carte au trésor, pied-de-biche, consigne « ne pas s'éloigner » (D1–D14 ; `--only d1,d3`). Sait dérouler un vrai dialogue (`talk`, `pick`, `hang_up` : choix cliqué par son texte anglais) | 2 | ~10 min |
+| `base_suite.py` | base réglée par un invité : recherche et compétences du foyer refusées avec un message, rien de payé (53 vérifications) | 2 | ~4 min |
 | `recruit_suite.py` | compagnons recrutés par un invité : dialogue, monture, boule à monstre, achat | 2 | ~5 min |
 | `council_suite.py` | les décisions du conseil du 2026-10-04 : grimoires, prime de guilde, cadeaux du dieu, mort après le jour 90, pièges (à Vernis) ; `--only c6` carte au trésor (ne passe pas au banc) | 2 | ~5 min |
 | `move_suite.py` | pas de l'invité : réguliers, host qui rame, écart de vitesse, accéléré partagé | 2 | ~2 min |
@@ -197,7 +207,7 @@ python _tools/bot.py --minutes 5 --seed 1
 | `server_suite.py` | serveur : démarrage tout seul, joueur qui rejoint par adresse, temps qui avance, retour | lance ses 2 fenêtres | ~4 min |
 | `server_ui_test.ps1` | les boutons du logiciel serveur, clics sur les vrais contrôles (PowerShell : `-Part depot` 15 vérifications, sans Elin, port 55558, dossier `%TEMP%\ets-ui-depot` ; `-Part elin` 6 vérifications, lance un Elin sans fenêtre) | — | — |
 | `compat_suite.py` | cohabitation avec d'autres mods (Somewhat Enhanced Display) | 2 | ~2 min |
-| `run_short.sh` | les suites courtes à la suite, chacune sur un monde neuf (pas `economy` ni `combat`, qui ouvrent leurs fenêtres : `run_all.sh`) | 2 | ~50 min |
+| `run_short.sh` | les suites courtes à la suite, chacune sur un monde neuf (pas `economy`, `combat`, `travel` ni `shared`, qui ouvrent leurs fenêtres : les lancer seules, jeu fermé) | 2 | ~50 min |
 | `companion_suite.py`, `party_suite.py` | compagnons, limite d'alliés | 2 | ~10 min chacun |
 | `travel_suite.py` | voyage seul, sauvegarde, chat, équipement | 2 | ~15 min |
 | `shared_suite.py`, `trio_suite.py` | cartes partagées, passation | 3 et 4 | ~15 min chacun |
@@ -247,8 +257,10 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
   quête, tuent et sortent par les appels du jeu, pas par le dialogue ni au combat ; pas de test de déconnexion dans la
   zone ; à trois joueurs : pas essayé ; `instance_suite` et le bot attendent 15 s à chaque entrée (boîte sans réponse
   chez l'host). L'escorte prise par un client n'a été testée que par le code, pas en marchant.
-- Échange : pas d'objets équipés, ni de sacs pleins ; fenêtre simple (liste + boutons).
-- Karma : sur une carte tenue par un joueur (pas l'host), les gardes suivent encore le karma de ce joueur-là.
+- Échange : les objets équipés ne s'échangent pas (le message le dit, pas de déséquipement automatique) ; un sac plein
+  est refusé avant tout transfert (`9cd8062`) ; fenêtre simple (liste + boutons).
+- Karma : sur une carte tenue par un joueur (pas l'host), les gardes voient le karma d'un visiteur depuis `927f342`
+  (il l'annonce au teneur, en mémoire seulement ; **pas joué**).
   (Un habitant attaqué par un invité appelle maintenant à l'aide comme pour l'host, `cf4797d` ; l'affinité de la
   tonte est bonne, confirmé par `equal2_suite` E2.) Expérience de guilde :
   si deux joueurs en gagnent au même instant, un des deux gains est perdu.
@@ -280,8 +292,9 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
   personnage » décochée, l'écran de choix s'affiche à chaque connexion. Les sauvegardes du nuage Steam sont
   listées et lues dans leur archive, sans être déballées.
 - Compagnons d'un invité : l'achat est testé par ce que fait le « oui » du marchand, pas par son vrai dialogue.
-  La consigne « ne pas s'éloigner » regarde encore l'host (la laisse est rejouée chez l'host depuis
-  `8f39634`). Domptage à la brosse : le jeu compare
+  La consigne « ne pas s'éloigner » est celle du joueur du compagnon depuis `9155835` (D14) ; « ne pas vagabonder »
+  regarde encore le jeu qui simule (la laisse est rejouée chez l'host depuis `8f39634`). Domptage à la brosse : le jeu
+  compare
   l'animal au charisme de `EClass.pc`, donc à celui de l'host même quand c'est un invité qui brosse.
 - Gardien du monde (`1b0f5c3`, `856d878`) : c'est l'host. Pas fait : les boucles à l'intérieur de `GameDate`
   (aventuriers, quêtes d'histoire ajoutées à date fixe), le passage du rôle à un autre joueur.
@@ -319,7 +332,7 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
   mod ; ignorée par `scan_logs`, `7a4c2d1`, 9/9), et deux **tests fragiles** à cause non établie, verts au
   deuxième passage : `leave_suite` L2 (l'host revenu à 1 case de l'invité) et `time_suite` W3 (faim 31 → 31 après
   le saut de 5 heures, marge d'un point). Non rejouées : `trio_suite` et shared/economy/combat/party.
-- Machine de développement : le jeu a la version **publiée 0.26.399**, qui contient ces corrections ; lancer
+- Machine de développement : le jeu a la version **publiée 0.26.442** (build Release) ; lancer
   `dev/build.ps1` avant tout test. Le logiciel serveur de l'utilisateur dans `Documents\ElinTogether-independance\`
   est encore celui de la 0.26.390 (en français) : à remplacer par celui du nouveau zip.
 - Quêtes « Dummy » (description « Mokyu ») vues par l'utilisateur sur son serveur : **ni le mod ni le serveur**.
@@ -376,10 +389,30 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
   « sans annonce » n'est jamais connue du client ; `ModCurrency` chez un client est une demande, pas un solde ; ce que
   fait l'host en appliquant le tick d'un autre joueur n'est pas envoyé (`ElinDelta.Simulate()`).
 
+- **Version 0.26.442 et étape D, premier lot (2026-10-05, 2h45 → 9h30, branche `fix/points-restants`)** : publiée
+  vers 9h25 (`f096255`), `feat/independent-travel` poussée sur GitHub (même commit). Dans la version : consigne « ne pas
+  s'éloigner » propre à chaque joueur (`9155835`, D14) ; karma d'un visiteur chez un teneur de carte (`927f342`) ;
+  recherche
+  et compétences du foyer refusées pour un invité (`06a0f94`, `base_suite` 53/53) ; échange plus strict (`9cd8062`,
+  `trade_suite` 122/122) ; tri du sac (`5ffa169`) ; messages « déjà vendu » et de retour de l'host (`211658e`) ; chasse
+  :
+  pied-de-biche (D13), noyade, ticket d'hôtesse, fenêtres d'alias / retour du vide / caisse de ferme. **Pas joués** :
+  karma d'un visiteur, tri du sac, les deux messages, noyade, ticket d'hôtesse, les trois fenêtres. Non-régression,
+  chaque
+  suite sur un jeu relancé (`run_short.sh`) : equal2 35/35, together 107/107, death 11/11, parity 15/15, sleep 32/32,
+  recruit 45/45, quest 59/59, instance 32/32, trade 122/122, hunt D1–D14, base 53/53, guest 317/317, leave 13/13, travel
+  54/54, council vert. **Non relancées** : `shared_suite`, `trio_suite`, `companion_suite`, les suites du serveur.
+  Limites : les étapes de dialogue « acheter des plans » et « améliorer le foyer » n'existent dans aucun dialogue du jeu
+  installé ; lit, étiquettes de vente, notes et politiques réglés par un invité ne valent que sur son écran ;
+  `run_short.sh` ne lance pas `travel_suite` ni `shared_suite`. Un test qui dépend d'un tirage du jeu peut échouer une
+  fois (C5, D3 : corrigé). Habitude : pousser `feat/independent-travel` après chaque lot validé ; publier demande
+  l'accord de l'utilisateur.
+
 ## 7. Reste à faire
 
-État au 2026-10-05, 2h45. **La liste à jour, dans l'ordre, est « À faire ensuite » de `HANDOFF.md`** (branche de
-travail `fix/points-restants`, `wip/lots-non-compiles` a le même contenu ; quêtes à donjon à deux :
+État au 2026-10-05, 9h30. **La liste à jour, dans l'ordre, est « À faire ensuite » de `HANDOFF.md`** (branche de
+travail `fix/points-restants`, au même commit que `feat/independent-travel` ; `wip/lots-non-compiles` est en retard ;
+quêtes à donjon à deux :
 `PLAN_quetes_donjon_a_deux.md` ; autres différences trouvées : `PLAN_chasse_differences.md`) ; ce qui suit date
 du 2026-10-04 à 22h et reste un résumé. Détail de chaque point : `PLAN_retours_partie_reelle.md` et la fin de
 `MODLOG.md`.
@@ -396,7 +429,8 @@ Nuit du 5 octobre : gestes tenus en main rejoués chez l'host, abattage, appel �
 chaude du groupe, quêtes à donjon à deux dans le sens « l'host a la quête » (boîte Oui/Non) : validés, un commit
 par point (section 6, `equal2_suite`, `together_suite`, `guest_suite` G33–G39). Matin du 5 octobre : quêtes à
 donjon à deux dans l'autre sens (l'invité a la quête, `26756bf`) ; chasse aux différences, 12 lignes jouées (10
-corrigées, 2 fausses) dans `hunt_suite` D1–D11.
+corrigées, 2 fausses) dans `hunt_suite` D1–D11. 5 octobre, 9h30 : **version 0.26.442 publiée** et premier lot de l'étape
+D (consigne des compagnons, karma d'un visiteur, base refusée à l'invité, échange plus strict, messages ; section 6).
 
 **À faire tout de suite, dans l'ordre :**
 1. fait : `depot_suite` avec `DEPOT_SERVER=1` relancé, 20/20 ;
@@ -404,8 +438,10 @@ corrigées, 2 fausses) dans `hunt_suite` D1–D11.
    fragiles) ;
 3. fait : les boutons du logiciel essayés par un test (reste « Browse… » avec un vrai choix de dossier et le
    message « The server could not start: … ») ;
-4. fait : version 0.26.399 publiée et mise dans le jeu de cette machine (`dev/build.ps1` avant tout test) ;
-5. sa soirée d'essai réelle avec la 0.26.399 (point 1 de la liste suivante) : l'ami installe le même zip, et
+4. fait : version 0.26.399 publiée, puis 0.26.442 (2026-10-05) mise dans le jeu de cette machine (`dev/build.ps1` avant
+   tout test) ;
+5. sa soirée d'essai réelle avec la 0.26.442 (point 1 de la liste suivante, et la liste d'essais de `HANDOFF.md`) :
+   l'ami installe le même zip, et
    l'utilisateur remplace le logiciel serveur de `Documents\ElinTogether-independance\` par celui du zip ;
 6. savoir quel mod fournit les quêtes `dmp_quest_*` (réparation possible) ;
 7. comprendre les deux tests fragiles (`leave_suite` L2, `time_suite` W3) s'ils reviennent.
@@ -428,12 +464,15 @@ corrigées, 2 fausses) dans `hunt_suite` D1–D11.
 5. Quêtes à donjon à deux : fait dans les deux sens (`3eaedf8`, `26756bf`). Reste : récolte, musique et défense dans
    le sens « l'invité a la quête » (livraisons comptées par le jeu du preneur), les jouer par le vrai dialogue, la
    déconnexion dans la zone, trois joueurs.
-5 bis. **Finir la chasse aux différences** (`PLAN_chasse_differences.md`, colonne « État ») : n°4 (base réglée par
-   l'invité), 6 (caisse de ferme), 8 (machine à gènes), 13 (noyade, pluie), 15 (pied-de-biche), 17 (habitants qui ne
-   remarquent que l'host), 18 (tickets d'hôtesse), 19 (notes, noms), 22 (alias, retour du vide), 25 à 28. Puis
-   l'étape D (reste de la liste de l'utilisateur, `HANDOFF.md`), puis l'étape E (chercher la suite).
-6. Inégalités invité/host qui restent (`PLAN_egalite_invites.md` : M14, consigne « ne pas s'éloigner », karma sur
-   la carte d'un invité, mutation en double ; M3, M5, M9, L1, L7, M13, L4, L5, L6, L8, L9, laisse et appel à
+5 bis. **Dans l'ordre du conseil 4** (`HANDOFF.md`) : recherche et compétences du foyer d'un invité en vraies demandes à
+   l'host (en cours) ; objets de la carte réglés par un invité (lit, étiquettes de vente, notes) ; politiques ; monture
+   déjà prise refusée ; mesurer le rechargement au retour de l'host (soirée d'essai) ; puis la fin de la chasse aux
+   différences (`PLAN_chasse_differences.md` : n°4 le reste de la base, 8 machine à gènes, 17, 19, 25 à 28, tombe
+   d'épée) ; puis l'étape E (chercher la suite). Écrire des tests pour tout ce qui est « pas joué ».
+6. Inégalités invité/host qui restent (`PLAN_egalite_invites.md` : M14 (en partie : recherche et foyer refusés),
+   mutation
+   en double ; consigne « ne pas s'éloigner » et karma sur la carte d'un invité faits au 5 octobre ; M3, M5, M9, L1, L7,
+   M13, L4, L5, L6, L8, L9, laisse et appel à
    l'aide sont corrigés).
 7. Deux choix de jeu en attente : que faire quand un joueur meurt sur la carte de l'host ; quand la connexion tombe.
 8. Jouer le début de l'histoire en vrai avec un client ; conflits rares listés dans les limites.
