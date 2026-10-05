@@ -426,16 +426,13 @@ def p1():
           f"A = {seen['A vu de A']['name']} uid {uid_a})", uid_h != uid_a)
     a0 = seen["A vu de A"]
 
-    # (2) A recoit un seau et gagne 123 pieces d'or, de son cote (ce que fait un joueur qui ramasse et gagne de l'or)
-    ev(A, 'EClass.pc.AddThing(ThingGen.Create("bucket")); EClass.pc.ModCurrency(123); "ok"')
+    # (2) A gagne 123 pieces d'or (sa demande a l'host, comme en jeu) et recoit un seau, pose dans son sac par l'host :
+    # un objet cree par le pont dans le jeu de l'invite n'est pas un geste de joueur, l'host ne le verrait pas
+    ev(A, 'EClass.pc.ModCurrency(123); "ok"')
+    ev(H, f'var c = EClass._map.charas.Find(x => x.uid == {uid_a}); c.AddThing(ThingGen.Create("bucket"), false); "ok"')
     want = lambda it: it["gold"] == a0["gold"] + 123 and it["buckets"] == a0["buckets"] + 1  # noqa: E731
-    synced = eventually(lambda: want(info(H, uid_a)), timeout=15)
-    check(f"P1 l'host voit le seau et l'or de A ({info(H, uid_a)['raw']})", synced)
-    if not synced:
-        log("le seau et l'or de A n'arrivent pas chez l'host : donnes par l'host, pour continuer l'etat des lieux")
-        ev(H, f'var c = EClass._map.charas.Find(x => x.uid == {uid_a}); var t = ThingGen.Create("bucket"); '
-              'c.AddThing(t, false); c.ModCurrency(123); "ok"')
-        eventually(lambda: want(info(A, uid_a)), timeout=15)
+    check(cond=eventually(lambda: want(info(H, uid_a)) and want(info(A, uid_a)), timeout=15),
+          label=f"P1 les deux jeux voient le seau et l'or de A ({info(H, uid_a)['raw']})")
     log(f"A apres le seau et l'or : {info(A, uid_a)['raw']}")
 
     # (3) H sauvegarde et rend le monde ; A est deconnecte
@@ -458,6 +455,8 @@ def p1():
     # (4) A prend le monde du depot et l'heberge
     take(A)
     wait(loaded(A), "A charge le monde du depot", timeout=180, every=3.0)
+    # le monde d'un autre : le jeu echange les personnages, sauvegarde et recharge une fois (ElinNetHostHandOver)
+    eventually(lambda: state(A).get("sceneMode") == "Zone" and ev(A, "EClass.pc.uid.ToString()") == str(uid_a), timeout=90)
     dismiss_dialogs(A)
     time.sleep(3)
 
@@ -479,12 +478,26 @@ def p1():
     check(f"P1 il a son seau et son or : le personnage qu'il joue a {me['buckets']} seau(x) et {me['gold']} or "
           f"(attendu {a0['buckets'] + 1} et {a0['gold'] + 123}) ; son sac : {me['bag']}",
           me["buckets"] == a0["buckets"] + 1 and me["gold"] == a0["gold"] + 123)
-    same = (theirs["place"] == "carte" and theirs["dead"] is False and theirs["bag"] == pre_h["bag"]
-            and theirs["gold"] == pre_h["gold"] and theirs["pos"] == pre_h["pos"] == theirs_later["pos"])
-    check(f"P1 le personnage de H est toujours dans le monde, meme sac, meme or, et ne bouge pas : "
+    # comme celui de tout joueur parti : garde dans le monde, hors de la carte, jusqu'a son retour
+    same = (theirs["place"] != "carte" and theirs["uid"] == uid_h and theirs["dead"] is False and theirs["bag"] == pre_h["bag"]
+            and theirs["gold"] == pre_h["gold"] and theirs["pc"] is False and theirs_later["place"] == theirs["place"])
+    check(f"P1 le personnage de H attend dans le monde, hors de la carte, meme sac, meme or, joue par personne : "
           f"avant {pre_h['name']} ({pre_h['place']}, mort={pre_h['dead']}, pos {pre_h['pos']}, or {pre_h['gold']}, "
           f"sac {pre_h['bag']}) ; apres ({theirs['place']}, mort={theirs['dead']}, pos {theirs['pos']}, "
           f"puis {theirs_later['pos']}, or {theirs['gold']}, sac {theirs['bag']}, joue par A : {theirs['pc']})", same)
+
+    # (7) A heberge, H le rejoint : H retrouve SON personnage (pas de creation), avec son sac et son or
+    ok(emp.call(A, "command", {"cmd": "emp.add_local"}))
+    wait(lambda: state(A)["role"] == "Host", "A demarre le serveur")
+    join_client(A, H, "H (invite a son tour)")
+    eventually(lambda: len(state(A).get("players", [])) == 2 and state(H)["connected"] and state(H).get("sceneMode") == "Zone", timeout=60)
+    back = info(H, "EClass.pc.uid")
+    check(f"P1 H rejoint A et retrouve son personnage : il joue {back['name']} (uid {back['uid']}, attendu {uid_h}), "
+          f"or {back['gold']} (avant {pre_h['gold']}), sac {back['bag']}",
+          back["uid"] == uid_h and back["gold"] == pre_h["gold"] and back["bag"] == pre_h["bag"])
+    still = info(A, "EClass.pc.uid")
+    check(f"P1 A joue toujours le sien (uid {still['uid']}), et voit H sur sa carte ({info(A, uid_h)['place']})",
+          still["uid"] == uid_a and info(A, uid_h)["place"] == "carte")
 
 
 def main():

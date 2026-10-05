@@ -329,6 +329,16 @@ internal partial class ElinNetHost
     [ElinPostLoad]
     private static void RemoveLeftOverCharas(GameIOContext? context)
     {
+        // a world taken over from another player: our own character first, then the game starts again from that save
+        if (Session.Transport is null && !EmpServer.Requested && TakeOverPc()) {
+            // not saved: played as it is, loading again would exchange again
+            var id = Game.id;
+            if (game.Save(false, true)) {
+                core.actionsNextFrame.Add(() => Game.Load(id, false));
+                return;
+            }
+        }
+
         IEnumerable<Chara> excluded = Session.Connection is ElinNetHost host
             ? host.ActiveRemoteCharas.Values
             : [];

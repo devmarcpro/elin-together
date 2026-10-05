@@ -47,6 +47,8 @@ internal partial class ElinNetHost : ElinNetBase
         Scheduler.Subscribe(DisconnectInactive, 1);
         Scheduler.Subscribe(RemoveStaleIntegrityCheck, 2);
 
+        RememberPcOwner();
+
         // host also registers self state
         var selfState = States[0] = new() {
             Index = 0,
