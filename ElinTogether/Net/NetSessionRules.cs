@@ -88,7 +88,15 @@ public class NetSessionRules
     [Key(12)]
     public bool AllowGuestBuild { get; set; } = true;
 
+    /// <summary>
+    ///     A player's strike can kill another player's character (see RemotePlayerKillPatch). Off: it is left at 0
+    ///     hit points
+    /// </summary>
+    [Key(13)]
+    public bool AllowPlayerKill { get; set; }
+
     public static NetSessionRules Default => new() {
+        AllowPlayerKill = EmpConfig.Server.PlayerKill.Value,
         AllowGuestBuild = EmpConfig.Server.GuestBuild.Value,
         UseSharedSpeed = EmpConfig.Server.SharedAverageSpeed.Value,
         UseTurnBasedCombat = EmpConfig.Server.TurnBasedCombat.Value,

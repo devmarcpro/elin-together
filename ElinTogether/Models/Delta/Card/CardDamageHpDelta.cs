@@ -46,8 +46,16 @@ public class CardDamageHpDelta : ElinDelta
             return;
         }
 
-        using (Simulate(net.IsHost)) {
-            card.Stub_DamageHP(Dmg, Ele, EleP, AttackSource, Origin, ShowEffect, Weapon, OriginalTarget, ResistPenetrationLevel);
+        // a player is shielded from another player's blow wherever the blow lands: in the replay of what the
+        // simulating game decided, and here when a client reports the blow its own game dealt to its player
+        // (the stub is the game's own code, without the prefix that shields)
+        var shield = RemotePlayerKillPatch.Shield(card, Origin?.Find());
+        try {
+            using (Simulate(net.IsHost)) {
+                card.Stub_DamageHP(Dmg, Ele, EleP, AttackSource, Origin, ShowEffect, Weapon, OriginalTarget, ResistPenetrationLevel);
+            }
+        } finally {
+            RemotePlayerKillPatch.Unshield(card, shield);
         }
 
         if (!net.IsHost && HpAfter is { } hpAfter && card is not Chara { isDead: true }) {

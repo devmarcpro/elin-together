@@ -52,13 +52,15 @@ internal partial class EmpConfig
             "",
             "Folder of the save depot: a folder every player of the group can reach (shared or synced), which keeps the world. Empty: no depot\n" +
             "The first player takes the world from it and hosts, every save goes back to it, the next player can take over\n" +
+            "Also the address of Elin Together Server (host:55557), or a private GitHub repository: github:owner/repository\n" +
             "存档仓库文件夹：小组所有玩家都能访问的文件夹（共享或同步），用于保存世界。留空：不使用");
 
         Client.DepotPassword = config.Bind(
             "Client",
             "DepotPassword",
             "",
-            "Password of the save depot, when it is Elin Together Server and one was set there");
+            "Password of the save depot, when it is Elin Together Server and one was set there\n" +
+            "For a GitHub depot: the access key (fine-grained token, this repository only, Contents: read and write). Never share this file");
 
         Client.ServerAddress = config.Bind(
             "Client",
@@ -172,6 +174,14 @@ internal partial class EmpConfig
             "What time does to the world (weather, expired quests, taxes, salaries, letters) is done once, by one game, the same for everyone\n" +
             "Otherwise every player holding a map runs it too in its own copy: a quest expires twice, each copy has its own weather\n" +
             "时间对世界的影响（天气、任务过期、税金、工资、信件）只由一个游戏处理一次，所有人相同；否则每个持有地图的玩家也会在自己的副本中各自处理");
+
+        Server.PlayerKill = config.Bind(
+            "Server",
+            "PlayerKill",
+            false,
+            "A player (or its companions) can kill another player's character\n" +
+            "Off: a strike that would kill it leaves it at 0 hit points\n" +
+            "玩家（及其同伴）可以杀死其他玩家的角色；关闭时，致命一击只会让对方的生命值降为 0");
 
         Server.GuestBuild = config.Bind(
             "Server",
@@ -301,6 +311,7 @@ internal partial class EmpConfig
         internal static ConfigEntry<bool> SameGameVersion { get; set; } = null!;
         internal static ConfigEntry<bool> PlayerShipping { get; set; } = null!;
         internal static ConfigEntry<bool> GuestBuild { get; set; } = null!;
+        internal static ConfigEntry<bool> PlayerKill { get; set; } = null!;
         internal static ConfigEntry<bool> PersonalQuests { get; set; } = null!;
         internal static ConfigEntry<bool> ChooseCharacter { get; set; } = null!;
         internal static ConfigEntry<bool> ImportCharacter { get; set; } = null!;
