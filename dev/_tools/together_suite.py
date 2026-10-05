@@ -602,7 +602,8 @@ def t12(ctx):
     check(f"et l'host lit le meme poids ({w_host()})", eventually(lambda: w_host() == wh, timeout=15))
 
     # l'invite livre de quoi reussir la quete
-    wa = give(a, crop, dest // unit + 1)
+    # (le poids d'une recolte creee varie : le double, pour depasser la demande a coup sur)
+    wa = give(a, crop, 2 * (dest // unit) + 2)
     eventually(lambda: has(A, crop) > 0, timeout=10)  # la pile mise par l'host doit etre arrivee dans le jeu de l'invite
     done = ev(A, DELIVER)
     check(f"l'invite livre a la caisse ({done}) : ses recoltes quittent son sac, chez lui et chez l'host",
