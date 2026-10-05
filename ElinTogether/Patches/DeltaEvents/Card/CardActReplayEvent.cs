@@ -115,7 +115,8 @@ internal static class GuestLeash
     internal static void Follow(Chara player)
     {
         if (!player.IsRemotePlayer || !EClass._zone.PetFollow || EClass._zone.IsRegion ||
-            (EClass._zone.KeepAllyDistance && EClass.game.config.tactics.allyKeepDistance)) {
+            (EClass._zone.KeepAllyDistance &&
+             (PlayerTacticsDelta.KeepDistanceOf(player) ?? EClass.game.config.tactics.allyKeepDistance))) {
             return;
         }
 

@@ -20,6 +20,7 @@ D10 rune : fenetre chez celui qui s'en sert, rune posee et consommee dans les de
     fait le clic dans la fenetre).
 D12 eau profonde : le joueur qui y nage perd son souffle (mise en place : il est pose dans l'eau, puis il fait trois pas).
 D13 pied-de-biche : le coffre force s'ouvre chez l'host aussi.
+D14 consigne « ne pas s'eloigner » : celle du joueur vaut pour ses compagnons (conseil 4).
 D3  rangement automatique : l'invite range son sac dans un coffre regle pour ca ; les fenetres de l'host restent
     ouvertes et les objets de l'host restent dans son sac.
 
@@ -130,9 +131,13 @@ def d3(ctx):
         other_key = "h" if key == "a" else "a"
         other, other_uid = ctx[other_key]
         close_layers()
-        mine, theirs = give(ctx, key, "bucket", 3), give(ctx, other_key, "bucket", 3)
-        chest = int(ev(H, f'var t = ThingGen.Create("chest3"); EClass._zone.AddCard(t, {chara(H, uid)}.pos.GetNearestPoint(false, false, false, true)).Install(); '
-                          't.AddCard(ThingGen.Create("bucket")); return t.uid.ToString();'))
+        # les memes seaux partout (un seau a une matiere tiree au hasard, et le coffre ne prend que ce qui s'empile avec
+        # son contenu) : ceux de l'autre joueur et celui du coffre sont des copies de ceux du joueur
+        mine = give(ctx, key, "bucket", 3)
+        theirs = int(ev(H, f'var s = {chara(H, uid)}.things.Find(x => x.uid == {mine}); return {chara(H, other_uid)}.AddThing(s.Duplicate(3), false).uid.ToString();'))
+        eventually(lambda: ev(other, f'(EClass.pc.things.Find(x => x.uid == {theirs}) != null).ToString()') == "True", timeout=10)
+        chest = int(ev(H, f'var t = ThingGen.Create("chest3"); t.c_lockLv = 0; EClass._zone.AddCard(t, {chara(H, uid)}.pos.GetNearestPoint(false, false, false, true)).Install(); '
+                          f'foreach (var x in t.things.ToList()) x.Destroy(); t.AddCard({chara(H, uid)}.things.Find(x => x.uid == {mine}).Duplicate(1)); return t.uid.ToString();'))
         inside = lambda p: int(ev(p, f'var t = EClass._map.things.Find(m => m.uid == {chest}); '  # noqa: E731
                                      'return t == null ? "-1" : t.things.Where(x => x.id == "bucket").Sum(x => x.Num).ToString();'))
         try:
@@ -144,6 +149,8 @@ def d3(ctx):
             if not check(f"{who} : l'autre joueur a une fenetre ouverte (son journal)", opened()):
                 continue
             awake(port)
+            ev(port, 'EClass.pc.SetNoGoal(); "ok"')
+            time.sleep(1)
             ev(port, 'TaskDump.TryPerform(); "ok"')
             check(cond=eventually(lambda: inside(H) == 4, timeout=30), label=f"{who} : ses 3 seaux sont dans le coffre, chez l'host ({inside(H)} avec celui du coffre)")
             check(cond=eventually(lambda: inside(port) == inside(other) == 4, timeout=10), label=f"{who} : les deux jeux voient le meme coffre ({inside(port)} et {inside(other)})")
@@ -437,6 +444,33 @@ def d13(ctx):
             ev(H, f'var t = EClass._map.things.Find(m => m.uid == {chest}); if (t != null) t.Destroy(); "ok"')
 
 
+def d14(ctx):
+    """consigne « ne pas s'eloigner » : pour les compagnons d'un joueur, c'est SA case qui compte, pas celle de l'autre
+    Ce que le banc ne joue pas comme un joueur : la case du menu tactique est posee directement ; on lit chez l'host la
+    distance que l'IA accorde au compagnon (ConfigTactics.AllyDistance, ce que lit AI_Idle), pas un deplacement"""
+    port, uid = ctx["a"]
+    pet = tame(ctx, "cat", "a")
+    mine = tame(ctx, "cat", "h")
+    if not check(f"chaque joueur a un compagnon (invite {pet}, host {mine}), dans une zone ou la consigne joue",
+                 pet and mine and ev(H, "EClass._zone.KeepAllyDistance.ToString()") == "True"):
+        drop([pet, mine])
+        return
+    reach = lambda c: ev(H, f'var c = EClass._map.charas.Find(x => x.uid == {c}); return EClass.game.config.tactics.AllyDistance(c) + "/" + c.DestDist;')  # noqa: E731
+    keep = lambda p, on: ev(p, f'EClass.game.config.tactics.allyKeepDistance = {str(on).lower()}; "ok"')  # noqa: E731
+    try:
+        for guest_on, host_on in ((True, False), (False, True)):
+            keep(port, guest_on)
+            keep(H, host_on)
+            want = lambda on, c: reach(c).split("/")[0] == ("5" if on else reach(c).split("/")[1])  # noqa: E731
+            check(cond=eventually(lambda: want(guest_on, pet), timeout=25),
+                  label=f"invite {'coche' if guest_on else 'decoche'}, host {'coche' if host_on else 'decoche'} : le compagnon de l'invite suit la case de l'invite (distance accordee / distance normale : {reach(pet)})")
+            check(f"et celui de l'host suit la case de l'host ({reach(mine)})", want(host_on, mine))
+    finally:
+        keep(port, False)
+        keep(H, False)
+        drop([pet, mine])
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--only")
@@ -445,7 +479,7 @@ def main():
     t0 = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
 
     ctx = {"a": (A, state(A)["pc"]["uid"]), "h": (H, state(H)["pc"]["uid"])}
-    steps = [d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13]
+    steps = [d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14]
     if a.only:
         steps = [s for s in steps if s.__name__ in a.only.split(",")]
     for step in steps:
