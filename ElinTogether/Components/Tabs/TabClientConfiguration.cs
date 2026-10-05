@@ -34,7 +34,7 @@ internal class TabClientConfiguration : TabEmpBase
                     depot.Value = text.Trim();
                     LayerElinTogether.Instance?.Reopen();
                 }
-            });
+            }).input.field.characterLimit = 0;
         }).SetTooltipLang(depot.Description.Description);
 
         var password = EmpConfig.Client.DepotPassword;
@@ -46,7 +46,7 @@ internal class TabClientConfiguration : TabEmpBase
                     password.Value = text.Trim();
                     LayerElinTogether.Instance?.Reopen();
                 }
-            });
+            }).input.field.characterLimit = 0;
         }).SetTooltipLang(password.Description.Description);
 
         // how a private GitHub repository becomes the depot, where it is set

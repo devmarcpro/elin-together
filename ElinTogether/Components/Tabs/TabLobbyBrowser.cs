@@ -39,7 +39,7 @@ internal class TabLobbyBrowser : TabEmpBase
                     last.Value = text.Trim();
                     LayerElinTogether.Instance?.Close();
                     JoinAddress(last.Value);
-                });
+                }).input.field.characterLimit = 0;
             });
 
             btnGroup.Header("emp_ui_unclaimed_zone");
