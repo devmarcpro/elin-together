@@ -42,6 +42,7 @@ internal class CoreSynchronizationContext : SynchronizationContext
         CharaSynchronizationContext.Update();
         NetProfileSynchronizationContext.Update();
         RemoteTacticsPatch.Update();
+        PersonalQuests.TellHolder();
         QuestSynchronizationContext.Update();
         SleepSynchronizationContext.Update();
         connection.Delta.RefreshBuffer();

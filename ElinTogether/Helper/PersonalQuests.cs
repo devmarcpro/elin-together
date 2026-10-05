@@ -257,6 +257,40 @@ internal static class PersonalQuests
         return _turnedIn.Contains(questUid);
     }
 
+    private static ElinNetBase? _toldHolder;
+    private static int _toldKarma;
+    private static float _tellHolderAt;
+
+    /// <summary>
+    ///     On a map another player holds, its guards and merchants look at this player's karma: the holder is told
+    ///     on arrival, when it changes, and again now and then (the first one may come before it knows this
+    ///     character). The host of the world visiting does the same
+    /// </summary>
+    internal static void TellHolder()
+    {
+        if (!Enabled || NetSession.Instance.ZoneSession is not ElinNetClient holder || EClass.player is not { } player) {
+            _toldHolder = null;
+            return;
+        }
+
+        // joining someone's map replaces the world: not before this player's own standing is back in it
+        if (NetSession.Instance.Transport is ElinNetClient && (!_hasStanding || !ReferenceEquals(EClass.game, _source))) {
+            return;
+        }
+
+        if (_toldHolder == holder && _toldKarma == player.karma && UnityEngine.Time.unscaledTime < _tellHolderAt) {
+            return;
+        }
+
+        _toldHolder = holder;
+        _toldKarma = player.karma;
+        _tellHolderAt = UnityEngine.Time.unscaledTime + 10f;
+        holder.Delta.AddRemote(new PlayerStandingDelta {
+            Fame = player.fame,
+            Karma = player.karma,
+        });
+    }
+
     /// <summary>
     ///     To the host of the world, wherever this player is: on its map, travelling alone, a guest somewhere
     /// </summary>

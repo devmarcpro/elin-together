@@ -178,9 +178,25 @@ internal partial class ElinNetHost
         PersonalLogOf(uid)[questUid] = data.Bytes;
     }
 
+    /// <summary>
+    ///     On a map another player holds, the karma of those visiting it (the host of the world too), as they said
+    ///     it. In memory only: it is theirs, nothing of it goes to this game's save
+    /// </summary>
+    private readonly Dictionary<int, int> _visitorKarma = [];
+
     internal void StoreStanding(int peerId, int fame, int karma)
     {
-        if (IsZoneSession || PlayerUidOf(peerId) is not (> 0 and var uid)) {
+        if (IsZoneSession) {
+            if (ActiveRemoteCharas.TryGetValue(peerId, out var visitor)) {
+                var was = _visitorKarma.GetValueOrDefault(visitor.uid);
+                _visitorKarma[visitor.uid] = karma;
+                OnKarmaChanged(visitor, was, karma);
+            }
+
+            return;
+        }
+
+        if (PlayerUidOf(peerId) is not (> 0 and var uid)) {
             return;
         }
 
@@ -215,7 +231,16 @@ internal partial class ElinNetHost
             Relative = true,
         });
 
-        if (IsZoneSession || !PlayerStandings.TryGetValue(player.uid, out var standing) || standing.Length < 2) {
+        if (IsZoneSession) {
+            if (_visitorKarma.TryGetValue(player.uid, out var was)) {
+                _visitorKarma[player.uid] = Math.Clamp(was + karma, -100, 100);
+                OnKarmaChanged(player, was, _visitorKarma[player.uid]);
+            }
+
+            return;
+        }
+
+        if (!PlayerStandings.TryGetValue(player.uid, out var standing) || standing.Length < 2) {
             return;
         }
 
@@ -231,10 +256,10 @@ internal partial class ElinNetHost
     /// </summary>
     internal bool IsCriminal(Chara player)
     {
-        return !IsZoneSession &&
-               PlayerStandings.TryGetValue(player.uid, out var standing) && standing.Length >= 2 &&
-               standing[StandingKarma] < 0 &&
-               !player.HasCondition<ConIncognito>();
+        var karma = IsZoneSession
+            ? _visitorKarma.GetValueOrDefault(player.uid)
+            : PlayerStandings.TryGetValue(player.uid, out var standing) && standing.Length >= 2 ? standing[StandingKarma] : 0;
+        return karma < 0 && !player.HasCondition<ConIncognito>();
     }
 
     internal bool HasCriminalHere()
