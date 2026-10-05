@@ -390,7 +390,7 @@ def t8(ctx):
     a, uid, zuid = ctx["a"], ctx.get("uid2"), ctx.get("zuid2")
     if not check("les deux sont dans la zone de la quete de l'invite (T7)", zuid is not None and zone_uid(H) == zuid and zone_uid(A) == zuid):
         return
-    before = {"fh": fame(H), "fa": fame(A)}
+    before = {"fh": fame(H), "fa": fame(A), "bag": ev(H, 'EClass.pc.things.Sum(t => t.Num).ToString()')}
     last = int(ev(H, 'var e = EClass._zone.events.GetEvent<ZoneEventSubdue>(); '
                      'var alive = e.enemies.Select(id => EClass._map.FindChara(id)).Where(c => c != null && !c.isDead).ToList(); '
                      'foreach (var c in alive.Skip(1)) c.Die(); var m = alive[0]; m.hp = 1; m.AddCondition<ConParalyze>(5000, true); '
@@ -419,8 +419,9 @@ def t8(ctx):
     time.sleep(5)
     dismiss_dialogs(A)
     won = fame(A)
-    check(f"rien pour l'host : ni renommee ({before['fh']} -> {fame(H)}), ni quete, ni recompense a ses pieds",
-          fame(H) == before["fh"] and not in_log(H, uid) and things_at_pc(H) == ctx.get("h_things", 0))
+    # les deux reviennent sur la meme case (celle du preneur) : « a ses pieds » ne distingue plus rien, on compte son sac
+    check(f"rien pour l'host : ni renommee ({before['fh']} -> {fame(H)}), ni quete, ni rien de plus dans son sac ({before['bag']})",
+          fame(H) == before["fh"] and not in_log(H, uid) and ev(H, 'EClass.pc.things.Sum(t => t.Num).ToString()') == before["bag"])
     time.sleep(5)
     check(f"une seule recompense : la renommee de l'invite ne monte pas une seconde fois ({won} -> {fame(A)})", fame(A) == won)
     ev(H, 'EClass.game.Save(); "ok"')
