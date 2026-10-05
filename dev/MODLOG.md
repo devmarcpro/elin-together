@@ -1900,7 +1900,7 @@ Pièges de test notés ce jour-là :
   L'utilisateur a demandé d'arrêter les demandes d'autorisation : elles venaient du déplacement (G: était hors des
   dossiers de la session) ; le mode « sans demande » de l'application n'est pas disponible depuis la session.
 
-### Étape A : les trois lots validés (2026-10-05, 0h25 → 1h05) — reprendre ici
+### Étape A : les trois lots validés (2026-10-05, 0h25 → 1h05)
 
 - **But** : valider la branche `wip/lots-non-compiles` lot par lot, corriger, faire relire, et reporter chaque point
   vert sur `fix/points-restants` (un commit par point). Fait. Rien poussé, rien publié.
@@ -1959,3 +1959,75 @@ Pièges de test notés ce jour-là :
   une fois Non » ; les trois points « pas fait » du lot 1 et les remarques laissées du lot 3 ci-dessus.
 - **À faire ensuite** : voir `dev/HANDOFF.md` (état au 1h05). En tête : quêtes à donjon à deux, sens « l'invité a la
   quête » (E5, E6 de `PLAN_quetes_donjon_a_deux.md`, en cours), puis `PLAN_chasse_differences.md`.
+
+### Étapes B et C (2026-10-05, 1h05 → 2h45) — reprendre ici
+
+- **But** : finir les quêtes à donjon à deux (étape B), puis passer la chasse aux différences au banc, un test rouge
+  puis vert par point (étape C). Un commit par point sur `fix/points-restants`. Rien poussé, rien publié.
+
+**Étape B : quêtes à donjon à deux quand l'INVITÉ a la quête (`26756bf`)**
+
+- Écrite par un agent (opus), relue (`relecteur-elintogether`), corrigée, jouée : `together_suite` T1 à T11,
+  **107/107** (`_shots/together_b-run3.log`).
+- **Flux** : l'invité accepte la quête et part. La demande de zone est retenue chez l'host, qui voit la boîte Oui/Non
+  (15 s ; l'invité lit « on demande à X… »). Oui : l'host crée la zone, l'invité y est un client ordinaire, la quête
+  reste à son journal, l'host la lit sans l'avoir au sien. L'invité sort : tout le monde sort, la récompense est
+  donnée une fois, à l'invité. L'host peut rentrer seul (la zone passe à l'invité, qui finit seul). Non ou pas de
+  réponse : comme avant, l'invité simule sa zone seul. La sauvegarde de l'host ne contient rien de la quête de
+  l'invité (T11).
+- **Limites** : dans ce sens, seulement les quêtes « subjuguer » (récolte, musique, défense restent en solo pour
+  l'invité : les livraisons sont comptées par le jeu du preneur). Le test prend la quête, tue et sort par les appels
+  du jeu, pas par le dialogue ni au combat. Pas de test de déconnexion dans la zone. Trois joueurs : pas essayé.
+  `instance_suite` et le bot attendront 15 s à chaque entrée (la boîte reste sans réponse chez l'host).
+- **Pièges** :
+  - une zone créée par l'host « sans annonce » n'est jamais connue du client (« Remote zone does not exist, waiting
+    for new spatial gen », puis déconnexion « invalid zone ») : l'invité garde la zone qu'il s'était faite et adopte
+    le numéro de celle de l'host ;
+  - un gel de la fenêtre host au chargement a été attribué à tort à ce code : c'était le gel occasionnel déjà noté
+    dans `mp_test.py` ;
+  - **ne pas compiler pendant qu'un agent écrit dans le même dossier** : son travail à moitié fini part dans la DLL.
+    Compiler depuis un worktree propre (`git worktree add`), ou ranger le travail de l'agent sur une branche à part.
+
+**Étape C : la chasse aux différences, suite `dev/_tools/hunt_suite.py` (D1 à D11)**
+
+Tableau avec l'état de chaque ligne : `PLAN_chasse_differences.md`. Pour chaque point, un test rouge d'abord, puis la
+correction, puis le vert.
+
+- **n°1, peur sous 20 % de vie** : rouge confirmé (l'invité prenait peur et ne frappait plus). Corrigé `392266d`, D1.
+- **n°2, guérisseur payant** : rouge confirmé. Corrigé `3d27d3f`, D2 (vrai dialogue).
+- **n°3, rangement automatique** : rouge confirmé, pire que prévu : celui de l'invité emportait aussi les objets de
+  l'host, et celui de l'host fermait les fenêtres de l'invité. Corrigé `f4c5b44`, D3.
+- **n°5, 9, 20, 21 (détecteur) et la roue (partie du n°8)** : radio, juke-box, liste de lecture, livres des
+  résidents et de l'équipe, détecteur, roue, vue de carte, pinceau : la fenêtre s'ouvrait chez tous. Corrigé
+  `ea93c88`, D4. Le pinceau n'est pas observable par le banc.
+- **n°24, faucille** : rouge confirmé (l'ecopo allait à l'host). Corrigé `f00f5a6`, D5. **n°14, vol à la tire** : même
+  garde que l'abattage pour l'endurance, pas joué. Reste : pendant un vol, l'host peut encore avancer vers la
+  victime.
+- **n°11, investir** : rouge confirmé (payé pour rien). Corrigé `f63a879`, D6 (boutique jouée par le vrai dialogue ;
+  la ville, même code, pas jouée).
+- **n°12, bénédiction des prêtresses** : rouge confirmé. Corrigé `9046034`, D7 (joueur et compagnon).
+- **n°23, recette lue** : les recettes sont communes à tous les joueurs par construction du mod (`AddRecipeDelta`) ;
+  le vrai défaut était que l'autre joueur l'apprenait DEUX fois. Corrigé `15d6e05`, D9.
+- **n°7, runes et prises** : rouge confirmé (fenêtre chez l'host, rune posée seulement chez l'invité ; et la rune
+  posée par l'host n'arrivait jamais chez l'invité). Corrigé `3ccad87`, D10. Pas joués : prise d'arme à distance,
+  refus, vrai glisser dans la fenêtre.
+- **n°16, retour / évacuation** : FAUX, ça marche déjà (D8, parchemin d'évacuation ; le parchemin de retour demande
+  une destination connue, que `world_lab` n'a pas). Gardé comme vérification (`15d6e05`).
+- **n°10, carte au trésor lue** : FAUX, fenêtre chez le lecteur seul et même carte dans les deux jeux (D11).
+- **Pas encore traités** : n°4 (base réglée par l'invité), 6 (caisse de ferme : la fenêtre s'ouvre chez tous, la
+  livraison marche déjà), 8 (machine à gènes : même défaut, plus gros), 13 (noyade, pluie), 15 (pied-de-biche), 17
+  (habitants qui ne remarquent que l'host : conseil), 18 (tickets d'hôtesse), 19 (notes, noms), 22 (alias, retour du
+  vide), 25, 26, 27, 28.
+- **Découverte utile pour les tests** : le banc sait dérouler un vrai dialogue du jeu. Les aides `talk`, `pick` et
+  `hang_up` de `hunt_suite.py` : on clique un choix par son texte anglais. La phrase « le banc ne sait pas dérouler
+  un LayerDrama » (docstring de `together_suite.py`) est fausse depuis ; les quêtes de `together_suite` pourront
+  être jouées par le dialogue.
+- **Pièges** : `ModCurrency` chez un client est une demande (sa bourse ne baisse qu'à la réponse de l'host : ne pas
+  s'en servir pour savoir « a-t-il payé ») ; ce que fait l'host pendant qu'il applique le tick d'un autre joueur
+  n'est pas envoyé (il faut `ElinDelta.Simulate()`, cas de la faucille) ; un libellé de test qui affiche une valeur
+  doit être écrit `check(cond=eventually(...), label=f"...")`.
+- **Pas testé** (à dire tel quel) : tout ce que l'utilisateur doit jouer à deux PC, dont « l'invité prend une quête
+  subjuguer, l'host répond Oui » en plus de l'autre sens ; la carte au trésor (`council_suite --only c6`, à refaire) ;
+  les limites de B et les « pas joué » de C ci-dessus ; le vol à la tire (n°14) ; la ville pour « investir ».
+- **À faire ensuite** : voir `dev/HANDOFF.md` (état à 2h45). En tête : finir la chasse (liste « pas encore traités »),
+  puis l'étape D, puis l'étape E.

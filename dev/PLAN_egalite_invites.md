@@ -11,6 +11,9 @@ Cette liste vient d'une **lecture du code** (jeu décompilé + mod), le 2026-10-
 ligne est à prouver par un test rouge avant d'être corrigée. Le rapport complet de l'audit (avec les numéros de
 ligne) n'est pas dans le dépôt ; il se refait en relisant les classes citées.
 
+**Suite, 2026-10-05** : la chasse aux différences (`PLAN_chasse_differences.md`, `hunt_suite.py`) a repris cette
+liste et l'a prolongée ; M14 (réglages de la base) recoupe son n°4, encore à faire.
+
 ## Les sept mécanismes
 
 | # | Dans le mod | Conséquence |

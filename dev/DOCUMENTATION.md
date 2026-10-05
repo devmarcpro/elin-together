@@ -27,6 +27,8 @@ joueurs**. Chacun va où il veut, avec ses compagnons, et le monde (quêtes, bas
 | Quêtes d'histoire | Un joueur qui n'est pas l'host peut lancer et avancer une quête d'histoire. Ce que le dialogue offre lui revient, ce qu'il déclenche dans le monde se produit chez l'host. La mémoire de l'histoire (dialogues déjà vus, drapeaux, objets clés, dette) est commune. | `quest_suite.py` (voir limites) |
 | Quêtes à donjon pour tous (avec les options « voyage » et « quêtes par joueur ») | Un joueur qui n'est pas l'host peut prendre une quête qui a sa propre zone (subjuguer, récolte, escorte…) : la zone est à lui, il y entre seul, et la quête se règle quand il en ressort. | `instance_suite.py` |
 | Quêtes à donjon à deux, l'host a la quête (avec les options « voyage » et « quêtes par joueur », sans case à elle) | Quand l'host part en quête, une boîte Oui/Non s'ouvre chez l'invité (« X part en quête : l'accompagner ? La récompense revient à X », 15 s, sans réponse = non ; l'host voit le refus ; pas de boîte si l'invité a déjà une quête à donjon ou un échange). Oui : l'invité arrive dans la zone simulée par l'host. La récompense est à celui qui a pris la quête ; quand il sort, tout le monde sort ; l'accompagnant peut aussi rentrer seul en ville (pour une récolte, il est fouillé comme chez l'host : moitié des récoltes non livrées reprises, 1 de karma). L'host qui sort reprend bien la ville tenue par l'invité. | `together_suite.py` T1–T6 |
+| Quêtes à donjon à deux, l'invité a la quête (mêmes options, sans case à elle ; `26756bf`) | Quand l'invité accepte une quête « subjuguer » et part, la demande de zone est retenue chez l'host, qui voit la boîte Oui/Non (15 s ; l'invité lit « on demande à X… »). Oui : l'host crée la zone et la simule, l'invité y est un client ordinaire, la quête reste à son journal (l'host la lit sans l'avoir au sien). Quand l'invité sort, tout le monde sort ; la récompense est donnée une fois, à l'invité. L'host peut rentrer seul : la zone passe à l'invité, qui finit seul. Non ou pas de réponse : comme avant, l'invité simule sa zone seul. La sauvegarde de l'host ne contient rien de la quête de l'invité. Seulement les quêtes « subjuguer » : récolte, musique et défense restent en solo pour l'invité. | `together_suite.py` T7–T11 (107/107 avec T1–T6) |
+| Chasse aux différences host / invité (5 octobre, `PLAN_chasse_differences.md`) | Un invité sous 20 % de vie ne prend plus peur et peut frapper (`392266d`) ; le guérisseur payant le soigne vraiment, lui et ses compagnons (`3d27d3f`) ; le rangement automatique est propre à chaque joueur : celui de l'invité n'emporte plus les objets de l'host, celui de l'host ne ferme plus les fenêtres de l'invité (`f4c5b44`) ; radio, juke-box, liste de lecture, livres des résidents et de l'équipe, détecteur, roue, vue de carte, pinceau : la fenêtre ne s'ouvre que chez celui qui s'en sert (`ea93c88`) ; l'ecopo de la faucille va à l'invité qui fauche, et son vol à la tire ne coûte plus d'endurance à l'host (`f00f5a6`) ; investir dans une boutique ou une ville arrive chez l'host au lieu d'être payé pour rien (`f63a879`) ; la bénédiction des prêtresses atteint l'invité et ses compagnons (`9046034`) ; une recette lue par un joueur n'est apprise qu'une fois par l'autre (`15d6e05`) ; runes et prises : fenêtre chez l'utilisateur seul, rune posée et usée dans les deux jeux (`3ccad87`). Déjà bons : parchemin d'évacuation, carte au trésor lue. | `hunt_suite.py` D1–D11 |
 | Gestes tenus en main d'un invité | Ticket de meuble, seringues (gène, sang, paradis, licorne), puits, stéthoscope, laisse : le geste est rejoué chez l'host, l'objet est dépensé des deux côtés. Au puits, le vœu est tiré dans le jeu de l'invité (1 chance sur 21 par gorgée), pas chez l'host. Autres corrections de la nuit du 5 octobre : un invité qui abat un animal ne fait plus perdre l'endurance de l'host ; un habitant ami frappé par un invité appelle ses voisins (dans une ville ; le jeu n'appelle jamais dans une base) ; quitter son dieu punit l'invité ; la source chaude profite à l'invité et à son compagnon, pas à l'host. | `guest_suite.py` G33–G39, `equal2_suite.py` |
 | Échange entre joueurs (option) | Clic sur un autre joueur → « Échanger » : une fenêtre où chacun met des objets et de l'or, puis confirme. Rien ne change de mains tant que les deux n'ont pas confirmé ; s'éloigner annule. | `trade_suite.py` |
 | Choix du personnage (option) | À la connexion, le joueur choisit parmi ses personnages de cette partie ou en crée un nouveau. | `chara_suite.py` |
@@ -182,7 +184,8 @@ python _tools/bot.py --minutes 5 --seed 1
 | `sleep_suite.py` | dormir à plusieurs, à la base ou sur une carte sauvage (`--only w0,z0,z1,z2`) | 2 | ~3 min |
 | `guest_suite.py` | le même geste par l'invité puis par l'host : repos, pêche, baguette, coffres de pari, bouteille vide, gestes tenus en main (G33–G39 : ticket, seringues, puits, laisse, stéthoscope ; `--only g33,g34,g35,g36,g37,g38,g39`) | 2 | ~3 min |
 | `equal2_suite.py` | invité et host à égalité : abattage (E2), appel à l'aide à Vernis (E1), dieu quitté (E3), source chaude (E4) | 2 | ~5 min |
-| `together_suite.py` | quêtes à donjon à deux, l'host a la quête : boîte Oui/Non, entrer, sortir, fouille de l'accompagnant (T1–T6) | 2 | ~5 min |
+| `together_suite.py` | quêtes à donjon à deux, dans les deux sens : boîte Oui/Non, entrer, sortir, fouille de l'accompagnant (T1–T6, l'host a la quête) ; l'invité a la quête, boîte chez l'host, récompense, l'host rentre seul, sauvegarde de l'host (T7–T11) ; `--only t7,t8` | 2 | ~16 min |
+| `hunt_suite.py` | chasse aux différences host / invité, un test par ligne de `PLAN_chasse_differences.md` : peur, guérisseur, rangement, objets à fenêtre, faucille, investir, prêtresses, évacuation, recette, rune, carte au trésor (D1–D11 ; `--only d1,d3`). Sait dérouler un vrai dialogue (`talk`, `pick`, `hang_up` : choix cliqué par son texte anglais) | 2 | ~10 min |
 | `recruit_suite.py` | compagnons recrutés par un invité : dialogue, monture, boule à monstre, achat | 2 | ~5 min |
 | `council_suite.py` | les décisions du conseil du 2026-10-04 : grimoires, prime de guilde, cadeaux du dieu, mort après le jour 90, pièges (à Vernis) ; `--only c6` carte au trésor (ne passe pas au banc) | 2 | ~5 min |
 | `move_suite.py` | pas de l'invité : réguliers, host qui rame, écart de vitesse, accéléré partagé | 2 | ~2 min |
@@ -235,12 +238,15 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
 ## 6. Limites connues
 
 - **Dialogues d'histoire joués par un client** : quêtes, objets offerts, effets sur le monde et mémoire de
-  l'histoire sont gérés, mais testés par appels directs, **pas encore en cliquant dans les vrais dialogues**.
+  l'histoire sont gérés, mais testés par appels directs, **pas encore en cliquant dans les vrais dialogues** (depuis le 5 octobre le banc sait le faire : `hunt_suite.py`,
+  aides `talk`, `pick`, `hang_up` ; guérisseur, boutique et prêtresses sont joués ainsi, pas encore les quêtes).
   Restent locaux au joueur : les alliés offerts par un dialogue (animal de Fiama), le mariage. En voyage seul, seuls les effets « sur le monde entier » sont répétés chez l'host.
-- Quêtes à donjon : quand l'invité prend la quête, seul lui entre dans la zone ; l'host ne peut pas encore l'y
-  rejoindre (étapes E5 et E6 de `PLAN_quetes_donjon_a_deux.md`, en cours). Quand c'est l'host qui la prend,
-  l'invité peut l'accompagner (boîte Oui/Non). L'escorte prise par un client n'a été testée que par le code, pas
-  en marchant.
+- Quêtes à donjon : à deux, dans les deux sens (boîte Oui/Non chez l'autre joueur ; `PLAN_quetes_donjon_a_deux.md`,
+  E1 à E6 faites). Dans le sens « l'invité a la quête », seulement les quêtes « subjuguer » : récolte, musique et
+  défense restent en solo pour l'invité (les livraisons sont comptées par le jeu du preneur). Les tests prennent la
+  quête, tuent et sortent par les appels du jeu, pas par le dialogue ni au combat ; pas de test de déconnexion dans la
+  zone ; à trois joueurs : pas essayé ; `instance_suite` et le bot attendent 15 s à chaque entrée (boîte sans réponse
+  chez l'host). L'escorte prise par un client n'a été testée que par le code, pas en marchant.
 - Échange : pas d'objets équipés, ni de sacs pleins ; fenêtre simple (liste + boutons).
 - Karma : sur une carte tenue par un joueur (pas l'host), les gardes suivent encore le karma de ce joueur-là.
   (Un habitant attaqué par un invité appelle maintenant à l'aide comme pour l'host, `cf4797d` ; l'affinité de la
@@ -357,9 +363,22 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
   La colère du dieu quitté est au tarif de base chez l'host. **À jouer à deux vrais joueurs** : l'host prend une
   quête à donjon, l'invité répond Oui à la boîte, puis une fois Non.
 
+- **Étapes B et C (2026-10-05, 1h05 → 2h45, branche `fix/points-restants`)** : quêtes à donjon à deux dans le sens
+  « l'invité a la quête » (`26756bf`, `together_suite` T1–T11 : 107/107) ; chasse aux différences, neuf commits de
+  correction (`392266d`, `3d27d3f`, `f4c5b44`, `ea93c88`, `f00f5a6`, `f63a879`, `9046034`, `15d6e05`, `3ccad87`),
+  `hunt_suite` D1–D11, un test rouge puis vert par point (les 28 lignes et leur état : `PLAN_chasse_differences.md`).
+  Pas joués : le pinceau (le banc ne voit pas son mode), le vol à la tire (l'host peut encore avancer vers la
+  victime pendant un vol), investir dans une ville, les runes d'arme à distance, un refus de rune, le vrai glisser dans
+  la fenêtre de rune, le parchemin de retour (`world_lab` n'a pas de destination connue). Limites des quêtes à deux :
+  voir plus haut. Non-régression large (`run_short.sh`) pas refaite depuis. **À jouer à deux vrais joueurs** en plus :
+  l'invité prend une quête subjuguer, l'host répond Oui, puis une fois Non. Pièges : ne pas compiler pendant qu'un
+  agent écrit dans le même dossier (travail à moitié fini dans la DLL : worktree propre) ; une zone créée par l'host
+  « sans annonce » n'est jamais connue du client ; `ModCurrency` chez un client est une demande, pas un solde ; ce que
+  fait l'host en appliquant le tick d'un autre joueur n'est pas envoyé (`ElinDelta.Simulate()`).
+
 ## 7. Reste à faire
 
-État au 2026-10-05, 1h05. **La liste à jour, dans l'ordre, est « À faire ensuite » de `HANDOFF.md`** (branche de
+État au 2026-10-05, 2h45. **La liste à jour, dans l'ordre, est « À faire ensuite » de `HANDOFF.md`** (branche de
 travail `fix/points-restants`, `wip/lots-non-compiles` a le même contenu ; quêtes à donjon à deux :
 `PLAN_quetes_donjon_a_deux.md` ; autres différences trouvées : `PLAN_chasse_differences.md`) ; ce qui suit date
 du 2026-10-04 à 22h et reste un résumé. Détail de chaque point : `PLAN_retours_partie_reelle.md` et la fin de
@@ -375,7 +394,9 @@ code final (22 suites) ; boutons du logiciel serveur essayés par `server_ui_tes
 publiée** (2026-10-04). Premier essai entre deux PC du serveur sans Elin sur un réseau local : réussi (section 6).
 Nuit du 5 octobre : gestes tenus en main rejoués chez l'host, abattage, appel à l'aide, dieu quitté, source
 chaude du groupe, quêtes à donjon à deux dans le sens « l'host a la quête » (boîte Oui/Non) : validés, un commit
-par point (section 6, `equal2_suite`, `together_suite`, `guest_suite` G33–G39).
+par point (section 6, `equal2_suite`, `together_suite`, `guest_suite` G33–G39). Matin du 5 octobre : quêtes à
+donjon à deux dans l'autre sens (l'invité a la quête, `26756bf`) ; chasse aux différences, 12 lignes jouées (10
+corrigées, 2 fausses) dans `hunt_suite` D1–D11.
 
 **À faire tout de suite, dans l'ordre :**
 1. fait : `depot_suite` avec `DEPOT_SERVER=1` relancé, 20/20 ;
@@ -404,8 +425,13 @@ par point (section 6, `equal2_suite`, `together_suite`, `guest_suite` G33–G39)
    lignes, ou Docker, testable par `depot_proto_test.py`. Le mode avec Elin ne peut pas tourner sur un NAS.
 4. À ne commencer qu'après lui avoir demandé : retour de l'host sans rechargement (plan B), **profil de mods**
    (`PLAN_profil_mods.md`), touche « signaler un problème » en jeu, bot qui rejoue une vraie soirée, faux réseau lent.
-5. Quêtes à donjon à deux, sens « l'invité a la quête » : E5 et E6 de `PLAN_quetes_donjon_a_deux.md` (en cours) ;
-   « l'host a la quête » est fait (`3eaedf8`).
+5. Quêtes à donjon à deux : fait dans les deux sens (`3eaedf8`, `26756bf`). Reste : récolte, musique et défense dans
+   le sens « l'invité a la quête » (livraisons comptées par le jeu du preneur), les jouer par le vrai dialogue, la
+   déconnexion dans la zone, trois joueurs.
+5 bis. **Finir la chasse aux différences** (`PLAN_chasse_differences.md`, colonne « État ») : n°4 (base réglée par
+   l'invité), 6 (caisse de ferme), 8 (machine à gènes), 13 (noyade, pluie), 15 (pied-de-biche), 17 (habitants qui ne
+   remarquent que l'host), 18 (tickets d'hôtesse), 19 (notes, noms), 22 (alias, retour du vide), 25 à 28. Puis
+   l'étape D (reste de la liste de l'utilisateur, `HANDOFF.md`), puis l'étape E (chercher la suite).
 6. Inégalités invité/host qui restent (`PLAN_egalite_invites.md` : M14, consigne « ne pas s'éloigner », karma sur
    la carte d'un invité, mutation en double ; M3, M5, M9, L1, L7, M13, L4, L5, L6, L8, L9, laisse et appel à
    l'aide sont corrigés).
