@@ -3,6 +3,24 @@
 À lire en premier par la session suivante. Détail daté : fin de `MODLOG.md` (« Étape D suite, Elin 23.352 »).
 Mode d'emploi : `DOCUMENTATION.md`. Règles : `../CLAUDE.md`. Message de départ : `PROMPT_reprise.md`.
 
+## État à 15h40 (le plus récent : lire ceci d'abord, le reste du fichier date de 14h45)
+
+- **Version publiée : 0.26.463** (2026-10-05, 15h35, commit `895d5b0`, compilée pour Elin EA 23.352,
+  https://github.com/devmarcpro/elin-together/releases/tag/independance-0.26.463). Elle contient tout jusqu'à la
+  nourriture du sac (ligne 6 de la deuxième chasse) et la barrière de version levée.
+- **Rejoué avant de publier** (jeu relancé entre chaque suite, Elin 23.352) : equal2 35/35, hunt 135/135, death 11/11,
+  parity 15/15, sleep 32/32 ; council 30/31 (« l'invité tue le monstre », à rejouer) ; together 126/131 (**T12, récolte
+  prise par l'invité : ce que l'invité livre n'a pas compté, pas de récompense ; et des `CharaDieDelta` en erreur dans
+  le journal du client** : à rejouer puis corriger). **Pas rejoué avant la publication** (l'utilisateur a demandé de
+  publier tout de suite) : recruit, quest, instance, trade, base, setting, unplayed, version, leave, guest, travel.
+- **En cours, pas commité** : cinq petites corrections de l'étape E (prière sans dieu l.25, jours et relance des quêtes
+  l.33-34, prix d'expédition l.26, carte à gratter l.30, garde-fou du mode construction = étape 1 du conseil 5) avec
+  leurs tests (`hunt2_suite.py` E4, E5 ; `build2_suite.py` G1, C3).
+- **Conseil 5** (mode construction d'un invité) : verdict et ordre des sept étapes dans `MODLOG.md` ; faits dans
+  `PLAN_construction_invite.md`. Lignes 7 à 11 : faits et diffs proposés dans `PLAN_lignes_7_a_11.md` (9 et 11 :
+  conseil à réunir).
+- `_decomp` est refait pour 23.352.
+
 ## Où on en est
 
 - **Le dossier de travail est `G:\ElinMods`** (C: était plein). `C:\Users\steamdeckwin\Documents\ElinMods` n'est plus
