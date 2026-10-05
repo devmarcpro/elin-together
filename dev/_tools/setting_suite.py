@@ -185,8 +185,8 @@ def s7(ctx):
                                 '+ d.filter + "/" + string.Join(",", d.cats.OrderBy(i => i));')
         size = lambda p: ev(p, f'var d = {thing(t)}.c_windowSaveData; return d == null ? "aucun" : d.size.ToString();')  # noqa: E731
         # un objet que le rangement de l'host pose dans ce coffre (ou pas) : Zone.FindSharedContainer, comme AI_Haul
-        goes_in = lambda decay: ev(H, f'var m = ThingGen.Create("meat"); m.decay = {decay}; var c = EClass._zone.FindSharedContainer(m); '  # noqa: E731
-                                      f'var r = c != null && c.uid == {t}; m.Destroy(); return r.ToString();')
+        goes_in = lambda decay: ev(H, f'var m = ThingGen.Create("meat"); for (var i = 0; i < 40 && !m.Name.Contains("meat"); i++) {{ m.Destroy(); m = ThingGen.Create("meat"); }} m.decay = {decay}; var c = EClass._zone.FindSharedContainer(m); '  # noqa: E731
+                                      f'var r = (c != null && c.uid == {t}) + " " + m.Name + " cat " + m.category.id + " -> " + (c == null ? "aucun coffre" : c.Name + " " + c.uid); m.Destroy(); return r;')
         try:
             x, z = (int(v) for v in ev(H, f'var t = {thing(t)}; return t.pos.x + "," + t.pos.z;').split(","))
             awake(port)
@@ -208,8 +208,8 @@ def s7(ctx):
             check(f"{who} : la taille de sa fenetre reste a lui (chez l'autre : {size(other)})", size(other) in ("0", "aucun"))
             # ce que fait un habitant de l'host : l'objet pourri est refuse par ce coffre, un frais est accepte (priorite 7, filtre « meat »)
             rotten, fresh = goes_in(99999), goes_in(0)
-            check(f"{who} : l'host refuse l'objet pourri pour ce coffre ({rotten})", rotten == "False")
-            check(f"{who} : l'host range un objet frais dans ce coffre ({fresh})", fresh == "True")
+            check(f"{who} : l'host refuse l'objet pourri pour ce coffre ({rotten})", rotten.startswith("False"))
+            check(f"{who} : l'host range un objet frais dans ce coffre ({fresh})", fresh.startswith("True"))
         finally:
             close_layers()
             ev(H, f'var t = {thing(t)}; if (t != null) t.Destroy(); "ok"')

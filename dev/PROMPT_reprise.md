@@ -1,4 +1,4 @@
-> **Mise à jour du 5 octobre, 22h45.** Avant tout : lis `dev/HANDOFF.md`, section « État à 22h45 » : elle remplace
+> **Mise à jour du 6 octobre, 2h.** Avant tout : lis `dev/HANDOFF.md`, section « État au 6 octobre, 2h » : elle remplace
 > les points « Le travail » ci-dessous (la 0.26.494 est publiée, arbre propre). Effort faible : réponses courtes, peu
 > d'agents. Le reste de ce message (but, façon de travailler, interdits, résumés) vaut toujours.
 

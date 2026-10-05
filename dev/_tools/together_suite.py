@@ -604,6 +604,8 @@ def t12(ctx):
     # l'invite livre de quoi reussir la quete
     # (le poids d'une recolte creee varie : le double, pour depasser la demande a coup sur)
     wa = give(a, crop, 2 * (dest // unit) + 2)
+    while wh + wa < dest:
+        wa += give(a, crop, 2 * (dest // unit) + 2)
     eventually(lambda: has(A, crop) > 0, timeout=10)  # la pile mise par l'host doit etre arrivee dans le jeu de l'invite
     done = ev(A, DELIVER)
     check(f"l'invite livre a la caisse ({done}) : ses recoltes quittent son sac, chez lui et chez l'host",

@@ -3,7 +3,30 @@
 À lire en premier par la session suivante. Détail daté : fin de `MODLOG.md` (« Étape D suite, Elin 23.352 »).
 Mode d'emploi : `DOCUMENTATION.md`. Règles : `../CLAUDE.md`. Message de départ : `PROMPT_reprise.md`.
 
-## État à 22h45 (le plus récent : lire ceci d'abord)
+## État au 6 octobre, 2h (le plus récent : lire ceci d'abord)
+
+- **Publiée : 0.26.494** (remplace la 0.26.493, toujours en ligne : la retirer ? question posée à l'utilisateur). Le jeu de
+  cette machine a le build de TEST (Debug) du dernier commit : `Installer.bat` du zip avant de jouer avec quelqu'un.
+- **Passe large sur le code de la 0.26.494** (jeu relancé entre les suites, journaux `_shots/*-nuit*.log`) : trade 122/122,
+  quest 59/59, recruit 45/45, build2 58/58, equal2 35/35, hunt 135/135, hunt2 133/133, death 11/11, parity 15/15, sleep
+  32/32, instance 32/32, base 178/178, unplayed 75/75, version 8/8, leave 13/13, council 32/32, travel 54/54, together
+  130/131 puis T12 seul 20/20, setting 34/35 puis S7 seul 12/12 deux fois, guest 314/317.
+- **Rouges expliqués, c'étaient les tests (corrigés)** : T12 (le poids d'une récolte créée varie de 60 à 180 : le test
+  n'en donnait pas toujours assez) ; S7 (la viande créée s'appelle parfois « corpse », le filtre du coffre dit « meat »).
+- **Rouges PAS expliqués** : (1) `guest_suite` G36, la laisse : rouge dans la suite trois fois de suite (le chat ne suit
+  pas l'invité, distance 5 ou 6 ; puis « détacher » sans effet), vert seul (21/21), et rouge autrement après g31-g34 (le
+  détachement par l'host). Existait avant ce soir (`pub2`). À chercher : le chat est-il à côté au moment de détacher
+  (`use_held` dit ce que le menu offrait), et pourquoi la laisse ne tire pas. (2) `together_suite` T8 : 9 fois
+  « Exception at processing delta CharaDieDelta, NullReferenceException » dans le jeu de l'invité, une fois sur trois
+  passages, déjà vue l'après-midi (`pub`) ; le test passe quand même ; la pile n'est pas gardée (relire
+  `_shots/elin2-player.log` juste après un passage rouge).
+- **Essai de l'utilisateur, dépôt GitHub** : sa clé avait le droit de lire, pas d'écrire (GitHub : 403 « Resource not
+  accessible by personal access token », il faut `contents=write`) ; le message du mod était juste. Il doit refaire une clé
+  (celle-ci est passée dans la conversation). Le dépôt `elin-together-monde-essai` contient un monde de test.
+- **À faire ensuite** : 1) G36 et l'exception de T8 ; 2) conseil 6 : copie du monde par Steam ; 3) reste de la chasse 2 ;
+  4) duels : arène, pari, abandon ; 5) « Put this save in the depot » sur un dépôt qui a déjà un monde : que fait-il ?
+
+## État à 22h45 (dépassé)
 
 - **23h : la 0.26.494 remplace la 0.26.493** (accord de l'utilisateur) : les boîtes de saisie du dépôt, de la clé GitHub et
   de l'adresse coupaient le texte vers 22 caractères (trouvé par l'utilisateur en jeu) ; `characterLimit = 0` (`8eb5286`),
