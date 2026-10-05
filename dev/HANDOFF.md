@@ -20,6 +20,10 @@ Mode d'emploi : `DOCUMENTATION.md`. Règles : `../CLAUDE.md`. Message de départ
   « Exception at processing delta CharaDieDelta, NullReferenceException » dans le jeu de l'invité, une fois sur trois
   passages, déjà vue l'après-midi (`pub`) ; le test passe quand même ; la pile n'est pas gardée (relire
   `_shots/elin2-player.log` juste après un passage rouge).
+- G36, lu dans le code (pas prouvé) : la règle de la laisse du mod (`GuestLeash.Follow`) est la même que celle du jeu
+  (`Chara.cs`, déplacement du joueur) : pas de traction si le compagnon est en combat ou si « garder ses distances » est
+  actif. Dans la suite, un test d'avant laisse sans doute le chat en combat ; « détacher » échoue ensuite parce que le
+  menu n'offre rien à la case lue (« action absente, proposées : » vide). Piste : `IsInCombat` du chat au moment du rouge.
 - **Essai de l'utilisateur, dépôt GitHub** : sa clé avait le droit de lire, pas d'écrire (GitHub : 403 « Resource not
   accessible by personal access token », il faut `contents=write`) ; le message du mod était juste. Il doit refaire une clé
   (celle-ci est passée dans la conversation). Le dépôt `elin-together-monde-essai` contient un monde de test.
