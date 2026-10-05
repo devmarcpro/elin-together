@@ -115,6 +115,7 @@ namespace ElinTogether.Models;
 [Union(829, typeof(NameDelta))]
 [Union(830, typeof(TileStateDelta))]
 [Union(831, typeof(AgentTaskDelta))]
+[Union(832, typeof(CharaReviveRequestDelta))]
 // Act
 [Union(900, typeof(ActThrowDelta))]
 // Element

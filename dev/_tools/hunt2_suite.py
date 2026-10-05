@@ -11,6 +11,8 @@ E5  un jour passe (ligne 33) : compteur de jours et cout de relance des quetes, 
 E3  nourriture du sac (ligne 6) : elle vieillit d'heure en heure dans le sac de l'invite comme dans celui de l'host.
 E6  offrande sur l'autel d'un autre dieu (ligne 10) : le duel de conversion donne le meme dieu a l'autel dans les deux jeux
     (8 offrandes de suite), et l'artefact du dieu de l'autel est reforge a cote de celui qui l'offre, chez les deux.
+E7  ressusciter un compagnon chez le barman (ligne 8) : l'or part une fois, le compagnon se releve chez les deux, a cote de celui
+    qui paie (pas de l'host), dans le groupe, et il garde son maitre.
 
 Ce que le banc ne joue pas comme un joueur :
 - E2 : la priere est l'acte du jeu (ACT 6050, ce que fait le bouton) ; les points de vie sont baisses par l'host.
@@ -22,6 +24,11 @@ Ce que le banc ne joue pas comme un joueur :
   que l'artefact dise lequel des deux est son voisin ; vie et conditions de colere sont remises a neuf entre deux essais
   (sinon un deuxieme duel perdu tuerait le joueur) ; un joueur sans dieu rejoint le vent (JoinFaith, comme e2).
   Il ne prouve pas non plus : un pair d'une ancienne version (graine absente), ni le glisser d'un artefact au clavier.
+- E7 : le compagnon est apprivoise par MakeAlly dans le jeu du joueur et tue par l'host (Die, sans combat) ; le dialogue du barman est
+  joue (parler, puis le choix « ressusciter » par son texte anglais, devine : a defaut l'etape `_revive` est jouee directement) mais le
+  clic sur la ligne du compagnon est celui du bouton (onClick.Invoke), pas la souris ; l'invite est teleporte loin de l'host (mise en
+  place), le barman est pose a cote de lui. Le parchemin et le sort de resurrection (choix au hasard parmi les morts, joues chez l'host
+  pour l'invite) ne sont pas joues, ni le barman visite par l'host dans la zone d'un invite (refuse, comme les plans de la base).
 """
 import argparse
 import sys
@@ -30,9 +37,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from guest_suite import (LAYERS, awake, both, chara, clear_conditions, close_layers, count, give, give_made, stand, tame,  # noqa: E402
-                         use_held, use_menu)
-from equal2_suite import drop  # noqa: E402
+from guest_suite import (LAYERS, awake, both, chara, clear_conditions, close_layers, count, free_next_to, give, give_made, stand,  # noqa: E402
+                         tame, use_held, use_menu)
+from base_suite import step_played  # noqa: E402
+from equal2_suite import drop, seen, spawn  # noqa: E402
+from hunt_suite import hang_up, pick, talk  # noqa: E402
 from mp_test import log, shot, state  # noqa: E402
 from setting_suite import furniture, thing  # noqa: E402
 from travel_suite import RESULTS, check, ev, eventually, scan_logs  # noqa: E402
@@ -266,6 +275,218 @@ def e6(ctx):
                   f'var c = {chara(H, uid)}; foreach (var k in c.things.Where(x => x.id == "punish_ball" || x.id == "{art}").ToList()) k.Destroy(); c.hp = c.MaxHP; "ok"')
 
 
+def e7(ctx):
+    """ressusciter un compagnon chez le barman (ligne 8) : il se releve a cote de celui qui paie, dans son groupe, il garde son
+    maitre, l'or part une fois ; l'invite comme l'host"""
+    bar = ev(H, 'EClass.sources.charas.rows.First(x => x.trait != null && x.trait.Length > 0 && x.trait[0] == "Bartender").id')
+    host_uid = ctx["h"][1]
+    for who, key in both(ctx):
+        port, uid = ctx[key]
+        other = ctx["h" if key == "a" else "a"]
+        close_layers()
+        clear_conditions(uid)
+        pet = tame(ctx, "cat", key)
+        if not check(f"{who} a un compagnon ({pet})", bool(pet)):
+            continue
+        barman = 0
+        try:
+            clear_conditions(pet)
+            ev(H, f'var m = EClass._map.charas.Find(x => x.uid == {pet}); m.hp = 0; m.Die(); "ok"')
+            dead = lambda p: ev(p, f'var m = EClass.game.cards.globalCharas.Find({pet}); return m == null ? "absent" : m.isDead.ToString();')  # noqa: E731
+            if not check(f"{who} : le compagnon est mort dans les deux jeux", eventually(lambda: dead(H) == "True" and dead(A) == "True", timeout=15)):
+                continue
+            # l'invite s'eloigne de l'host (apres la mort) : le compagnon doit se relever pres de CELUI QUI PAIE, pas de l'host
+            if key == "a":
+                stand(port, uid, *(int(v) for v in free_next_to(H, host_uid, 8).split(",")))
+            give(ctx, key, "money", 100000)
+            barman = spawn(uid, bar, "Friend")
+            if not check(f"{who} : un barman est a cote de lui ({barman})", barman and eventually(lambda: seen(port, barman), timeout=15)):
+                continue
+            price = int(ev(port, f'CalcMoney.Revive(EClass.game.cards.globalCharas.Find({pet})).ToString()'))
+            # toute la bourse (GetCurrency) : le jeu paie d'abord avec les pieces deja la, pas avec la pile donnee
+            purse = lambda p: int(ev(p, f'{chara(p, uid)}.GetCurrency().ToString()'))  # noqa: E731
+            eventually(lambda: purse(H) == purse(port), timeout=10)
+            g0 = purse(H)
+            # le dialogue du jeu : le choix « ressusciter » (texte anglais devine), a defaut l'etape que ce choix joue
+            said = talk(port, barman) and any(pick(port, label) == "clic" for label in ("esurrect", "evive"))
+            log(f"{who} : choix du barman {'clique' if said else 'introuvable, etape jouee : ' + step_played(port, '_revive')}")
+            click = lambda: ev(port, 'var l = EClass.ui.layers.OfType<LayerPeople>().LastOrDefault(); if (l == null) return "pas de liste"; '  # noqa: E731
+                                     f'var it = l.GetComponentsInChildren<ItemGeneral>().FirstOrDefault(x => x.card != null && x.card.uid == {pet}); '
+                                     'if (it == null) return "pas de ligne"; it.button1.onClick.Invoke(); return "clic";')
+            check(f"{who} clique le compagnon dans la liste du barman", eventually(lambda: click() == "clic", timeout=15))
+            check(f"{who} : il se releve chez l'host", eventually(lambda: dead(H) == "False", timeout=15))
+            check(f"{who} : et dans les deux jeux", eventually(lambda: dead(H) == dead(A) == "False", timeout=15))
+            # le prix lu avant le clic et le prix paye different de quelques pieces (le jeu le recalcule au clic) : on verifie
+            # qu'il paie une fois, le meme montant dans les deux jeux, proche du prix affiche, et rien de plus ensuite
+            paid = lambda p: g0 - purse(p)  # noqa: E731
+            check(cond=eventually(lambda: paid(H) > 0 and paid(H) == paid(port), timeout=10),
+                  label=f"{who} paie, le meme montant dans les deux jeux ({paid(H)} chez l'host, {paid(port)} chez lui, prix affiche {price})")
+            once = paid(H)
+            time.sleep(3)
+            check(f"{who} : une seule fois, et pres du prix affiche ({once} puis {paid(H)}, prix {price})",
+                  paid(H) == once and abs(once - price) <= price // 5)
+            time.sleep(3)
+            dist = lambda p, u: int(ev(p, f'var m = EClass._map.charas.Find(x => x.uid == {pet}); var c = {chara(p, u)}; return (m == null || c == null) ? "99" : m.pos.Distance(c.pos).ToString();'))  # noqa: E731
+            for name, p in (("chez l'host", H), ("chez lui", port)):
+                check(f"{who} : le compagnon est a cote de celui qui a paye, {name} ({dist(p, uid)} cases)", dist(p, uid) <= 3)
+            check(f"{who} : et pas a cote de l'autre joueur (host {dist(H, other[1])}, invite {dist(A, other[1])} cases)", dist(H, other[1]) > 3 and dist(A, other[1]) > 3)
+            owner = lambda p: ev(p, f'var m = EClass.game.cards.globalCharas.Find({pet}); return m.GetInt("emp_owner") + "|" + m.IsPCParty + "|" + EClass.pc.party.members.Contains(m);')  # noqa: E731
+            want = f"{uid if key == 'a' else 0}|True|True"
+            check(f"{who} : il garde son maitre et il est dans le groupe, dans les deux jeux (host {owner(H)}, invite {owner(A)}, attendu {want})",
+                  eventually(lambda: owner(H) == owner(A) == want, timeout=10))
+        finally:
+            hang_up(port)
+            close_layers()
+            ev(H, f'var m = EClass.game.cards.globalCharas.Find({pet}); if (m != null) {{ if (m.IsPCParty) EClass.pc.party.RemoveMember(m); m.Destroy(); }} "ok"')
+            drop([barman])
+    # mise en place defaite : l'invite revient (il est reste loin pour le tour de l'host)
+    stand(A, ctx["a"][1], *(int(v) for v in free_next_to(H, host_uid, 2).split(",")))
+
+
+KETTLE = 'EClass.sources.charas.rows.First(x => x.trait != null && x.trait.Length > 0 && x.trait[0] == "Kettle").id'
+COPY_WINDOW = 'LayerInventory.listInv.FirstOrDefault(q => q.invs[0].owner is InvOwnerCopyShop)'
+
+
+def copy_box(port, shop):
+    """Le coffre de depot de ce marchand, vu par ce jeu : "aucun" ou "numero:objets" (leurs numeros, separes par des virgules)."""
+    return ev(port, f'var c = EClass._map.charas.Find(x => x.uid == {shop}); var b = c == null ? null : c.c_copyContainer; '
+                    'return b == null ? "aucun" : b.uid + ":" + string.Join(",", b.things.Select(t => t.uid));')
+
+
+def box_id(port, shop):
+    return copy_box(port, shop).split(":")[0]
+
+
+def box_items(port, shop):
+    box = copy_box(port, shop)
+    return [] if box == "aucun" or box.endswith(":") else box.split(":")[1].split(",")
+
+
+def whereabouts(port, uid, shop, item):
+    """(exemplaires de cet objet dans le sac du joueur, dans le coffre, par terre ; figurines en tout dans le sac et le coffre)."""
+    return tuple(int(v) for v in ev(port,
+        f'var c = {chara(port, uid)}; var s = EClass._map.charas.Find(x => x.uid == {shop}); var b = s == null ? null : s.c_copyContainer; '
+        f'var inBag = c == null ? 0 : c.things.Count(t => t.uid == {item}); var inBox = b == null ? 0 : b.things.Count(t => t.uid == {item}); '
+        f'var onGround = EClass._map.things.Count(t => t.uid == {item}); '
+        'var all = (c == null ? 0 : c.things.Where(t => t.id == "figure").Sum(t => t.Num)) + (b == null ? 0 : b.things.Where(t => t.id == "figure").Sum(t => t.Num)); '
+        'return inBag + "," + inBox + "," + onGround + "," + all;').split(","))
+
+
+def open_copy_window(port, shop):
+    """Parler a Kettle et choisir « enregistrer des objets a copier » (le vrai dialogue) ; vrai quand la fenetre de depot est ouverte."""
+    if not (talk(port, shop) and pick(port, "register items to copy") == "clic"):
+        return False
+    return eventually(lambda: ev(port, f'({COPY_WINDOW} != null).ToString()') == "True", timeout=15)
+
+
+def deposit(port, item):
+    """Le lacher d'un objet du sac sur la premiere case libre du coffre de copie (InvOwner.Transaction.Process, ce que fait le lacher)."""
+    if ev(port, '(LayerInventory.listInv.Any(q => q.mainInv)).ToString()') != "True":
+        ev(port, 'EClass.ui.OpenFloatInv(true); "ok"')
+        time.sleep(1.5)
+    return ev(port, f'var w = {COPY_WINDOW}; var t = EClass.pc.things.Find(x => x.uid == {item}); if (w == null || t == null) return "fenetre ou objet absent"; '
+                    'var src = LayerInventory.listInv.SelectMany(q => q.GetComponentsInChildren<ButtonGrid>(true)).FirstOrDefault(g => g.card == t); '
+                    'var dst = w.GetComponentsInChildren<ButtonGrid>(true).FirstOrDefault(g => g.card == null && g.invOwner is InvOwnerCopyShop); '
+                    'if (src == null) return "bouton du sac absent"; if (dst == null) return "case libre du coffre absente"; '
+                    'return new InvOwner.Transaction(new DragItemCard.DragInfo(src), new DragItemCard.DragInfo(dst), 1).Process() ? "ok" : "refuse";')
+
+
+def take_back(port, item):
+    """La reprise d'un objet du coffre de copie (le clic sur son bouton : InvOwner.Transaction.Process)."""
+    return ev(port, f'var w = {COPY_WINDOW}; if (w == null) return "fenetre absente"; '
+                    f'var btn = w.GetComponentsInChildren<ButtonGrid>(true).FirstOrDefault(g => g.card != null && g.card.uid == {item}); '
+                    'if (btn == null) return "bouton de l\'objet absent"; return new InvOwner.Transaction(btn).Process() ? "ok" : "refuse";')
+
+
+def shop_copies(port, shop):
+    """Copies proposees dans la fenetre de la boutique de ce marchand ouverte dans ce jeu (-1 : pas de fenetre)."""
+    return int(ev(port, 'var l = LayerInventory.listInv.FirstOrDefault(q => q.invs[0].owner is InvOwnerShop && q.invs[0].owner.owner != null '
+                        f'&& q.invs[0].owner.owner.uid == {shop}); return l == null ? "-1" : '
+                        'l.invs[0].owner.Container.things.Count(t => t.id == "figure" && t.isCopy).ToString();'))
+
+
+def e8(ctx):
+    """copie chez Kettle (ligne 9) : l'objet depose est dans le coffre de copie chez les deux et plus dans le sac (une seule fois),
+    la boutique propose la copie apres le delai, l'objet peut etre repris ; l'invite puis l'host, les deux coffres ne se melangent pas"""
+    kid = ev(H, KETTLE)
+    shops, items, boxes = {}, {}, {}
+    for p in (H, A):
+        # TraitKettle.CanJoinParty : la quete « vernis_gold » ou le mode debug
+        ev(p, 'EClass.debug.enable = true; "ok"')
+    try:
+        for who, key in both(ctx):
+            port, uid = ctx[key]
+            views = [("chez l'host", H)] + ([("chez lui", port)] if port != H else [])
+            close_layers()
+            shop = spawn(uid, kid, "Friend")
+            if not check(f"{who} : Kettle est a cote de lui ({shop})", shop and eventually(lambda: seen(H, shop) and seen(port, shop), timeout=15)):
+                continue
+            shops[key] = shop
+            item = items[key] = give_made(ctx, key, 'var t = ThingGen.Create("figure");')
+            if not check(f"{who} : la fenetre de depot s'ouvre par le dialogue de Kettle", open_copy_window(port, shop)):
+                continue
+            check(f"{who} : le coffre est le meme chez l'host et chez lui (host {copy_box(H, shop)}, chez lui {copy_box(port, shop)})",
+                  eventually(lambda: box_id(H, shop) != "aucun" and box_id(H, shop) == box_id(port, shop), timeout=10))
+            boxes[key] = box_id(H, shop)
+            r = deposit(port, item)
+            # chez un invite le lacher rend "refuse" (l'objet ne bouge chez lui qu'au retour de l'host) : c'est le resultat qui compte, verifie juste apres
+            log(f"{who} depose sa figurine : {r}")
+            for label, p in views:
+                check(f"{who} : la figurine est dans le coffre de copie {label} ({copy_box(p, shop)})",
+                      eventually(lambda: str(item) in box_items(p, shop), timeout=15))
+            time.sleep(2)
+            for label, p in views:
+                where = whereabouts(p, uid, shop, item)
+                check(f"{who} : une seule fois, dans le coffre et plus dans son sac ni par terre {label} (sac, coffre, sol, figurines en tout : {where})",
+                      where == (0, 1, 0, 1))
+            # la copie : apres le delai de Kettle (28 jours, ici l'echeance remise a zero chez l'host), sa boutique la propose
+            close_layers()
+            hang_up(port)
+            ev(H, f'EClass._map.charas.Find(x => x.uid == {shop}).c_dateStockExpire = 0; "ok"')
+            if check(f"{who} : il ouvre la boutique de Kettle (« Show me your wares »)", talk(port, shop) and pick(port, "wares") == "clic"):
+                check(f"{who} : la boutique propose la copie de sa figurine ({shop_copies(port, shop)} copie(s) dans la fenetre)",
+                      eventually(lambda: shop_copies(port, shop) >= 1, timeout=20))
+                check(f"{who} : et chez l'host Kettle l'a dans son stock",
+                      eventually(lambda: ev(H, f'EClass._map.charas.Find(x => x.uid == {shop}).things.Where(c => c.id == "chest_merchant").SelectMany(c => c.things)'
+                                              '.Count(t => t.id == "figure" && t.isCopy).ToString()') != "0", timeout=15))
+            close_layers()
+            hang_up(port)
+
+        if len(items) == 2 and len(boxes) == 2:
+            check(f"les deux coffres ne se melangent pas : chaque coffre n'a que la figurine de celui qui l'a depose "
+                  f"(invite {box_items(H, shops['a'])}, host {box_items(H, shops['h'])})",
+                  boxes["a"] != boxes["h"] and box_items(H, shops["a"]) == [str(items["a"])] and box_items(H, shops["h"]) == [str(items["h"])])
+            # la reprise : on rouvre la fenetre (meme coffre : un seul par personnage), la figurine revient dans le sac
+            for who, key in both(ctx):
+                port, uid = ctx[key]
+                shop, item = shops[key], items[key]
+                views = [("chez l'host", H)] + ([("chez lui", port)] if port != H else [])
+                close_layers()
+                if not check(f"{who} : il rouvre la fenetre de depot", open_copy_window(port, shop)):
+                    continue
+                check(f"{who} : c'est le meme coffre qu'avant, avec sa figurine ({copy_box(port, shop)})",
+                      box_id(port, shop) == boxes[key] and str(item) in box_items(port, shop))
+                r = take_back(port, item)
+                log(f"{who} reprend sa figurine : {r}")
+                time.sleep(2)
+                for label, p in views:
+                    check(f"{who} : elle est revenue dans son sac, une seule fois, le coffre est vide {label} "
+                          f"({whereabouts(p, uid, shop, item)}, coffre {box_items(p, shop)})",
+                          eventually(lambda: whereabouts(p, uid, shop, item) == (1, 0, 0, 1) and not box_items(p, shop), timeout=15))
+                close_layers()
+                hang_up(port)
+    finally:
+        close_layers()
+        for p in (H, A):
+            hang_up(p)
+            ev(p, 'EClass.debug.enable = false; "ok"')
+        for shop in shops.values():
+            ev(H, f'var c = EClass._map.charas.Find(x => x.uid == {shop}); if (c != null && c.c_copyContainer != null) c.c_copyContainer.Destroy(); "ok"')
+        drop(list(shops.values()))
+        for key in ("a", "h"):
+            ev(H, f'foreach (var k in {chara(H, ctx[key][1])}.things.Where(t => t.id == "figure").ToList()) k.Destroy(); "ok"')
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--only")
@@ -273,7 +494,7 @@ def main():
     sys.stdout.reconfigure(encoding="utf-8")
     t0 = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
     ctx = {"a": (A, state(A)["pc"]["uid"]), "h": (H, state(H)["pc"]["uid"])}
-    steps = [e1, e2, e3, e5, e4, e6]  # e4 apres e5 : la priere du jour (E2) doit etre passee
+    steps = [e1, e2, e3, e5, e4, e6, e7, e8]  # e4 apres e5 : la priere du jour (E2) doit etre passee
     if a.only:
         steps = [s for s in steps if s.__name__ in a.only.split(",")]
     for step in steps:

@@ -1,0 +1,46 @@
+using ElinTogether.Helper;
+using ElinTogether.Net;
+using ElinTogether.Patches;
+using MessagePack;
+
+namespace ElinTogether.Models;
+
+/// <summary>
+///     A guest asks the host to bring back a dead companion at the barman's: its own game would pay and lose the
+///     revive (Chara.Revive of a non-player is dropped there), and its payment would leave the companion dead.
+///     The host checks, takes the price from that player's purse once and revives it next to that player, see
+///     <see cref="RemoteRevivePatch" />. The companion keeps its owner
+/// </summary>
+[MessagePackObject]
+public class CharaReviveRequestDelta : ElinDelta
+{
+    [Key(0)]
+    public required RemoteCard Target { get; init; }
+
+    protected override void OnApply(ElinNetBase net)
+    {
+        // all of it is read again from this game's state: a request that comes twice finds it alive and pays nothing
+        if (net is not ElinNetHost host || host.IsAwayPeer(OriginPeer) ||
+            !host.ActiveRemoteCharas.TryGetValue(OriginPeer, out var sender) ||
+            Target.Find() is not Chara { isDead: true, isSummon: false, IsGlobal: true } dead || !dead.CanRevive() ||
+            dead.faction != pc.faction || dead.IsPC || dead.IsRemotePlayer) {
+            // a dead player is not on the barman's list of a solo game: it has its own way back
+            return;
+        }
+
+        // the price the guest saw: its own Charisma
+        int cost;
+        using (RemoteCraft.AsCrafter(sender)) {
+            cost = CalcMoney.Revive(dead);
+        }
+
+        if (sender.GetCurrency() < cost) {
+            return;
+        }
+
+        // as the host's own gesture, the purse of the sender reaches its game as any other change made here to its things
+        using var simulate = Simulate();
+        sender.ModCurrency(-cost);
+        dead.GetRevived();
+    }
+}

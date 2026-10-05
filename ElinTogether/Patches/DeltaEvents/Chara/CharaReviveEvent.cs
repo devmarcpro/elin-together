@@ -78,7 +78,10 @@ internal static class CharaReviveEvent
             return;
         }
 
-        if (NetSession.Instance.Connection is not ElinNetHost host || !__instance.IsPlayer) {
+        // a companion too: the guests drop the revive of anything but a player (above), the host's game is the one
+        // that stands it up
+        if (NetSession.Instance.Connection is not ElinNetHost host ||
+            !(__instance.IsPlayer || (__instance.IsPCFaction && __instance.IsInActiveMap))) {
             return;
         }
 
