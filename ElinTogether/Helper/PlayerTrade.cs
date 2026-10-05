@@ -377,11 +377,18 @@ public static class PlayerTrade
 
     private static void Commit(Session session, ElinNetHost host)
     {
-        var fromA = Resolve(session.A, session.ItemsA, session.GoldA);
-        var fromB = Resolve(session.B, session.ItemsB, session.GoldB);
+        var fromA = Resolve(session.A, session.ItemsA, session.GoldA, out var reasonA);
+        var fromB = Resolve(session.B, session.ItemsB, session.GoldB, out var reasonB);
         if (fromA is null || fromB is null) {
-            // something on the table is not there anymore (used, dropped, spent): no half trade
-            End(session, host, Cancelled, "emp_trade_invalid");
+            // something on the table is not there anymore or cannot be traded: no half trade, and they are told why
+            End(session, host, Cancelled, fromA is null ? reasonA : reasonB);
+            return;
+        }
+
+        // a bag that cannot take what it is about to receive: refused before anything moves. The simple safe count:
+        // free cells now >= items received, without counting the cells freed by what that player gives
+        if (!HasRoom(session.A, fromB.Count, session.GoldB) || !HasRoom(session.B, fromA.Count, session.GoldA)) {
+            End(session, host, Cancelled, "emp_trade_full");
             return;
         }
 
@@ -399,8 +406,9 @@ public static class PlayerTrade
     /// <summary>
     ///     The items of an offer as they are right now in their owner's bag, null if any of it does not hold
     /// </summary>
-    private static List<(Thing Thing, int Num)>? Resolve(Chara owner, List<TradeItem> items, int gold)
+    private static List<(Thing Thing, int Num)>? Resolve(Chara owner, List<TradeItem> items, int gold, out string reason)
     {
+        reason = "emp_trade_invalid";
         if (gold > owner.GetCurrency()) {
             return null;
         }
@@ -409,8 +417,12 @@ public static class PlayerTrade
         foreach (var item in items) {
             var thing = owner.things.Find(item.Uid);
             if (thing is null || thing.isDestroyed || thing.GetRootCard() != owner || item.Num < 1 || thing.Num < item.Num ||
-                thing.isEquipped || thing.c_isImportant || thing.trait is TraitAbility || thing.id is "money" ||
-                (thing.IsContainer && thing.things.Count > 0) || resolved.Exists(r => r.Item1 == thing)) {
+                resolved.Exists(r => r.Item1 == thing)) {
+                return null;
+            }
+
+            if (Refuse(thing) is { } why) {
+                reason = why;
                 return null;
             }
 
@@ -418,6 +430,57 @@ public static class PlayerTrade
         }
 
         return resolved;
+    }
+
+    /// <summary>
+    ///     Why this item cannot be put on the table (the text key shown to both players), null if it can. What the
+    ///     single player game refuses to hand to an ally (<c>InvOwner.AllowHold</c>) for an item not worn, plus the
+    ///     items bound to a character. Used by the trade window to list what can be offered, and again when both confirm
+    /// </summary>
+    internal static string? Refuse(Thing thing)
+    {
+        if (thing.isEquipped) {
+            return "emp_trade_equipped";
+        }
+
+        if (!thing.trait.CanBeDropped) {
+            return "emp_trade_nodrop";
+        }
+
+        if (thing.isNPCProperty) {
+            return "emp_trade_npcprop";
+        }
+
+        if (thing.isGifted) {
+            return "emp_trade_gifted";
+        }
+
+        if (thing.c_uidAttune != 0) {
+            return "emp_trade_bound";
+        }
+
+        if (thing.c_isImportant || thing.trait is TraitAbility || thing.id is "money" || (thing.IsContainer && thing.things.Count > 0)) {
+            return "emp_trade_invalid";
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    ///     Whether the top level of the bag has <paramref name="incoming" /> free cells. <c>Move</c> adds each item
+    ///     there unstacked, so each one takes a cell. Counted from the items as <c>ThingContainer.IsOverflowing</c> does
+    ///     (not worn, not on the hotbar) against <c>GridSize</c>, and not through <c>ThingContainer.IsFull</c> or the
+    ///     <c>grid</c> list: only the game of that character's owner builds a grid, here a remote player's has none and
+    ///     <c>IsFull</c> would then count its worn items too. Gold takes a cell too when the receiver has none yet
+    ///     (<c>AddCurrency</c> creates the coins at the top level)
+    /// </summary>
+    private static bool HasRoom(Chara chara, int incoming, int gold)
+    {
+        if (gold > 0 && chara.GetCurrency() == 0) {
+            incoming++;
+        }
+
+        return chara.things.GridSize - chara.things.Count(t => t.invY != 1 && !t.isEquipped) >= incoming;
     }
 
     private static void Move(Chara from, Chara to, List<(Thing Thing, int Num)> items, int gold)

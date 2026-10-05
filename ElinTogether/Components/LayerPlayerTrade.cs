@@ -127,10 +127,8 @@ internal class TabPlayerTrade : YKLayout<object>
 
     private static void PickItem()
     {
-        var things = EClass.pc.things
-            .Where(t => !t.isEquipped && !t.c_isImportant && t.trait is not TraitAbility && t.id != "money" &&
-                        !(t.IsContainer && t.things.Count > 0))
-            .ToList();
+        // the same rule as when both confirm, so nothing is offered that would be refused then
+        var things = EClass.pc.things.Where(t => PlayerTrade.Refuse(t) is null).ToList();
         if (things.Count == 0) {
             return;
         }
