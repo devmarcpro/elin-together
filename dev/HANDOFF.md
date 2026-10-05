@@ -3,23 +3,33 @@
 À lire en premier par la session suivante. Détail daté : fin de `MODLOG.md` (« Étape D suite, Elin 23.352 »).
 Mode d'emploi : `DOCUMENTATION.md`. Règles : `../CLAUDE.md`. Message de départ : `PROMPT_reprise.md`.
 
-## État à 15h40 (le plus récent : lire ceci d'abord, le reste du fichier date de 14h45)
+## État à 17h (le plus récent : lire ceci d'abord ; le reste du fichier date de 14h45)
 
-- **Version publiée : 0.26.463** (2026-10-05, 15h35, commit `895d5b0`, compilée pour Elin EA 23.352,
-  https://github.com/devmarcpro/elin-together/releases/tag/independance-0.26.463). Elle contient tout jusqu'à la
-  nourriture du sac (ligne 6 de la deuxième chasse) et la barrière de version levée.
-- **Rejoué avant de publier** (jeu relancé entre chaque suite, Elin 23.352) : equal2 35/35, hunt 135/135, death 11/11,
-  parity 15/15, sleep 32/32 ; council 30/31 (« l'invité tue le monstre », à rejouer) ; together 126/131 (**T12, récolte
-  prise par l'invité : ce que l'invité livre n'a pas compté, pas de récompense ; et des `CharaDieDelta` en erreur dans
-  le journal du client** : à rejouer puis corriger). **Pas rejoué avant la publication** (l'utilisateur a demandé de
-  publier tout de suite) : recruit, quest, instance, trade, base, setting, unplayed, version, leave, guest, travel.
-- **En cours, pas commité** : cinq petites corrections de l'étape E (prière sans dieu l.25, jours et relance des quêtes
-  l.33-34, prix d'expédition l.26, carte à gratter l.30, garde-fou du mode construction = étape 1 du conseil 5) avec
-  leurs tests (`hunt2_suite.py` E4, E5 ; `build2_suite.py` G1, C3).
-- **Conseil 5** (mode construction d'un invité) : verdict et ordre des sept étapes dans `MODLOG.md` ; faits dans
-  `PLAN_construction_invite.md`. Lignes 7 à 11 : faits et diffs proposés dans `PLAN_lignes_7_a_11.md` (9 et 11 :
-  conseil à réunir).
-- `_decomp` est refait pour 23.352.
+- **Version publiée : 0.26.463** (2026-10-05, 15h35, commit `895d5b0`, Elin EA 23.352,
+  https://github.com/devmarcpro/elin-together/releases/tag/independance-0.26.463). Le jeu de cette machine a un build
+  de TEST plus récent : avant de jouer avec quelqu'un, `Installer.bat` du zip publié.
+- **Depuis la 0.26.463, fait, testé, poussé** (`git log --oneline 895d5b0..HEAD`) : l'invité utilise le mode
+  construction (menu, miner, creuser, couper : `AgentTaskDelta`, case host `GuestBuild`), le terrain suit entre les jeux
+  (`TileStateDelta`), réglages de coffre (l.7), duel d'autel (l.10), prière sans dieu (l.25), jours et heures de
+  l'invité (l.33-34), garde-fous. **Pas joués** : prix d'expédition (l.26), carte à gratter (l.30). Suites :
+  `build2_suite.py` 28/28, `hunt2_suite.py` E1 à E6, `setting_suite.py` S7.
+- **En cours à 17h** : `run_short.sh pub2` (13 suites larges sur le nouveau build, journaux `_shots/*-pub2.log` ; reste
+  ensuite `travel_suite` seule) ; agents dans des copies isolées, chacun rend un patch dans `_shots/` :
+  `ligne8.patch` (résurrection d'un compagnon), `ligne11.patch` (clé à molette, fouets…), `etape7.patch` (zones, outil
+  de terrain, cases changées hors `Map.Set*`), `depot_github.patch` (dépôt GitHub privé pour garder le monde). Pour
+  chaque patch : `git apply`, relecture par `relecteur-elintogether`, compiler, test rouge puis vert, commit.
+  Un agent écrit les faits pour les duels et les membres d'une base : `PLAN_duels_et_membres.md` (conseil ensuite).
+- **Conseils rendus** (détail dans `MODLOG.md`) : 5 = mode construction de l'invité (fait jusqu'à l'étape 6) ; 6 = où vit
+  le monde partagé : copie chez chaque joueur par Steam par défaut, GitHub en option, Workshop écarté ; **première
+  chose à faire pour le conseil 6, sans code** : avec le dépôt « dossier » actuel et deux fenêtres, vérifier que
+  l'invité qui prend le monde joue SON personnage et pas celui de l'host (`SaveDepot.Take` → `Game.Load`).
+- Lignes 9 (copie chez Kettle) : à écrire, option B du plan (demande à l'host + coffre diffusé, union 835) ; tranché
+  sans conseil : le critère 1 (l'invité obtient ce qu'un solo obtiendrait) écarte le simple refus.
+- Numéros pris : deltas jusqu'à 831 commités ; 832 (résurrection), 833-834 (étape 7), 836 (ligne 11) réservés aux
+  patches en cours, 835 pour Kettle ; arguments de tâche jusqu'à 227 ; règles de session jusqu'à la clé 12.
+- Dépôt privé d'essai pour le dépôt GitHub : `devmarcpro/elin-together-monde-essai` (créé avec l'accord de
+  l'utilisateur).
+- **À proposer à l'utilisateur** : une version 0.26.47x quand `pub2` et `travel_suite` sont verts.
 
 ## Où on en est
 
