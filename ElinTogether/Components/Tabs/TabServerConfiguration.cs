@@ -27,6 +27,7 @@ internal class TabServerConfiguration : TabEmpBase
         Option(own, "personal_quests", EmpConfig.Server.PersonalQuests);
         Option(own, "player_shipping", EmpConfig.Server.PlayerShipping);
         Option(own, "player_trade", EmpConfig.Server.PlayerTrade);
+        Option(own, "guest_build", EmpConfig.Server.GuestBuild);
 
         var time = Section("time");
         Option(time, "combat_time", EmpConfig.Server.PlayerCombatTime);

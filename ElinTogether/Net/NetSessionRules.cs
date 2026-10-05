@@ -81,7 +81,15 @@ public class NetSessionRules
     [Key(11)]
     public bool UseWorldKeeper { get; set; }
 
+    /// <summary>
+    ///     The players who do not keep the map may use the build mode of the base: their clicks are asked of the
+    ///     game that keeps it (AgentTaskDelta). Off: refused with a message, only that game builds
+    /// </summary>
+    [Key(12)]
+    public bool AllowGuestBuild { get; set; } = true;
+
     public static NetSessionRules Default => new() {
+        AllowGuestBuild = EmpConfig.Server.GuestBuild.Value,
         UseSharedSpeed = EmpConfig.Server.SharedAverageSpeed.Value,
         UseTurnBasedCombat = EmpConfig.Server.TurnBasedCombat.Value,
         AllowIndependentTravel = EmpConfig.Server.IndependentTravel.Value,

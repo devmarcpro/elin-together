@@ -70,6 +70,11 @@ internal static class CharaProgressCompleteEvent
             connection.Delta.AddRemote(CharaBuildDelta.Create(taskBuild));
         }
 
+        // the build mode's menu, in a game that does not keep the map: asked of the one that does
+        if (connection.IsClient && AgentTaskDelta.TrySend(taskBuild)) {
+            return false;
+        }
+
         return connection.IsHost || ElinDelta.IsApplying;
     }
 
@@ -91,6 +96,9 @@ internal static class CharaProgressCompleteEvent
             if (NetSession.Instance.Connection is not ElinNetHost buildHost) {
                 return;
             }
+
+            // a wall turned into a corner is written on the cell by hand (TaskBuild.OnProgressComplete)
+            TileStateDelta.Mark(EClass._map, taskBuild.pos.x, taskBuild.pos.z);
 
             if (_sideDeltaList is { } collector) {
                 collector.AddRange(captured);

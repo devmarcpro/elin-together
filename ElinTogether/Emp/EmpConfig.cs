@@ -173,6 +173,14 @@ internal partial class EmpConfig
             "Otherwise every player holding a map runs it too in its own copy: a quest expires twice, each copy has its own weather\n" +
             "时间对世界的影响（天气、任务过期、税金、工资、信件）只由一个游戏处理一次，所有人相同；否则每个持有地图的玩家也会在自己的副本中各自处理");
 
+        Server.GuestBuild = config.Bind(
+            "Server",
+            "GuestBuild",
+            true,
+            "The other players may use the build mode of the base (floors, walls, furniture, mining, cutting): the game of the host builds for them, they pay\n" +
+            "Otherwise only the host builds\n" +
+            "其他玩家可以使用据点的建造模式（地板、墙、家具、挖掘、砍伐）：由主机的游戏代为建造，费用由该玩家支付；否则只有主机可以建造");
+
         Server.PlayerShipping = config.Bind(
             "Server",
             "PlayerShipping",
@@ -292,6 +300,7 @@ internal partial class EmpConfig
         internal static ConfigEntry<bool> IndependentTravel { get; set; } = null!;
         internal static ConfigEntry<bool> SameGameVersion { get; set; } = null!;
         internal static ConfigEntry<bool> PlayerShipping { get; set; } = null!;
+        internal static ConfigEntry<bool> GuestBuild { get; set; } = null!;
         internal static ConfigEntry<bool> PersonalQuests { get; set; } = null!;
         internal static ConfigEntry<bool> ChooseCharacter { get; set; } = null!;
         internal static ConfigEntry<bool> ImportCharacter { get; set; } = null!;

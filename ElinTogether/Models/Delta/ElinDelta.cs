@@ -114,6 +114,7 @@ namespace ElinTogether.Models;
 [Union(828, typeof(CardDecayDelta))]
 [Union(829, typeof(NameDelta))]
 [Union(830, typeof(TileStateDelta))]
+[Union(831, typeof(AgentTaskDelta))]
 // Act
 [Union(900, typeof(ActThrowDelta))]
 // Element

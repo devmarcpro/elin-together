@@ -2272,3 +2272,84 @@ réglages de coffre, mesure du rechargement) ; défense à deux. Voir `HANDOFF.m
   ne les lit : `GoalTask` n'est créé nulle part) ; aller droit à la cible sans garde-fou ; sac seul ; pierres au sol.
   Notes du président : avec l'agent comme acteur, `TrySmoothPick` donne la pierre à l'host : il faut une redirection
   vers le personnage de l'invité (`CharaPickThingEvent.cs`) ; l'expérience de minage va à l'agent en solo aussi.
+
+**Suite, 15h35 → 16h20** (voir `HANDOFF.md`, « État à 15h40 », et `PLAN_chasse_differences_2.md`, « État à 16h30 »)
+
+- **Version 0.26.463 publiée** à 15h35 (commit `895d5b0`, Elin EA 23.352), à la demande de l'utilisateur avant la fin des
+  suites larges : rejoué avant, equal2, hunt, death, parity, sleep verts ; council et together avaient chacun un rouge,
+  rejoués ensuite : c'étaient les tests (un tirage ; T12 livrait avant que la pile mise par l'host soit arrivée chez
+  l'invité, `6b62659`). **Pas rejoué sur cette version** : recruit, quest, instance, trade, base, unplayed, version,
+  leave, guest, travel.
+- **Trouvé par la relecture** (pas par un test) : chez un invité sur la carte de l'host, **aucun crochet d'heure, de jour,
+  de mois ne tournait en jeu normal** (`WorldDateAdvanceDelta` sortait quand le saut faisait moins de 2 minutes, et
+  comptait l'écart de jours en minutes). Effets : la prière du jour jamais remise à zéro, jours avec son dieu, compteur
+  de jours, coût de relance des quêtes. Corrigé `194c6d7`.
+- **Mode construction (conseil 5)** : étape 1 garde-fou `99c7353` ; étapes 2-3 `1a25661` (`TileStateDelta`, union 830 :
+  état complet de chaque case changée, envoyé en fin d'image par celui qui simule ; identifiant de zone ; morceaux de
+  2048 cases) ; étape 5 (miner, creuser, couper par l'invité) et étape 4/6 (pose du menu) : `AgentTaskDelta` (union 831)
+  + `TaskBuildArgs` (tâche 227). **L'idée qui a rendu ça petit** : chez l'invité le jeu fabrique déjà la tâche et la
+  fait finir par « l'agent » ; on envoie cette tâche au lieu de la finir, l'host la finit avec l'expéditeur à la place
+  du joueur (`RemoteCraft.AsCrafter`) : l'or (déjà une demande : `CardModCurrencyDelta`), la pierre ramassée et les
+  matières vont et viennent du bon sac sans code de plus. Tests `build2_suite.py` : rouge vu d'abord (or payé pour
+  rien, mur tombé chez l'invité seul, sol de l'host invisible), puis vert C1 à C5.
+- Restent du conseil 5 : zones de base, outil de terrain (hauteurs), plans : encore refusés avec un message (G2) ;
+  mode toit (touche Alt) refusé ; ce qui change une case sans passer par `Map.Set*` (pousse, arrosage, hauteurs).
+- Pièges : plusieurs `[HarmonyPatch]` sur une même méthode ne font PAS plusieurs cibles (utiliser `TargetMethods`) ;
+  dans un test, compter une matière « avant / après » et pas en absolu (la pierre d'un mur miné plus tôt est la même
+  matière) ; `Area.Create` veut un identifiant de `sources.areas` (« Stockpile »), pas « public » ; le premier appel
+  HTTPS du jeu prend 7 s.
+- **Demandes de l'utilisateur pendant la séance** : dépôt GitHub privé pour garder le monde (agent en cours,
+  `PLAN_depot_github.md`, dépôt d'essai `devmarcpro/elin-together-monde-essai` créé avec son accord) ; « tout par
+  Steam » si possible : objet du Workshop à contributeurs (recherche en cours, `PLAN_depot_steam.md`) ; membres d'une
+  base ; duels entre joueurs avec pari.
+
+- **Mode construction de l'invité, étapes 4 à 6 faites** (`build2_suite` 28/28, `build_suite` 19/19) : poser du menu (sol,
+  mur, meuble neuf, objet du stock), miner, creuser, couper. Case côté host « Other players can use build mode »
+  (`GuestBuild`, cochée par défaut ; règle de session 12). Relecture appliquée : mode toit (Alt) refusé AVANT le
+  paiement, apparence du meuble envoyée, l'host revérifie la case (double clic) et les ingrédients (nombre et quantité),
+  remboursement plafonné à 10. **Pas joué** : objet du stock ou du sac posé par le menu, pont, glisser sur plusieurs
+  cases, creuser, mode rampe, la case décochée, une carte tenue par un invité (l'host y est le « client »).
+
+### Conseil 6 : où vit le monde partagé (2026-10-05, 16h40)
+
+Question : l'utilisateur veut jouer dans le monde sans PC allumé ni port ouvert, « tout par Steam » si possible. Faits :
+`PLAN_depot_steam.md`, `PLAN_depot_github.md`. Verdict complet :
+
+# Verdict du conseil : où vit le monde partagé
+
+## Accord du conseil
+- (P) par défaut, (G) en option, (W2) écarté : 5 sur 5.
+- (iii) impossible hors ligne : avertissement seulement.
+- La copie reçue vit dans un dossier du mod.
+- Une lignée perdante n'est jamais supprimée.
+
+## Désaccords
+- Divergence : quatre veulent (i), le Contrarien (ii). Le relecteur 1 montre que « le plus de temps de jeu gagne » est arbitraire et que « compteur plus haut gagne » écrase une lignée en silence.
+- Temps sans les absents : seul le Contrarien veut borner, sans source.
+
+## Angles morts relevés
+- **Quel personnage joue l'invité qui héberge la copie ?** `SaveDepot.Take` fait `Game.Load("world_depot")` et rien d'autre (lignes 92 à 141) : celui qui charge joue le personnage principal de la sauvegarde, donc celui de l'ami. Aucun conseiller n'en parle. Non vérifié en jeu.
+- Un compteur ne prouve pas la filiation : il faut l'empreinte de la version parente.
+- `Save/world_depot` est déjà une sauvegarde normale, visible dans « Charger » (`Game.Load` l'exige). On ne peut pas la cacher.
+- Envoyer le zip à chaque changement de carte fige le jeu.
+- Deux fenêtres ne prouvent pas le relais Steam : un essai réel avec l'ami reste dû.
+
+## Verdict
+1. **(P) par défaut, (G) en option**, finie à part. (W2) écarté : pas de verrou, délai inconnu, objet retirable.
+2. **Ni (i) ni (ii).** Une copie descendante de l'autre remplace sans question. Vraie divergence : le monde de celui qui héberge est joué ; l'invité reçoit un Oui/Non (« vos mondes ont divergé depuis le …, rejoindre celui de X ? ») ; sa copie part dans « écartées », trois au plus. Non : il héberge la sienne. Un humain décide, aucun écran nouveau.
+3. **Acceptable, sans borne**, si le personnage absent ne bouge pas (étape 3).
+4. **Zip dans le dossier du mod**, décompressé dans `Save/world_depot` seulement par « héberger ce monde ». Toute sauvegarde de `world_depot` monte la version, même chargée par « Charger » : pas de lignée fantôme.
+
+Ordre de livraison (rouge puis vert, deux fenêtres) :
+1. `world.version` (monde, compteur, empreinte, empreinte parente) à chaque sauvegarde. Test : deux sauvegardes, compteur +1, parent = empreinte d'avant.
+2. Envoi du zip aux invités, au plus un par 5 minutes et à la sortie, `.part` puis renommage. Test : même empreinte chez l'invité ; envoi coupé, ancienne copie intacte.
+3. « Héberger ce monde » chez l'invité. Test : il joue SON personnage, gagne un seau ; or et sac de l'absent identiques.
+4. Retour de l'ami. Test : version descendante reçue sans question, seau visible, ancienne gardée.
+5. Divergence. Test : deux lignées de même parent, Oui/Non, perdante dans « écartées ».
+6. Avertissement avant d'héberger seul : « Dernière session avec X le …. S'il a joué depuis, ta copie est ancienne. »
+
+Écarté : fusion, récupération, export (hors périmètre) ; temps figé pour les absents (règle que le solo n'a pas) ; boîte bloquante à deux (corvée).
+
+## La première chose à faire
+Aucun code. Dépôt dossier actuel, deux fenêtres : A héberge `world_depot`, B rejoint avec son personnage et ramasse un seau ; tous deux quittent ; B clique « Take the world ». Lire `EClass.pc.Name`, compter les seaux. Si B se réveille dans le personnage de A, (P) rate le critère 1 et cette réparation devient l'étape 1.
+
