@@ -102,3 +102,19 @@ détail à confirmer en jeu ; « à vérifier » = on ne sait pas encore si le d
 
 Corrigés et testés (`hunt2_suite.py`) : ligne 2 (rondin à la hache), ligne 5 (prière et compagnons), ligne 6 (nourriture
 du sac). Tout le reste est à faire, en commençant par la ligne 1.
+
+## État au 2026-10-05, 16h30
+
+| Ligne | État |
+|---|---|
+| 1, 3, 4 | conseil 5 rendu (`MODLOG.md`), faits dans `PLAN_construction_invite.md`. Étape 1 faite : garde-fou, `99c7353`, `build2_suite` G1. Étape 2-3 (état des cases envoyé par celui qui simule) : écrite, en test (`build2_suite` C3, C4). Étapes 4 à 7 (demandes de l'invité) : à faire |
+| 2, 5, 6 | corrigé, `hunt2_suite` E1 à E3 |
+| 7 à 11 | faits et diffs proposés dans `PLAN_lignes_7_a_11.md` ; 9 (Kettle) et 11 (outils) demandent un conseil |
+| 25 | corrigé `194c6d7`, `hunt2_suite` E4 |
+| 26 | corrigé `445fa5e`, **pas joué** (il faudrait une vente du matin avec un invité fidèle de Kumiromi) |
+| 30 | corrigé `3459019`, **pas joué** (dialogue du casino) |
+| 33, 34 | corrigé `194c6d7`, `hunt2_suite` E5. Trouvé en relisant : chez l'invité, AUCUN crochet d'heure ni de jour ne tournait en jeu normal (le temps de l'host arrive minute par minute : 0 tick, sortie avant le code des heures ; et l'écart de jours était compté en minutes) ; la prière du jour ne se remettait donc jamais à zéro chez un invité resté sur la carte de l'host |
+| 36 | à juger : chaque jeu lit le dieu de SON joueur ; c'est ce que verrait un joueur solo (pas forcément un défaut) |
+
+Nouveau dans Elin 23.352, à chasser : livre noir (`TraitBlackNote`, branche `c.IsPC`) lu par un invité ; niveau de fête
+d'une quête de musique (`QuestMusic.partyLv`, tiré avec la compétence de `EClass.pc`).

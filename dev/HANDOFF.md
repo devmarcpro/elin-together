@@ -260,3 +260,7 @@ Prairie. Les anciens pièges sont dans `MODLOG.md`.
 - **Duels entre joueurs**, comme contre les aventuriers : les deux joueurs envoyés sur une autre carte, combat à mort, la
   mort finit seulement le combat, aucune perte des deux côtés, pari possible. Lire d'abord l'arène du jeu (`bout_win`,
   `Zone_Arena`, section « Pas parcouru » de `PLAN_chasse_differences_2.md`).
+- **Dépôt GitHub pour garder le monde** (demandé le 5 octobre, 16h45, accord donné : « ça serait top ») : troisième sorte de
+  dépôt du mode « sans Elin », en plus du dossier partagé et du logiciel serveur. Un dépôt **à part, privé** (jamais le
+  dépôt public du mod), et **le fonctionnement expliqué dans le mod lui-même** (textes d'aide dans l'onglet, 4 langues :
+  créer le dépôt, inviter les joueurs, créer la clé d'accès, où la coller). Faits : `PLAN_depot_github.md` (agent lancé).
