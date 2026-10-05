@@ -32,6 +32,7 @@ internal static class PolicyStateEvent
             return;
         }
 
+        RemoteBasePaidPatch.WarnHostOnly();
         connection.Delta.AddRemote(new PolicyStateDelta {
             Active = active,
         });

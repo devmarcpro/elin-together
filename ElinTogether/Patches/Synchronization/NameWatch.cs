@@ -35,6 +35,7 @@ internal static class NameWatch
         } else if (zone.name != _zoneName) {
             _zoneName = zone.name;
             if (zone.IsPCFaction) {
+                RemoteBasePaidPatch.WarnHostOnly();
                 connection.Delta.AddRemote(new NameDelta {
                     Kind = NameDelta.OfZone,
                     ZoneUid = zone.uid,
@@ -48,6 +49,7 @@ internal static class NameWatch
             _home = home;
         } else if (home != _home) {
             _home = home;
+            RemoteBasePaidPatch.WarnHostOnly();
             connection.Delta.AddRemote(new NameDelta {
                 Kind = NameDelta.OfFaction,
                 Name = home,

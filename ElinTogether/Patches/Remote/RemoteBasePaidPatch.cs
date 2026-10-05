@@ -17,7 +17,8 @@ namespace ElinTogether.Patches;
 ///     simulated by a guest (its zone session is a client one, the guest's game is the one that keeps the zone). The
 ///     second one cannot ask: the game that would answer holds a copy of the zone, not the world's base, so it is
 ///     refused as before. Null while alone in an away zone (the game runs as single player there) and a host session
-///     otherwise: the game runs as it always did
+///     otherwise: the game runs as it always did <br />
+///     The residents are in <see cref="RemoteResidentPatch" />
 /// </summary>
 [HarmonyPatch]
 internal static class RemoteBasePaidPatch
@@ -31,20 +32,69 @@ internal static class RemoteBasePaidPatch
     private static bool IsClient => NetSession.Instance.Connection is ElinNetClient && !ElinDelta.IsApplying;
 
     // a player of the host's map, whose requests the host answers
-    private static bool IsRequester =>
+    internal static bool IsRequester =>
         NetSession.Instance.Connection is ElinNetClient { IsZoneSession: false } && !ElinDelta.IsApplying;
 
     // the host in the zone of a guest
-    private static bool IsVisiting =>
+    internal static bool IsVisiting =>
         NetSession.Instance.Connection is ElinNetClient { IsZoneSession: true } && !ElinDelta.IsApplying;
 
-    private static void Refuse(bool beep)
+    internal static void Refuse(bool beep)
     {
         if (beep) {
             SE.Beep();
         }
 
         EmpPop.Information("emp_base_host_only".lang());
+    }
+
+    /// <summary>
+    ///     A change that is told after it was made (policies, names, settings of an object, see
+    ///     <see cref="PolicyStateDelta" />): with "only the host manages the base" it is said refused here, and the host
+    ///     answers with the state it keeps, which puts this copy back
+    /// </summary>
+    internal static void WarnHostOnly()
+    {
+        if (IsRequester && NetSession.Instance.Rules.HostManagesBase) {
+            Refuse(true);
+        }
+    }
+
+    // this game is not the host of the world: a player on its map, the host in a guest's zone, and also a guest alone on
+    // a map it keeps (no connection then, or a host session of the zone): its own copy is all it has there
+    private static bool IsNotWorldHost =>
+        (NetSession.Instance.Connection is ElinNetClient || NetSession.Instance.Transport is ElinNetClient) &&
+        !ElinDelta.IsApplying;
+
+    /// <summary>
+    ///     Leaving the base for good (the hearth stone) and claiming land (a deed): a player who does not keep the world
+    ///     did it on its own copy of the zone, a half-made base or a half-lost one that the host never sees, and a lost
+    ///     base does not come back. Refused with the message wherever that player is; the host of the world does both as
+    ///     before. The one inequality that stays
+    /// </summary>
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(ActPlan), nameof(ActPlan.TrySetAct), typeof(string), typeof(Func<bool>), typeof(Card),
+        typeof(CursorInfo), typeof(int), typeof(bool), typeof(bool), typeof(bool))]
+    private static void OnSetAct(string lang, ref Func<bool> onPerform)
+    {
+        if (lang == "actAbandonHome" && IsNotWorldHost) {
+            onPerform = () => {
+                Refuse(true);
+                return false;
+            };
+        }
+    }
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(TraitDeed), nameof(TraitDeed.OnRead))]
+    private static bool OnReadDeed()
+    {
+        if (!IsNotWorldHost) {
+            return true;
+        }
+
+        Refuse(true);
+        return false;
     }
 
     /// <summary>

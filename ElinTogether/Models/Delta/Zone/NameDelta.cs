@@ -34,6 +34,16 @@ public class NameDelta : ElinDelta
                 return;
             }
 
+            // only the host manages the base: the sender gets the name the host keeps, which puts its copy back
+            if (NetSession.Instance.Rules.HostManagesBase && !host.IsZoneSession) {
+                var kept = Kind == OfFaction ? EClass.Home?.name : (game.spatials.Find(ZoneUid) as Zone)?.name;
+                if (!string.IsNullOrEmpty(kept)) {
+                    host.SendDeltaTo(OriginPeer, new NameDelta { Kind = Kind, ZoneUid = ZoneUid, Name = kept });
+                }
+
+                return;
+            }
+
             host.Delta.AddRemote(this);
         }
 

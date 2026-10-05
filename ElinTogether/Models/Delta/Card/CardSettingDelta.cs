@@ -119,6 +119,13 @@ public class CardSettingDelta : ElinDelta
                 return;
             }
 
+            // only the host manages the base: what stands on its map is not changed by the others, the sender gets the
+            // setting the host keeps, which puts its copy back (what a player carries is its own)
+            if (NetSession.Instance.Rules.HostManagesBase && !host.IsZoneSession && thing.GetRootCard() is not Chara) {
+                host.SendDeltaTo(OriginPeer, Create(thing, Kind));
+                return;
+            }
+
             host.Delta.AddRemote(this);
         }
 

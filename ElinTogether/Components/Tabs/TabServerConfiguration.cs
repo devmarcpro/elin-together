@@ -29,6 +29,7 @@ internal class TabServerConfiguration : TabEmpBase
         Option(own, "player_trade", EmpConfig.Server.PlayerTrade);
         Option(own, "guest_build", EmpConfig.Server.GuestBuild);
         Option(own, "player_kill", EmpConfig.Server.PlayerKill);
+        Option(own, "host_manages_base", EmpConfig.Server.HostManagesBase);
 
         var time = Section("time");
         Option(time, "combat_time", EmpConfig.Server.PlayerCombatTime);

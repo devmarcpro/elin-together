@@ -34,6 +34,12 @@ public class CharaBuildDelta : ElinDelta
 
     protected override void OnApply(ElinNetBase net)
     {
+        // only the host manages the base: a player's held object is not put down on it. Nothing to undo: the client does
+        // not put it down itself, it waits for what the host sends back, and the object stays in its bag
+        if (net is ElinNetHost { IsZoneSession: false } && NetSession.Instance.Rules.HostManagesBase && _zone.IsPCFaction) {
+            return;
+        }
+
         try {
             if (Owner.Find() is not Chara chara || Held.Find() is not { } held) {
                 return;

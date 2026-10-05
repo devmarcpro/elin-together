@@ -1,4 +1,5 @@
 using System.Linq;
+using ElinTogether.Helper;
 using ElinTogether.Net;
 using ElinTogether.Patches;
 using MessagePack;
@@ -16,6 +17,36 @@ public enum BaseRequestKind : byte
     ///     A skill of the hearth, paid in the platinum of the player. Id is the element's id
     /// </summary>
     HomeSkill,
+
+    /// <summary>
+    ///     The maid of the base. Id is the resident's uid, 0 for none
+    /// </summary>
+    Maid,
+
+    /// <summary>
+    ///     A resident becomes livestock or a resident again. Id is its uid, Value the <see cref="FactionMemberType" />
+    /// </summary>
+    MemberType,
+
+    /// <summary>
+    ///     A resident goes to the reserve of the faction. Id is its uid
+    /// </summary>
+    Reserve,
+
+    /// <summary>
+    ///     Someone of the reserve is called back to the base. Id is its uid
+    /// </summary>
+    Recruit,
+
+    /// <summary>
+    ///     A resident is sent away: an ordinary one is destroyed with what it carries. Id is its uid
+    /// </summary>
+    Banish,
+
+    /// <summary>
+    ///     Someone of the reserve is sent away for good (the trash button of the reserve window). Id is its uid
+    /// </summary>
+    Discard,
 }
 
 public enum BaseAnswer : byte
@@ -30,11 +61,12 @@ public enum BaseAnswer : byte
 }
 
 /// <summary>
-///     Something the base sells, asked of the host: the client's game would pay and then make it in its own copy of the
-///     base only, which the host never sees. The client sends this instead and changes nothing; the host checks the
-///     payment against its own state, pays and makes it, and answers the same type with <see cref="Answer" />
-///     (Done or Refused) <br />
+///     Something the base sells, or a gesture on its residents, asked of the host: the client's game would pay and then
+///     make it in its own copy of the base only, which the host never sees. The client sends this instead and changes
+///     nothing; the host checks the payment and the resident against its own state, pays and makes it once, and answers
+///     the same type with <see cref="Answer" /> (Done or Refused) <br />
 ///     The new state of the base goes to everyone with <see cref="BaseStateDelta" />, see <see cref="RemoteBasePaidPatch" />
+///     and <see cref="RemoteResidentPatch" />. With <see cref="NetSessionRules.HostManagesBase" /> nothing of this is made
 /// </summary>
 [MessagePackObject]
 public class BaseRequestDelta : ElinDelta
@@ -54,12 +86,21 @@ public class BaseRequestDelta : ElinDelta
     [Key(2)]
     public BaseAnswer Answer { get; init; }
 
+    [Key(3)]
+    public int Value { get; init; }
+
     /// <summary>
     ///     Client side: one request at a time, the next waits for the answer of the last
     /// </summary>
-    internal static void Send(BaseRequestKind kind, string id)
+    internal static void Send(BaseRequestKind kind, string id, int value = 0)
     {
         if (NetSession.Instance.Connection is not ElinNetClient client) {
+            return;
+        }
+
+        // the host keeps the base to itself: said here, before anything is asked
+        if (NetSession.Instance.Rules.HostManagesBase) {
+            RemoteBasePaidPatch.Refuse(true);
             return;
         }
 
@@ -74,6 +115,7 @@ public class BaseRequestDelta : ElinDelta
         client.Delta.AddRemote(new BaseRequestDelta {
             Kind = kind,
             Id = id,
+            Value = value,
         });
     }
 
@@ -91,8 +133,8 @@ public class BaseRequestDelta : ElinDelta
 
         // all of it is read again from this game's state, whatever the sender believed: a request that comes twice
         // or late finds the plan, the knowledge or the platinum as they are now, it cannot pay for nothing
-        var done = host.ActiveRemoteCharas.TryGetValue(OriginPeer, out var sender) && !host.IsAwayPeer(OriginPeer) &&
-                   _zone.branch is { } branch && Execute(host, branch, sender);
+        var done = !NetSession.Instance.Rules.HostManagesBase && host.ActiveRemoteCharas.TryGetValue(OriginPeer, out var sender) &&
+                   !host.IsAwayPeer(OriginPeer) && _zone.branch is { } branch && Execute(host, branch, sender);
 
         host.SendDeltaTo(OriginPeer, new BaseRequestDelta {
             Kind = Kind,
@@ -105,6 +147,10 @@ public class BaseRequestDelta : ElinDelta
     {
         // as the host's own gesture: a recipe learnt on the way must reach everyone (AddRecipeEvent skips what is applied)
         using var simulate = Simulate();
+
+        if (Kind is not (BaseRequestKind.Research or BaseRequestKind.HomeSkill)) {
+            return ExecuteResident(branch);
+        }
 
         if (Kind == BaseRequestKind.Research) {
             // what the click does: the knowledge goes by Mod, the plan by CompletePlan (recipes, policies, feats).
@@ -142,6 +188,90 @@ public class BaseRequestDelta : ElinDelta
         return true;
     }
 
+    /// <summary>
+    ///     What the menus and the dialog of a resident do, read again from this game's base: who it is, whether the
+    ///     game would offer it. The game's own functions make it (the host tells the others from them, see
+    ///     <see cref="RemoteResidentPatch" />), the maid is the one field they do not touch
+    /// </summary>
+    private bool ExecuteResident(FactionBranch branch)
+    {
+        if (!int.TryParse(Id, out var uid)) {
+            return false;
+        }
+
+        var chara = branch.members.Find(m => m.uid == uid);
+        if (Kind == BaseRequestKind.Maid) {
+            if (uid != 0 && chara is not { IsPlayer: false }) {
+                return false;
+            }
+
+            branch.uidMaid = uid;
+            RemoteResidentPatch.TellMaid(branch);
+            return true;
+        }
+
+        if (Kind is BaseRequestKind.Recruit or BaseRequestKind.Discard) {
+            if (Home.listReserve.Find(h => h.chara?.uid == uid)?.chara is not { } reserved) {
+                return false;
+            }
+
+            if (Kind == BaseRequestKind.Recruit) {
+                branch.Recruit(reserved);
+            } else if (reserved.trait.CanBeBanished) {
+                // what the trash button does; OnBanish tells the others, see RemoteResidentPatch
+                Home.RemoveReserve(reserved);
+                reserved.OnBanish();
+            } else {
+                return false;
+            }
+
+            BaseStateDelta.Refresh(branch, false);
+            return true;
+        }
+
+        if (chara is not { IsPlayer: false }) {
+            return false;
+        }
+
+        switch (Kind) {
+            case BaseRequestKind.MemberType:
+                // resident or livestock, not in a party; to livestock only when the delay of the last change is over
+                var type = (FactionMemberType)Value;
+                if (chara.IsPCParty || type is not (FactionMemberType.Default or FactionMemberType.Livestock) ||
+                    chara.memberType is not (FactionMemberType.Default or FactionMemberType.Livestock) || chara.memberType == type ||
+                    (type == FactionMemberType.Livestock && !world.date.IsExpired(chara.GetInt(36)))) {
+                    return false;
+                }
+
+                if (chara.memberType == FactionMemberType.Livestock) {
+                    chara.SetInt(36, world.date.GetRaw() + 14400);
+                }
+
+                branch.ChangeMemberType(chara, type);
+                break;
+            case BaseRequestKind.Reserve:
+                // not the companion of a player
+                if (chara.IsPCParty || Home.listReserve.Count >= Home.GetMaxReserve()) {
+                    return false;
+                }
+
+                Home.AddReserve(chara);
+                break;
+            case BaseRequestKind.Banish:
+                if (!chara.trait.CanBeBanished || chara.IsPCParty) {
+                    return false;
+                }
+
+                branch.BanishMember(chara);
+                break;
+            default:
+                return false;
+        }
+
+        BaseStateDelta.Refresh(branch, false);
+        return true;
+    }
+
     private void OnAnswer(ElinNetBase net)
     {
         if (net is not ElinNetClient { IsZoneSession: false }) {
@@ -162,8 +292,10 @@ public class BaseRequestDelta : ElinDelta
             }
 
             SE.Play("good");
-        } else {
+        } else if (Kind == BaseRequestKind.HomeSkill) {
             SE.Pay();
+        } else {
+            SE.Click();
         }
     }
 }

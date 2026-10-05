@@ -42,6 +42,20 @@ public class InvSaveDataDelta : ElinDelta
                 return;
             }
 
+            // only the host manages the base: the sender gets the settings the host keeps, which puts its copy back
+            if (NetSession.Instance.Rules.HostManagesBase && !host.IsZoneSession) {
+                if (container.c_windowSaveData is { } kept) {
+                    host.SendDeltaTo(OriginPeer, new InvSaveDataDelta {
+                        WindowId = WindowId,
+                        Data = LZ4Bytes.Create(kept),
+                        IsShop = false,
+                        Container = container,
+                    });
+                }
+
+                return;
+            }
+
             host.Delta.AddRemote(this);
         }
 

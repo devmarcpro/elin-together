@@ -191,6 +191,14 @@ internal partial class EmpConfig
             "Otherwise only the host builds\n" +
             "其他玩家可以使用据点的建造模式（地板、墙、家具、挖掘、砍伐）：由主机的游戏代为建造，费用由该玩家支付；否则只有主机可以建造");
 
+        Server.HostManagesBase = config.Bind(
+            "Server",
+            "HostManagesBase",
+            false,
+            "Only the host manages the base: what the other players ask of it (research, hearth skills, policies, names, settings, residents, build mode) is refused\n" +
+            "Otherwise every player manages the base as the host does (leaving the base for good stays the host's)\n" +
+            "只有主机可以管理据点：其他玩家对据点的操作（研究、炉灶技能、政策、命名、设置、居民、建造模式）会被拒绝；否则每位玩家都可像主机一样管理据点（永久放弃据点仍只有主机可以）");
+
         Server.PlayerShipping = config.Bind(
             "Server",
             "PlayerShipping",
@@ -312,6 +320,7 @@ internal partial class EmpConfig
         internal static ConfigEntry<bool> PlayerShipping { get; set; } = null!;
         internal static ConfigEntry<bool> GuestBuild { get; set; } = null!;
         internal static ConfigEntry<bool> PlayerKill { get; set; } = null!;
+        internal static ConfigEntry<bool> HostManagesBase { get; set; } = null!;
         internal static ConfigEntry<bool> PersonalQuests { get; set; } = null!;
         internal static ConfigEntry<bool> ChooseCharacter { get; set; } = null!;
         internal static ConfigEntry<bool> ImportCharacter { get; set; } = null!;

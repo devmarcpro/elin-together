@@ -95,7 +95,19 @@ public class NetSessionRules
     [Key(13)]
     public bool AllowPlayerKill { get; set; }
 
+    /// <summary>
+    ///     Only the game that keeps the base manages it: what the other players ask of it (research, hearth skills,
+    ///     policies, names, settings of an object, residents, build mode) is refused with a message, and the host
+    ///     sends them back the state it keeps. Off: every player manages the base as the host does
+    /// </summary>
+    [Key(14)]
+    public bool HostManagesBase { get; set; }
+
+    [IgnoreMember]
+    internal bool GuestsBuild => AllowGuestBuild && !HostManagesBase;
+
     public static NetSessionRules Default => new() {
+        HostManagesBase = EmpConfig.Server.HostManagesBase.Value,
         AllowPlayerKill = EmpConfig.Server.PlayerKill.Value,
         AllowGuestBuild = EmpConfig.Server.GuestBuild.Value,
         UseSharedSpeed = EmpConfig.Server.SharedAverageSpeed.Value,

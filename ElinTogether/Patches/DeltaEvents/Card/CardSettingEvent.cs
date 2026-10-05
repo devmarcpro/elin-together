@@ -20,6 +20,10 @@ internal static class CardSettingEvent
             return;
         }
 
+        if (card.GetRootCard() is not Chara) {
+            RemoteBasePaidPatch.WarnHostOnly();
+        }
+
         connection.Delta.AddRemote(CardSettingDelta.Create(card, kind));
     }
 

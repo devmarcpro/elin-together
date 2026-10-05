@@ -122,6 +122,8 @@
     "LangGeneral.emp_ui_sv_desc_guest_build.text": "开：其他玩家可以使用据点的建造模式（地板、墙、家具、挖掘、砍伐），由主机的游戏代为建造，金币和材料由该玩家支付。关：只有主机可以建造。",
     "LangGeneral.emp_ui_sv_cfg_player_kill.text": "玩家之间可以互相杀死",
     "LangGeneral.emp_ui_sv_desc_player_kill.text": "开：玩家（及其同伴）的攻击可以杀死其他玩家的角色。关：致命一击只会让对方的生命值降为 0，不会死亡。",
+    "LangGeneral.emp_ui_sv_cfg_host_manages_base.text": "只有主机可以管理据点",
+    "LangGeneral.emp_ui_sv_desc_host_manages_base.text": "开：拒绝其他玩家对据点的操作（研究、炉灶技能、政策、命名、物品设置、居民、建造模式）。关：每位玩家都可像主机一样管理据点。永久放弃据点始终只有主机可以。",
     "LangGeneral.emp_ui_sv_cfg_player_shipping.text": "出货按玩家结算",
     "LangGeneral.emp_ui_sv_cfg_combat_time.text": "战斗按各玩家时间进行",
     "LangGeneral.emp_ui_bot_add.text": "加入机器人玩家",

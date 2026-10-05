@@ -32,6 +32,12 @@ public class PolicyStateDelta : ElinDelta
                 return;
             }
 
+            // only the host manages the base: the sender gets the set the host keeps, which puts its copy back
+            if (NetSession.Instance.Rules.HostManagesBase && !host.IsZoneSession) {
+                host.SendDeltaTo(OriginPeer, new PolicyStateDelta { Active = Read(branch) });
+                return;
+            }
+
             host.Delta.AddRemote(this);
         }
 

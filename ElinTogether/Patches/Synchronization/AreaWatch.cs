@@ -76,7 +76,7 @@ internal static class AreaWatch
             case ElinNetHost host:
                 host.Delta.AddRemote(AreaStateDelta.Create());
                 break;
-            case ElinNetClient client when NetSession.Instance.Rules.AllowGuestBuild:
+            case ElinNetClient client when NetSession.Instance.Rules.GuestsBuild:
                 client.Delta.AddRemote(AreaStateDelta.Create());
                 break;
         }
