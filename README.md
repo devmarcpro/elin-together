@@ -64,8 +64,9 @@ checkbox.
   game's code directly.
 - Dungeon quests for two, when the guest took the quest: "subdue" quests only. Harvest, music and defense quests
   are still settled alone.
-- Home base settings changed by a guest: research and hearth skills are refused for now, with a message (before,
-  the guest paid for nothing); beds, sale tags, notes, policies: on the guest's own screen only.
+- Home base settings changed by a guest: research, hearth skills, policies, beds, sale tags and notes work as for
+  the host. Not yet: the maid, a resident's type and reserve, the zone's name, chest settings (on the guest's own
+  screen only).
 - When the host returns to a map held by a guest, the guest's screen reloads (the guest is told first). The time it
   takes has not been measured between two PCs.
 - Trade: equipped items still cannot be traded (the game says why); a full bag is checked.

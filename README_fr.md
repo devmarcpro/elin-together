@@ -65,9 +65,9 @@ solo » n'ont pas de case.
   prise des quêtes à donjon, sont testés par appels directs au code du jeu.
 - Quêtes à donjon à deux, quand c'est l'invité qui a la quête : « subjuguer » seulement. Récolte, musique et défense
   restent à régler seul.
-- Réglages de la base faits par un invité : la recherche et les compétences du foyer sont refusées pour l'instant,
-  avec un message (avant, l'invité payait pour rien) ; lit, étiquettes de vente, notes, politiques : seulement sur
-  son écran.
+- Réglages de la base faits par un invité : la recherche, les compétences du foyer, les politiques, les lits, les
+  étiquettes de vente et les notes marchent comme pour l'host. Pas encore : la servante, le type et la mise en
+  réserve d'un résident, le nom de la zone, les réglages des coffres (seulement sur son écran).
 - Quand l'host revient sur une carte tenue par un invité, l'écran de l'invité se recharge (il est prévenu avant).
   La durée n'est pas mesurée entre deux PC.
 - Échange : les objets équipés ne s'échangent toujours pas (le jeu dit pourquoi) ; le sac plein est vérifié.
