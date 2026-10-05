@@ -1,37 +1,87 @@
-# Passation — ElinTogether « indépendance », état au 2026-10-05, 14h15
+# Passation — ElinTogether « indépendance », état au 2026-10-05, 19h30 (haut du fichier ; le reste date de 14h15 à 17h)
 
 À lire en premier par la session suivante. Détail daté : fin de `MODLOG.md` (« Étape D suite, Elin 23.352 »).
 Mode d'emploi : `DOCUMENTATION.md`. Règles : `../CLAUDE.md`. Message de départ : `PROMPT_reprise.md`.
 
-## État à 17h (le plus récent : lire ceci d'abord ; le reste du fichier date de 14h45)
+## État à 19h30 (le plus récent : lire ceci d'abord ; tout le reste du fichier date de 14h15 à 17h et est marqué)
+
+Fait d'après `git log 895d5b0..HEAD` et `git status` à 19h30. Ce qui n'est pas joué est écrit « pas joué ».
 
 - **Version publiée : 0.26.463** (2026-10-05, 15h35, commit `895d5b0`, Elin EA 23.352,
-  https://github.com/devmarcpro/elin-together/releases/tag/independance-0.26.463). Le jeu de cette machine a un build
-  de TEST plus récent : avant de jouer avec quelqu'un, `Installer.bat` du zip publié.
-- **Depuis la 0.26.463, fait, testé, poussé** (`git log --oneline 895d5b0..HEAD`) : l'invité utilise le mode
-  construction (menu, miner, creuser, couper : `AgentTaskDelta`, case host `GuestBuild`), le terrain suit entre les jeux
-  (`TileStateDelta`), réglages de coffre (l.7), duel d'autel (l.10), prière sans dieu (l.25), jours et heures de
-  l'invité (l.33-34), garde-fous. **Pas joués** : prix d'expédition (l.26), carte à gratter (l.30). Suites :
-  `build2_suite.py` 28/28, `hunt2_suite.py` E1 à E6, `setting_suite.py` S7.
-- **En cours à 17h** : `run_short.sh pub2` (13 suites larges sur le nouveau build, journaux `_shots/*-pub2.log` ; reste
-  ensuite `travel_suite` seule) ; agents dans des copies isolées, chacun rend un patch dans `_shots/` :
-  `ligne8.patch` (résurrection d'un compagnon), `ligne11.patch` (clé à molette, fouets…), `etape7.patch` (zones, outil
-  de terrain, cases changées hors `Map.Set*`), `depot_github.patch` (dépôt GitHub privé pour garder le monde). Pour
-  chaque patch : `git apply`, relecture par `relecteur-elintogether`, compiler, test rouge puis vert, commit.
-  Un agent écrit les faits pour les duels et les membres d'une base : `PLAN_duels_et_membres.md` (conseil ensuite).
-- **Conseils rendus** (détail dans `MODLOG.md`) : 5 = mode construction de l'invité (fait jusqu'à l'étape 6) ; 6 = où vit
-  le monde partagé : copie chez chaque joueur par Steam par défaut, GitHub en option, Workshop écarté ; **première
-  chose à faire pour le conseil 6, sans code** : avec le dépôt « dossier » actuel et deux fenêtres, vérifier que
-  l'invité qui prend le monde joue SON personnage et pas celui de l'host (`SaveDepot.Take` → `Game.Load`).
-- Lignes 9 (copie chez Kettle) : à écrire, option B du plan (demande à l'host + coffre diffusé, union 835) ; tranché
-  sans conseil : le critère 1 (l'invité obtient ce qu'un solo obtiendrait) écarte le simple refus.
-- Numéros pris : deltas jusqu'à 831 commités ; 832 (résurrection), 833-834 (étape 7), 836 (ligne 11) réservés aux
-  patches en cours, 835 pour Kettle ; arguments de tâche jusqu'à 227 ; règles de session jusqu'à la clé 12.
-- Dépôt privé d'essai pour le dépôt GitHub : `devmarcpro/elin-together-monde-essai` (créé avec l'accord de
-  l'utilisateur).
-- **À proposer à l'utilisateur** : une version 0.26.47x quand `pub2` et `travel_suite` sont verts.
+  https://github.com/devmarcpro/elin-together/releases/tag/independance-0.26.463). **Rien de ce qui suit n'est dedans.**
+  Le jeu de cette machine a un build de TEST plus récent : avant de jouer avec quelqu'un, `Installer.bat` du zip publié.
+- **Branches** : `fix/points-restants` (courante) et `feat/independent-travel` sont toutes deux à `1d698a5`, qui est
+  aussi `origin/feat/independent-travel` : **tout ce qui est commité est poussé**. 20 commits depuis `895d5b0`.
+- **Pas commité (copie de travail à 19h30, 20 fichiers en index + 2 non indexés)** : la **base gérée par un invité**
+  (conseil 7) : servante, type de résident, réserve, rappel, renvoi (`BaseRequestKind` `Maid`, `MemberType`, `Reserve`,
+  `Recruit`, `Banish`, `RemoteResidentPatch.cs` nouveau), case `HostManagesBase` (règle de session 14, « seul l'host gère
+  la base », décochée), `base_suite.py` agrandie, textes (`emp_localization.xlsx`, `SourceLocalization.json`). Écrit,
+  **en test, pas joué à ma connaissance** : ne pas le commiter avant un test rouge puis vert. Je n'ai pas vérifié si R6
+  (acte de propriété) et « abandon refusé à l'invité » y sont.
+- **Fait, testé, poussé depuis la 0.26.463** (un test rouge vu d'abord quand le message du commit le dit) :
 
-## Où on en est
+| Point | Commit | Test |
+|---|---|---|
+| Prière sans dieu non soignée ; jours et heures de l'invité sur la carte de l'host (aucun crochet d'heure ou de jour ne tournait en jeu normal) | `194c6d7` | `hunt2_suite` E4, E5, 29/29 |
+| Prix d'expédition lu avec le dieu du joueur | `445fa5e` | **pas joué** |
+| Carte à gratter du casino qui arrive à l'invité | `3459019` | **pas joué** |
+| Mode construction de l'invité refusé avec un message avant de payer | `99c7353` | `build2_suite` G1 |
+| `together_suite` T12 attend les récoltes chez l'invité (le rouge était le test) | `6b62659` | T12, 20/20 |
+| Terrain qui suit : l'état de chaque case changée est envoyé par celui qui simule (`TileStateDelta`) | `1a25661` | `build2_suite` C3, C4 |
+| Réglages de coffre de la base (priorité, pas de pourri, catégories, filtre, drapeaux, distribution), deux sens | `57d5d3e` | `setting_suite` S7, 35/35 |
+| Duel d'autel : même résultat dans tous les jeux, artefact reforgé à côté de celui qui offre | `915e6dd` | `hunt2_suite` E6, 58/58 |
+| **Mode construction de l'invité** (menu, miner, creuser, couper ; case `GuestBuild`, cochée) : `AgentTaskDelta` | `b2a6f16` | `build2_suite` 28/28 ; `build_suite` 19/19 |
+| Outils et fouets (clé à molette, marque écolo, brosse, marteau, fouets) agissent sur le monde de l'host | `1a89eed` | `unplayed_suite` U8, U9, 26/26 |
+| Résurrection d'un compagnon chez le barman (`CharaReviveRequestDelta`) | `cd7d652` | `hunt2_suite` E7, 26/26 (parchemin et sort : pas joués) |
+| Copie chez Kettle et grimoire chez Demitas (`CopyShopDelta`) | `fccee72` | `hunt2_suite` E8, 140/140 pour la suite |
+| Zones de base, outil de terrain (hauteurs), cases changées hors `Map.Set*` (toit miné, mur tourné, pousse, labour, arrosage) | `d04114c` | `build2_suite` C7 à C9, 58/58 |
+| Un joueur ne peut plus tuer un autre joueur (case `PlayerKill`, décochée) | `ca8d009` | `duel_suite` P1, 10/10, deux sens |
+| **Dépôt GitHub privé** pour garder le monde (`github:proprietaire/depot`, une clé) | `1d698a5` | `depot_github_test` 66/66 (faux GitHub, hors jeu) ; `depot_github_real` 13/13 (vrai GitHub, hors jeu) ; `DEPOT_GITHUB=1 depot_suite` 31/33 (faux GitHub, en jeu) ; dossier 13/13 |
+
+  Le reste des 20 commits est de la documentation (`8fe1a8a`, `e88a0e0`, `7013bc8`, `2e23dd5`, `fe34335`).
+  **Rouge connu (G4)** : fermer le jeu pendant un envoi vers GitHub n'attend pas la fin de l'envoi ; le verrou expire
+  alors de lui-même après 3 minutes. Pas corrigé.
+- **Les quatre patchs d'agents de 17h sont tous commités** : `ligne8.patch` = `cd7d652`, `ligne11.patch` = `1a89eed`,
+  `etape7.patch` = `d04114c`, `depot_github.patch` = `1d698a5` ; la copie chez Kettle (ligne 9) = `fccee72`.
+- **Suites larges sur le build de test (`run_short.sh pub2`, lancé à 17h)** : leur résultat n'est pas écrit dans mes
+  sources (journaux `_shots/*-pub2.log`) : **à relire avant de proposer une version**. `travel_suite` seule reste à lancer.
+- **Conseils rendus** (verdicts complets dans `MODLOG.md`) :
+  - **5, mode construction de l'invité** : fait jusqu'à l'étape 7 (zones, terrain). Restent refusés avec un message
+    (d'après `b2a6f16`, pas revérifié) : plans de construction, mode toit (Alt).
+  - **6, où vit le monde partagé** : une copie chez chaque joueur par Steam par défaut, GitHub en option, Workshop
+    écarté. **Pas commencé.** Première chose à faire, sans code : avec le dépôt « dossier » et deux fenêtres, vérifier que
+    l'invité qui prend le monde joue SON personnage et pas celui de l'host (`SaveDepot.Take` puis `Game.Load`). Puis les six
+    étapes (`world.version`, envoi du zip, héberger la copie, retour de l'ami, divergence, avertissement).
+  - **7, duels et base gérée par un invité** : duels, étape 1 faite (`ca8d009`), **étapes 2 à 7 à faire** (menu
+    « Défier », duel sur place, départ et déconnexion, invité contre aventurier, arène, pari) ; base : écrite, en test,
+    pas commitée (voir plus haut). Le verdict parle d'un « plancher à 1 PV » : le code laisse le joueur à **0** point de vie.
+- **Numéros pris** : deltas jusqu'à **835** (832 `CharaReviveRequestDelta`, 833 `TerrainHeightDelta`, 834 `AreaStateDelta`,
+  835 `CopyShopDelta`) ; arguments de tâche jusqu'à **227** ; règles de session jusqu'à la **clé 14** (12 `AllowGuestBuild`,
+  13 `AllowPlayerKill`, 14 `HostManagesBase` pas commité). Prochain delta : 836.
+- **Dépôt privé d'essai** pour le dépôt GitHub : `devmarcpro/elin-together-monde-essai` (créé avec l'accord de
+  l'utilisateur ; `depot_github_real.py` y écrit `lock.json` et `world.zip`).
+- **Deuxième chasse aux différences** (`PLAN_chasse_differences_2.md`) : lignes 1 à 11, 25, 26, 30, 33, 34 corrigées ;
+  restent 12 à 24, 27 à 29, 31, 32, 35, 37 ; la 36 est « à juger » (chaque jeu lit le dieu de son joueur, comme un
+  joueur solo).
+- **À faire ensuite (19h30)** : (1) lire les résultats `pub2`, lancer `travel_suite` seule ; (2) finir la base gérée par
+  un invité (test rouge puis vert, relecture par `relecteur-elintogether`, commit, pousser) ; (3) conseil 6 : la
+  vérification sans code du personnage de l'invité, puis l'étape 1 ; (4) duels, étape 2 ; (5) lignes restantes de la
+  chasse 2 ; (6) **proposer à l'utilisateur une version 0.26.47x** quand `pub2` et `travel_suite` sont verts (ne pas
+  publier sans son accord) ; (7) pousser `feat/independent-travel` après chaque lot validé.
+
+- **Suites larges `run_short.sh pub2`** (17h → 18h05, build du commit `b2a6f16`, jeu relancé entre chaque suite) : recruit 45/45,
+  quest 59/59, instance 32/32, trade 122/122, base 63/63, version 8/8, leave 13/13, equal2 35/35, hunt 135/135, together
+  131/131, sleep 32/32 ; unplayed 67/75 (les 8 rouges = U8, U9, alors pas encore corrigés : verts depuis) ; guest 314/317
+  (G36, la laisse : rejouée seule 21/21, c'était un tirage). **`travel_suite` : pas rejouée depuis la 0.26.442.**
+  Rien de large n'a été rejoué sur les commits d'après `b2a6f16` (résurrection, Kettle, outils, zones, terrain, pas de
+  mort entre joueurs, dépôt GitHub) : seulement leurs propres suites.
+- Conseil 6, « l'invité qui prend le monde joue-t-il SON personnage » : **pas vérifié**.
+- Pas de mort entre joueurs : le coup laisse la victime à **0** point de vie (c'est ce que fait le jeu pour « ne peut pas
+  mourir », `EvadeDeath`) ; le « 1 PV » du verdict était une image.
+- `DEPOT_GITHUB=1 depot_suite` 31/33 : les deux rouges sont G4 et sa suite (la reprise du monde, bloquée 3 minutes par le
+  verrou resté pris).
+
+## Où on en est (texte de 14h15 : dépassé par « État à 19h30 » ; gardé pour mémoire)
 
 - **Le dossier de travail est `G:\ElinMods`** (C: était plein). `C:\Users\steamdeckwin\Documents\ElinMods` n'est plus
   qu'une suite de raccourcis vers G:. Seul `_lab` (les copies de test du jeu, des liens vers le jeu Steam) est resté
@@ -71,7 +121,7 @@ Mode d'emploi : `DOCUMENTATION.md`. Règles : `../CLAUDE.md`. Message de départ
   par le skill `llm-council` (critères dans l'ordre : l'invité obtient ce qu'un solo obtiendrait ; pas de
   duplication ni de perte ; le plus petit changement ; aucun risque pour les sauvegardes).
 
-## Fait et testé depuis la 0.26.442 (branche `fix/points-restants`)
+## Fait et testé depuis la 0.26.442 (état de 14h15 ; la suite est dans « État à 19h30 »)
 
 | Point | Commit | Test |
 |---|---|---|
@@ -101,7 +151,34 @@ installé ; un joueur peut « monter » un autre joueur sur la même case (compo
 **Pas joués par le banc** (`unplayed_suite`, seulement avec `--only`) : U2 bouton partagé d'un coffre (bouton
 introuvable), U4 parchemin d'alias (aucun dans les données du jeu), U7 eau profonde (l'eau du banc n'étouffe personne).
 
-## PAS JOUÉ (à dire tel quel)
+## PAS JOUÉ (à dire tel quel ; liste de 14h15, complétée à 19h30 par les derniers points)
+
+**Ajouté à 19h30 (depuis la 0.26.463) :**
+
+- **Rien de ce qui est nouveau n'a été joué à deux PC** (mode construction, terrain, zones, coffres, résurrection, Kettle,
+  outils, `PlayerKill`, dépôt GitHub).
+- **Mode construction de l'invité** : pas joués : objet du stock ou du sac posé par le menu, pont, glisser sur plusieurs
+  cases, creuser, mode rampe, la case `GuestBuild` décochée, une carte tenue par un invité. Plans de construction et mode
+  toit : refusés avec un message (pas revérifié). Le banc choisit le mode et la recette par l'appel du bouton, pas à la souris.
+- **Terrain** : pas couverts : récolte (seule la marque est jouée), sol tourné ; l'outil de terrain est joué par un coup,
+  pas par un glisser bouton enfoncé.
+- **Réglages de coffre** : la boîte du filtre, le collage et les boutons d'autodump ne sont pas joués.
+- **Duel d'autel** : le glisser à la souris est remplacé par le dépôt ; un pair d'une ancienne version (graine absente)
+  n'est pas essayé. **Résurrection** : parchemin et sort pas joués. **Outils et fouets** : tentes et nouvelle fiche des
+  fouets « passe-temps » et « métier » chez l'invité pas couverts. **Prix d'expédition** (`445fa5e`) et **carte à gratter**
+  (`3459019`) : jamais joués.
+- **Un joueur ne tue pas un joueur** : saignement, poison, feu, condamnation à mort pas couverts ; sorts et projectiles
+  pas joués ; le test utilise le coup de mêlée du jeu (Maj + clic).
+- **Dépôt GitHub** : prouvé hors jeu (faux et vrai GitHub) et en jeu contre le faux GitHub ; **pas joué** : le vrai
+  GitHub depuis le jeu (TLS de Mono, première demande d'environ 7 s, limite de débit), deux PC, la fermeture brutale du
+  jeu pendant un envoi, un dépôt tout à fait vide sur le vrai GitHub, la clé expirée, le texte d'aide suivi avec une vraie
+  clé, la croissance du dépôt (72 Mo par soirée : un calcul). **Rouge connu (G4)** : fermer le jeu pendant un envoi
+  n'attend pas la fin ; le verrou expire après 3 minutes.
+- **Base gérée par un invité** : écrite, en test, pas commitée ; rien de joué.
+- Suites larges sur le build de test (`pub2`) : résultat non consigné ici. `shared_suite`, `trio_suite`,
+  `companion_suite`, suites du serveur : non relancées.
+
+**Liste de 14h15 (toujours vraie sauf ce qui est dit plus haut) :**
 
 - **Corrigé dans le code, aucun test ne le prouve** : karma d'un visiteur chez un teneur de carte (`927f342`) ; noyade
   en eau profonde (`cf62040`, U7 saute) ; fenêtres d'alias, de retour du vide et de caisse de ferme (`2239dde`, U4
@@ -130,7 +207,7 @@ introuvable), U4 parchemin d'alias (aucun dans les données du jeu), U7 eau prof
   son dieu ne sont comptés que dans le jeu de l'invité ; la colère du dieu quitté est au tarif de base chez l'host.
   Réglages de la base encore locaux à l'écran de l'invité : servante, type et réserve d'un résident, réglages de coffre.
 
-## À faire ensuite, dans l'ordre
+## À faire ensuite, dans l'ordre (liste de 14h15 : la version de 19h30 est dans le premier bloc ; ici les points 2 et 3 sont en partie faits)
 
 1. **Barrière de version : la jouer.** Elle est faite et testée en local (`ee374b7`). Reste : la regarder en vrai
    (deux PC, deux versions d'Elin, par le salon Steam), vérifier le texte de l'avertissement et la case de l'host, et
@@ -156,7 +233,7 @@ introuvable), U4 parchemin d'alias (aucun dans les données du jeu), U7 eau prof
 7. Après chaque lot validé : pousser `feat/independent-travel`. Quand un ensemble est vert : passe large, puis proposer
    une nouvelle version à l'utilisateur (ne pas publier sans son accord).
 
-## Liste d'essais de l'utilisateur (à deux vrais joueurs)
+## Liste d'essais de l'utilisateur (à deux vrais joueurs) — mise à jour 19h30 : points 10 à 18 ajoutés en fin de liste
 
 Un seul point par ligne, dans cet ordre :
 
@@ -177,8 +254,28 @@ Un seul point par ligne, dans cet ordre :
 8. Un invité qui offre un objet pris dans une pile (le don arrive chez l'host) ; une monture déjà prise.
 9. Deux joueurs sur une version d'Elin différente (barrière de version, `ee374b7`) : l'avertissement, la case de
    l'host, et un mod de version différente qui reste refusé.
+10. **Construire dans la base de l'host** (invité) : un sol, un mur, un meuble neuf du menu, miner, couper ; l'or est
+    pris une fois, ce qui est construit se voit chez l'host tout de suite. Puis l'inverse : l'host construit, l'invité
+    le voit sans changer de carte. Ensuite, avec la case « Other players can use build mode » décochée : un message, rien
+    n'est payé.
+11. **Zones et outil de terrain** : l'invité dessine une zone de stockage, la renomme, l'efface ; il monte et baisse le
+    terrain ; l'host voit la même chose, et dans l'autre sens.
+12. **Réglages de coffre** : l'invité règle la priorité et « pas de pourri » d'un coffre de la base ; l'host les voit ; ses
+    habitants rangent en en tenant compte.
+13. **Résurrection d'un compagnon chez le barman** (invité) : l'or part une fois, le compagnon se relève à côté de
+    l'invité, toujours à lui. Essayer aussi un parchemin (pas joué).
+14. **Copie chez Kettle** (invité) : laisser un objet, voir la copie en vente, reprendre l'objet.
+15. **Clé à molette** sur un coffre par l'invité (le coffre grandit chez l'host aussi), fouet-œuf sur un animal.
+16. **Se frapper sans se tuer** : un joueur frappe l'autre jusqu'à 0 point de vie (Maj + clic) : personne ne meurt ; puis
+    avec la case « les joueurs peuvent se tuer » cochée : la mort a lieu comme avant. Essayer aussi un sort et une flèche
+    (pas joués).
+17. **Dépôt GitHub avec une vraie clé** : créer un dépôt privé et la clé en suivant seulement l'aide du mod (onglet
+    « Client Settings », quatre étapes), la donner à l'ami, prendre le monde, jouer, quitter, que l'ami reprenne. Vérifier
+    que le jeu ne se fige pas pendant un envoi et que la clé n'est visible nulle part dans le jeu.
+18. **Fermer le jeu pendant un envoi vers GitHub** (rouge connu G4) : voir si l'ami peut reprendre le monde tout de suite
+    ou seulement après 3 minutes, et si la dernière sauvegarde est là.
 
-## Questions qui restent pour l'utilisateur
+## Questions qui restent pour l'utilisateur (de 14h15 ; voir aussi 19h30)
 
 - Sa soirée d'essai (liste ci-dessus), et l'essai de la carte au trésor à deux.
 - **Republier maintenant une version compilée sur 23.352 ?** (la 0.26.442 est compilée pour 23.351 ; elle marche
@@ -204,6 +301,12 @@ python _tools/setting_suite.py                 # notes, étiquettes, lits, polit
 python _tools/unplayed_suite.py                # corrections jamais jouées (U1, U3, U5, U6 ; U2, U4, U7 : --only)
 python _tools/trade_suite.py                   # échange, dont les refus R6 à R11
 python _tools/version_suite.py                 # barrière de version (8 vérifications, connexion locale)
+python _tools/hunt2_suite.py                   # deuxième chasse (E1 à E8 ; --only e7,e8)
+python _tools/build2_suite.py                  # mode construction à deux, terrain, zones (G1, C1 à C9)
+python _tools/duel_suite.py                    # un joueur ne tue pas l'autre (P1)
+python _tools/depot_github_test.py             # dépôt GitHub contre le faux GitHub, sans le jeu (66 vérifications)
+python _tools/depot_github_real.py proprietaire/depot   # contre le VRAI GitHub, dépôt privé d'essai seulement
+DEPOT_GITHUB=1 python _tools/depot_suite.py    # en jeu contre le faux GitHub (~10 min ; 31/33, G4 rouge)
 bash _tools/run_short.sh <nom> death_suite guest_suite parity_suite sleep_suite recruit_suite
 git push origin feat/independent-travel        # après chaque lot validé, une fois la branche avancée
 ```
@@ -244,7 +347,7 @@ dans une base du joueur (`Chara.DoHostileAction`, `!EClass._zone.IsPCFaction`) :
 Prairie. Les anciens pièges sont dans `MODLOG.md`.
 
 
-## Ajout de 14h35 (étape E commencée)
+## Ajout de 14h35 (daté : étape E commencée ; lignes 1 à 11 faites depuis, voir 19h30)
 
 - Trois lignes de la deuxième chasse corrigées et vertes (`python _tools/hunt2_suite.py`, 21/21) : rondin à la hache,
   prière qui soigne aussi les compagnons de l'invité, nourriture du sac de l'invité qui vieillit.
@@ -252,7 +355,7 @@ Prairie. Les anciens pièges sont dans `MODLOG.md`.
   détail et ordre dans la dernière entrée de `MODLOG.md`.
 - À proposer à l'utilisateur : publier une version compilée sur Elin 23.352 (la 0.26.442 date de 23.351).
 
-## Arrêt de 14h45 (demandé par l'utilisateur, pour compacter la session)
+## Arrêt de 14h45 (daté ; demandé par l'utilisateur pour compacter la session ; la 0.26.463 est publiée depuis)
 
 - Rien en cours : arbre propre, tout poussé, aucun Elin ouvert, aucun agent en route. Le jeu de cette machine contient
   un build de test (Debug) du dernier commit : avant de jouer avec quelqu'un, `Installer.bat` du zip publié.
@@ -262,7 +365,7 @@ Prairie. Les anciens pièges sont dans `MODLOG.md`.
   faits dans `dev/PLAN_construction_invite.md` a été arrêté avant la fin : le relancer.
 - Pour reprendre : coller le contenu de `dev/PROMPT_reprise.md` (à jour à 14h45) dans une nouvelle session.
 
-## Demandes de l'utilisateur du 5 octobre, 15h (à concevoir, conseil d'abord)
+## Demandes de l'utilisateur du 5 octobre, 15h (daté ; conseils rendus et dépôt GitHub fait, voir 19h30)
 
 - **Un invité doit pouvoir gérer la base de l'host** ; idée : un système de membres par base. Le mode construction de
   l'invité (conseil 5, `PLAN_construction_invite.md`) en est la première moitié ; reste : qui a le droit (membres), les
