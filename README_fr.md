@@ -37,7 +37,7 @@ mod lui-même leur revient (voir [Crédits](#crédits)).
 | Karma et crime par joueur | C'est le joueur fautif qui perd du karma ; les gardes ne poursuivent que lui. |
 | Affinité et guildes communes | L'affinité d'un habitant est la même pour tous ; rejoindre une guilde vaut pour le groupe. |
 | Un invité joue comme un joueur solo | Des dizaines de corrections depuis la 0.26.399 : mort et testament, cadeaux du dieu, pièges, grimoires, guérisseur, bénédiction, investir, runes, rangement automatique, fenêtres qui s'ouvraient chez l'host… La liste est dans [`dev/DOCUMENTATION.md`](dev/DOCUMENTATION.md). |
-| « Ne pas s'éloigner » propre à chaque joueur | La consigne de distance d'un compagnon est celle de son joueur, pas celle de l'host. |
+| Consignes des compagnons par joueur | Les deux cases de tactique qui règlent tes compagnons (te suivre de plus loin ; rester près de toi en combat au lieu de courir après un ennemi que tu ne vois pas) sont les tiennes, pas celles de l'host. |
 
 Presque toutes sont une **case à cocher côté host** (Échap → Mods → Elin Together → *Server Setting*) ; décochée,
 le mod se comporte comme l'original. Les quêtes à donjon à deux et les corrections « un invité joue comme un joueur
@@ -73,7 +73,6 @@ solo » n'ont pas de case.
 - Échange : les objets équipés ne s'échangent toujours pas (le jeu dit pourquoi) ; le sac plein est vérifié.
 - Quelques corrections ne sont pas encore jouées en jeu : noyade en eau profonde, ticket d'hôtesse, karma d'un
   visiteur chez un invité, tri du sac, et d'autres (marquées « pas joué » dans les messages de commit).
-- « Ne pas vagabonder » des compagnons suit encore le jeu qui simule, pas le réglage de leur joueur.
 - Quelques conflits rares sont connus et pas corrigés (deux joueurs qui construisent sur la même case, une monture
   en double au retour d'un voyage). Deux achats au même instant chez le même marchand : le second est prévenu que
   l'objet est parti (pas joué).

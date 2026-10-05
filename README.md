@@ -36,7 +36,7 @@ goes to them (see [Credits](#credits)).
 | Karma and crime per player | The player who did it loses the karma; guards only chase that player. |
 | Shared affinity and guilds | An inhabitant's affinity is the same for all; joining a guild counts for the group. |
 | A guest plays like a solo player | Dozens of fixes since 0.26.399: death and will, the god's gifts, traps, spellbooks, healer, blessing, investing, runes, auto-dump, windows that used to open on the host… The list is in [`dev/DOCUMENTATION.md`](dev/DOCUMENTATION.md) (French). |
-| "Keep distance" per player | A companion's distance setting is its player's, not the host's. |
+| Companion orders per player | The two tactics checkboxes that rule your companions (follow from further away; stay near you in a fight instead of chasing an enemy you cannot see) are your own, not the host's. |
 
 Most of these are a **checkbox on the host's side** (Esc → Mods → Elin Together → *Server Setting*); unchecked,
 the mod behaves like the original. Dungeon quests for two and the "a guest plays like a solo player" fixes have no
@@ -71,7 +71,6 @@ checkbox.
 - Trade: equipped items still cannot be traded (the game says why); a full bag is checked.
 - A few fixes have not been played in game yet: drowning in deep water, hostess ticket, a visitor's karma on a map
   held by a guest, bag sorting, and some others (marked "not played" in the commit messages).
-- Companions' "don't wander" still follows the game that simulates, not its player's setting.
 - A few rare conflicts are known and not fixed (two players building on the same tile, a mount existing twice
   after a trip). Two purchases at the same instant from the same shop: the second buyer is told the item is gone
   (not played).

@@ -20,7 +20,7 @@ D10 rune : fenetre chez celui qui s'en sert, rune posee et consommee dans les de
     fait le clic dans la fenetre).
 D12 eau profonde : le joueur qui y nage perd son souffle (mise en place : il est pose dans l'eau, puis il fait trois pas).
 D13 pied-de-biche : le coffre force s'ouvre chez l'host aussi.
-D14 consigne « ne pas s'eloigner » : celle du joueur vaut pour ses compagnons (conseil 4).
+D14 consignes « ne pas s'eloigner » et « ne pas vagabonder » : celles du joueur valent pour ses compagnons (conseil 4).
 D3  rangement automatique : l'invite range son sac dans un coffre regle pour ca ; les fenetres de l'host restent
     ouvertes et les objets de l'host restent dans son sac.
 
@@ -465,6 +465,28 @@ def d14(ctx):
             check(cond=eventually(lambda: want(guest_on, pet), timeout=25),
                   label=f"invite {'coche' if guest_on else 'decoche'}, host {'coche' if host_on else 'decoche'} : le compagnon de l'invite suit la case de l'invite (distance accordee / distance normale : {reach(pet)})")
             check(f"et celui de l'host suit la case de l'host ({reach(mine)})", want(host_on, mine))
+        # « ne pas vagabonder » : la case de l'invite arrive chez l'host, et son compagnon se bat toujours a ses cotes
+        # (le banc ne sait pas montrer un ennemi « hors de vue du joueur » : la retenue elle-meme n'est pas jouee)
+        wander = lambda p, on: ev(p, f'EClass.game.config.tactics.dontWander = {str(on).lower()}; "ok"')  # noqa: E731
+        said = lambda: int(ev(H, f'{chara(H, uid)}.GetInt("emp_tactics").ToString()'))  # noqa: E731
+        wander(port, True)
+        wander(H, False)
+        check(cond=eventually(lambda: said() > 0 and ((said() - 1) & 2) != 0, timeout=25),
+              label=f"l'invite coche « ne pas vagabonder » : l'host le sait pour ses compagnons (valeur rangee : {said()})")
+        check("la case de l'host, elle, n'a pas bouge", ev(H, "EClass.game.config.tactics.dontWander.ToString()") == "False")
+        foe = spawn(uid, "putty", "Enemy", "m.hp = 100000;")
+        try:
+            clear_conditions(pet)
+            eventually(lambda: seen(port, foe), timeout=15)
+            awake(port)
+            ev(port, f'var m = EClass._map.charas.Find(x => x.uid == {foe}); ACT.Melee.Perform(EClass.pc, m, m.pos); "ok"')
+            fights = lambda: ev(H, f'var c = EClass._map.charas.Find(x => x.uid == {pet}); return (c != null && c.enemy != null && c.enemy.uid == {foe}).ToString();')  # noqa: E731
+            check(cond=eventually(lambda: awake(port) and fights() == "True", timeout=30),
+                  label="case cochee, l'ennemi est sous les yeux de l'invite : son compagnon l'attaque")
+            check("la case de l'host est toujours la sienne apres le combat", ev(H, "EClass.game.config.tactics.dontWander.ToString()") == "False")
+        finally:
+            drop([foe])
+            wander(port, False)
     finally:
         keep(port, False)
         keep(H, False)
