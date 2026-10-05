@@ -1,3 +1,4 @@
+using ElinTogether.Helper;
 using ElinTogether.Net;
 using ElinTogether.Patches;
 using MessagePack;
@@ -30,6 +31,9 @@ public class CharaGiveGiftDelta : ElinDelta
             net.Delta.AddRemote(this);
         }
 
+        // what a gift brings back is for "the player" (a hostess ticket: the massage, the arm pillow): another
+        // player's gift played here massaged this game's player instead
+        using var giver = from.IsRemotePlayer ? RemoteCraft.AsCrafter(from) : null;
         from.Stub_GiveGift(to, thing);
     }
 }
