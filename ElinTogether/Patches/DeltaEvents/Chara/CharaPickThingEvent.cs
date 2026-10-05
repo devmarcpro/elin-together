@@ -116,6 +116,12 @@ internal static class CharaTrySmoothPickEvent
         }
 
         if (connection.IsClient && !CardCache.Contains(t)) {
+            if (LayerDrama.IsActive()) {
+                // handed over by a dialog (the casino's free scratch card): on the ground, where the host
+                // makes it for real, like a dialog's "drop" (ZoneAddCardEvent, StoryGifts)
+                EClass._zone.AddCard(t, p);
+            }
+
             return false;
         }
 
