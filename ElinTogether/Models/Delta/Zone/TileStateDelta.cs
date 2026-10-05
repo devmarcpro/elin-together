@@ -8,15 +8,16 @@ namespace ElinTogether.Models;
 
 /// <summary>
 ///     The terrain of the cells that changed on the map of whoever simulates it: floor, block, tile object, bridge,
-///     roof, deco, directions and heights (council 5). The whole state of a cell is sent, not what was done to it:
-///     applying it twice, or after a replay that already made the same change, changes nothing <br />
+///     roof, deco, directions, heights, the harvested and watered marks of a plant, the cross wall (council 5).
+///     The whole state of a cell is sent, not what was done to it: applying it twice, or after a replay that
+///     already made the same change, changes nothing <br />
 ///     Without it terrain only followed by each game replaying the same act: what the build mode of the host made
 ///     (no act is told for it) reached the others at their next visit of the zone
 /// </summary>
 [MessagePackObject]
 public class TileStateDelta : ElinDelta
 {
-    private const int Width = 21;
+    private const int Width = 24;
 
     // cells of one delta: a floor dragged over a whole map goes in several
     private const int MaxCells = 2048;
@@ -24,7 +25,7 @@ public class TileStateDelta : ElinDelta
     private static readonly HashSet<int> _dirty = [];
 
     /// <summary>
-    ///     x, z and the 19 terrain fields of each cell, one after the other
+    ///     x, z and the 22 terrain fields of each cell, one after the other
     /// </summary>
     [Key(0)]
     public required int[] Cells { get; init; }
@@ -81,7 +82,8 @@ public class TileStateDelta : ElinDelta
                 cells.AddRange([
                     x, z, c._block, c._blockMat, c._floor, c._floorMat, c.obj, c.objMat, c._bridge, c._bridgeMat,
                     c._roofBlock, c._roofBlockMat, c._deco, c._decoMat, c._dirs, c.objVal, c._roofBlockDir,
-                    c.bridgePillar, c.height, c.bridgeHeight, c.hidePillar ? 1 : 0,
+                    c.bridgePillar, c.height, c.bridgeHeight, c.hidePillar ? 1 : 0, c.isHarvested ? 1 : 0, c.crossWall ? 1 : 0,
+                    c.isWatered ? 1 : 0,
                 ]);
                 if (cells.Count >= MaxCells * Width) {
                     Send();
@@ -119,7 +121,8 @@ public class TileStateDelta : ElinDelta
                        c.obj == s[4] && c.objMat == s[5] && c._bridge == s[6] && c._bridgeMat == s[7] &&
                        c._roofBlock == s[8] && c._roofBlockMat == s[9] && c._deco == s[10] && c._decoMat == s[11] &&
                        c._dirs == dirs && c.objVal == s[13] && c._roofBlockDir == s[14] && c.bridgePillar == s[15] &&
-                       c.height == s[16] && c.bridgeHeight == s[17] && c.hidePillar == (s[18] != 0);
+                       c.height == s[16] && c.bridgeHeight == s[17] && c.hidePillar == (s[18] != 0) && c.isHarvested == (s[19] != 0) &&
+                       c.crossWall == (s[20] != 0) && c.isWatered == (s[21] != 0);
             if (same) {
                 continue;
             }
@@ -150,6 +153,9 @@ public class TileStateDelta : ElinDelta
             c.height = (byte)s[16];
             c.bridgeHeight = (byte)s[17];
             c.hidePillar = s[18] != 0;
+            c.isHarvested = s[19] != 0;
+            c.crossWall = s[20] != 0;
+            c.isWatered = s[21] != 0;
             c.room?.SetDirty();
             map.RefreshNeighborTiles(x, z);
             if (!many) {

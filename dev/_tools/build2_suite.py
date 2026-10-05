@@ -2,10 +2,13 @@
 (host + 1 client, tous les deux a la Prairie).
 
     python _tools/mp_test.py
-    python _tools/build2_suite.py            # ou --only g1,c3
+    python _tools/build2_suite.py            # ou --only c7,c3
 
 C6  l'invite pose un meuble neuf du menu : cree et pose chez les deux, une fois ; or et matieres une fois.
-G2  garde-fou : l'invite trace une zone de base (pas encore une demande a l'host) : refuse, rien ne change.
+C7  l'invite monte une case avec l'outil de terrain, trois coups de suite : +3 pas chez les deux (pas +1) ; puis l'host.
+C8  l'invite cree une zone de base "Stockpile", change son nom et son acces, puis l'efface : memes zones, points et
+    reglages chez les deux, l'objet Area de l'envoyeur n'est pas remplace par l'echo ; puis l'host.
+C9  l'host tourne un mur (Cell.RotateAll) et fait pousser / marque recolte une plante (GrowSystem) : meme etat chez l'invite.
 C3  l'host pose un sol en mode construction (ligne 4) : l'invite le voit sans rentrer dans la zone.
 C4  l'host mine un mur en mode construction : il tombe aussi chez l'invite.
 C5  l'invite coupe un objet de case en mode construction : parti chez les deux, 10 or une fois.
@@ -14,6 +17,13 @@ C2  l'invite mine un mur en mode construction : il tombe chez les deux, 10 or un
 
 Ce que le banc ne joue pas comme un joueur : le mode et la recette sont choisis par l'appel que fait le bouton du menu
 (StartBuild, Activate), la souris est posee par Scene.HitPoint ; le clic lui-meme est celui du jeu (TryProcessTiles).
+C7 : un seul coup de pinceau (un TryProcessTiles), pas un glisser bouton enfonce ; le sens du pinceau est regle par
+ActionMode.Terrain.mode, pas par le bouton du sous-menu. C8 : la zone est celle de l'onglet "area" (SetArea puis Activate) ;
+l'effacement appelle RemoveArea, le corps du bouton "delete" du menu contextuel d'AM_EditArea, pas le menu lui-meme ;
+le nom et l'acces sont poses par les champs de data, pas par les boites de dialogue. C9 : la touche R est Cell.RotateAll
+appele a la main (sans souris sur un objet) ; la pousse est GrowSystem.Grow et SetStage appeles a la main, pas une
+heure de jeu qui passe ; la recolte (GrowSystem.Harvest, qui cree des objets) n'est pas jouee, seulement la marque
+"recolte" posee par SetStage(.., true) ; le sol tourne (RotateFloor, RotateObj) n'est pas joue.
 """
 import argparse
 import sys
@@ -56,6 +66,11 @@ def click(port, x, z, mode_code):
     """activer le mode, attendre, puis un clic (deux eval : EInput.skipFrame)"""
     ev(port, mode_code)
     time.sleep(1.2)
+    return stroke(port, x, z)
+
+
+def stroke(port, x, z):
+    """le clic seul, dans un mode deja actif"""
     return ev(port, f'Scene.HitPoint.Set({x}, {z}); var sel = EClass.screen.tileSelector; sel.start = Scene.HitPoint.Copy(); '
                     'sel.RefreshSummary(); var ok = EClass.scene.actionMode.CanProcessTiles(); var n = sel.summary.countValid; '
                     'var m = sel.summary.money; if (ok) sel.TryProcessTiles(Scene.HitPoint.Copy()); '
@@ -90,19 +105,154 @@ def wall(x, z, up):
               f'if (new Point({x}, {z}).HasBlock) EClass._map.SetBlock({x}, {z}, 0, 0); "ok"')
 
 
-def g2(ctx):
-    """garde-fou : l'invite trace une zone de base (pas encore une demande) : refuse, rien ne change chez lui"""
+def heights(port, x, z):
+    """hauteur et hauteur de pont des cases autour de (x, z), dans l'ordre (le pinceau en touche 4 de rayon)"""
+    return ev(port, f'var s = ""; for (int i = {x} - 4; i <= {x} + 4; i++) for (int j = {z} - 4; j <= {z} + 4; j++) {{ '
+                    'if (i < 0 || j < 0 || i >= EClass._map.Size || j >= EClass._map.Size) continue; '
+                    'var c = EClass._map.cells[i, j]; s += c.height + "/" + c.bridgeHeight + ","; } return s;')
+
+
+def restore_heights(x, z, snap):
+    """le terrain n'est pas remis par le jeu : les anciennes hauteurs, ecrites a la main des DEUX cotes"""
+    for p in (H, A):
+        ev(p, f'var h = "{snap}".Split(",".ToCharArray(), StringSplitOptions.RemoveEmptyEntries); int k = 0; '
+              f'for (int i = {x} - 4; i <= {x} + 4; i++) for (int j = {z} - 4; j <= {z} + 4; j++) {{ '
+              'if (i < 0 || j < 0 || i >= EClass._map.Size || j >= EClass._map.Size) continue; '
+              'var c = EClass._map.cells[i, j]; var q = h[k++].Split("/".ToCharArray()); c.height = byte.Parse(q[0]); c.bridgeHeight = byte.Parse(q[1]); } '
+              'EClass._map.RefreshAllTiles(); return "ok";')
+
+
+def terrain_click(port, x, z, strokes=1):
+    """le pinceau monte la case (descend si elle n'a pas la place de monter), `strokes` coups espaces de 0,4 s ;
+    rend (resultat du premier clic, hauteur attendue au centre)"""
+    h0 = int(ev(port, f'new Point({x}, {z}).cell.height.ToString()'))
+    top = int(ev(port, 'EClass.setting.maxGenHeight.ToString()'))
+    radius = int(ev(port, 'ActionMode.Terrain.brushRadius.ToString()'))
+    up = h0 + strokes * radius <= top
+    r = click(port, x, z, f'ActionMode.Terrain.mode = AM_Terrain.Mode.{"Up" if up else "Down"}; ActionMode.Terrain.Activate(false); "ok"')
+    for _ in range(strokes - 1):
+        time.sleep(0.4)
+        stroke(port, x, z)
+    want = h0 + strokes * radius if up else max(0, h0 - strokes * radius)
+    return r, want
+
+
+def centre(port, x, z):
+    return int(ev(port, f'new Point({x}, {z}).cell.height.ToString()'))
+
+
+def c7(ctx):
+    """l'invite monte une case avec l'outil de terrain, trois coups de suite : +3 pas chez les deux ; puis l'host"""
     port, uid = ctx["a"]
     x, z = spot(uid)
-    areas = lambda p: int(ev(p, 'EClass._map.rooms.listArea.Count.ToString()'))  # noqa: E731
-    n0 = areas(port)
+    snap = heights(H, x, z)
+    check("point de depart : memes hauteurs chez les deux", heights(port, x, z) == snap)
     try:
-        r = click(port, x, z, 'ActionMode.CreateArea.SetArea(Area.Create("Stockpile")); ActionMode.CreateArea.Activate(); "ok"')
-        log(f"invite trace une zone en {x},{z} : {r}")
+        r, want = terrain_click(port, x, z, strokes=3)
+        log(f"invite passe le pinceau 3 fois en {x},{z} : {r}, centre attendu {want}")
+        check(f"le clic est accepte par le jeu ({r})", r.startswith("True|"))
+        check(cond=eventually(lambda: centre(H, x, z) == want, timeout=15), label=f"host : le centre est a {want} ({centre(H, x, z)})")
+        check(cond=eventually(lambda: heights(port, x, z) == heights(H, x, z), timeout=10),
+              label=f"invite : les memes hauteurs que l'host (centre {centre(port, x, z)} / {centre(H, x, z)})")
         time.sleep(3)
-        check(f"aucune zone de plus chez l'invite ({n0} -> {areas(port)}) ni chez l'host ({areas(H)})", areas(port) == n0)
+        check("rien ne bouge ensuite", heights(port, x, z) == heights(H, x, z) != snap and centre(port, x, z) == want)
     finally:
         leave(port)
+        restore_heights(x, z, snap)
+    time.sleep(2)
+    snap = heights(H, x, z)
+    try:
+        r, want = terrain_click(H, x, z)
+        log(f"host passe le pinceau en {x},{z} : {r}")
+        check(cond=eventually(lambda: centre(H, x, z) == want, timeout=10), label=f"host : le centre est a {want} ({centre(H, x, z)})")
+        check(cond=eventually(lambda: heights(port, x, z) == heights(H, x, z) != snap, timeout=15), label="invite : il voit le terrain de l'host")
+    finally:
+        leave(H)
+        restore_heights(x, z, snap)
+
+
+def zones(port):
+    """les zones de base : numero, type et points, dans l'ordre des points"""
+    return ev(port, 'string.Join(";", EClass._map.rooms.listArea.OrderBy(a => a.uid).Select(a => a.uid + ":" + a.type.id + ":" + '
+                    'a.data.name + ":" + a.data.accessType + ":" + '
+                    'string.Join(",", a.points.Select(p => p.x + "-" + p.z).OrderBy(t => t)))).ToString()')
+
+
+def c8(ctx):
+    """l'invite cree une zone "Stockpile", change son nom et son acces, puis l'efface : memes zones, points et reglages
+    chez les deux, et l'objet Area de la zone n'est remplace nulle part (ni par l'echo chez l'envoyeur) ; puis l'host"""
+    port, uid = ctx["a"]
+    x, z = spot(uid)
+    zone0 = zones(H)
+    check("point de depart : memes zones chez les deux", zones(port) == zone0)
+    known = ",".join(str(int(a.split(":")[0])) for a in zone0.split(";") if a)
+    try:
+        for who, name in ((port, "invite"), (H, "host")):
+            other = H if who == port else port
+            r = click(who, x, z, 'ActionMode.CreateArea.SetArea(Area.Create("Stockpile")); ActionMode.CreateArea.Activate(); "ok"')
+            log(f"{name} trace une zone en {x},{z} : {r}")
+            check(f"{name} : le clic est accepte par le jeu ({r})", r.startswith("True|1|"))
+            check(cond=eventually(lambda: zones(H) != zone0 and zones(port) == zones(H), timeout=15),
+                  label=f"{name} : une zone de plus, les memes zones et points chez les deux ({zones(H)[-60:]})")
+            check(f"{name} : le point est {x}-{z}", f":{x}-{z}" in zones(other))
+            # nom et acces changes d'un cote : l'autre les voit, et l'objet de la zone reste le meme des deux cotes
+            for p in (H, port):
+                # garde l'objet d'une commande a l'autre (une variable du script ne survit pas a la commande)
+                ev(p, f'System.AppDomain.CurrentDomain.SetData("keepArea", EClass._map.rooms.listArea.Where(q => q.points.Any(p => p.x == {x} && p.z == {z})).First()); "ok"')
+            ev(who, 'var keepArea = (Area)System.AppDomain.CurrentDomain.GetData("keepArea"); keepArea.data.name = "Zx"; keepArea.data.accessType = BaseArea.AccessType.Private; "ok"')
+            check(cond=eventually(lambda: ":Zx:Private:" in zones(other) and zones(H) == zones(port), timeout=15),
+                  label=f"{name} : le nom et l'acces sont les memes chez les deux ({zones(other)[-60:]})")
+            time.sleep(2)
+            for p, who_p in ((who, name), (other, "l'autre")):
+                same_obj = ev(p, 'var keepArea = (Area)System.AppDomain.CurrentDomain.GetData("keepArea"); '
+                                 'return object.ReferenceEquals(keepArea, EClass._map.rooms.listArea.FirstOrDefault(q => q.uid == keepArea.uid)).ToString();')
+                check(f"{who_p} : l'objet Area de la zone n'a pas ete remplace ({same_obj})", same_obj == "True")
+            # le corps du bouton "delete" du menu contextuel d'AM_EditArea
+            ev(who, f'var a = EClass._map.rooms.listArea.Where(q => q.points.Any(p => p.x == {x} && p.z == {z})).First(); '
+                    'EClass._map.rooms.RemoveArea(a); "ok"')
+            check(cond=eventually(lambda: zones(H) == zone0 and zones(port) == zone0, timeout=15),
+                  label=f"{name} : la zone est effacee chez les deux ({zones(H)[-60:] or 'aucune'} / {zones(port)[-60:] or 'aucune'})")
+            leave(who)
+            time.sleep(1)
+    finally:
+        leave(port)
+        leave(H)
+        for p in (H, A):
+            ev(p, f'var known = new HashSet<int> {{ {known} }}; '
+                  'foreach (var a in EClass._map.rooms.listArea.Where(q => !known.Contains(q.uid)).ToList()) EClass._map.rooms.RemoveArea(a); "ok"')
+
+
+def c9(ctx):
+    """l'host tourne un mur (Cell.RotateAll, la touche R) puis fait pousser et marque "recolte" une plante : meme etat chez l'invite"""
+    x, z = spot(ctx["h"][1])
+    wall(x, z, True)
+    time.sleep(2)
+    cellstate = lambda p: ev(p, f'var c = new Point({x}, {z}).cell; return c._block + "/" + c.blockDir + "/" + c.crossWall + "/" + c.obj + "/" + c.objVal + "/" + c.isHarvested;')  # noqa: E731
+    try:
+        before = cellstate(H)
+        check(f"point de depart : le meme mur chez les deux ({before} / {cellstate(A)})", before == cellstate(A))
+        ev(H, f'new Point({x}, {z}).cell.RotateAll(); "ok"')
+        check(f"host : le mur a tourne ({before} -> {cellstate(H)})", cellstate(H) != before)
+        check(cond=eventually(lambda: cellstate(A) == cellstate(H), timeout=15), label=f"invite : le mur tourne aussi ({cellstate(A)})")
+    finally:
+        wall(x, z, False)
+    # une plante : posee, avancee de plusieurs etapes, puis marquee "recoltee"
+    x, z = spot(ctx["h"][1])
+    r = ev(H, f'var row = EClass.sources.objs.rows.FirstOrDefault(o => o.HasGrowth && !o.growth.IsTree); if (row == null) return "aucune plante"; '
+              f'new Point({x}, {z}).SetObj(row.id); return new Point({x}, {z}).cell.growth == null ? "pas de pousse" : "ok";')
+    if not check(f"une plante posee par l'host ({r})", r == "ok"):
+        return
+    try:
+        check(cond=eventually(lambda: cellstate(A) == cellstate(H), timeout=15), label=f"invite : il voit la plante ({cellstate(A)})")
+        before = cellstate(H)
+        ev(H, f'new Point({x}, {z}).cell.growth.Grow(100); "ok"')
+        check(f"host : la plante a pousse ({before} -> {cellstate(H)})", cellstate(H) != before)
+        check(cond=eventually(lambda: cellstate(A) == cellstate(H), timeout=15), label=f"invite : la pousse est la meme ({cellstate(A)})")
+        ev(H, f'new Point({x}, {z}).cell.growth.SetStage(0, true); "ok"')
+        check(f"host : marquee recoltee ({cellstate(H)})", cellstate(H).endswith("True"))
+        check(cond=eventually(lambda: cellstate(A) == cellstate(H), timeout=15), label=f"invite : la marque est la meme ({cellstate(A)})")
+    finally:
+        ev(H, f'EClass._map.SetObj({x}, {z}, 0, 0, 0, 0, true); "ok"')
 
 
 def c1(ctx):
@@ -252,9 +402,9 @@ def main():
     sys.stdout.reconfigure(encoding="utf-8")
     t0 = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
     ctx = {"a": (A, state(A)["pc"]["uid"]), "h": (H, state(H)["pc"]["uid"])}
-    steps = [c3, c4, c2, c5, c1, c6, g2]
+    steps = [c3, c4, c2, c5, c1, c6, c7, c8, c9]
     if a.only:
-        steps = [s for s in (c1, c2, c3, c4, c5, c6, g2) if s.__name__ in a.only.split(",")]
+        steps = [s for s in (c1, c2, c3, c4, c5, c6, c7, c8, c9) if s.__name__ in a.only.split(",")]
     for step in steps:
         log(f"--- {step.__name__.upper()} : {step.__doc__}")
         try:

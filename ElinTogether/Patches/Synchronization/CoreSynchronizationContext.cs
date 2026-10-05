@@ -45,6 +45,7 @@ internal class CoreSynchronizationContext : SynchronizationContext
         RemoteTacticsPatch.Update();
         PersonalQuests.TellHolder();
         NameWatch.Update();
+        AreaWatch.Update();
         QuestSynchronizationContext.Update();
         SleepSynchronizationContext.Update();
         connection.Delta.RefreshBuffer();
