@@ -117,7 +117,7 @@ internal static class CharaTaskRemoteEvent
             // AI_Practice ai => AIPracticeArgs.Create(ai),
             // AI_PracticeDummy ai => AIPracticeDummyArgs.Create(ai),
             // AI_Pray ai => AIPrayArgs.Create(ai),
-            // AI_PryOpen ai => AIPryOpenArgs.Create(ai),
+            AI_PryOpen ai => AIPryOpenArgs.Create(ai),
             // AI_ReleaseHeld ai => AIReleaseHeldArgs.Create(ai),
             // AI_SelfHarm ai => AISelfHarmArgs.Create(ai),
             // AI_Shopping ai => AIShoppingArgs.Create(ai),

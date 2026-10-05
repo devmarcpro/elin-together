@@ -18,6 +18,8 @@ D9  recette lue : chacun l'apprend une fois (avant : l'autre joueur l'apprenait 
 D11 carte au tresor lue : fenetre chez le lecteur seul, meme carte dans les deux jeux.
 D10 rune : fenetre chez celui qui s'en sert, rune posee et consommee dans les deux jeux (le choix est l'appel que
     fait le clic dans la fenetre).
+D12 eau profonde : le joueur qui y nage perd son souffle (mise en place : il est pose dans l'eau, puis il fait trois pas).
+D13 pied-de-biche : le coffre force s'ouvre chez l'host aussi.
 D3  rangement automatique : l'invite range son sac dans un coffre regle pour ca ; les fenetres de l'host restent
     ouvertes et les objets de l'host restent dans son sac.
 
@@ -35,7 +37,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from guest_suite import awake, both, chara, clear_conditions, close_layers, count, first_id, give, give_made, tame, use_held  # noqa: E402
+from guest_suite import awake, both, chara, clear_conditions, close_layers, count, first_id, give, give_made, stand, tame, use_held  # noqa: E402
 from equal2_suite import drop, seen, spawn  # noqa: E402
 from mp_test import log, shot, state  # noqa: E402
 from travel_suite import RESULTS, check, ev, eventually, scan_logs  # noqa: E402
@@ -381,6 +383,60 @@ def d10(ctx):
         ev(H, f'var c = {chara(H, uid)}; foreach (var u in new[] {{ {rune}, {gear} }}) {{ var t = c.things.Find(x => x.uid == u); if (t != null) t.Destroy(); }} "ok"')
 
 
+def d12(ctx):
+    """eau profonde : le joueur qui y entre perd son souffle, l'invite comme l'host"""
+    spot = ev(H, 'var b = EClass._map.bounds; for (var x = b.x; x <= b.maxX; x++) for (var z = b.z; z <= b.maxZ; z++) { '
+                 'var p = new Point(x, z); if (p.IsValid && p.cell.CanSuffocate() && !p.HasChara) { foreach (var q in new[] { new Point(x + 1, z), '
+                 'new Point(x - 1, z), new Point(x, z + 1), new Point(x, z - 1) }) if (q.IsValid && q.IsInBounds && q.cell.CanSuffocate() && !q.HasChara) '
+                 'return p.x + "," + p.z + "," + q.x + "," + q.z; } } return "";')
+    if not spot:
+        print("    [SAUTE] D12 : pas d'eau profonde sur cette carte, le geste ne peut pas etre joue ici")
+        return
+    x, z, x2, z2 = (int(v) for v in spot.split(","))
+    for who, key in both(ctx):
+        port, uid = ctx[key]
+        clear_conditions(uid)
+        home = ev(H, f'var c = {chara(H, uid)}; return c.pos.x + "," + c.pos.z;').split(",")
+        ev(port, 'EClass.debug.godMode = false; "ok"')
+        try:
+            if not check(f"{who} se tient dans l'eau profonde ({x},{z})", stand(port, uid, x, z)):
+                continue
+            # un pas dans l'eau, comme un joueur qui nage : le jeu regarde l'eau a chaque pas
+            for tx, tz in ((x2, z2), (x, z), (x2, z2)):
+                awake(port)
+                ev(port, f'EClass.pc.TryMove(new Point({tx}, {tz})); "ok"')
+                time.sleep(1)
+            under = lambda p: ev(p, f'{chara(p, uid)}.HasCondition<ConSuffocation>().ToString()')  # noqa: E731
+            check(cond=eventually(lambda: under(H) == "True", timeout=8), label=f"{who} : il perd son souffle, chez l'host ({under(H)})")
+            check(cond=eventually(lambda: under(port) == "True", timeout=8), label=f"{who} : et dans son jeu ({under(port)})")
+        finally:
+            stand(port, uid, int(home[0]), int(home[1]))
+            clear_conditions(uid)
+            ev(H, f'var c = {chara(H, uid)}; c.hp = c.MaxHP; "ok"')
+
+
+def d13(ctx):
+    """pied-de-biche : le coffre verrouille que le joueur force s'ouvre pour de bon (chez l'host aussi), l'invite comme l'host"""
+    bar = first_id("ToolCrowbar")
+    if not check(f"le jeu a un pied-de-biche ({bar})", bool(bar)):
+        return
+    for who, key in both(ctx):
+        port, uid = ctx[key]
+        x, z = (int(v) for v in ev(H, f'var p = {chara(H, uid)}.pos.GetNearestPoint(false, false, false, true); return p.x + "," + p.z;').split(","))
+        chest = int(ev(H, f'var t = ThingGen.Create("chest3"); t.c_lockLv = 1; t.hp = 3; EClass._zone.AddCard(t, new Point({x}, {z})).Install(); return t.uid.ToString();'))
+        lock = lambda p: ev(p, f'var t = EClass._map.things.Find(m => m.uid == {chest}); return t == null ? "detruit" : t.c_lockLv.ToString();')  # noqa: E731
+        try:
+            eventually(lambda: lock(port) == "1", timeout=10)
+            tool = give(ctx, key, bar)
+            awake(port)
+            log(f"{who} force : {use_held(port, tool, at=(x, z), pick='i.act is AI_PryOpen')}")
+            check(cond=eventually(lambda: awake(port) and lock(H) != "1", timeout=60), label=f"{who} : le coffre est force, chez l'host (verrou : {lock(H)})")
+            check(cond=eventually(lambda: lock(port) == lock(H), timeout=10), label=f"{who} : son jeu voit pareil ({lock(port)})")
+        finally:
+            ev(port, 'EClass.pc.SetNoGoal(); "ok"')
+            ev(H, f'var t = EClass._map.things.Find(m => m.uid == {chest}); if (t != null) t.Destroy(); "ok"')
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--only")
@@ -389,7 +445,7 @@ def main():
     t0 = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
 
     ctx = {"a": (A, state(A)["pc"]["uid"]), "h": (H, state(H)["pc"]["uid"])}
-    steps = [d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11]
+    steps = [d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13]
     if a.only:
         steps = [s for s in steps if s.__name__ in a.only.split(",")]
     for step in steps:
