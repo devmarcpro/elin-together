@@ -185,6 +185,9 @@ internal partial class ElinNetClient
             }
         }
 
+        // the open windows and the screen layout of this player go with the game: noted, see OpenWindows
+        OpenWindows.Keep();
+
         if (returning || (IsZoneSession && core.IsGameStarted)) {
             // the cards of the game going away are no host cards: destroying them must not reach the host
             // (our companions travelled with us, their copies here would destroy the host ones)
@@ -216,6 +219,9 @@ internal partial class ElinNetClient
         player.uidChara = remoteChara.uid;
         player.chara = remoteChara;
         player.RefreshDomain();
+
+        // before the game reads them (widgets, window places): this player's own screen, not the host's
+        OpenWindows.Carry(remoteChara);
 
         probeGame.isCloud = false;
         probeGame.isLoading = true;

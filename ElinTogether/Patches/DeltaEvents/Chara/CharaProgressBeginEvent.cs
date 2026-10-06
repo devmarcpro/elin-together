@@ -58,6 +58,11 @@ internal static class CharaTaskProgressEvents
         if (connection.IsClient) {
             // we can only complete remote progress with delta
             __instance.progress = HeldProgress.Held;
+
+            // never for good: let go when that game stops keeping the map, or does not end it
+            if (owner.IsPC) {
+                PendingOnHost.Watch(__instance, connection);
+            }
         }
 
         // for host, run it only when remote players run it

@@ -54,7 +54,7 @@ internal static class CharaTaskCancelEvent
 
         // the stop is held back for the host's answer: when none comes the stop is made here, for this act only
         if (prevent && net is ElinNetClient && current.parent is { } act && Waiting.Add(act)) {
-            EmpMod.Instance.StartCoroutine(StopIfNoAnswer(owner, act));
+            EmpMod.Instance.StartCoroutine(StopIfNoAnswer(owner, act, net));
         }
 
         return !prevent;
@@ -70,9 +70,15 @@ internal static class CharaTaskCancelEvent
     ///     running there). After <see cref="AnswerSeconds" /> without an answer the act is stopped here. It is tied to
     ///     the act that was asked to stop: once it is over, or replaced by the next task of the player, nothing happens
     /// </summary>
-    private static IEnumerator StopIfNoAnswer(Chara owner, AIAct act)
+    private static IEnumerator StopIfNoAnswer(Chara owner, AIAct act, ElinNetBase asked)
     {
-        yield return new UnityEngine.WaitForSecondsRealtime(AnswerSeconds);
+        // no answer will come from a game that no longer keeps the map for us: not waited for
+        var until = UnityEngine.Time.realtimeSinceStartup + AnswerSeconds;
+        while (UnityEngine.Time.realtimeSinceStartup < until &&
+               ReferenceEquals(NetSession.Instance.Connection, asked)) {
+            yield return null;
+        }
+
         Waiting.Remove(act);
 
         for (var ai = owner.ai?.Current; ai is not null; ai = ai.parent) {
