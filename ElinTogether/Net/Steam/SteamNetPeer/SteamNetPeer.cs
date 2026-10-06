@@ -111,21 +111,121 @@ internal class SteamNetPeer : ISteamNetPeer, IDisposable
                 return false;
             }
 
-            PinArena(size);
+            // unreliable messages are never cut nor kept: late is as good as lost
+            var direct = (sendFlags & SteamNetSendFlag.Reliable) == 0
+                         || (_backlog.Count == 0 && size <= NetFragments.PieceSize);
+            if (direct) {
+                var result = SendNow(bytes, sendFlags);
+                if (result == EResult.k_EResultOK) {
+                    return true;
+                }
 
-            Marshal.Copy(bytes, 0, Arena, size);
+                if (result != EResult.k_EResultLimitExceeded || (sendFlags & SteamNetSendFlag.Reliable) == 0) {
+                    EmpLog.Warning("Message of {Size} bytes not sent: {Result}", size, result);
+                    return false;
+                }
 
-            // crash on native side cannot be handled
-            var result = SteamNetworkingSockets.SendMessageToConnection(Connection, Arena, (uint)size, (int)sendFlags, out _);
-            if (result != EResult.k_EResultOK) {
+                // Steam's send queue is full: the message waits for its turn instead of being lost
+            }
+
+            if (_backlogBytes + size > NetFragments.MaxMessageSize) {
+                EmpLog.Warning("Message of {Size} bytes not sent: {Waiting} bytes already wait", size, _backlogBytes);
                 return false;
+            }
+
+            // Steam refuses a message of 512 KB or more, and no more than its send queue (512 KB) at once:
+            // a big message goes in pieces, a few per frame, and what is sent meanwhile goes behind it, in order
+            if (size > NetFragments.PieceSize) {
+                var pieces = NetFragments.Split(bytes, _nextMessageId++);
+                EmpLog.Debug("Message of {Size} bytes sent in {Pieces} pieces", size, pieces.Count);
+
+                foreach (var piece in pieces) {
+                    _backlog.Enqueue((piece, sendFlags));
+                    _backlogBytes += piece.Length;
+                }
+            } else {
+                _backlog.Enqueue((bytes, sendFlags));
+                _backlogBytes += size;
             }
         }
 
-        Stat.Sent(size);
-        UpdateRealtime();
+        Flush();
 
         return true;
+    }
+
+    private readonly Queue<(byte[] bytes, SteamNetSendFlag flags)> _backlog = new();
+    private int _backlogBytes;
+    private int _nextMessageId;
+    private bool _stalled;
+
+    /// <summary>
+    ///     Pieces of the big messages this peer sent, see <see cref="SteamNetManager.Poll" />
+    /// </summary>
+    internal readonly NetFragmentAssembler Fragments = new();
+
+    /// <summary>
+    ///     Hands Steam as much of what waits as its send queue takes, the rest stays for the next frame
+    /// </summary>
+    internal void Flush()
+    {
+        if (NetShutdown.IsQuitting) {
+            return;
+        }
+
+        lock (ArenaLock) {
+            while (_backlog.Count > 0 && Arena != IntPtr.Zero) {
+                var (bytes, flags) = _backlog.Peek();
+
+                var result = SendNow(bytes, flags);
+                if (result == EResult.k_EResultLimitExceeded) {
+                    // once per episode, not once per frame
+                    if (!_stalled) {
+                        _stalled = true;
+                        EmpLog.Warning("Send queue of {@Peer} is full: {Waiting} bytes in {Messages} messages wait here",
+                            this, _backlogBytes, _backlog.Count);
+                    }
+
+                    return;
+                }
+
+                if (result != EResult.k_EResultOK) {
+                    // the connection is gone, a message with a hole in it is of no use to the other side
+                    EmpLog.Warning("{Waiting} bytes not sent: {Result}", _backlogBytes, result);
+                    _backlog.Clear();
+                    _backlogBytes = 0;
+                    _stalled = false;
+                    return;
+                }
+
+                _backlog.Dequeue();
+                _backlogBytes -= bytes.Length;
+            }
+
+            if (_stalled && _backlog.Count == 0) {
+                _stalled = false;
+                EmpLog.Debug("Send queue of {@Peer} caught up", this);
+            }
+        }
+    }
+
+    // under ArenaLock
+    private EResult SendNow(byte[] bytes, SteamNetSendFlag sendFlags)
+    {
+        var size = bytes.Length;
+
+        PinArena(size);
+
+        Marshal.Copy(bytes, 0, Arena, size);
+
+        // crash on native side cannot be handled
+        var result = SteamNetworkingSockets.SendMessageToConnection(Connection, Arena, (uint)size, (int)sendFlags, out _);
+        if (result == EResult.k_EResultOK) {
+            Stat.Sent(size);
+            UpdateRealtime();
+        }
+
+        return result;
     }
 
     protected void PinArena(int size)

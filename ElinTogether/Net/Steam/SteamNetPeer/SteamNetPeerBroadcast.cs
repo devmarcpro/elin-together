@@ -44,6 +44,23 @@ internal sealed class SteamNetPeerBroadcast(ISteamNetSerializer serializer)
                 return _targets[0].Send(bytes, sendFlags);
         }
 
+        // reliable: each target keeps its own sending order and cuts what is too big, see SteamNetPeer.Send
+        if ((sendFlags & SteamNetSendFlag.Reliable) != 0) {
+            var sent = true;
+            foreach (var peer in _targets) {
+                if (peer.IsConnected) {
+                    sent &= peer.Send(bytes, sendFlags);
+                }
+            }
+
+            if (sent) {
+                Stat.Sent(bytes.Length * _targets.Count);
+                Stat.LastUpdated = DateTime.UtcNow;
+            }
+
+            return sent;
+        }
+
         lock (ArenaLock) {
             if (Arena == IntPtr.Zero) {
                 return false;

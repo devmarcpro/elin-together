@@ -96,6 +96,18 @@ public partial class SteamNetManager(ISteamNetSerializer? serializer = null) : I
                     var bytes = new byte[msg.m_cbSize];
                     Marshal.Copy(msg.m_pData, bytes, 0, msg.m_cbSize);
 
+                    peer.Stat.Received(msg.m_cbSize);
+
+                    // a piece of a big message: nothing for the listener before the last one, see SteamNetPeer.Send
+                    if (NetFragments.IsFragment(bytes)) {
+                        var whole = peer.Fragments.Add(bytes);
+                        if (whole is null) {
+                            continue;
+                        }
+
+                        bytes = whole;
+                    }
+
                     var (typeHash, payload) = SteamNetSerializer.ExtractTypeAndPayload(bytes);
                     var type = SteamNetTypeRegistry.Resolve(typeHash);
                     if (type == null) {
@@ -106,8 +118,9 @@ public partial class SteamNetManager(ISteamNetSerializer? serializer = null) : I
 
                     var packet = _serializer.Deserialize(payload, type);
                     _listener?.OnMessageReceived(packet, peer);
-
-                    peer.Stat.Received(msg.m_cbSize);
+                } catch (Exception ex) {
+                    // one bad message must not leave the rest of the batch unread and unreleased
+                    EmpLog.Warning(ex, "Message dropped");
                 } finally {
                     SteamNetworkingMessage_t.Release(_batchedMessages[i]);
                 }
@@ -115,6 +128,11 @@ public partial class SteamNetManager(ISteamNetSerializer? serializer = null) : I
             // a handler may have shut the manager down
         } while (received == _batchedMessages.Length && clock.ElapsedMilliseconds < PollBudgetMs
                  && _pollGroup != HSteamNetPollGroup.Invalid && !NetShutdown.IsQuitting);
+
+        // the next pieces of the big messages on their way out, a handler may have dropped a peer
+        foreach (var peer in _peers.ToArray()) {
+            peer.Flush();
+        }
     }
 
 #region Connection Management
@@ -182,6 +200,9 @@ public partial class SteamNetManager(ISteamNetSerializer? serializer = null) : I
         _listener?.OnPeerDisconnected(peer, reason);
 
         if (!NetShutdown.IsQuitting) {
+            // last chance for what still waits, the connection lingers on what Steam took
+            peer.Flush();
+
             SteamNetworkingSockets.SetConnectionPollGroup(peer.Connection, HSteamNetPollGroup.Invalid);
 
             SteamNetworkingSockets.CloseConnection(peer.Connection, 0, reason, true);

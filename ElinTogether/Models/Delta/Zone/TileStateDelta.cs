@@ -39,8 +39,9 @@ public class TileStateDelta : ElinDelta
     internal static void Mark(Map map, int x, int z)
     {
         // generating or loading a map is not a change to tell: everyone gets the whole map then
+        // alone: nobody to tell, who arrives gets the whole map
         if (!ZoneActivateEvent.IsHappening && core.IsGameStarted && !game.isLoading &&
-            NetSession.Instance.Connection is ElinNetHost && map == _map) {
+            NetSession.Instance.Connection is ElinNetHost && NetCompany.HasCompany && map == _map) {
             _dirty.Add(x + z * map.Size);
         }
     }
@@ -63,7 +64,7 @@ public class TileStateDelta : ElinDelta
             return;
         }
 
-        if (NetSession.Instance.Connection is ElinNetHost host && !ZoneActivateEvent.IsHappening) {
+        if (NetSession.Instance.Connection is ElinNetHost host && NetCompany.HasCompany && !ZoneActivateEvent.IsHappening) {
             var size = _map.Size;
             var cells = new List<int>(Math.Min(_dirty.Count, MaxCells) * Width);
             void Send()

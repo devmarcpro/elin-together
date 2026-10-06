@@ -59,7 +59,15 @@ public class ActionModeCombat
             return;
         }
 
-        var players = NetSession.Instance.CurrentPlayers.ToList();
+        // alone: no round to wait for. The visibility timer is left due so the first look once somebody is there
+        // is not half a second late
+        if (!NetCompany.HasCompany) {
+            _visibilityTimer = VisibilityRefreshInterval;
+            ChangePhaseLocal(CombatPhase.Inactive);
+            return;
+        }
+
+        var players =NetSession.Instance.CurrentPlayers.ToList();
         var keysToRemove = EnemyVisibility
             .Where(kv => players.All(p => p.CharaUid != kv.Key))
             .Select(kv => kv.Key)

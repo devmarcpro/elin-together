@@ -50,6 +50,14 @@ internal static class WorldDateAdvanceEvent
     {
         var session = NetSession.Instance;
 
+        // the timer of a quest's map (harvest, music, wedding) is the time of the player who plays it:
+        // GameDate.AdvanceMin just added the time another player made pass elsewhere
+        if (IsCatchingUp && session.IsHost && EClass._zone is { } zone) {
+            foreach (var zoneEvent in zone.events.list) {
+                zoneEvent.minElapsed -= a;
+            }
+        }
+
         // one date for the world: a player who simulates a map on its own tells the host how far it got
         if (session is { IsZoneAuthority: true, Transport: ElinNetClient main } && session.Rules.UseSharedWorldTime) {
             main.SendWhileAway(new WorldTimeReportDelta {

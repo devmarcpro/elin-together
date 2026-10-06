@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using ElinTogether.Net;
 using HarmonyLib;
 using UnityEngine;
 
@@ -11,6 +12,11 @@ internal static class AIFuckPatch
     [HarmonyPatch(typeof(AI_Fuck), nameof(AI_Fuck.Run))]
     internal static bool OnRun(AI_Fuck __instance, ref IEnumerable<AIAct.Status> __result)
     {
+        // alone: the game's own act, with what the copy below lacks (taming brush, feats, milk)
+        if (!NetCompany.HasCompany) {
+            return true;
+        }
+
         __result = Run_Modified(__instance);
         return false;
     }

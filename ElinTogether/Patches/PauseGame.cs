@@ -40,7 +40,8 @@ internal class PauseGame
     [HarmonyPatch(typeof(UI), nameof(UI.IsPauseGame), MethodType.Getter)]
     public static void GetIsPauseGame(UI __instance, ref bool __result)
     {
-        if (NetSession.Instance.HasActiveConnection) {
+        // menus pause the world only while nobody else plays
+        if (NetCompany.HasCompany) {
             __result = false;
         }
     }

@@ -126,8 +126,9 @@ internal static class RemoteResidentPatch
             return;
         }
 
-        // never a player's own character, nor the companion of a player to the reserve (the host refuses the same)
-        if (c.IsPlayer || (kind == BaseRequestKind.Reserve && c.IsPCParty)) {
+        // never a player's own character, nor the companion of a player to the reserve (the host refuses the same);
+        // alone, it is the game's own party to put in reserve
+        if (c.IsPlayer || (kind == BaseRequestKind.Reserve && c.IsPCParty && NetCompany.HasCompany)) {
             action = () => RemoteBasePaidPatch.Refuse(true);
             return;
         }

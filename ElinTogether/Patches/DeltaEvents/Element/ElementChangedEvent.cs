@@ -38,6 +38,12 @@ internal class ElementChangedEvent
     internal static void OnCheckElementChange(ElementContainer __instance, int id, out int[]? __state)
     {
         __state = null;
+
+        // alone: nobody to tell, and this is the game's hottest read. Who arrives gets every skill with the state
+        if (!NetCompany.HasCompany) {
+            return;
+        }
+
         if (__instance.dict.TryGetValue(id, out var element)) {
             __state = [element.vBase, element.vExp, element.vPotential, element.vTempPotential];
         }
@@ -46,7 +52,7 @@ internal class ElementChangedEvent
     [HarmonyPostfix]
     internal static void OnSyncElementChange(ElementContainer __instance, int id, Element? __result, int[]? __state)
     {
-        if (NetSession.Instance.Connection is not { } connection) {
+        if (NetSession.Instance.Connection is not { } connection || !NetCompany.HasCompany) {
             return;
         }
 

@@ -61,8 +61,12 @@ public class WorldDateAdvanceDelta : ElinDelta
         SetClientDate([..GameDate]);
         _moved = 0;
 
-        foreach (var zoneEvent in _zone.events.list) {
-            zoneEvent.minElapsed += Minutes;
+        // the timer of a quest's map follows the one who simulates it, which leaves out the time another player
+        // made pass elsewhere (WorldDateAdvanceEvent.OnAfterAdvanceMin)
+        if (!CatchUp) {
+            foreach (var zoneEvent in _zone.events.list) {
+                zoneEvent.minElapsed += Minutes;
+            }
         }
 
         if (pc is not { isDead: false }) {

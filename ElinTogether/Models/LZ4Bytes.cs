@@ -49,9 +49,10 @@ public class LZ4Bytes
     {
         using var input = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
         using var ms = new MemoryStream();
-        // fast mode: map files go out every checkpoint and to every joining player, high compression froze the game
-        // the flag is stored in the stream header, so Decompress reads either form
-        using var lz4 = new LZ4Stream(ms, CompressionMode.Compress);
+        // ponytail: high compression is slow (it freezes the game on a big map), but a map goes out in ONE message
+        // and Steam refuses a message over 512 KB: the fast mode makes maps 40% bigger. Fast mode once maps are
+        // sent in pieces
+        using var lz4 = new LZ4Stream(ms, CompressionMode.Compress, LZ4StreamFlags.HighCompression);
 
         input.CopyTo(lz4);
         lz4.Flush();

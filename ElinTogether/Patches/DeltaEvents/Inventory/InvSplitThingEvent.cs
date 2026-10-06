@@ -13,6 +13,11 @@ internal class InvSplitThingEvent : EClass
     [HarmonyPatch(typeof(Thing), nameof(Thing.ShowSplitMenu))]
     internal static bool OnShowSplitMenu(Thing __instance, ButtonGrid button, InvOwner.Transaction? trans)
     {
+        // alone: the game's own menu (the rest stays in its container, the piece is dragged)
+        if (!NetCompany.HasCompany) {
+            return true;
+        }
+
         var count = 1;
         var m = ui.CreateContextMenuInteraction();
         var buy = trans is not null;

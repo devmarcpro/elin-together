@@ -133,7 +133,8 @@ internal static class EmpAutoHost
         }
 
         // a save asked for by RequestSave is not put off for good by a menu or a fight: it was never asked
-        if (!CanSave() && (_forceAt <= 0f || now < _forceAt)) {
+        // (never while a map loads or the host changes zone, however long it was put off)
+        if (!SafeToSave() || (!CanSave() && (_forceAt <= 0f || now < _forceAt))) {
             _nextSave = now + RetrySeconds;
             return;
         }
@@ -175,12 +176,16 @@ internal static class EmpAutoHost
     /// <summary>
     ///     Where the game's own quick save key would save, and nothing the save would take from the player's hands
     /// </summary>
+    private static bool SafeToSave()
+    {
+        return EClass.scene.mode == Scene.Mode.Zone && !EClass.game.isLoading && EClass.pc is { IsInActiveZone: true };
+    }
+
     private static bool CanSave()
     {
         var pc = EClass.pc;
-        return EClass.scene.mode == Scene.Mode.Zone
-               && !EClass.game.isLoading
-               && pc is { isDead: false, HasNoGoal: true, IsInActiveZone: true }
+        return SafeToSave()
+               && pc is { isDead: false, HasNoGoal: true }
                && ActionMode.AdvOrRegion.IsActive
                // a dialog, a menu, the end screen; Game.Save also cancels a drag in progress
                && !EClass.ui.IsActive

@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <!-- The mod's NetFragments.cs, alone: cutting a big message into pieces and putting it back together.
+         Nothing of the game nor of Steam is needed to build or run it: dotnet run, exit code 0 when all is right. -->
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net6.0</TargetFramework>
+        <LangVersion>latest</LangVersion>
+        <Nullable>enable</Nullable>
+        <RollForward>Major</RollForward>
+        <CheckEolTargetFramework>false</CheckEolTargetFramework>
+    </PropertyGroup>
+    <ItemGroup>
+        <Compile Include="..\..\..\ElinTogether\Net\NetFragments.cs"/>
+    </ItemGroup>
+</Project>

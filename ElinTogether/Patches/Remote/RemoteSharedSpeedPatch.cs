@@ -10,7 +10,7 @@ internal static class RemoteSharedSpeedPatch
     [HarmonyPrefix]
     internal static bool OnGetSpeed(Chara __instance, ref int __result)
     {
-        if (!NetSession.Instance.HasActiveConnection) {
+        if (!NetCompany.HasCompany) {
             return true;
         }
 

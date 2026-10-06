@@ -19,7 +19,8 @@ internal static class QuestGiveClientPatch
             return;
         }
 
-        if (__instance.owner.IsPlayer) {
+        // alone, the game's own pick: the player may be the one drawn to give a quest
+        if (__instance.owner.IsPlayer && NetCompany.HasCompany) {
             __result = false;
         }
     }

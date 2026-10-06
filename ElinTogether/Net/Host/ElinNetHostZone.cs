@@ -20,6 +20,13 @@ internal partial class ElinNetHost
 
         EmpPop.Debug("emp_zone_change".lang());
 
+        // nobody connected (a guest away is still a peer): saving and compressing the map is for nothing, whoever
+        // comes later asks for the zone (OnMapDataRequest)
+        if (peer is null && Socket.Peers.Count == 0) {
+            Session.Lobby.Current[EmpLobbyData.CurrentZone] = zone.NameWithLevel;
+            return;
+        }
+
         var packet = ZoneDataResponse.Create(zone);
 
         if (peer is not null) {

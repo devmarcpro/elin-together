@@ -25,7 +25,8 @@ internal static class RemotePlayerKillPatch
     [HarmonyPrefix]
     internal static void OnDamage(Card __instance, Card origin, out string? __state)
     {
-        __state = NetSession.Instance.Connection is ElinNetHost ? Shield(__instance, origin) : null;
+        // alone, nobody to be protected from: an ally's blast can kill the host as in the game
+        __state = NetSession.Instance.Connection is ElinNetHost && NetCompany.HasCompany ? Shield(__instance, origin) : null;
     }
 
     [HarmonyFinalizer]

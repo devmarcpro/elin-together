@@ -283,15 +283,17 @@ public class SteamNetLobbyManager : EClass
         Current = created.m_ulSteamIDLobby;
         Current.SetGameServer(SteamUser.GetSteamID());
 
+        // first: the lobby can be found as soon as its version is written
+        if (_invisible) {
+            Current[HiddenKey] = "1";
+        }
+
         Current.GameVersion = core.version.GetText();
         Current.Name = SteamFriends.GetPersonaName();
 
         Current[EmpLobbyData.EmpVersion] = ModInfo.BuildVersion;
         Current[EmpLobbyData.GameBuild] = BuildVersionIntegrity.GameVersion;
         Current[EmpLobbyData.CurrentZone] = core.game?.activeZone?.NameWithLevel ?? "";
-        if (_invisible) {
-            Current[HiddenKey] = "1";
-        }
 
         NetSession.Instance.SessionId = Current;
 
@@ -467,7 +469,7 @@ public class SteamNetLobbyManager : EClass
             LobbyData lobby = SteamMatchmaking.GetLobbyByIndex(i);
             // (the lobby a world opens by itself is not for strangers)
             if (!lobby.IsValid || lobby.MemberCount == 0 ||
-                (lobby[HiddenKey] == "1" && SteamFriends.GetFriendRelationship(lobby.Owner.user) !=
+                (lobby[HiddenKey] == "1" && SteamFriends.GetFriendRelationship(lobby.GameServer.id) !=
                     EFriendRelationship.k_EFriendRelationshipFriend)) {
                 continue;
             }

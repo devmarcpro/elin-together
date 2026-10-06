@@ -42,8 +42,9 @@ internal static class CharaTaskRemoteEvent
                 break;
         }
 
-        // skip the idle assignment
-        if (__instance.ai.GetType() == g.GetType() && g.IsNoGoal && __instance.ai.owner is not null) {
+        // skip the idle assignment (alone: the game's own, it also lifts the wait)
+        if (NetCompany.HasCompany && __instance.ai.GetType() == g.GetType() && g.IsNoGoal &&
+            __instance.ai.owner is not null) {
             return false;
         }
 
@@ -52,7 +53,8 @@ internal static class CharaTaskRemoteEvent
             return true;
         }
 
-        if (connection.IsHost && __instance.IsPC && TaskCache.GetRequiredPos(g) is { } tile &&
+        // (alone, nobody else aims at a cell: the game has no such rule)
+        if (connection.IsHost && NetCompany.HasCompany && __instance.IsPC && TaskCache.GetRequiredPos(g) is { } tile &&
             TaskCache.IsPosTaken(tile, __instance)) {
             EmpLog.Debug("Task {ActType} on {@Pos} cancelled for local player, pos taken",
                 g.GetType().Name, tile);

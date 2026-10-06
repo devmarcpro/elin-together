@@ -12,7 +12,8 @@ internal static class CharaVisibilityChangeEvent
     [HarmonyPatch(typeof(CharaRenderer), nameof(CharaRenderer.OnEnterScreen))]
     internal static void OnEnterScreen(CharaRenderer __instance)
     {
-        if (NetSession.Instance.Connection is not { } connection) {
+        // alone: nobody to tell (the combat refresh measures again once somebody is there)
+        if (NetSession.Instance.Connection is not { } connection || !NetCompany.HasCompany) {
             return;
         }
 
@@ -35,7 +36,8 @@ internal static class CharaVisibilityChangeEvent
     [HarmonyPatch(typeof(CardRenderer), nameof(CardRenderer.KillActor))]
     internal static void OnKillActor(CardRenderer __instance)
     {
-        if (NetSession.Instance.Connection is not { } connection || EClass._zone.IsRegion || __instance.owner is not Chara) {
+        if (NetSession.Instance.Connection is not { } connection || !NetCompany.HasCompany || EClass._zone.IsRegion ||
+            __instance.owner is not Chara) {
             return;
         }
 
@@ -58,7 +60,7 @@ internal static class CharaVisibilityChangeEvent
     [HarmonyPatch(typeof(Chara), nameof(Chara.Die))]
     internal static void OnDie(Chara __instance)
     {
-        if (NetSession.Instance.Connection is not { } connection || EClass._zone.IsRegion) {
+        if (NetSession.Instance.Connection is not { } connection || !NetCompany.HasCompany || EClass._zone.IsRegion) {
             return;
         }
 

@@ -23,6 +23,9 @@ D13 pied-de-biche : le coffre force s'ouvre chez l'host aussi.
 D14 consignes « ne pas s'eloigner » et « ne pas vagabonder » : celles du joueur valent pour ses compagnons (conseil 4).
 D3  rangement automatique : l'invite range son sac dans un coffre regle pour ca ; les fenetres de l'host restent
     ouvertes et les objets de l'host restent dans son sac.
+D3b rangement automatique, trois sources protegees (conseil 10, point i) : la rangee du bas, le contenu de la ceinture a
+    outils et l'objet tenu en main hors de la barre (un luth) restent chez le joueur ; un objet ordinaire part ; le coffre
+    n'a jamais de doublon. Rouge sans DumpSparesBeltPatch pour la ceinture et la main, vert pour la barre.
 
 Ce que le banc ne joue pas comme un joueur :
 - D1 : les coups recus sont 300 appels a DamageHP (degats 0) chez l'host, points de vie remis a 10 % a chaque fois
@@ -30,6 +33,9 @@ Ce que le banc ne joue pas comme un joueur :
 - D2 : le dialogue est le vrai (parler, « I need healing », « Yes ») ; les choix sont cliques par leur texte anglais.
 - D3 : le reglage « ranger ici ce qui s'y trouve deja » du coffre est pose directement (dans les deux jeux) ; le
   rangement est lance par TaskDump.TryPerform, ce que fait la touche.
+- D3b : meme chose ; en plus, l'objet de la barre est place par invY = 1 (pas par le glisser-deposer de la fenetre), la
+  ceinture est remplie par AddThing sur l'objet ceinture (pas par la fenetre de la ceinture), le luth est pris par
+  HoldCard (pas par un clic) ; le joueur n'a pas de ceinture sur le banc : elle est equipee par EQ_ID("toolbelt").
 """
 import argparse
 import sys
@@ -164,6 +170,86 @@ def d3(ctx):
             ev(H, f'var t = EClass._map.things.Find(m => m.uid == {chest}); if (t != null) t.Destroy(); '
                   'foreach (var c in EClass._map.charas.Where(c => c.IsPCC).ToList()) foreach (var b in c.things.Where(m => m.id == "bucket").ToList()) b.Destroy(); "ok"')
             _ = mine, theirs
+
+
+def where(port, uid, item, chest):
+    """Ou sont les objets de ce type pour ce jeu, chez ce joueur : "sac,barre,ceinture,main,coffre" (nombres ; la barre
+    du bas est comptee dans le sac ; la main est 1 si l'objet tenu est de ce type ; coffre -1 si inconnu)."""
+    r = ev(port, f'var c = {chara(port, uid)}; if (c == null) return "-1,-1,-1,-1,-1"; '
+                 'var belt = c.things.Find(x => x.trait is TraitToolBelt); '
+                 f'var bag = c.things.Where(x => x.id == "{item}").Sum(x => x.Num); '
+                 f'var bar = c.things.Where(x => x.id == "{item}" && x.invY == 1).Sum(x => x.Num); '
+                 f'var inBelt = belt == null ? 0 : belt.things.Where(x => x.id == "{item}").Sum(x => x.Num); '
+                 f'var hand = c.held != null && c.held.id == "{item}" ? 1 : 0; '
+                 f'var ch = EClass._map.things.Find(m => m.uid == {chest}); '
+                 f'var inChest = ch == null ? -1 : ch.things.Where(x => x.id == "{item}").Sum(x => x.Num); '
+                 'return bag + "," + bar + "," + inBelt + "," + hand + "," + inChest;')
+    return tuple(int(n) for n in r.split(","))
+
+
+def d3b(ctx):
+    """rangement automatique, trois sources protegees : la barre du bas, le contenu de la ceinture a outils, l'objet
+    tenu en main sans etre dans la barre (un luth) ; le coffre a deja un exemplaire de chacun, regle « ce qui s'y trouve
+    deja » ; ils doivent rester chez le joueur, le coffre n'a toujours qu'un exemplaire ; un objet ordinaire part"""
+    # (id, ou il est range, attendu apres : (sac, barre, ceinture, main, coffre))
+    items = (("log", "sac, sans protection (temoin)", (0, 0, 0, 0, 2)),
+             ("bucket", "rangee du bas", (1, 1, 0, 0, 1)),
+             ("potion_empty", "ceinture a outils", (0, 0, 1, 0, 1)),
+             ("lute", "en main, hors de la barre", (1, 0, 0, 1, 1)))
+    for who, key in both(ctx):
+        port, uid = ctx[key]
+        other_key = "h" if key == "a" else "a"
+        other, _ = ctx[other_key]
+        close_layers()
+        mine = {item: give(ctx, key, item, 1) for item, _, _ in items}
+        chest = 0
+        try:
+            # les gestes du joueur, dans SON jeu : un objet de la barre (invY = 1), un objet mis dans la ceinture, un objet pris en main
+            ev(port, f'var t = EClass.pc.things.Find(x => x.uid == {mine["bucket"]}); t.invX = 3; t.invY = 1; "ok"')
+            made = ev(port, 'var c = EClass.pc; var belt = c.things.Find(x => x.trait is TraitToolBelt); var made = belt == null; '
+                            'if (made) belt = c.EQ_ID("toolbelt"); '
+                            f'belt.AddThing(c.things.Find(x => x.uid == {mine["potion_empty"]}), false); return made ? "creee" : "la sienne";')
+            log(f"{who} : ceinture {made}")
+            ev(port, f'EClass.pc.HoldCard(EClass.pc.things.Find(x => x.uid == {mine["lute"]})); "ok"')
+            # le coffre : un exemplaire de chacun (les copies gardent la matiere, sans quoi rien ne s'empile)
+            chest = int(ev(H, 'var t = ThingGen.Create("chest3"); t.c_lockLv = 0; '
+                              f'EClass._zone.AddCard(t, {chara(H, uid)}.pos.GetNearestPoint(false, false, false, true)).Install(); '
+                              'foreach (var x in t.things.ToList()) x.Destroy(); '
+                              + "".join(f'{{ var s = {chara(H, uid)}.things.Find(x => x.uid == {mine[i]}); if (s != null) t.AddCard(s.Duplicate(1)); }} '
+                                        for i, _, _ in items)
+                              + 'return t.uid.ToString();'))
+            eventually(lambda: where(port, uid, "lute", chest)[4] == 1 and where(other, uid, "lute", chest)[4] == 1, timeout=10)
+            for p in (H, A):
+                ev(p, f'var t = EClass._map.things.Find(m => m.uid == {chest}); t.c_windowSaveData = new Window.SaveData {{ autodump = AutodumpFlag.existing }}; "ok"')
+            before = {i: where(port, uid, i, chest) for i, _, _ in items}
+            log(f"{who} : avant, chez lui : " + " ; ".join(f"{i} {w}" for i, w in before.items()))
+            check(f"{who} : mise en place, chez lui : sac, ceinture et main comme voulu, un exemplaire dans le coffre",
+                  all(before[i][4] == 1 for i, _, _ in items) and before["bucket"][1] == 1 and before["potion_empty"][2] == 1 and before["lute"][3] == 1)
+            awake(port)
+            ev(port, 'EClass.pc.SetNoGoal(); "ok"')
+            time.sleep(1)
+            ev(port, 'TaskDump.TryPerform(); "ok"')
+            time.sleep(2)
+            eventually(lambda: ev(port, '(EClass.pc.ai is TaskDump).ToString()') == "False", timeout=40)
+            eventually(lambda: where(H, uid, "log", chest)[4] == 2, timeout=10)  # le temoin est parti : le rangement a eu lieu
+            time.sleep(3)
+            for name, p in (("chez lui", port), ("chez l'autre", other)):
+                for item, source, want in items:
+                    got = where(p, uid, item, chest)
+                    # la barre du bas n'est comparee que chez le joueur (l'autre jeu n'en a pas besoin)
+                    ok = got[0] == want[0] and got[2:] == want[2:] and (p != port or got[1] == want[1])
+                    check(f"{who} : {item} ({source}), {name} : sac/barre/ceinture/main/coffre = {got}, attendu {want}", ok)
+        finally:
+            close_layers()
+            for p in (port, other):
+                ev(p, 'if (EClass.pc.ai is TaskDump) EClass.pc.SetNoGoal(); "ok"')
+            ev(port, 'if (EClass.pc.held != null) EClass.pc.PickHeld(); "ok"')
+            ids = " || ".join(f'x.id == "{i}"' for i, _, _ in items)
+            ev(H, f'var t = EClass._map.things.Find(m => m.uid == {chest}); if (t != null) t.Destroy(); '
+                  'foreach (var c in EClass._map.charas.Where(c => c.IsPCC).ToList()) { '
+                  'var belt = c.things.Find(x => x.trait is TraitToolBelt); '
+                  f'foreach (var b in c.things.Where(x => {ids}).ToList()) b.Destroy(); '
+                  f'if (belt != null) foreach (var b in belt.things.Where(x => {ids}).ToList()) b.Destroy(); }} "ok"')
 
 
 WINDOWS = (("Radio", "la radio"), ("JukeBox", "le juke-box"), ("EditPlaylist", "la liste de lecture"), ("BookResident", "le livre des residents"),
@@ -501,7 +587,7 @@ def main():
     t0 = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
 
     ctx = {"a": (A, state(A)["pc"]["uid"]), "h": (H, state(H)["pc"]["uid"])}
-    steps = [d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14]
+    steps = [d1, d2, d3, d3b, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14]
     if a.only:
         steps = [s for s in steps if s.__name__ in a.only.split(",")]
     for step in steps:
