@@ -16,6 +16,17 @@ B2  pareil s'il se couche puis renonce
 B3  un lit deja installe sur la carte, lui, reste ou il est
 Y1  l'invite, seul sur une carte qu'il tient (voyage seul), y dort : l'ecran de sommeil s'ouvre chez lui, il se
     reveille et peut agir ; l'host, lui, n'a pas dormi (note dans la documentation comme impossible)
+P1  (avant Z1) l'host et l'invite ont chacun un chat, loin des lits, endormis et prets a « dormir a cote »
+P2  (apres Z1) la nuit commune est lancee : le chat de l'host vient a l'host, celui de l'invite vient a l'invite,
+    aucun ne saute chez l'autre (plan : dev/PLAN_sommeil_teleportations.md, causes A et B)
+Y2  l'invite, seul sur un champ qu'il tient, y dort : sa carte n'est pas rechargee, il n'a pas bouge, aucune
+    base n'est parcourue
+K1  (nuit commune) l'invite a SON grimoire, SON oreiller, SON lit : au reveil il a joue son propre reveil (livre lu,
+    sort appris chez lui et chez l'host, un tirage de recette, un sort en reve, oreiller, puissance de son lit) et
+    l'host n'a rien recu de son livre (plan : dev/PLAN_retours_soiree_6_octobre.md, point 10)
+
+    python _tools/sleep_suite.py --only z0,p1,z1,p2,z2      # la nuit des chats
+    python _tools/sleep_suite.py --only y2                  # a lancer a la Prairie, host et invite ensemble
 """
 import argparse
 import sys
@@ -25,7 +36,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from mp_test import log, shot, state  # noqa: E402
-from travel_suite import RESULTS, check, dismiss_dialogs, ev, eventually, scan_logs  # noqa: E402
+from companion_suite import dist, info, recruit, walk_away  # noqa: E402
+from guest_suite import first_id  # noqa: E402
+from travel_suite import RESULTS, check, dismiss_dialogs, ev, eventually, scan_logs, session_log_lines  # noqa: E402
 
 H, A = 27551, 27552
 
@@ -86,6 +99,56 @@ def z0(ctx):
     log(f"heure chez l'host : {ev(H, clock)} ; chez l'invite : {ev(A, clock)}")
     check("il est 22 h des deux cotes", ev(H, 'EClass.world.date.hour.ToString()') == "22"
           and eventually(lambda: ev(A, 'EClass.world.date.hour.ToString()') == "22", timeout=10))
+
+
+def park(ctx, cat, owner):
+    """le chat dort a 12 cases de son proprietaire : un chat endormi ne suit personne, il ne peut donc arriver
+    pres d'un lit que par le tour « dormir a cote » ; le drapeau 123 est celui que pose le dialogue « dors a cote »"""
+    ev(H, f'var o = EClass._map.charas.Find(x => x.uid == {owner}); var c = EClass._map.charas.Find(x => x.uid == {cat}); '
+          'var p = o.pos.Copy(); p.z += 12; if (!p.IsValid) p.z -= 24; p = p.GetNearestPoint(allowChara: false) ?? o.pos; '
+          'c.MoveImmediate(p); c.SetBool(123, true); c.AddCondition<ConSleep>(300, true); "ok"')
+
+
+def p1(ctx):
+    """l'host et l'invite ont chacun un chat, loin des lits, endormis, prets a « dormir a cote »
+    Ce que le banc ne joue pas comme un joueur : les chats naissent par eval et sont recrutes par MakeAlly (ni
+    apprivoisement ni achat) ; ils sont poses a 12 cases par MoveImmediate et endormis par eval ; le drapeau « dors
+    a cote » est pose sans le dialogue, donc le tirage d'une chance sur cinq et l'etiquette de race du jeu ne sont
+    pas joues ici ; l'invite s'eloigne de l'host par TryMoveTowards ; les chats restent dans le groupe apres"""
+    ctx["h"] = int(ev(H, 'EClass.pc.uid.ToString()'))
+    ctx["a"] = state(A)["pc"]["uid"]
+    ctx["hc"] = recruit(H, ctx["h"])
+    ctx["ac"] = recruit(A, ctx["a"])
+    check("le chat de l'host lui appartient (chef du groupe), celui de l'invite appartient a l'invite",
+          eventually(lambda: (i := info(H, ctx["hc"])) is not None and i[2] == 0
+                     and (j := info(H, ctx["ac"])) is not None and j[2] == ctx["a"], timeout=20))
+    walk_away(A)
+    check("l'invite s'est eloigne de l'host (6 cases ou plus, vu de l'host)",
+          eventually(lambda: dist(H, ctx["a"], ctx["h"]) >= 6, timeout=20))
+    park(ctx, ctx["hc"], ctx["h"])
+    park(ctx, ctx["ac"], ctx["a"])
+    time.sleep(2)
+    far = [dist(H, cat, who) for cat in (ctx["hc"], ctx["ac"]) for who in (ctx["h"], ctx["a"])]
+    log(f"distances chat de l'host / chat de l'invite aux lits (host, invite) : {far}")
+    check("les deux chats sont a 6 cases ou plus des deux lits", min(far) >= 6)
+
+
+def p2(ctx):
+    """la nuit commune vient de commencer, le tour « dormir a cote » est passe : chaque chat est pres de SON dormeur
+    L'host et l'invite se couchent dans le meme tour (la nuit n'a lieu que quand tous sont prets) : cette nuit
+    couvre « l'host dort » et « l'invite dort ». Meme limites que p1 ; l'invite dort par pc.Sleep() et non dans un
+    lit. Rouge avant la correction : le chat de l'invite est sur le lit de l'host, rien ne vient a l'invite"""
+    d = ev(H, f'var h = EClass.pc; var g = EClass._map.charas.Find(x => x.uid == {ctx["a"]}); '
+              f'var ch = EClass._map.charas.Find(x => x.uid == {ctx["hc"]}); var cg = EClass._map.charas.Find(x => x.uid == {ctx["ac"]}); '
+              'if (g == null || ch == null || cg == null) return "-1,-1,-1,-1"; '
+              'return ch.Dist(h) + "," + ch.Dist(g) + "," + cg.Dist(h) + "," + cg.Dist(g);')
+    ch_h, ch_g, cg_h, cg_g = (int(x) for x in d.split(","))
+    log(f"chat de l'host : {ch_h} du lit de l'host, {ch_g} de celui de l'invite ; chat de l'invite : {cg_h} / {cg_g}")
+    check("les deux chats et l'invite sont sur la carte de l'host", min(ch_h, ch_g, cg_h, cg_g) >= 0)
+    check(f"l'host dort : son chat est venu a cote de lui ({ch_h} case(s))", 0 <= ch_h <= 1)
+    check(f"l'host dort : le chat de l'invite n'a pas saute sur son lit ({cg_h} cases)", cg_h > 2)
+    check(f"l'invite dort : SON chat est venu a cote de lui ({cg_g} case(s))", 0 <= cg_g <= 1)
+    check(f"l'invite dort : le chat de l'host n'est pas venu chez lui ({ch_g} cases)", ch_g > 2)
 
 
 def z1(ctx):
@@ -221,6 +284,86 @@ def b3(ctx):
           where(ctx, A) == "sol" and where(ctx, H) == "sol")
 
 
+def said(port, key):
+    """combien de fois le jeu de ce joueur a dit ce message dans son journal (son texte vient du jeu, dans la langue
+    de la fenetre : on cherche son plus long morceau fixe, sans les #1 des noms)"""
+    return int(ev(port, """var k = Msg.GetGameText("%s").ToLower().Split(new[] { '#', '$', '{' }).OrderByDescending(s => s.Length).First().Trim(); """
+                        """return EClass.game.log.dict.Values.Count(l => l.text != null && l.text.ToLower().Contains(k)).ToString();""" % key))
+
+
+def k1(ctx):
+    """nuit commune, l'invite a son grimoire, son oreiller (de Jure) et son lit : il joue SON reveil
+    Ce que le banc ne joue pas comme un joueur : le livre, le grimoire et l'oreiller naissent chez l'host par eval
+    (pas d'achat, pas de pillage) ; le sort du livre est un sort que ni l'invite ni l'host ne connaissent, tire par
+    ThingGen ; l'invite dort par la barre (HotItemActionSleep) mais l'host par pc.Sleep() sans lit ; la lecture
+    est sure (EClass.debug.godMode chez l'invite : aucun echec, donc aucun monstre ni teleportation) ; le sort en
+    reve est force (le don 1653 et le domaine du feu chez l'invite) et le tirage de recette aussi (stats.slept
+    remis a 0 des deux cotes : jusqu'a trois nuits le jeu apprend toujours une recette) ; le lit de l'invite a
+    +500 de puissance (element 750) pour que ses PV reviennent au maximum, ce qui ne peut pas venir de la
+    puissance du lit de l'host (20). Les echecs de lecture (un livre use sans rien lire) ne sont pas joues"""
+    me = state(A)["pc"]["uid"]
+    ctx["me"] = me
+    grimoire, jure = first_id("Grimoire"), first_id("PillowJure")
+    if not check(f"le jeu a un grimoire et un oreiller de Jure ({grimoire!r}, {jure!r})", grimoire and jure):
+        return
+    chars = f'EClass._map.charas.Find(x => x.uid == {me})'
+    made = ev(H, f'var c = {chars}; foreach (var t in c.things.Where(x => x.trait is TraitPillow || x.trait is TraitGrimoire).ToList()) t.Destroy(); '
+                 'Thing b = null; for (var i = 0; i < 30; i++) { b = ThingGen.Create("spellbook"); b.c_charges = 3; b.SetBlessedState(BlessedState.Normal); '
+                 'if (!c.HasElement(b.refVal) && !EClass.pc.HasElement(b.refVal)) break; b.Destroy(); b = null; } '
+                 'if (b == null) return "0,0"; '
+                 f'var g = ThingGen.Create("{grimoire}"); g.AddThing(b); c.AddThing(g, false); c.AddThing(ThingGen.Create("{jure}"), false); '
+                 'return b.uid + "," + b.refVal;')
+    book, spell = (int(x) for x in made.split(","))
+    if not check(f"un livre de sort inconnu des deux est dans le grimoire de l'invite (livre {book}, sort {spell})", book):
+        return
+    in_book = lambda p, who: ev(p, f'var g = {who}.things.Find<TraitGrimoire>(); var t = g == null ? null : g.things.Find(x => x.uid == {book}); '  # noqa: E731
+                                   'return t == null ? "disparu" : t.c_charges.ToString();')
+    check("le livre est dans le grimoire de l'invite, chez lui (3 charges)",
+          eventually(lambda: in_book(A, "EClass.pc") == "3", timeout=15))
+    bedding(ctx)
+    domain = ev(A, 'var r = EClass.sources.elements.alias["eleFire"]; if (EClass.player.domains.Contains(r.id)) return "0"; '
+                   'EClass.player.domains.Add(r.id); return r.id.ToString();')
+    rec = lambda p: int(ev(p, 'EClass.player.recipes.knownRecipes.Values.Sum().ToString()'))  # noqa: E731
+    knows = lambda p, who: ev(p, f'{who}.HasElement({spell}).ToString()') == "True"  # noqa: E731
+    san = lambda p: int(ev(p, 'EClass.pc.SAN.value.ToString()'))  # noqa: E731
+    try:
+        for port in (H, A):
+            ev(port, 'EClass.player.stats.slept = 0; "ok"')
+        ev(A, 'EClass.debug.godMode = true; EClass.pc.elements.SetBase(1653, 1); EClass.pc.hp = 1; EClass.pc.SAN.Set(EClass.pc.SAN.max); '
+              'EClass.pc.things.Find<TraitBed>().elements.SetBase(750, 100); "ok"')
+        ev(H, 'EClass.pc.sleepiness.Set(EClass.pc.sleepiness.max); "ok"')
+        dismiss_dialogs(H)
+        before = {"rec": (rec(H), rec(A)), "recipe": said(A, "learnRecipeSleep"), "dream": said(A, "dream_spell"),
+                  "san": (san(H), san(A))}
+        check("avant la nuit : l'invite ne connait pas le sort, l'host non plus",
+              not knows(A, "EClass.pc") and not knows(H, "EClass.pc"))
+        check("l'invite se couche avec son lit et son oreiller", lie_down(ctx))
+        ev(H, 'EClass.pc.Sleep(); "ok"')
+        check("la nuit commence", eventually(lambda: "LayerSleep" in view(H)["layers"], timeout=60))
+        for port, who in ((H, "l'host"), (A, "l'invite")):
+            check(f"{who} se reveille", eventually(lambda port=port: awake(port), timeout=180))
+        time.sleep(5)
+        check("l'invite connait le sort de son livre, chez lui", eventually(lambda: knows(A, "EClass.pc"), timeout=15))
+        check("et chez l'host, sur son personnage", eventually(lambda: knows(H, chars), timeout=15))
+        check("l'host n'a rien recu de ce livre : il ne connait pas ce sort", not knows(H, "EClass.pc"))
+        check(f"le livre a perdu ses charges chez l'invite, et chez l'host (invite : {in_book(A, 'EClass.pc')}, host : {in_book(H, chars)})",
+              eventually(lambda: in_book(A, "EClass.pc") in ("0", "disparu") and in_book(H, chars) in ("0", "disparu"), timeout=15))
+        check(f"un seul tirage de recette pour l'invite, dans son jeu ({said(A, 'learnRecipeSleep') - before['recipe']} message)",
+              said(A, "learnRecipeSleep") - before["recipe"] == 1)
+        check(f"recettes connues : +2 des deux cotes, celle de l'host et celle de l'invite, communes (host {rec(H) - before['rec'][0]}, "
+              f"invite {rec(A) - before['rec'][1]})",
+              eventually(lambda: rec(H) - before["rec"][0] == 2 and rec(A) - before["rec"][1] == 2, timeout=15))
+        check(f"un seul sort en reve pour l'invite ({said(A, 'dream_spell') - before['dream']} message)",
+              said(A, "dream_spell") - before["dream"] == 1)
+        check(f"son oreiller de Jure a joue : sa raison a baisse de 15 (de {before['san'][1]} a {san(A)}), pas celle de l'host ({before['san'][0]} -> {san(H)})",
+              before["san"][1] - san(A) >= 15 and san(H) == before["san"][0])
+        hp, top = (int(x) for x in ev(A, 'EClass.pc.hp + "," + EClass.pc.MaxHP').split(","))
+        check(f"la puissance de SON lit : ses PV sont au maximum ({hp} sur {top}), pas ceux d'un lit de 20", hp >= top)
+    finally:
+        ev(A, 'EClass.debug.godMode = false; EClass.pc.elements.SetBase(1653, 0); '
+              + (f'EClass.player.domains.Remove({domain}); ' if domain != "0" else "") + '"ok"')
+
+
 def z3(ctx):
     """panne provoquee : la fin de la nuit plante chez l'host. Personne ne doit rester dans l'ecran de sommeil
     (a lancer seul : --only z3 ; les exceptions des journaux sont voulues, elles ne sont pas comptees)"""
@@ -270,6 +413,55 @@ def y1(ctx):
     both_joined(H, A, HOME)
 
 
+def lease_requests():
+    try:
+        return sum("Requesting zone lease" in line for line in session_log_lines(""))
+    except OSError:
+        return 0
+
+
+def y2(ctx):
+    """l'invite, seul sur un champ qu'il tient, y dort : sa carte n'est pas rechargee, il est a la meme case au reveil,
+    aucun bail n'est demande a l'host
+    Ce que le banc ne joue pas comme un joueur : la sortie par le bord (ExitBorder) et l'entree sur la case libre
+    (EnterLocalZone) sont appelees par eval, sans le dialogue ni la marche ; la fatigue est forcee ; l'invite dort
+    par pc.Sleep() et non dans un lit ; le retard d'une base (pendingSimHours = 5 sur la Prairie) est pose par eval,
+    il n'y a qu'une base et une vraie partie en aurait une de plus ; un champ seulement, pas une base ni la carte du
+    monde. Rouge avant la correction : le jeu parcourt la base en retard au reveil (bail demande, carte relue)"""
+    from travel_suite import HOME, both_joined, client_settled, enter_at, free_spot, move, wait
+    region = int(ev(A, 'EClass._zone.ParentZone.uid.ToString()'))
+    ev(A, 'EClass.player.ExitBorder(); "ok"')
+    wait(client_settled(A, region, True), "invite sur la carte du monde", timeout=120)
+    time.sleep(3)
+    enter_at(A, free_spot(A, HOME))
+    wait(lambda: (lambda s: s.get("sceneMode") == "Zone" and s.get("awayZone"))(state(A)), "invite seul sur un champ", timeout=120)
+    time.sleep(3)
+    dismiss_dialogs(A)
+    check("l'invite est seul sur un champ (le sommeil y simule les bases)",
+          ev(A, '(EClass._zone is Zone_Field).ToString()') == "True")
+    base = f'((Zone)EClass.game.spatials.Find({HOME}))'
+    ev(A, f'{base}.pendingSimHours = 5; EClass.pc.sleepiness.Set(EClass.pc.sleepiness.max); "ok"')
+    probe = ('return EClass._zone.uid + "|" + EClass.pc.pos.x + "," + EClass.pc.pos.z + "|" + '
+             'System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(EClass._map) + "|" + ' + base + '.pendingSimHours;')
+    before, leases = ev(A, probe), lease_requests()
+    ev(A, 'EClass.pc.Sleep(); "ok"')
+    ok = eventually(lambda: "LayerSleep" in view(A)["layers"], timeout=60)
+    check(f"l'ecran de sommeil s'ouvre chez l'invite ({view(A)['layers'] or 'rien'})", ok)
+    if ok:
+        woke = eventually(lambda: "LayerSleep" not in view(A)["layers"] and not view(A)["asleep"], timeout=180)
+        time.sleep(2)
+        v, after = view(A), ev(A, probe)
+        log(f"avant : {before} ; apres : {after}")
+        check(f"l'invite se reveille et peut agir (ecrans : {v['layers'] or 'aucun'}, entrees "
+              f"{'bloquees' if v['halted'] else 'libres'})", woke and not v["halted"])
+        check("meme carte, meme case, carte non rechargee, base en retard non parcourue (zone | case | carte | retard)",
+              after == before)
+        check("aucun bail demande a l'host pendant la nuit", lease_requests() == leases)
+    ev(A, f'{base}.pendingSimHours = 0; "ok"')
+    move(A, HOME)
+    both_joined(H, A, HOME)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--only")
@@ -278,9 +470,9 @@ def main():
     t0 = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
 
     ctx = {}
-    steps = [z0, z1, z2, b1, b2, b3, y1]
+    steps = [z0, p1, z1, p2, z2, b1, b2, b3, k1, y1, y2]
     if a.only:
-        steps = [s for s in (w0, z0, z1, z2, b1, b2, b3, y1, z3) if s.__name__ in a.only.split(",")]
+        steps = [s for s in (w0, z0, p1, z1, p2, z2, b1, b2, b3, k1, y1, y2, z3) if s.__name__ in a.only.split(",")]
     for step in steps:
         log(f"--- {step.__name__.upper()} : {step.__doc__}")
         try:

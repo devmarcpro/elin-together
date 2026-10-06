@@ -3,7 +3,53 @@
 À lire en premier par la session suivante. Détail daté : fin de `MODLOG.md` (« Étape D suite, Elin 23.352 »).
 Mode d'emploi : `DOCUMENTATION.md`. Règles : `../CLAUDE.md`. Message de départ : `PROMPT_reprise.md`.
 
-## État au 6 octobre, 15h (le plus récent : lire ceci d'abord)
+## État au 6 octobre, 18h (le plus récent : lire ceci d'abord)
+
+- **Publiée : 0.26.506.** L'utilisateur a joué le soir à trois joueurs ou plus et a rendu douze retours : ils sont dans
+  `PLAN_retours_soiree_6_octobre.md` (ses mots, la cause, l'état). **Lire ce fichier en premier.** Il veut une nouvelle
+  version dès que c'est vert (accord donné : « je veux faire une nouvelle release »).
+- **GROS TRAVAIL NON COMMITÉ dans l'arbre, compilé en Debug et installé** (ne pas l'écraser) : les invités gardent leur
+  case et arrivent par l'entrée (`ElinNetHostTravel.cs`, `ElinNetHostZone.cs`, `ElinNetClientTravel.cs`,
+  `Models/ZoneLease/ZoneArrival.cs`) ; le temps d'un autre n'affame pas (`WorldDateAdvanceEvent.cs`,
+  `WorldDateAdvanceDelta.cs`, `RemoteDecayPatch.cs`, `PersonalQuests.cs`) ; sommeil (familiers du dormeur seulement,
+  `SimulateFaction` coupé chez un client, `SleepSynchronizationContext.cs`) ; musicien (`AIPlayMusicPatch.cs`) ; chargement
+  rapide arrêté dans une partie à plusieurs (`GameSaveLoad.cs`) ; ancien personnage jamais sur une carte
+  (`RemoveRemoteChara`, `RemoveUnplayedCharas`, `ZoneActivateEvent.cs`) ; cave jamais régénérée sous un joueur
+  (`KeepAlive`, `LeasedZonePatch.cs`) ; étape 2 du conseil 9 (`Emp/EmpAutoHost.cs` : sauvegarde toutes les 2 minutes quand
+  un autre joueur est là, session ouverte seule dans un monde déjà partagé, `IsSharedWorld`) ; redirection vers celui qui
+  tient le monde du dépôt (`SaveDepot.cs`, `GitHubDepot.cs`, champ `join` du verrou, bouton « Join X »).
+- **Mis de côté** : le réveil complet de l'invité (`_shots/reveil_invite.patch`, à reprendre : le tirage de recette de
+  l'invité ne se fait pas, sa recette n'arrive pas chez l'host ; test `sleep_suite` K1 rouge tant que ce n'est pas remis).
+- **Verts sur ce code** (`_shots/*-lot1.log`, `-lot3.log`) : witness 5/5, reconnect 46/46, autosave 18/18, leave 13/13,
+  travel 83/83 (dont s18 la cave), time W6 (vie 17 -> 17), place P1 à P3, chara C1 à C5 sauf une interruption en fin de C5.
+  Rouges qui sont les tests : place P4 (l'host ne s'éloigne pas, une boîte du jeu s'ouvre), time W7 et la fin de chara C5
+  (NullReference dans le test). **Pas clair** : `sleep_suite` B3 (« l'invité n'attend plus le sommeil ») et Y2 joué après
+  les autres étapes ; Y2 seul est vert.
+- **En cours à 18h** (`_shots/*-lot4.log`) : `trio_place_suite` et `trio_time_suite` (TROIS fenêtres, accord donné :
+  `mp_test.py --clients 2` puis la suite), sleep sans K1, dépôt dossier et GitHub avec la redirection (D5b, D7).
+- **Pièges du jour** : Steam doit tourner sur ce PC (sinon « Steamworks is not initialized », le pont ne répond pas) et le
+  jeu ne démarre pas tant que le compte Steam joue ailleurs ; `Zone.GetTopZone()` rend null pour la carte du monde (parent
+  non zone) et ne remonte que d'un niveau ; retirer un joueur de `branch.members` fait rejouer tout `AddMemeber` à son
+  retour (détruit les artefacts de dieu en double) ; la copie `_lab` est restée en 23.352 (le jeu est en Patch 1 : refaire
+  `make_lab.py Elin2 2` avant une passe large).
+- **Décisions à faire trancher par le conseil** (faits écrits) : horloge par joueur au-delà de l'urgence
+  (`PLAN_horloge_par_joueur.md`) ; rangement automatique et ceinture, `autodump` par joueur (`PLAN_autodump_hotbar.md`) ;
+  factures (`PLAN_factures.md`) ; nuit bloquée par un joueur, gels à plusieurs invités (`PLAN_plusieurs_invites.md`).
+- **Ajout de 18h30, avant compactage de la session** : tout le travail de la soirée est maintenant COMMITÉ sur
+  `fix/points-restants` dans un commit « wip » (PAS poussé, `feat/independent-travel` reste à la 0.26.506 + étape 1 du
+  conseil 9) : rien n'y est « fait » tant que son test n'est pas vert, voir la table de `PLAN_retours_soiree_6_octobre.md`.
+  Deux retours de plus : (13) un invité dépose 1500 orens à la banque, ferme, rouvre : disparus ; même symptôme pour le
+  coffre d'expédition (conteneurs globaux hors carte) : agent lancé, faits et correction dans `PLAN_banque_invite.md`, test
+  `bank_suite.py` (s'ils existent : le lire ; sinon relancer) ; (14) la redirection du dépôt (écrite).
+  **Les suites à trois fenêtres n'ont JAMAIS tourné** : `trio_place_suite.py` et `trio_time_suite.py` lancent elles-mêmes
+  `mp_test.py --clients 2` : les lancer SEULES, jeu fermé, sans `mp_test` avant (deux essais ratés pour cela). C'est la
+  preuve qui manque pour la priorité de l'utilisateur (« les invités ne font que se faire tp sur l'host »).
+  En cours au moment d'écrire : `_shots/sleep_suite-lot4.log`, `depot-folder-lot4.log`, `depot-github-lot4.log`.
+- **À faire ensuite** : 1) lire lot4, corriger, passe réduite, publier ; 2) accepter dans le salon un joueur connu du
+  monde même non ami Steam (`SteamNetLobbyManager.cs:383`) ; 3) le réveil de l'invité ; 4) étapes 3 à 5 du conseil 9 ;
+  5) `PLAN_plusieurs_invites.md` (mesure `perf`, gels) ; 6) chasse 3.
+
+## État au 6 octobre, 15h (dépassé)
 
 - **Publiée : 0.26.506** (accord de l'utilisateur : « fais la release dès que tu peux »), compilée pour Elin EA 23.352. Elle
   contient : le jeu sait seul quel personnage est à qui (`45acadd`, `29c4fa5`, plan `PLAN_personnages_sans_question.md`),

@@ -70,11 +70,22 @@ internal partial class ElinNetHost
     /// <summary>
     ///     Expect a player announced by the host, with its character as the host knows it
     /// </summary>
-    internal void RegisterGuest(UserData user, LZ4Bytes chara, List<LZ4Bytes>? companions)
+    internal void RegisterGuest(ZoneGuestRequest request)
     {
-        if (ReplaceRemoteChara(user, chara, true) is { } guest) {
+        UserData user = request.GuestUser;
+
+        if (ReplaceRemoteChara(user, request.Chara, true) is { } guest) {
             // placed next to it once it stands here, see BringCompanions
-            ReplaceCompanions(companions, guest.uid);
+            ReplaceCompanions(request.Companions, guest.uid);
+        }
+
+        // it stays on its tile (the map changed hands under it) or arrives by the way it walks in, not next to us,
+        // see OnZoneDataReceivedResponse
+        if (request.Stood is not null || request.Arrival is not null) {
+            _returnSpots[request.GuestUser] = (request.ZoneUid, (Point?)request.Stood, request.Arrival,
+                UnityEngine.Time.unscaledTime + ReturnSpotSeconds, request.StoodStale);
+        } else {
+            _returnSpots.Remove(request.GuestUser);
         }
 
         SteamNetManager.ConnectionKeys[user] = "zone_guest";

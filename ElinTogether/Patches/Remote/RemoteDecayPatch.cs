@@ -19,7 +19,9 @@ internal static class RemoteDecayPatch
         }
 
         foreach (var (peerId, player) in host.ActiveRemoteCharas) {
-            if (player is not { isDead: false } || player.currentZone != __instance) {
+            // an hour another player made pass is not this one's: its food does not go off for it
+            if (player is not { isDead: false } || player.currentZone != __instance ||
+                !WorldDateAdvanceEvent.LivesThisHour(player)) {
                 continue;
             }
 
@@ -28,5 +30,19 @@ internal static class RemoteDecayPatch
                 host.SendDeltaTo(peerId, aged);
             }
         }
+    }
+}
+
+/// <summary>
+///     The same for the local player, whose bag the game ages itself each hour: not during the hours its game
+///     catches up with (see WorldDateAdvanceEvent.CatchUp)
+/// </summary>
+[HarmonyPatch(typeof(Card), nameof(Card.DecayNatural))]
+internal static class OwnDecayPatch
+{
+    [HarmonyPrefix]
+    internal static bool OnDecayNatural(Card __instance)
+    {
+        return !WorldDateAdvanceEvent.IsCatchingUp || __instance != EClass.pc;
     }
 }

@@ -124,6 +124,7 @@
     "LangGeneral.emp_ui_sv_desc_player_kill.text": "开：玩家（及其同伴）的攻击可以杀死其他玩家的角色。关：致命一击只会让对方的生命值降为 0，不会死亡。",
     "LangGeneral.emp_ui_sv_cfg_host_manages_base.text": "只有主机可以管理据点",
     "LangGeneral.emp_ui_sv_desc_host_manages_base.text": "开：拒绝其他玩家对据点的操作（研究、炉灶技能、政策、命名、物品设置、居民、建造模式）。关：每位玩家都可像主机一样管理据点。永久放弃据点始终只有主机可以。",
+    "LangGeneral.emp_ui_load_blocked.text": "多人游戏进行中无法读取存档。",
     "LangGeneral.emp_handover_failed.text": "你的角色 {0} 无法在这个世界中接替（已死亡）。你正在使用存档的角色。",
     "LangGeneral.emp_ui_sv_cfg_duels.text": "玩家之间可以决斗",
     "LangGeneral.emp_ui_sv_desc_duels.text": "开：可通过对方角色的菜单发起决斗，不会有人死亡，结束时双方恢复，没有任何损失。关：不能决斗。",
@@ -257,5 +258,11 @@
     "LangGeneral.emp_ui_reconnect_failed.text": "无法回到游戏：3 分钟没有响应，游戏可能已经结束。",
     "LangGeneral.emp_ui_save_kept.text": "你的进度由你加入的游戏保存。",
     "LangGeneral.emp_ui_sv_cfg_auto_reconnect.text": "掉线的玩家自动重新加入",
-    "LangGeneral.emp_ui_sv_desc_auto_reconnect.text": "开：掉线的玩家会在 3 分钟内自动重新加入游戏。关：回到标题画面。"
+    "LangGeneral.emp_ui_sv_desc_auto_reconnect.text": "开：掉线的玩家会在 3 分钟内自动重新加入游戏。关：回到标题画面。",
+    "LangGeneral.emp_ui_sv_cfg_auto_host.text": "读取世界时自动对好友开放游戏",
+    "LangGeneral.emp_ui_sv_desc_auto_host.text": "开：读取世界后好友即可加入，无需手动启动服务器（世界需要已占领的土地）。关：由主机自己启动服务器。",
+    "LangGeneral.emp_ui_sv_cfg_auto_save.text": "有其他玩家时自动保存世界",
+    "LangGeneral.emp_ui_sv_desc_auto_save.text": "开：有其他玩家在游戏中时每 2 分钟保存一次（保存较慢时每 5 分钟），最后一位玩家离开时也会保存。关：只在主机保存时保存。",
+    "LangGeneral.emp_ui_depot_join_btn.text": "加入 {0}",
+    "LangGeneral.emp_ui_depot_join_fail.text": "{0} 持有这个世界，但对方的游戏还没有开放。请稍后再试。如果对方的游戏已中断，世界会在 3 分钟内重新空出。"
 }

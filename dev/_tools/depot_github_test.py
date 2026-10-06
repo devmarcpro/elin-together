@@ -20,6 +20,8 @@ G11 un joueur coupe plus de 3 minutes, un autre heberge, sauvegarde et quitte : 
     ne reprend pas le verrou
 G12 une sauvegarde gardee d'une session precedente ne remplace jamais un monde dont elle ne descend pas
 G13 noms de depot refuses, depot renomme (301), monde trop gros au telechargement
+G14 le verrou dit ou rejoindre celui qui tient le monde (champ "join" ajoute) : ecrit a la prise, relu par les
+    autres, mis a jour au battement, efface quand il rend le monde ; un ancien verrou sans ce champ est lu sans erreur
 G9  la cle n'est nulle part ailleurs que dans l'en-tete Authorization ; aucune ecriture forcee
 """
 import base64
@@ -70,9 +72,13 @@ def requests():
     return len(ctl("/__state")["log"])
 
 
+def lock():
+    held = repo()["files"].get("lock.json")
+    return json.loads(held["text"]) if held else {}
+
+
 def holder():
-    lock = repo()["files"].get("lock.json")
-    return json.loads(lock["text"])["name"] if lock else ""
+    return lock().get("name", "")
 
 
 def world(mark, size=0):
@@ -91,12 +97,13 @@ def blob_sha(data):
 class Player:
     """Un jeu : un processus qui garde en memoire ce qu'il a pris, comme le mod."""
 
-    def __init__(self, name, token=TOKEN, depot=REPO):
+    def __init__(self, name, token=TOKEN, depot=REPO, join=None):
         self.name = name
         self.file = TMP / f"{name}.zip"
         env = dict(os.environ, DEPOT_TOKEN=token, ELINTOGETHER_GITHUB_API=API)
         self.process = subprocess.Popen(
-            ["dotnet", str(CLI / "bin" / "Release" / "net6.0" / "github_depot_cli.dll"), depot, f"PC-{name}:1", name],
+            ["dotnet", str(CLI / "bin" / "Release" / "net6.0" / "github_depot_cli.dll"), depot, f"PC-{name}:1", name]
+            + ([join] if join else []),
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8", env=env)
 
     def ask(self, line):
@@ -353,6 +360,33 @@ def main():
               answer == "NO too big" and holder() == "")
         ctl("/__write", repo=REPO, path="world.zip", content=base64.b64encode(world("autre partie de E")).decode())
         check("(le depot retrouve son monde)", there() == small)
+
+        print("--- G14")
+        join = "76561198000000001 0"
+        j = player("J", join=join)
+        check("J prend le monde : le verrou garde ses trois champs et dit ou le rejoindre",
+              j.take()[0] == "OK " and lock().get("join") == join and {"id", "name", "beat"} <= set(lock()))
+        check("un autre joueur lit qui tient le monde, et ou le rejoindre",
+              c.ask("WHO") == "OK J" and c.ask("JOIN") == "OK " + join)
+        check("refuse a la prise, il le sait aussi, et n'a rien ecrit",
+              c.take()[0] == "NO held J" and c.ask("JOIN") == "OK " + join and lock().get("id") == "PC-J:1")
+        opened = "76561198000000001 109775241000000001"
+        j2 = player("J", join=opened)  # (le meme jeu, une fois sa partie ouverte : son salon est connu)
+        check("au battement suivant le verrou porte le salon",
+              j2.ask("BEAT") == "OK " and lock().get("join") == opened and c.ask("WHO") == "OK J"
+              and c.ask("JOIN") == "OK " + opened)
+        check("J rend le monde : le champ est efface",
+              j.ask("RELEASE") == "OK " and "join" not in lock() and c.ask("WHO") == "OK " and c.ask("JOIN") == "OK ")
+        beat = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() + offset))
+        old = json.dumps({"id": "PC-OLD:1", "name": "Ancien", "beat": beat}, separators=(",", ":"))
+        ctl("/__write", repo=REPO, path="lock.json", content=base64.b64encode(old.encode()).decode())
+        answers = [c.ask("WHO"), c.ask("JOIN"), c.take()[0]]
+        check(f"ancien verrou sans ce champ : lu sans erreur, tenu, rien pour rejoindre ({answers})",
+              answers == ["OK Ancien", "OK ", "NO held Ancien"])
+        offset += 250
+        ctl("/__clock", offset=offset)
+        check("perime, il se reprend comme avant ; un joueur qui ne dit pas ou le rejoindre ecrit un verrou sans ce champ", c.ask("WHO") == "OK " and c.take()[0] == "OK "
+              and "join" not in lock() and c.ask("RELEASE") == "OK ")
 
         print("--- G9")
         log = ctl("/__state")["log"]

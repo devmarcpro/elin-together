@@ -66,4 +66,17 @@ public class ZoneLeaseRelease
     /// </summary>
     [Key(10)]
     public Dictionary<ulong, List<LZ4Bytes>>? GuestCompanions { get; init; }
+
+    /// <summary>
+    ///     The map the client stands on, held or only visited (<see cref="ZoneUid" /> is -1 for a visitor): if the
+    ///     host is the one coming there, the player stays on its tile
+    /// </summary>
+    [Key(11)]
+    public int StoodZoneUid { get; init; } = -1;
+
+    /// <summary>
+    ///     Returning by walking into the host's map: the way in
+    /// </summary>
+    [Key(12)]
+    public ZoneArrival? Arrival { get; init; }
 }

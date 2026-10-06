@@ -1,3 +1,4 @@
+using ElinTogether.Helper;
 using ElinTogether.Models;
 using ElinTogether.Net;
 using HarmonyLib;
@@ -12,10 +13,36 @@ internal static class WorldDateAdvanceEvent
     /// </summary>
     private const int MaxCatchUpMinutes = Date.MonthToken;
 
-    [HarmonyPrefix]
-    internal static bool OnAdvanceMin()
+    // minutes of the AdvanceMin in progress, 0 outside of one
+    private static int _advancing;
+
+    /// <summary>
+    ///     The date is advancing by time another player made pass on another map: nobody here lived it
+    /// </summary>
+    internal static bool IsCatchingUp { get; private set; }
+
+    /// <summary>
+    ///     Whether the hour passing now is one this other player of the map lives (what it carries goes off). <br />
+    ///     Minute by minute is the time of the map, everyone's on it. A jump is the act of the one who simulates
+    ///     it (a step on the world map), not theirs; except a night, which every player of the map sleeps
+    /// </summary>
+    internal static bool LivesThisHour(Chara remotePlayer)
     {
+        return !IsCatchingUp && (_advancing == 1 || remotePlayer.conSleep is not null);
+    }
+
+    [HarmonyPrefix]
+    internal static bool OnAdvanceMin(int a)
+    {
+        _advancing = a;
         return NetSession.Instance.IsHost;
+    }
+
+    // not in the postfix: it is skipped when the game's own code throws, and the jump would never end
+    [HarmonyFinalizer]
+    internal static void OnAdvanceMinEnd()
+    {
+        _advancing = 0;
     }
 
     [HarmonyPostfix]
@@ -38,6 +65,7 @@ internal static class WorldDateAdvanceEvent
         host.Delta.AddRemote(new WorldDateAdvanceDelta {
             Minutes = a,
             GameDate = [..EClass.world.date.raw],
+            CatchUp = IsCatchingUp,
         });
     }
 
@@ -51,7 +79,9 @@ internal static class WorldDateAdvanceEvent
 
     /// <summary>
     ///     Another game of the session is further in time: this one, which simulates a map, goes there too,
-    ///     with everything a passing hour or day does here, and its player lives that time. <br />
+    ///     with everything a passing hour or day does to the map and the world. Its player did not make that
+    ///     time pass and does not live it: no turns of hunger or conditions, nothing going off in its bag, no
+    ///     time taken from its quests (a player away saw the host's travel starve it and rot its food). <br />
     ///     Going there tells the others in turn (the host its players, a map holder its visitors)
     /// </summary>
     /// <returns>the minutes advanced, 0 when this game is not behind</returns>
@@ -70,14 +100,13 @@ internal static class WorldDateAdvanceEvent
 
         EmpLog.Debug("World time: catching up {Minutes} minute(s)", behind);
 
-        EClass.world.date.AdvanceMin(behind);
+        PersonalQuests.Postpone(behind);
 
-        // as a client does for the time its host advanced, see WorldDateAdvanceDelta
-        var pc = EClass.pc;
-        // (a day of it at most: a longer jump is not a time to live through, it would starve the character)
-        var ticks = System.Math.Min(behind, Date.DayToken) * 4 / 6;
-        for (var i = 0; i < ticks && pc is { isDead: false }; ++i) {
-            pc.TickConditions();
+        IsCatchingUp = true;
+        try {
+            EClass.world.date.AdvanceMin(behind);
+        } finally {
+            IsCatchingUp = false;
         }
 
         return behind;

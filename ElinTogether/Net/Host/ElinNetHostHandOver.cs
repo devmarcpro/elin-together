@@ -77,6 +77,13 @@ internal partial class ElinNetHost
             : null;
     }
 
+    /// <summary>
+    ///     This world is one other players play in: one of them has a character in it, or it was another player's.
+    ///     A world played alone opens no session by itself, nothing changes for a solo player (EmpAutoHost)
+    /// </summary>
+    internal static bool IsSharedWorld =>
+        SavedRemoteCharas.Count > 0 || PcOrphans.Count > 0 || (PcOwner() is var owner && owner != 0 && owner != LocalUser);
+
     private static void SetPcOwner(ulong user)
     {
         PcOwners.Clear();

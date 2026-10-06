@@ -336,6 +336,21 @@ internal static class PersonalQuests
         }
     }
 
+    /// <summary>
+    ///     Time another player made pass (see WorldDateAdvanceEvent.CatchUp) is not taken from this player's
+    ///     quests: their deadlines move with the date. The host hears of it like any change of a quest
+    /// </summary>
+    internal static void Postpone(int minutes)
+    {
+        if (!Enabled || EClass.game?.quests is not { } quests) {
+            return;
+        }
+
+        foreach (var quest in quests.list.Where(q => IsPersonal(q) && q.deadline > 0)) {
+            quest.deadline += minutes;
+        }
+    }
+
     private static void Restore()
     {
         var quests = EClass.game.quests;

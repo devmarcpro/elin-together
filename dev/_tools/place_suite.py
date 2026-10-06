@@ -1,0 +1,227 @@
+"""Un joueur n'est jamais deplace sans l'avoir voulu (C1 et C3 de dev/PLAN_invites_tp_sur_host.md). Deux fenetres.
+
+    python _tools/mp_test.py             # une fois : host + 1 client dans la Prairie
+    python _tools/place_suite.py         # 5 a 8 minutes, relancable (finit avec tout le monde a la Prairie)
+
+P1  A se tient loin de l'host ; l'host part a Vernis : A n'a pas bouge (chez lui, et sur la copie de l'host)
+P2  l'host revient : A n'a pas bouge (meme case chez lui et chez l'host), l'host est ailleurs
+P3  l'host est a Vernis ; A sort de la Prairie par le bord puis entre a Vernis : il arrive par l'entree
+    (la ou le jeu le met en solo), pas sur l'host
+P4  l'host marche sur la carte du monde ; A sort de Vernis par le bord : il arrive sur la case de Vernis,
+    une case ou un joueur peut se tenir, pas sur l'host
+
+Ce que le banc ne joue pas comme un joueur :
+- l'host change de carte par `pc.MoveZone(zone)` (P1, P2, debut de P3), pas par une sortie a pied ;
+- A et l'host s'eloignent par teleportation (`pc.Teleport`), pas en marchant ;
+- A entre a Vernis par `player.EnterLocalZone(case de Vernis)` sans avoir marche jusqu'a cette case sur la carte
+  du monde (les sorties, elles, passent par `player.ExitBorder()`, le vrai chemin du bord de carte) ;
+- pas d'escalier ni de porte : seulement bord de carte, ville et carte du monde ;
+- un seul invite : il tient toujours la carte. Le cas du 2e invite, qui ne la tient pas, est dans
+  trio_place_suite.py (trois fenetres).
+"""
+import argparse
+import sys
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent))
+from mp_test import log, shot, state  # noqa: E402
+from travel_suite import (HOME, RESULTS, VERNIS, both_joined, check, client_settled, ev, eventually, move,  # noqa: E402
+                          scan_logs, wait, zone_uid)
+
+H, A = 27551, 27552
+
+ENTER = ('var z = EClass.game.spatials.Find({uid}); var em = EClass.scene.elomap; '
+         'EClass.player.EnterLocalZone(new Point(z.x - em.minX, z.y - em.minY)); "ok"')
+
+
+def pc_pos(port):
+    s = state(port)["pc"]
+    return s["x"], s["z"]
+
+
+def xz(text):
+    x, z = text.split(",")
+    return int(x), int(z)
+
+
+def seen_at(port, uid):
+    """Case du personnage `uid` sur la carte active de `port`, None s'il n'y est pas."""
+    res = ev(port, f'var c = EClass._map.charas.Find(x => x.uid == {uid}); c == null ? "" : c.pos.x + "," + c.pos.z')
+    return xz(res) if res else None
+
+
+def copy_at(port, uid):
+    """Case du personnage `uid` tel que `port` le connait, meme hors de sa carte."""
+    return xz(ev(port, f'var c = EClass.game.cards.globalCharas.Find({uid}); c.pos.x + "," + c.pos.z'))
+
+
+def dist(a, b):
+    return max(abs(a[0] - b[0]), abs(a[1] - b[1]))
+
+
+def step_away(port, dx, dz):
+    """Raccourci du banc : le joueur se teleporte a (dx, dz) cases, sur une case libre."""
+    ev(port, f'var p = EClass.pc.pos.Copy(); p.x += {dx}; p.z += {dz}; '
+             'EClass.pc.Teleport(p.GetNearestPoint(false, false) ?? EClass.pc.pos, true, true); "ok"')
+    time.sleep(2)
+    return pc_pos(port)
+
+
+def region_uid(port):
+    return int(ev(port, 'EClass.world.region.uid.ToString()'))
+
+
+def tile_of(port, uid):
+    """Case d'une zone sur la carte du monde."""
+    return xz(ev(port, f'var z = EClass.game.spatials.Find({uid}); var em = EClass.scene.elomap; '
+                       '(z.x - em.minX) + "," + (z.y - em.minY)'))
+
+
+def walkable_here(port):
+    """La case du joueur : pas bloquee (la regle de Chara.CanMoveTo), pas de l'eau."""
+    return ev(port, '(!EClass.pc.pos.cell.blocked && !EClass.pc.pos.IsWater).ToString()') == "True"
+
+
+def p1(ctx):
+    ctx["a"] = state(A)["pc"]["uid"]
+    spot = step_away(A, 9, 4)
+    ctx["spot"] = spot
+    check(f"depart : A est loin de l'host ({dist(spot, pc_pos(H))} cases)", dist(spot, pc_pos(H)) > 3)
+    move(H, VERNIS)
+    wait(lambda: zone_uid(H) == VERNIS, "host a Vernis", timeout=180)
+    stayed = eventually(client_settled(A, HOME, True), timeout=30)
+    check("l'host part : A reste a la Prairie", stayed)
+    check(f"A n'a pas bouge chez lui ({spot} -> {pc_pos(A)})", pc_pos(A) == spot)
+    check(f"la copie de A chez l'host est a la meme case ({copy_at(H, ctx['a'])})", copy_at(H, ctx["a"]) == spot)
+
+
+def p2(ctx):
+    ctx.setdefault("a", state(A)["pc"]["uid"])
+    spot = ctx.get("spot") or pc_pos(A)
+    move(H, HOME)
+    wait(lambda: zone_uid(H) == HOME, "host a la Prairie", timeout=240)
+    both_joined(H, A, HOME)
+    time.sleep(3)
+    seen = seen_at(H, ctx["a"])
+    check(f"l'host revient : A n'a pas bouge (attendu {spot}, chez A {pc_pos(A)}, chez l'host {seen})",
+          pc_pos(A) == spot and seen == spot)
+    check(f"l'host est ailleurs sur la carte (a {dist(spot, pc_pos(H))} cases)", dist(spot, pc_pos(H)) > 3)
+    shot("p2-A", A)
+
+
+def p3(ctx):
+    ctx.setdefault("a", state(A)["pc"]["uid"])
+    move(H, VERNIS)
+    wait(lambda: zone_uid(H) == VERNIS, "host a Vernis", timeout=180)
+    wait(client_settled(A, HOME, True), "A garde la Prairie", timeout=30)
+    region = region_uid(A)
+    ev(A, 'EClass.player.ExitBorder(); "ok"')
+    wait(client_settled(A, region, True), "A sur la carte du monde", timeout=120)
+    # en solo le jeu remet le joueur a la case ou il a quitte sa derniere carte (Zone.GetSpawnPos, lastZonePos),
+    # ramenee dans les limites de la carte ; sinon au bord par ou il entre
+    last = ev(A, 'EClass.player.lastZonePos == null ? "" : EClass.player.lastZonePos.x + "," + EClass.player.lastZonePos.z')
+    # l'host se tient loin de cette case : sinon "a l'entree" et "sur l'host" ne se distinguent pas
+    if last:
+        lx, lz = xz(last)
+        ev(H, f'var t = new Point({lx}, {lz}).Clamp(true); var p = t.Copy(); '
+              'p.x += t.x + 10 <= EClass._map.bounds.maxX ? 10 : -10; '
+              'EClass.pc.Teleport(p.GetNearestPoint(false, false) ?? p, true, true); "ok"')
+        expected = xz(ev(H, f'var t = new Point({lx}, {lz}).Clamp(true); t.x + "," + t.z'))
+    else:
+        step_away(H, 10, 0)
+        expected = None
+    time.sleep(2)
+    ev(A, ENTER.format(uid=VERNIS))
+    both_joined(H, A, VERNIS)
+    time.sleep(3)
+    mine, seen, host = pc_pos(A), seen_at(H, ctx["a"]), pc_pos(H)
+    edge = int(ev(A, 'var b = EClass._map.bounds; var p = EClass.pc.pos; '
+                     'System.Math.Min(System.Math.Min(p.x - b.x, b.maxX - p.x), System.Math.Min(p.z - b.z, b.maxZ - p.z)).ToString()'))
+    check(f"A entre a Vernis : meme case chez lui et chez l'host ({mine} / {seen})", seen == mine)
+    check(f"A n'est pas pose sur l'host (a {dist(mine, host)} cases, host en {host})", dist(mine, host) > 3)
+    check(f"A arrive par l'entree : pres de {expected} (case de sortie de sa derniere carte) ou au bord (a {edge} cases du bord)",
+          (expected is not None and dist(mine, expected) <= 2) or edge <= 2)
+    shot("p3-A", A)
+
+
+def p4(ctx):
+    ctx.setdefault("a", state(A)["pc"]["uid"])
+    if zone_uid(H) != VERNIS or zone_uid(A) != VERNIS:
+        raise RuntimeError("P4 part de P3 : l'host et A a Vernis")
+    region = region_uid(H)
+    ev(H, 'EClass.player.ExitBorder(); "ok"')
+    wait(lambda: zone_uid(H) == region, "host sur la carte du monde", timeout=180)
+    wait(client_settled(A, VERNIS, True), "A garde Vernis", timeout=30)
+    town = tile_of(H, VERNIS)
+    step_away(H, 6, 0)
+    check(f"l'host s'est eloigne de Vernis sur la carte du monde ({dist(pc_pos(H), town)} cases)", dist(pc_pos(H), town) > 2)
+    ev(A, 'EClass.player.ExitBorder(); "ok"')
+    both_joined(H, A, region)
+    time.sleep(3)
+    mine, seen = pc_pos(A), seen_at(H, ctx["a"])
+    check(f"A sort de Vernis : il est sur la case de Vernis {town} (chez lui {mine}, chez l'host {seen})",
+          mine == town and seen == town)
+    check("la case de A est praticable (pas bloquee, pas de l'eau), chez lui et chez l'host",
+          walkable_here(A) and ev(H, f'var c = EClass._map.charas.Find(x => x.uid == {ctx["a"]}); '
+                                     '(c != null && !c.pos.cell.blocked && !c.pos.IsWater).ToString()') == "True")
+    check(f"A n'est pas pose sur l'host (a {dist(mine, pc_pos(H))} cases)", dist(mine, pc_pos(H)) > 2)
+    shot("p4-A", A)
+
+
+def back_home():
+    """Tout le monde a la Prairie, pour pouvoir relancer."""
+    if zone_uid(H) != HOME:
+        if zone_uid(H) == region_uid(H):
+            ev(H, ENTER.format(uid=HOME))
+        else:
+            move(H, HOME)
+        wait(lambda: zone_uid(H) == HOME, "host a la Prairie", timeout=240)
+    if not eventually(client_settled(A, HOME, False), timeout=20):
+        if zone_uid(A) == region_uid(A):
+            ev(A, ENTER.format(uid=HOME))
+        else:
+            move(A, HOME)
+    both_joined(H, A, HOME)
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--only")
+    a = ap.parse_args()
+    sys.stdout.reconfigure(encoding="utf-8")
+    t0 = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+
+    ctx = {}
+    steps = [p1, p2, p3, p4]
+    if a.only:
+        steps = [s for s in steps if s.__name__ in a.only.split(",")]
+    for step in steps:
+        log(f"--- {step.__name__.upper()}")
+        try:
+            step(ctx)
+        except Exception as ex:  # noqa: BLE001
+            check(f"{step.__name__} interrompu : {type(ex).__name__}: {ex}", False)
+            for name, port in (("host", H), ("A", A)):
+                try:
+                    print(f"    capture {name} : {shot(f'fail-{step.__name__}-{name}', port)}")
+                except Exception:  # noqa: BLE001
+                    pass
+            break
+
+    try:
+        back_home()
+    except Exception as ex:  # noqa: BLE001
+        print(f"    retour a la Prairie rate : {type(ex).__name__}: {ex}")
+
+    scan_logs(t0)
+    failed = [label for label, good in RESULTS if not good]
+    print(f"\n{len(RESULTS) - len(failed)}/{len(RESULTS)} verifications OK")
+    for label in failed:
+        print(f"  ECHEC : {label}")
+    sys.exit(1 if failed else 0)
+
+
+if __name__ == "__main__":
+    main()

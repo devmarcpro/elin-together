@@ -30,6 +30,25 @@ public class ZoneGuestRequest
     /// </summary>
     [Key(3)]
     public List<LZ4Bytes>? Companions { get; init; }
+
+    /// <summary>
+    ///     It was on this map already (the one simulating it changed): the tile it stays on
+    /// </summary>
+    [Key(4)]
+    public Position? Stood { get; init; }
+
+    /// <summary>
+    ///     It walks in: the way it comes by, see <see cref="ZoneArrival" />
+    /// </summary>
+    [Key(5)]
+    public ZoneArrival? Arrival { get; init; }
+
+    /// <summary>
+    ///     <see cref="Stood" /> is the tile of an old upload (the one simulating the map dropped): kept for the
+    ///     player for want of better, its companions gather around it
+    /// </summary>
+    [Key(6)]
+    public bool StoodStale { get; init; }
 }
 
 /// <summary>

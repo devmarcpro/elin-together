@@ -17,6 +17,11 @@ internal static class ZoneActivateEvent
         TileStateDelta.Forget();
         ActionModeCombat.EnemyVisibility.Clear();
         FovCellLightOffsetPatch.PlayerFovs.Clear();
+
+        // before the game looks at the date: it would regenerate a cave another player is in, floors included
+        if (NetSession.Instance.Transport is ElinNetHost host && host.IsHeld(__instance)) {
+            host.KeepAlive(__instance);
+        }
     }
 
     [HarmonyPostfix]
@@ -26,6 +31,9 @@ internal static class ZoneActivateEvent
         if (NetSession.Instance.Connection is not null) {
             CardCache.CacheCurrentZone();
         }
+
+        // before anyone acts: the game puts back every character whose zone this is
+        ElinNetHost.RemoveUnplayedCharas();
 
         // we are not host
         if (NetSession.Instance.Connection is not ElinNetHost host) {

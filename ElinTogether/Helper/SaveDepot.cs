@@ -62,6 +62,16 @@ internal static class SaveDepot
     private static string _refused = "";
     private static bool _lostTold;
 
+    // where the holder of the folder's lock is joined (GitHub: GitHubDepot.HeldJoin)
+    private static string _heldJoin = "";
+
+    // the session this game had open when its lock last said so
+    private static (ulong Lobby, int Port) _openTold;
+
+    // the player whose game is being joined from the title screen, and until when it may take
+    private static string? _joining;
+    private static float _joinBy;
+
     private static string Root => EmpConfig.Client.DepotPath.Value.Trim();
     private static string World => Path.Combine(Root, "world");
     private static string LockFile => Path.Combine(Root, "host.txt");
@@ -93,6 +103,52 @@ internal static class SaveDepot
     private static string Me { get; } = $"{Environment.MachineName}:{Process.GetCurrentProcess().Id}";
 
     private static string MyName => EClass.core.IsGameStarted ? EClass.pc.Name : Environment.UserName;
+
+    /// <summary>
+    ///     The session this game has open, for the others to join: its Steam lobby. Nothing open: none
+    /// </summary>
+    private static (ulong Lobby, int Port) Open
+    {
+        get {
+            if (NetSession.Instance.Transport is not ElinNetHost host) {
+                return default;
+            }
+
+#if DEBUG
+            // a window of the bench: every window has the same Steam account, they join by the local port
+            if (host.IsLocalServer) {
+                return (0, Common.EmpConstants.LocalPort);
+            }
+#endif
+
+            ulong lobby = NetSession.Instance.Lobby.Current;
+            return (lobby, 0);
+        }
+    }
+
+    /// <summary>
+    ///     What the lock says beside the name: "steam id, lobby" of this player (and the local port of a bench
+    ///     window, debug builds only). Read by Join
+    /// </summary>
+    private static string MyJoin
+    {
+        get {
+            var steam = 0UL;
+            try {
+                steam = Steamworks.SteamUser.GetSteamID().m_SteamID;
+            } catch (Exception) {
+                // Steam is away: the lock only says who
+            }
+
+            var (lobby, port) = Open;
+            return $"{steam} {lobby}" + (port > 0 ? " " + port : "");
+        }
+    }
+
+    /// <summary>
+    ///     The lock says where the player who holds the world is joined (HeldBy was asked first)
+    /// </summary>
+    internal static bool Joinable => (GitHub ? GitHubDepot.HeldJoin : _heldJoin).Length > 0;
 
     internal static bool Enabled => Root.Length > 0 && (Asked || Directory.Exists(Root));
 
@@ -142,6 +198,8 @@ internal static class SaveDepot
                 return _who;
             }
 
+            // (the server application says a name and nothing else)
+            _heldJoin = "";
             if (Remote) {
                 var reply = Ask("WHO");
                 return reply.Ok && reply.Text.Length > 0 ? reply.Text : null;
@@ -152,7 +210,12 @@ internal static class SaveDepot
             }
 
             var lines = File.ReadAllLines(LockFile);
-            return lines.Length < 2 || lines[0] == Me ? null : lines[1];
+            if (lines.Length < 2 || lines[0] == Me) {
+                return null;
+            }
+
+            _heldJoin = lines.Length > 2 ? lines[2] : "";
+            return lines[1];
         } catch (Exception ex) when (ex is IOException or SocketException) {
             return null;
         }
@@ -167,11 +230,24 @@ internal static class SaveDepot
         if (GitHub) {
             Settle();
         } else if (HeldBy() is { } who) {
-            Dialog.Ok("emp_ui_depot_held".Loc(who));
+            if (!Join(who)) {
+                Dialog.Ok("emp_ui_depot_held".Loc(who));
+            }
+
             return;
         }
 
         if (File.Exists(Unsent) && File.Exists(Path.Combine(Local, "game.txt"))) {
+            // held by another player who can be joined: joined first. The save kept here and its marker stay as
+            // they are, for the day the world is free
+            try {
+                if (GitHub && Ask("WHO") is { Ok: true, Text.Length: > 0 } held && Join(held.Text)) {
+                    return;
+                }
+            } catch (Exception ex) when (ex is IOException or AggregateException) {
+                // GitHub does not answer: the question below, as before
+            }
+
             // (GitHub: never without asking, another player may have hosted since)
             if (EmpServer.Requested && !GitHub) {
                 SendUnsent();
@@ -189,7 +265,10 @@ internal static class SaveDepot
             if (Asked) {
                 var reply = Ask("TAKE");
                 if (!reply.Ok) {
-                    Dialog.Ok(reply.Text == "empty" ? "emp_ui_depot_empty" : Refusal(reply.Text));
+                    if (!reply.Text.StartsWith("held ") || !Join(reply.Text.Substring(5))) {
+                        Dialog.Ok(reply.Text == "empty" ? "emp_ui_depot_empty" : Refusal(reply.Text));
+                    }
+
                     return;
                 }
 
@@ -218,8 +297,41 @@ internal static class SaveDepot
 
         _lostTold = _unsent = false;
         _nextSend = 0f;
+        _openTold = default;
         EmpLog.Information("Took the world from the depot {Root}", Root);
         Game.Load(WorldId, false);
+    }
+
+    /// <summary>
+    ///     Another player holds the world: this game joins theirs, as through a Steam invitation, without one.
+    ///     False when the lock does not say where (written by an older version, or the server application)
+    /// </summary>
+    private static bool Join(string who)
+    {
+        var at = (GitHub ? GitHubDepot.HeldJoin : _heldJoin).Split(' ');
+        if (at.Length < 2 || !ulong.TryParse(at[1], out var lobby)) {
+            return false;
+        }
+
+        var session = NetSession.Instance;
+#if DEBUG
+        if (at.Length > 2 && ushort.TryParse(at[2], out var port)) {
+            session.InitializeComponent<ElinNetClient>().ConnectLocalPort(port);
+        } else
+#endif
+        if (lobby != 0) {
+            session.Lobby.ConnectLobby(lobby);
+        } else {
+            // they took the world and their session is not open yet
+            Dialog.Ok("emp_ui_depot_join_fail".Loc(who));
+            return true;
+        }
+
+        EmpLog.Information("The depot's world is held by {Name}: joining their game", who);
+        _joining = who;
+        // (the connection gives up by itself after Timeout and says why; this is for when it does not)
+        _joinBy = Time.unscaledTime + EmpConfig.Policy.Timeout.Value + 10f;
+        return true;
     }
 
     /// <summary>
@@ -477,7 +589,7 @@ internal static class SaveDepot
             // seconds with GitHub, seven for the first request, and up to a minute behind a save still going
             Settle();
             return GitHubDepot.Ask(Root.Substring(7), EmpConfig.Client.DepotPassword.Value, command, Me, MyName, body,
-                descends);
+                descends, MyJoin);
         }
 
         var at = Root.LastIndexOf(':');
@@ -535,11 +647,11 @@ internal static class SaveDepot
     private static void Later(string command, byte[]? body, Action<(bool Ok, string Text, byte[]? Body)> then,
         Action? sent = null)
     {
-        var (root, key, name) = (Root, EmpConfig.Client.DepotPassword.Value, MyName);
+        var (root, key, name, join) = (Root, EmpConfig.Client.DepotPassword.Value, MyName, MyJoin);
         _asking = _asking.ContinueWith(_ => {
             (bool Ok, string Text, byte[]? Body) reply;
             try {
-                reply = GitHubDepot.Ask(root.Substring(7), key, command, Me, name, body);
+                reply = GitHubDepot.Ask(root.Substring(7), key, command, Me, name, body, join: join);
                 if (reply.Ok) {
                     sent?.Invoke();
                 }
@@ -612,7 +724,7 @@ internal static class SaveDepot
         } else if (Remote) {
             Lost(Ask("BEAT").Text);
         } else {
-            File.WriteAllLines(LockFile, [Me, MyName]);
+            File.WriteAllLines(LockFile, [Me, MyName, MyJoin]);
         }
     }
 
@@ -677,7 +789,29 @@ internal static class SaveDepot
             SendLater();
         }
 
-        if (Time.unscaledTime < _nextBeat || !Holding) {
+        if (_joining is { } host) {
+            var session = NetSession.Instance;
+            if (EClass.core.IsGameStarted || session.HasActiveConnection) {
+                _joining = null;
+            } else if (session.Transport is not ElinNetClient || Time.unscaledTime > _joinBy) {
+                // their game is not open (just started, or it stopped): back to the title, with one line
+                _joining = null;
+                session.ResetSession();
+                Dialog.Ok("emp_ui_depot_join_fail".Loc(host));
+            }
+        }
+
+        if (!Holding) {
+            return;
+        }
+
+        // the session opened or closed: the lock says so now, not a minute later
+        if (Open != _openTold) {
+            _openTold = Open;
+            _nextBeat = 0f;
+        }
+
+        if (Time.unscaledTime < _nextBeat) {
             return;
         }
 

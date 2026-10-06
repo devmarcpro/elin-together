@@ -17,7 +17,8 @@ internal static class LeasedZonePatch
             return;
         }
 
-        if (host.IsLeased(__instance.uid) || host.HasLeasedFloor(__instance)) {
+        // the whole dungeon: the floors between the top and the one a player is on are its way back
+        if (host.IsHeld(__instance)) {
             __result = false;
         }
     }

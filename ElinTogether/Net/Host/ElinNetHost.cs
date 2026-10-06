@@ -19,7 +19,8 @@ internal partial class ElinNetHost : ElinNetBase
     /// </summary>
     internal bool IsLocalServer => Socket.IsLocalUdp;
 
-    internal void StartServer(bool localUdp = false)
+    /// <param name="quiet">Opened by itself at load (EmpAutoHost): friends only, and no window says so</param>
+    internal void StartServer(bool localUdp = false, bool quiet = false)
     {
         Stop();
         StopWorldStateUpdate();
@@ -31,7 +32,8 @@ internal partial class ElinNetHost : ElinNetBase
             return;
         }
 
-        Session.Lobby.CreateLobby();
+        // nobody asked for this session: never one a stranger can find
+        Session.Lobby.CreateLobby(quiet ? SteamNetLobbyType.Friend : SteamNetLobbyType.Public, quiet: quiet);
 
         try {
             if (localUdp) {
@@ -64,7 +66,11 @@ internal partial class ElinNetHost : ElinNetBase
             ? SharedSpeed
             : -1;
 
-        EmpPop.Information("emp_server_started".lang());
+        if (quiet) {
+            EmpLog.Information("Server started by itself");
+        } else {
+            EmpPop.Information("emp_server_started".lang());
+        }
 
         CardCache.CacheCurrentZone();
 

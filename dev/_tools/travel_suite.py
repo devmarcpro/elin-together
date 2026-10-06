@@ -17,6 +17,17 @@ Scenarios (dans l'ordre, chacun part de l'etat laisse par le precedent) :
   S11 persistance : l'host sauvegarde, recharge, et retrouve tout
   S17 equipement : l'host ajoute un objet a son sac et l'equipe dans le meme tick, puis le retire ; le client
       voit le meme emplacement (correctif CharaEquipDelta ; python _tools/travel_suite.py --reuse --only s17)
+  S18 donjon : l'invite entre seul dans une cave "jetable" (Zone_DungeonUnfixed : le jeu la refabrique a l'entree
+      apres un jour), y pose un objet, descend, pose un objet ; un jour passe ; l'host entre puis descend : memes
+      cartes chez les deux, un seul etage -2 (python _tools/travel_suite.py --reuse --only s18, ~10 minutes).
+      Deux temoins : la meme chose sans le jour qui passe (autre cave), et dans une Nefia s'il y en a une.
+      Le monde de test a trois caves jetables (Caverne du chiot, cave_yeek, cave_dragon) et aucune Nefia : le
+      temoin Nefia n'est pas joue ici, la suite le dit.
+      Ce que le banc ne joue pas comme un joueur : l'escalier est pris par son action (TraitStairsDown.MoveZone)
+      sans marcher dessus ; le jour passe par GameDate.AdvanceMin chez l'host, pas par une nuit ou un voyage ;
+      la case de la cave est donnee a EnterLocalZone sans marcher sur la carte du monde ; le retour a la Prairie
+      a la fin est un MoveZone direct ; une seule machine, connexion locale. Pas joue : l'host dans la cave et
+      l'invite qui arrive de dehors, deux invites, une coupure moins de 60 s apres la descente.
 Les logs (Unity host/client, ElinTogether) sont scannes a la fin.
 """
 import argparse
@@ -489,6 +500,97 @@ def s17(ctx):
           and ev(client, f'(EClass._map.charas.Find(x => x.uid == {me}).body.slots[{slot}].thing == null).ToString()') == "True")
 
 
+CAVE = ('var z = EClass.game.spatials.map.Values.OfType<__CLS__>().FirstOrDefault(c => c.parent != null && c.parent.IsRegion); '
+        'return z == null ? "" : z.uid + "|" + z.x + "," + z.y;')
+# un echantillon de cases (sol et bloc, une sur sept dans chaque sens) : deux cartes tirees au hasard ne l'ont pas en commun
+CELLS = ('var m = EClass._map; var sb = new System.Text.StringBuilder(); sb.Append(m.Size).Append(":"); '
+         'for (var x = 0; x < m.Size; x += 7) for (var z = 0; z < m.Size; z += 7) { var c = m.cells[x, z]; '
+         'sb.Append(c._floor).Append(".").Append(c._block).Append(","); } return sb.ToString();')
+STAIRS = 'var s = EClass._map.FindThing<TraitStairsDown>(); return s == null ? "" : s.owner.pos.x + "," + s.owner.pos.z;'
+DESCEND = 'var s = EClass._map.FindThing<TraitStairsDown>(); if (s == null) return "no stairs"; s.MoveZone(); return "ok";'
+
+
+def cave_run(ctx, cls, aged, tag):
+    """Un invite seul dans une cave, puis l'host : meme entree, meme etage. Renvoie False si la cave n'existe pas."""
+    host, client = ctx["host"], ctx["client"]
+    found = ev(host, CAVE.replace("__CLS__", cls))
+    if not found:
+        return False
+    cave, spot = int(found.split("|")[0]), found.split("|")[1]
+    region = int(ev(client, 'EClass._zone.ParentZone.uid.ToString()'))
+    log(f"{tag} : {cls} uid {cave} en {spot}, un jour passe : {aged}")
+
+    ev(client, 'EClass.player.ExitBorder(); "ok"')
+    wait(client_settled(client, region, True), "client sur la carte du monde")
+    enter_at(client, spot)
+    wait(client_settled(client, cave, True), "client seul a l'entree de la cave", timeout=180)
+    time.sleep(3)
+    m1, m1pos = marker(client)
+    stairs, top = ev(client, STAIRS), ev(client, CELLS)
+    check(f"{tag} : l'entree a un escalier qui descend ({stairs})", bool(stairs))
+
+    ev(client, DESCEND)
+
+    def below():
+        dismiss_dialogs(client)
+        s = state(client)
+        return (s.get("sceneMode") == "Zone" and s.get("awayZone") and (s.get("zone") or {}).get("uid") not in (None, cave, region)
+                and ev(client, 'EClass._zone.lv.ToString()') == "-2")
+
+    wait(below, "client seul a l'etage -2", timeout=180)
+    time.sleep(3)
+    floor = zone_uid(client)
+    m2, m2pos = marker(client)
+    deep = ev(client, CELLS)
+    check(f"{tag} : l'host connait l'etage de l'invite sous le meme numero {floor}, et un seul bail",
+          ev(host, f'var z = EClass.game.spatials.Find({floor}); return z == null ? "" : z.lv + "|" + z.GetTopZone().uid;') == f"-2|{cave}"
+          and leases(host) == 1)
+
+    if aged:
+        ev(host, 'EClass.world.date.AdvanceMin(1500); "ok"', timeout=300)
+        time.sleep(3)
+
+    ev(host, 'EClass.player.ExitBorder(); "ok"')
+    wait(lambda: zone_uid(host) == region, "host sur la carte du monde", timeout=120)
+    time.sleep(3)
+    enter_at(host, spot)
+    wait(lambda: zone_uid(host) == cave and state(host)["sceneMode"] == "Zone", "host a l'entree de la cave", timeout=180)
+    time.sleep(3)
+    check(f"{tag} : l'entree de l'host est celle de l'invite (objet pose en {m1pos}, escalier en {stairs}, memes cases)",
+          on_map(host, [m1]).get(m1) == m1pos and ev(host, STAIRS) == stairs and ev(host, CELLS) == top)
+    check(f"{tag} : l'etage ou se tient l'invite existe encore chez l'host",
+          ev(host, f'(EClass.game.spatials.Find({floor}) != null).ToString()') == "True")
+    check(f"{tag} : l'invite n'a pas bouge (toujours seul a son etage)", client_settled(client, floor, True)())
+
+    ev(host, DESCEND)
+    # l'etage est tenu par l'invite : rappel, puis l'host y entre et l'invite le rejoint sur place
+    arrived = eventually(lambda: zone_uid(host) not in (cave, region) and state(host)["sceneMode"] == "Zone", timeout=180)
+    check(f"{tag} : l'host descend dans l'etage de l'invite, pas dans un autre ({zone_uid(host)} pour {floor})",
+          arrived and zone_uid(host) == floor)
+    if zone_uid(host) == floor:
+        both_joined(host, client, floor)
+        check(f"{tag} : meme etage chez les deux (objet pose en {m2pos}, memes cases)",
+              on_map(host, [m2]).get(m2) == m2pos and on_map(client, [m2]).get(m2) == m2pos
+              and ev(host, CELLS) == deep and ev(client, CELLS) == deep)
+    check(f"{tag} : un seul etage -2 sous cette cave",
+          ev(host, f'EClass.game.spatials.Find({cave}).children.Count(c => c.lv == -2).ToString()') == "1")
+    check(f"{tag} : aucun bail restant", leases(host) == 0)
+    shot(f"s18-{tag.replace(' ', '-')}-host", host)
+    host_goto(host, client, HOME)
+    return True
+
+
+def s18(ctx):
+    """donjon : l'host rejoint un invite descendu seul dans une cave, apres un jour : memes cartes"""
+    # temoin, vert sans la correction si le chemin normal est juste : pas de jour qui passe (une autre cave jetable)
+    if not cave_run(ctx, "Zone_DungeonYeek", False, "temoin sans attente"):
+        log("pas de cave_yeek dans ce monde : temoin sans attente non joue")
+    check("le monde de test a la Caverne du chiot", cave_run(ctx, "Zone_DungeonPuppy", True, "un jour apres"))
+    # une Nefia n'est pas refabriquee a l'entree, la sauvegarde de l'host la detruit une fois expiree
+    if not cave_run(ctx, "Zone_RandomDungeon", True, "temoin Nefia"):
+        log("pas de Nefia dans ce monde : temoin Nefia non joue")
+
+
 def s9(ctx):
     emp_save = SAVES / "world_emp"
     written = [p.name for p in (emp_save.glob("*.txt") if emp_save.exists() else [])]
@@ -615,7 +717,7 @@ def main():
     ctx = {"host": next(h["port"] for h in live if h["role"] == "Host"),
            "client": next(h["port"] for h in live if h["role"] == "Client"), "t0": t0}
 
-    steps = [s1, s2, s3, s4, s5, s6, s7, s8, s12, s13, s14, s15, s16, s17, s9, s10, s11]
+    steps = [s1, s2, s3, s4, s5, s6, s7, s8, s12, s13, s14, s15, s16, s17, s18, s9, s10, s11]
     if a.only:
         steps = [s for s in steps if s.__name__ in a.only.split(",")]
     for step in steps:

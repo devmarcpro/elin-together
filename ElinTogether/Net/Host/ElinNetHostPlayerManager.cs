@@ -47,9 +47,13 @@ internal partial class ElinNetHost
 
         remoteChara.SetNoGoal();
 
-        pc.party.RemoveMember(remoteChara);
+        pc.party?.RemoveMember(remoteChara);
 
-        if (remoteChara.currentZone == _zone && _map.charas.Contains(remoteChara)) {
+        // it stays a resident of the base: taking it out made every return go through the whole FactionBranch.AddMemeber
+        // again, which destroys the duplicates of a god's artifact among the people of the base (the other players)
+
+        // on this map whatever zone it says it is in: left in the list it kept standing, and acting, there
+        if (_map.charas.Contains(remoteChara)) {
             _zone.RemoveCard(remoteChara);
         } else {
             // a player on another map keeps its position there, which may not exist on this one
@@ -61,6 +65,27 @@ internal partial class ElinNetHost
             host.Delta.AddRemote(new CharaRemoveFromGameDelta {
                 Owner = remoteChara,
             });
+        }
+    }
+
+    /// <summary>
+    ///     The character of a player nobody plays right now is never on a map: it waits for its player with what
+    ///     it carries. Wherever the game runs: the host, a player hosting its zone, a player alone on a map
+    ///     (its world is the copy it left with, and nothing told it who stopped playing since)
+    /// </summary>
+    internal static void RemoveUnplayedCharas()
+    {
+        // a client on the map of its host is told who is there, see WorldStateSnapshot.RemoveLeftOverCharas
+        if (!core.IsGameStarted || _map is null || Session.Connection is ElinNetClient) {
+            return;
+        }
+
+        var played = (Session.Connection as ElinNetHost)?.ActiveRemoteCharas;
+
+        foreach (var chara in _map.charas.ToArray()) {
+            if (chara != pc && chara.GetBool("remote_chara") && played?.ContainsValue(chara) != true) {
+                RemoveRemoteChara(chara);
+            }
         }
     }
 
@@ -246,6 +271,11 @@ internal partial class ElinNetHost
         EmpLog.Information("Received remote chara creation from player {@Peer}",
             peer);
 
+        // sent twice: the character it plays would stay on the map with nobody playing it
+        if (ActiveRemoteCharas.ContainsKey(peer.Id)) {
+            return;
+        }
+
         var chara = response.Chara.Decompress<Chara>();
         AdoptNewPlayerChara(chara);
 
@@ -351,7 +381,13 @@ internal partial class ElinNetHost
         if (Session.Transport is null && !EmpServer.Requested) {
             var loaded = game;
             core.actionsNextFrame.Add(() => {
-                if (core.game != loaded || Session.Transport is not null || !TakeOverPc()) {
+                if (core.game != loaded || Session.Transport is not null) {
+                    return;
+                }
+
+                if (!TakeOverPc()) {
+                    // the right character is in place: the session opens without a click on "Start Server"
+                    EmpAutoHost.OpenSession();
                     return;
                 }
 

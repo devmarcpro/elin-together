@@ -22,7 +22,10 @@ internal class TabLobbyBrowser : TabEmpBase
         if (!EClass.core.IsGameStarted) {
             // the world kept in the depot: whoever comes first takes it and hosts it
             if (SaveDepot.Enabled) {
-                btnGroup.Button(SaveDepot.HeldBy() is { } who ? "emp_ui_depot_held_btn".Loc(who) : "emp_ui_depot_take".lang(), () => {
+                // held by another player whose lock says where: the same click joins their game
+                var label = SaveDepot.HeldBy() is not { } who ? "emp_ui_depot_take".lang() :
+                    (SaveDepot.Joinable ? "emp_ui_depot_join_btn" : "emp_ui_depot_held_btn").Loc(who);
+                btnGroup.Button(label, () => {
                     LayerElinTogether.Instance?.Close();
                     SaveDepot.Take();
                 });

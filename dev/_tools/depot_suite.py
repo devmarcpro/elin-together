@@ -17,7 +17,24 @@ D4  celui qui heberge change quelque chose et sauvegarde : le monde du depot cha
     renvoie quand il revient : rien n'est perdu)
 D5  il quitte : le depot est libre ; le premier joueur le prend a son tour et retrouve le changement (sa copie
     locale a ete effacee avant : le monde vient bien du depot)
+D5b (entre D5 et D6) le premier tient le monde mais n'a pas encore ouvert sa partie : l'autre, a l'ecran titre,
+    "clique le bouton du depot" : une ligne lui dit de reessayer dans un instant, il reste au titre, rien n'est pris
+    (avec le logiciel : le serveur ne dit qu'un nom, c'est le message "X heberge" d'avant)
 D6  il ouvre la session, l'autre le rejoint : les deux jouent dans le monde du depot
+D7  (dossier et GitHub) REDIRECTION : le verrou dit ou rejoindre celui qui tient le monde ; l'autre quitte, revient a
+    l'ecran titre, "clique le bouton du depot" : il rejoint la partie du premier sans invitation, joue SON
+    personnage, et le monde du depot n'a toujours qu'un teneur (avec le logiciel : le message "X heberge" d'avant,
+    puis il rejoint par le port local comme en D6). Finit comme D6 : H heberge, A l'a rejoint.
+    Ce que D5b et D7 ne jouent PAS :
+      - le vrai salon Steam : les deux fenetres ont le meme compte Steam ; en build DEBUG celui qui heberge sur le
+        port local ecrit ce port dans le verrou ("steam salon port", le port seulement en DEBUG) et l'autre s'y
+        connecte (ConnectLocalPort, comme emp.connect_udp). Lobby.ConnectLobby, le salon reserve aux amis, la cle de
+        connexion donnee par l'hebergeur : jamais joues ici
+      - le bouton : SaveDepot.Take, la fonction qu'il appelle ; son libelle "Join X" n'est pas lu, seulement
+        SaveDepot.Joinable, qui le choisit
+      - A quitte par ResetSession, pas par le menu ; H ouvre sa partie par emp.add_local, pas par l'ouverture
+        automatique
+      - le plantage de H (verrou tenu 3 minutes, connexion qui echoue, message, puis verrou perime) n'est pas joue
 
 P1  (depot dossier seulement, a la fin ; seule : DEPOT_ONLY=p1 ou --only p1, sur les fenetres telles que la passe
     complete les laisse : H heberge le monde du depot, A l'a rejoint avec son personnage) ETAT DES LIEUX, sans code
@@ -100,8 +117,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 import emp  # noqa: E402
 from chara_suite import leave  # noqa: E402
-from mp_test import (CONTINUE, EMBARK, LAB_EXE, PRISTINE, SAVES, SHOTS, WINDOW, bridge_for, join_client, log, ok,  # noqa: E402
-                     shot, state, wait)
+from mp_test import (CONTINUE, EMBARK, LAB_EXE, PICK_CHARA, PRISTINE, SAVES, SHOTS, WINDOW, bridge_for, join_client,  # noqa: E402
+                     log, ok, shot, state, wait)
 from travel_suite import LOCALLOW, RESULTS, check, dismiss_dialogs, ev, eventually, scan_logs  # noqa: E402
 
 H, A = 27551, 27552
@@ -232,6 +249,71 @@ def gh_holder():
 
 def gh_requests():
     return len(ctl("/__state")["log"])
+
+
+def lock_now():
+    """(qui tient le monde, ou le rejoindre) tels que le depot les garde ; ("", "") avec le logiciel."""
+    if GITHUB:
+        held = gh_files().get("lock.json")
+        held = json.loads(held["text"]) if held else {}
+        return held.get("id", ""), held.get("join", "")
+    lines = (DEPOT / "host.txt").read_text(encoding="utf-8").splitlines() if not REMOTE and (DEPOT / "host.txt").exists() else []
+    return (lines + ["", "", ""])[0], (lines + ["", "", ""])[2]
+
+
+def redirect_closed():
+    log("--- D5b")
+    check(f"le verrou dit que la partie du premier n'est pas ouverte ({lock_now()[1]!r})",
+          REMOTE or eventually(lambda: lock_now()[1].endswith(" 0"), timeout=15))
+    worlds = version()
+    take(A)
+    said = ev(A, DIALOG)
+    log(f"l'autre joueur : {said}")
+    check("partie pas encore ouverte : une ligne claire, il reste a l'ecran titre, rien n'est pris",
+          ("is hosting" if REMOTE else "not open yet") in said and state(A).get("sceneMode") == "Title"
+          and not state(A)["connected"] and version() == worlds)
+    click(A)
+
+
+def redirect():
+    log("--- D7")
+    uid_a = int(state(A)["pc"]["uid"])
+    check(f"la partie ouverte, le verrou dit ou rejoindre celui qui tient le monde ({lock_now()[1]!r})",
+          REMOTE or eventually(lambda: lock_now()[1].endswith(" 55556"), timeout=20))
+    ev(A, 'ElinTogether.Net.NetSession.Instance.ResetSession(); "ok"')
+    time.sleep(3)
+    if state(A).get("sceneMode") != "Title":
+        to_title(A)
+    wait(lambda: state(A).get("sceneMode") == "Title" and not state(A)["connected"], "A a l'ecran titre", timeout=60)
+    eventually(lambda: len(state(H).get("players", [])) == 1, timeout=30)
+    who, worlds, held = holder(A), version(), lock_now()[0]
+    joinable = ev(A, '((bool)HarmonyLib.AccessTools.Property(' + DEP + ', "Joinable").GetValue(null)).ToString()')
+    check(f"a l'ecran titre, le depot dit qui tient le monde ({who}) et le bouton propose de le rejoindre ({joinable})",
+          who != "" and (joinable == "True") != REMOTE)
+    take(A)
+    said = ev(A, DIALOG)
+    if REMOTE:
+        check("avec le logiciel, pas de redirection : le message d'avant", "is hosting" in said)
+        click(A)
+        join_client(H, A, "client")
+    else:
+        check(f"aucun message a lire ({said!r})", "is hosting" not in said and "not open yet" not in said)
+
+        def in_zone():
+            if state(A)["sceneMode"] == "Zone" and state(A)["connected"]:
+                return True
+            emp.call(A, "eval", {"code": PICK_CHARA}, timeout=180)
+            emp.call(A, "eval", {"code": EMBARK}, timeout=180)
+            return False
+        wait(in_zone, "A rejoint la partie de H", timeout=300, every=3.0)
+        time.sleep(3)
+    check("il a rejoint celui qui tient le monde, sans invitation : deux joueurs chez H",
+          eventually(lambda: len(state(H).get("players", [])) == 2 and state(A)["connected"]
+                     and state(A)["role"] == "Client", timeout=30))
+    check(f"il joue son personnage (uid {state(A)['pc']['uid']}, attendu {uid_a})", int(state(A)["pc"]["uid"]) == uid_a)
+    check("le monde du depot n'a qu'un teneur, le meme, et l'autre n'y a rien ecrit",
+          state(H)["role"] == "Host" and game_id(H) == "world_depot" and lock_now()[0] == held and version() == worlds
+          and (REMOTE or held != ""))
 
 
 def version():
@@ -828,12 +910,16 @@ def main():
             check(f"le premier joueur le prend a son tour et retrouve le changement ({ev(H, BUCKETS)} seaux, {before} avant)",
                   int(ev(H, BUCKETS)) == buckets > before)
 
+            redirect_closed()
+
             log("--- D6")
             ok(emp.call(H, "command", {"cmd": "emp.add_local"}))
             wait(lambda: state(H)["role"] == "Host", "demarrage du serveur")
             join_client(H, A, "client")
             check("il ouvre la session, l'autre le rejoint : les deux jouent dans le monde du depot",
                   eventually(lambda: len(state(H).get("players", [])) == 2 and state(A)["connected"], timeout=30))
+
+            redirect()
         if REMOTE or GITHUB:
             log("--- P1 et P2 non jouees : seulement avec le depot dossier")
         else:

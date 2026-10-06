@@ -14,7 +14,11 @@ internal class SleepSynchronizationContext : SynchronizationContext
     private static readonly HashSet<int> _lastReady = [];
     private static bool _sleepStarted;
     private static bool _cancelSent;
+    private static bool _nightTick;
+    private static readonly List<Chara> _shielded = [];
+    private static readonly List<Chara> _noDreams = [];
     private static (Thing? Bed, Thing? Pillow, ItemPosition? PosBed, ItemPosition? PosPillow)? _laidDown;
+    private static Thing? _bed;
 
     private static readonly AccessTools.FieldRef<LayerSleep, int> _minRef =
         AccessTools.FieldRefAccess<LayerSleep, int>("min");
@@ -54,6 +58,7 @@ internal class SleepSynchronizationContext : SynchronizationContext
             }
         }
 
+        // nobody to wait for when alone (the game's own sleep, as AllowPartySleep)
         AllPlayersReady = _ready.Count >= alive;
 
         if (_sleepStarted || alive < 2) {
@@ -101,7 +106,9 @@ internal class SleepSynchronizationContext : SynchronizationContext
     [HarmonyPatch(typeof(Chara), nameof(Chara.CanSleep))]
     internal static void AllowPartySleep(Chara __instance, ref bool __result)
     {
-        if (__result || NetSession.Instance.Connection is null || !__instance.IsPC) {
+        // alone in a session (it opens by itself at load): the game's own rule, as in a solo game
+        if (__result || NetSession.Instance.Connection is null || NetSession.Instance.CurrentPlayers.Count <= 1 ||
+            !__instance.IsPC) {
             return;
         }
 
@@ -138,6 +145,7 @@ internal class SleepSynchronizationContext : SynchronizationContext
         }
 
         _laidDown = pickup ? (bed, pillow, posBed, posPillow) : null;
+        _bed = bed;
 
         EmpLog.Debug("Requesting party sleep");
 
@@ -182,6 +190,17 @@ internal class SleepSynchronizationContext : SynchronizationContext
     internal static void OnPcWakeEnd(ElinDelta.PatchScope __state)
     {
         __state.Exit();
+    }
+
+    /// <summary>
+    ///     The bed this player asked to sleep in, null for none: its own sleep power at wake-up comes from it,
+    ///     see <see cref="CharaSleepDelta" />
+    /// </summary>
+    internal static Thing? TakeBed()
+    {
+        var bed = _bed;
+        _bed = null;
+        return bed is { isDestroyed: false } ? bed : null;
     }
 
     private static bool InSleepWaitWindow(Chara chara)
@@ -249,7 +268,115 @@ internal class SleepSynchronizationContext : SynchronizationContext
             return false;
         }
 
-        return !owner.IsPC || __instance.pcSleep != 1 || AllPlayersReady;
+        var run = !owner.IsPC || __instance.pcSleep != 1 || AllPlayersReady;
+        if (run && owner.IsPC && __instance.pcSleep == 1) {
+            ShieldOtherPlayers(owner);
+        }
+
+        return run;
+    }
+
+    /// <summary>
+    ///     The tick that ends the countdown of the host makes the animals of the map sleep beside the bed: the game
+    ///     picks them from every chara of the map, taking the companions of the other players and the other players
+    ///     themselves from where they stand <br />
+    ///     Those skip the game's loop (restrained ones do), and what the game does for the sleeper is done for each
+    ///     other player on its own companions, see <see cref="EndSleepTick" />
+    /// </summary>
+    private static void ShieldOtherPlayers(Chara sleeper)
+    {
+        _nightTick = true;
+        foreach (var chara in _map.charas) {
+            if (!chara.isRestrained && CompanionHelper.OwnerOf(chara) is { } who && who != sleeper) {
+                chara.isRestrained = true;
+                _shielded.Add(chara);
+            }
+        }
+    }
+
+    [HarmonyFinalizer]
+    [HarmonyPatch(typeof(ConSleep), nameof(ConSleep.Tick))]
+    internal static void EndSleepTick(ConSleep __instance)
+    {
+        if (!_nightTick) {
+            return;
+        }
+
+        _nightTick = false;
+        foreach (var chara in _shielded) {
+            chara.isRestrained = false;
+        }
+
+        _shielded.Clear();
+
+        if (__instance.slept && NetSession.Instance.Connection is ElinNetHost host) {
+            BringCompanionsBeside(host);
+        }
+    }
+
+    /// <summary>
+    ///     ConSleep.Tick for a player asleep: the animals of its own come beside it, one in five, or all those
+    ///     told to by a dialogue. The game only does it for the local player, the host here, so the guests get the
+    ///     same
+    /// </summary>
+    private static void BringCompanionsBeside(ElinNetHost host)
+    {
+        foreach (var guest in host.ActiveRemoteCharas.Values) {
+            if (guest.conSleep is null || !guest.IsInActiveMap || guest.pos.IsInSpot<TraitPillowStrange>()) {
+                continue;
+            }
+
+            foreach (var chara in CompanionHelper.CompanionsOf(guest)) {
+                if (!chara.IsInActiveMap || chara.host != null || chara.noMove || chara.conSuspend != null ||
+                    chara.isRestrained) {
+                    continue;
+                }
+
+                if (!chara.GetBool(123) &&
+                    !(System.Array.IndexOf(chara.race.tag, "sleepBeside") >= 0 && rnd(5) == 0)) {
+                    continue;
+                }
+
+                chara.MoveImmediate(guest.pos);
+                chara.SetDir(chara.IsPCC ? guest.dir : 0);
+                chara.Say("sleep_beside", chara, guest);
+                if (!chara.HasCondition<ConSleep>()) {
+                    chara.AddCondition<ConSleep>(20 + rnd(25), force: true);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    ///     A dream monster (succubus, dream worm) is picked among the charas of the map, the other players' ones
+    ///     included: one of them would be pulled onto the bed of the sleeper <br />
+    ///     "Told to leave dreamers alone" is how the game lets a chara out of it
+    /// </summary>
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(ConSleep), nameof(ConSleep.SuccubusVisit))]
+    internal static void ShieldPlayersFromDreams()
+    {
+        if (NetSession.Instance.Connection is not ElinNetHost host) {
+            return;
+        }
+
+        foreach (var chara in host.ActiveRemoteCharas.Values) {
+            if (chara.GetInt(119) == 0) {
+                chara.SetInt(119, 1);
+                _noDreams.Add(chara);
+            }
+        }
+    }
+
+    [HarmonyFinalizer]
+    [HarmonyPatch(typeof(ConSleep), nameof(ConSleep.SuccubusVisit))]
+    internal static void EndDreamVisit()
+    {
+        foreach (var chara in _noDreams) {
+            chara.SetInt(119, 0);
+        }
+
+        _noDreams.Clear();
     }
 
     [HarmonyPostfix]
@@ -301,13 +428,20 @@ internal class SleepSynchronizationContext : SynchronizationContext
     ///     these are real moves to everything else here. The players asleep next to it were handed the map, the
     ///     way back waited for that map to be recalled while the game went on without waiting, and the host woke
     ///     up looking at a map its character was not on, unable to do anything <br />
-    ///     Not done while others are connected: a base catches up when someone enters it
+    ///     Not done while others are connected: a base catches up when someone enters it <br />
+    ///     Nor for a guest, alone on a map it holds or not: the bases belong to the host's world, and each
+    ///     move of the walk is a request for a lease to the host
     /// </summary>
     [HarmonyPrefix]
     [HarmonyPatch(typeof(Player), nameof(Player.SimulateFaction))]
     internal static bool OnSimulateFaction()
     {
-        return NetSession.Instance.Connection is not ElinNetHost || NetSession.Instance.CurrentPlayers.Count < 2;
+        var session = NetSession.Instance;
+        if (session.Transport is ElinNetClient) {
+            return false;
+        }
+
+        return session.Connection is not ElinNetHost || session.CurrentPlayers.Count < 2;
     }
 
     [HarmonyPrefix]

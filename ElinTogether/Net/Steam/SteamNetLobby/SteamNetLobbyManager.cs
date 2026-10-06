@@ -21,6 +21,7 @@ public class SteamNetLobbyManager : EClass
     public LobbyData Current;
     private Action<LobbyData[]>? _deferOnComplete;
     private bool _shutdown;
+    private bool _quiet;
 
     internal SteamNetLobbyManager()
     {
@@ -76,9 +77,10 @@ public class SteamNetLobbyManager : EClass
     /// <summary>
     ///     Create a new lobby. We do this automatically on Host
     /// </summary>
-    public void CreateLobby(SteamNetLobbyType type = SteamNetLobbyType.Public, int maxPlayers = 16)
+    public void CreateLobby(SteamNetLobbyType type = SteamNetLobbyType.Public, int maxPlayers = 16, bool quiet = false)
     {
         LeaveLobby();
+        _quiet = quiet;
 
         EmpLog.Information("Creating steam {LobbyType} lobby",
             type);
@@ -243,13 +245,20 @@ public class SteamNetLobbyManager : EClass
             EmpLog.Warning("Lobby creation failed with {Result}",
                 created.m_eResult);
 
-            EmpPop.Information("emp_lobby_create_failed".lang(), created.m_eResult);
+            // opened by itself: a player alone and offline would get this window at every load
+            if (!_quiet) {
+                EmpPop.Information("emp_lobby_create_failed".lang(), created.m_eResult);
+            }
 
             NetSession.Instance.ResetSession();
             return;
         }
 
-        EmpPop.Information("emp_lobby_created".lang());
+        if (_quiet) {
+            EmpLog.Information("Lobby created");
+        } else {
+            EmpPop.Information("emp_lobby_created".lang());
+        }
 
         Current = created.m_ulSteamIDLobby;
         Current.SetGameServer(SteamUser.GetSteamID());

@@ -249,6 +249,22 @@ internal partial class EmpConfig
             "Not after leaving, being kicked or being refused. Otherwise it is left on the title screen\n" +
             "掉线的玩家会自动重新加入同一个游戏（每 5 秒一次，持续 3 分钟）；主动离开、被踢出或被拒绝时不会。关闭时回到标题画面");
 
+        Server.AutoSave = config.Bind(
+            "Server",
+            "AutoSave",
+            true,
+            "The world is saved by itself every 2 minutes while another player is in the game, and when the last one leaves\n" +
+            "Every 5 minutes when a save takes more than half a second. Otherwise only when the host saves\n" +
+            "有其他玩家在游戏中时，世界每 2 分钟自动保存一次，最后一位玩家离开时也会保存；保存超过半秒时改为每 5 分钟。关闭时只在主机保存时保存");
+
+        Server.AutoHost = config.Bind(
+            "Server",
+            "AutoHost",
+            true,
+            "The game opens to the other players by itself when a world is loaded, without \"Start Server\"\n" +
+            "Only friends can join, and the world needs a claimed land. Otherwise the host clicks \"Start Server\"\n" +
+            "读取世界时游戏自动对其他玩家开放，无需点击“启动服务器”；只有好友可以加入，且世界需要已占领的土地。关闭时由主机点击“启动服务器”");
+
         Server.ImportCharacter = config.Bind(
             "Server",
             "ImportCharacter",
@@ -343,6 +359,8 @@ internal partial class EmpConfig
         internal static ConfigEntry<bool> PersonalQuests { get; set; } = null!;
         internal static ConfigEntry<bool> ChooseCharacter { get; set; } = null!;
         internal static ConfigEntry<bool> AutoReconnect { get; set; } = null!;
+        internal static ConfigEntry<bool> AutoSave { get; set; } = null!;
+        internal static ConfigEntry<bool> AutoHost { get; set; } = null!;
         internal static ConfigEntry<bool> ImportCharacter { get; set; } = null!;
         internal static ConfigEntry<bool> PlayerTrade { get; set; } = null!;
         internal static ConfigEntry<bool> PlayerCombatTime { get; set; } = null!;

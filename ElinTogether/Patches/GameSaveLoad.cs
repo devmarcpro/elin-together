@@ -32,14 +32,19 @@ internal class GameSaveLoad
 
     [HarmonyPrefix]
     [HarmonyPatch(typeof(Game), nameof(Game.TryLoad))]
-    internal static bool OnLoadRemoteGame()
+    internal static bool OnLoadRemoteGame(ref bool __result)
     {
-        if (NetSession.Instance.IsClient || EClass.game?.player?.chara is null) {
+        // the title screen, a game played alone, and a session nobody else is in (it opens again after the load)
+        var session = NetSession.Instance;
+        if (EClass.game?.player?.chara is null || session.Transport is null ||
+            (session.Transport.IsHost && session.CurrentPlayers.Count <= 1)) {
             return true;
         }
 
-        // TODO: add full client reconnection
-        EmpPop.Debug("Blocked loading game as host with active client connection");
+        // a shared game has no save of its own to go back to: a guest has none on its PC (the game threw on the
+        // missing folder), and the host loading would throw every player out. Said in the game's log, nothing loaded
+        Msg.Say("emp_ui_load_blocked".lang());
+        __result = false;
         return false;
     }
 

@@ -760,6 +760,11 @@ internal partial class ElinNetHost
             return;
         }
 
+        // its game reads the date we send: it would regenerate the cave at the door, see KeepAlive
+        if (HasPlayerIn(zone)) {
+            KeepAlive(zone);
+        }
+
         // a guest moving on is no longer one, see HandOverZone
         _guests.Remove(peer.Id);
         var rangeStart = ReserveLease(peer, zone);
@@ -789,7 +794,7 @@ internal partial class ElinNetHost
     {
         if (_pendingGuests.TryGetValue(peer.Id, out var guest) && guest.ZoneUid == ack.ZoneUid) {
             DepartFromHostMap(peer);
-            SendGuestRequest(peer, guest.ZoneUid, guest.HolderId);
+            SendGuestRequest(peer, guest.ZoneUid, guest.HolderId, ack.Stood, ack.Arrival);
             return;
         }
 
@@ -905,7 +910,8 @@ internal partial class ElinNetHost
     ///     The owner of a zone left it or dropped: the players visiting it stay, the first one simulates it
     ///     from now on and the others join its zone session. Unless the host is on its way in, then they come back
     /// </summary>
-    private void HandOverZone(int zoneUid, int holderId)
+    /// <param name="dropped">the owner dropped: what is known of its guests is its last checkpoint</param>
+    private void HandOverZone(int zoneUid, int holderId, bool dropped = false)
     {
         var guests = new List<ISteamNetPeer>();
         foreach (var (guestId, at) in _guests.ToList()) {
@@ -960,7 +966,7 @@ internal partial class ElinNetHost
 
         foreach (var guest in guests.Skip(1)) {
             _pendingGuests[guest.Id] = (zoneUid, heir.Id);
-            SendGuestRequest(guest, zoneUid, heir.Id);
+            SendGuestRequest(guest, zoneUid, heir.Id, stays: true, stale: dropped);
         }
     }
 
@@ -983,7 +989,12 @@ internal partial class ElinNetHost
         });
     }
 
-    private void SendGuestRequest(ISteamNetPeer guest, int zoneUid, int holderId)
+    /// <param name="stood">the tile the guest says it stands on, on that very map</param>
+    /// <param name="arrival">the way it walks in by</param>
+    /// <param name="stays">it never left that map and says nothing: the tile the last upload of its character has</param>
+    /// <param name="stale">that upload is an old one</param>
+    private void SendGuestRequest(ISteamNetPeer guest, int zoneUid, int holderId, Position? stood = null,
+        ZoneArrival? arrival = null, bool stays = false, bool stale = false)
     {
         var holder = Socket.Peers.FirstOrDefault(p => p.Id == holderId);
         var chara = SavedRemoteCharas.TryGetValue(guest.User, out var uid) ? game.cards.globalCharas.Find(uid) : null;
@@ -998,6 +1009,10 @@ internal partial class ElinNetHost
             GuestUser = guest.User,
             Chara = LZ4Bytes.Create(chara),
             Companions = CompanionHelper.CompanionsOf(chara).Select(c => LZ4Bytes.Create(c)).ToList(),
+            // ponytail: after a holder dropped this is the tile of its last checkpoint, the guest may have walked since
+            Stood = stood ?? (stays ? (Position?)chara.pos : null),
+            StoodStale = stale,
+            Arrival = arrival,
         });
     }
 
@@ -1097,11 +1112,14 @@ internal partial class ElinNetHost
         ReplaceCompanions(release.Companions, SavedRemoteCharas.TryGetValue(peer.User, out var ownerUid) ? ownerUid : 0);
         ReplaceGuestCharas(release, peer);
 
-        // it hands back the map the host is about to enter: it stays where it stood there, not next to the host
-        if (release.Rejoin && handedBack && chara?.pos is { } stood) {
-            _returnSpots[peer.Id] = (release.ZoneUid, stood.Copy(), UnityEngine.Time.unscaledTime + ReturnSpotSeconds);
+        // never next to the host when something tells where: it walks into the host's map by the way it took, or
+        // the host is the one coming to the map it stands on (held or only visited) and it stays on its tile
+        if (release.Rejoin && release.Arrival is { } arrival) {
+            _returnSpots[peer.User] = (arrival.ZoneUid, null, arrival, UnityEngine.Time.unscaledTime + ReturnSpotSeconds, false);
+        } else if (release.Rejoin && chara?.pos is { } stood) {
+            _returnSpots[peer.User] = (release.StoodZoneUid, stood.Copy(), null, UnityEngine.Time.unscaledTime + ReturnSpotSeconds, false);
         } else {
-            _returnSpots.Remove(peer.Id);
+            _returnSpots.Remove(peer.User);
         }
 
         if (handedBack) {
@@ -1167,11 +1185,15 @@ internal partial class ElinNetHost
     }
 
     /// <summary>
-    ///     Peer id -> the map a player just handed back to the host coming in, and where it stood on it
+    ///     Player -> where it stands the next time it is put on that map: the tile it stood on there (the map
+    ///     is reloaded under it, or it dropped), or the way it walks in by. By identity: a guest of a zone session
+    ///     is announced before it connects, see RegisterGuest. Stale: the tile is an old one, good for the player
+    ///     for want of better, not for its companions
     /// </summary>
-    private readonly Dictionary<int, (int ZoneUid, Point Pos, float Until)> _returnSpots = [];
+    private readonly Dictionary<ulong, (int ZoneUid, Point? Pos, ZoneArrival? Arrival, float Until, bool Stale)> _returnSpots = [];
 
-    private const float ReturnSpotSeconds = 60f;
+    // long enough for a game that reloads a big world before it stands on the map
+    private const float ReturnSpotSeconds = 300f;
 
     /// <summary>
     ///     Net event: the player does not take the lease it was granted
@@ -1228,6 +1250,11 @@ internal partial class ElinNetHost
         }
 
         ZoneLeaseState.ApplyState(zone, release.ZoneState, release.IdCurrentSubset);
+
+        // the date came with that copy; before the save and the move of the host that follow a recall
+        if (HasPlayerIn(zone)) {
+            KeepAlive(zone);
+        }
 
         // the client just left, no catch-up simulation owed
         zone.lastActive = world.date.GetRaw();
@@ -1406,6 +1433,39 @@ internal partial class ElinNetHost
     }
 
     /// <summary>
+    ///     A player holds a part of that dungeon, its top or any floor
+    /// </summary>
+    internal bool IsHeld(Zone zone)
+    {
+        var top = zone.GetTopZone() ?? zone;
+        return IsLeased(top.uid) || HasLeasedFloor(top);
+    }
+
+    /// <summary>
+    ///     Somebody is in that dungeon: a player holds a part of it, the host stands in it, or is on its way into
+    ///     the part a player just handed back
+    /// </summary>
+    private bool HasPlayerIn(Zone zone)
+    {
+        var top = zone.GetTopZone() ?? zone;
+        return IsHeld(zone) || (_zone?.GetTopZone() ?? _zone) == top || (_pendingHostMove?.Zone.GetTopZone() ?? _pendingHostMove?.Zone) == top;
+    }
+
+    /// <summary>
+    ///     The game expires a dungeon nobody is in: regenerated at the door with every floor destroyed
+    ///     (Zone.Activate, RegenerateOnEnter), or destroyed by the next save (Zone.CanDestroy). Somebody is.
+    ///     Never a zone without a date: those never expire
+    /// </summary>
+    internal void KeepAlive(Zone zone)
+    {
+        foreach (var z in new[] { zone, zone.GetTopZone() ?? zone }) {
+            if (z.dateExpire != 0 && world.date.IsExpired(z.dateExpire)) {
+                z.dateExpire = world.date.GetRaw() + 1440 * z.ExpireDays;
+            }
+        }
+    }
+
+    /// <summary>
     ///     The zone of a quest a player took: only a place holder here, so the lease has something to hold.
     ///     Never reused (two players each get their own), not on the world map (it sits on the tile of the town
     ///     the quest comes from), not announced to the other players
@@ -1485,7 +1545,16 @@ internal partial class ElinNetHost
     private void ReleaseLeaseOnDisconnect(ISteamNetPeer peer)
     {
         ForgetQuestCompanion(peer);
-        _returnSpots.Remove(peer.Id);
+
+        // dropped while standing here: it comes back on its tile, as a game loads where it was saved
+        if (_settled.Contains(peer.Id) && core.IsGameStarted && _zone is { } here &&
+            SavedRemoteCharas.TryGetValue(peer.User, out var droppedUid) &&
+            game.cards.globalCharas.Find(droppedUid)?.pos is { IsValid: true } last) {
+            _returnSpots[peer.User] = (here.uid, last.Copy(), null, float.MaxValue, false);
+        } else {
+            _returnSpots.Remove(peer.User);
+        }
+
         _settled.Remove(peer.Id);
         _departed.Remove(peer.Id);
         _pendingGuests.Remove(peer.Id);
@@ -1503,7 +1572,7 @@ internal partial class ElinNetHost
 
             foreach (var zoneUid in zones.Keys) {
                 DestroyQuestZone(zoneUid);
-                HandOverZone(zoneUid, peer.Id);
+                HandOverZone(zoneUid, peer.Id, true);
             }
 
             if (!EClass.debug.ignoreAutoSave) {

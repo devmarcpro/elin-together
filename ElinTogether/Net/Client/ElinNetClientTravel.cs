@@ -117,7 +117,7 @@ internal partial class ElinNetClient
             EmpLog.Information("Returning from {AwayZone} to host zone {ZoneFullName}",
                 Session.AwayZone!.ZoneFullName, zone.ZoneFullName);
 
-            SendRejoin();
+            SendRejoin(ZoneArrival.Create(zone.uid, transition));
             EmpPop.Debug("emp_travel_returning".lang());
             return false;
         }
@@ -168,6 +168,7 @@ internal partial class ElinNetClient
 
             Host.Send(new ZoneLeaseAck {
                 ZoneUid = grant.ZoneUid,
+                Arrival = ZoneArrival.Create(grant.ZoneUid, travel.Transition),
             });
             _pendingGrant = grant;
             StopWorldStateUpdate();
@@ -372,7 +373,7 @@ internal partial class ElinNetClient
 
         if (travel.Zone.uid == _hostZoneUid) {
             _pendingTravel = null;
-            SendRejoin();
+            SendRejoin(ZoneArrival.Create(travel.Zone.uid, travel.Transition));
             return;
         }
 
@@ -507,8 +508,10 @@ internal partial class ElinNetClient
         _pendingGrant = grant;
         StopWorldStateUpdate();
 
+        // our game reloads this very map from the one keeping it: we stay on our tile
         Host.Send(new ZoneLeaseAck {
             ZoneUid = grant.ZoneUid,
+            Stood = pc.pos,
         });
     }
 
@@ -522,7 +525,7 @@ internal partial class ElinNetClient
 
         if (accepted) {
             var zoneHost = Session.ZoneSession as ElinNetHost ?? StartZoneSession();
-            zoneHost.RegisterGuest(request.GuestUser, request.Chara, request.Companions);
+            zoneHost.RegisterGuest(request);
         }
 
         EmpLog.Information("Guest {RemoteIdentity} for zone {ZoneUid}: {Accepted}",
@@ -566,16 +569,20 @@ internal partial class ElinNetClient
 
         // out of the zone of a quest there is no staying: it is over, back to the host
         if (Session.IsAway && pc.currentZone?.IsInstance == true && _pendingGrant is null && !_rejoining) {
+            // where the game sends it back to: the place the zone was entered from, in the town of the quest.
+            // Only if the host stands in that town: elsewhere nothing tells where
+            var back = _pendingTravel is { } refused ? ZoneArrival.Create(refused.Zone.uid, refused.Transition) : null;
             _pendingTravel = null;
-            SendRejoin();
+            SendRejoin(back);
             return;
         }
 
         // the host stands there (we had not heard yet that it moved): going there is rejoining it
         if (denied.Reason == "emp_travel_host_zone" && Session.IsAway && _pendingGrant is null && !_rejoining) {
+            var arrival = _pendingTravel is { } going ? ZoneArrival.Create(denied.ZoneUid, going.Transition) : null;
             _pendingTravel = null;
             _hostZoneUid = denied.ZoneUid;
-            SendRejoin();
+            SendRejoin(arrival);
             EmpPop.Debug("emp_travel_returning".lang());
             return;
         }
@@ -756,14 +763,15 @@ internal partial class ElinNetClient
     ///     Hand the away zone back and return to the host <br />
     ///     The host answers with a save probe, which rebuilds the game in the host zone
     /// </summary>
-    private void SendRejoin()
+    /// <param name="arrival">we walk into the host's map: the way in. Not when the host is the one coming to us</param>
+    private void SendRejoin(ZoneArrival? arrival = null)
     {
         if (_rejoining) {
             return;
         }
 
         _rejoining = true;
-        HandBackAwayZone(true);
+        HandBackAwayZone(true, arrival);
     }
 
     /// <summary>
@@ -813,9 +821,9 @@ internal partial class ElinNetClient
         EInput.haltInput = true;
     }
 
-    private void HandBackAwayZone(bool rejoin)
+    private void HandBackAwayZone(bool rejoin, ZoneArrival? arrival = null)
     {
-        Host.Send(CreateLeaseRelease(rejoin));
+        Host.Send(CreateLeaseRelease(rejoin, arrival: arrival));
 
         if (Session.ZoneSession is ElinNetHost) {
             Session.RemoveZoneSession();
@@ -864,8 +872,11 @@ internal partial class ElinNetClient
         }
     }
 
-    private ZoneLeaseRelease CreateLeaseRelease(bool rejoin, bool checkpoint = false)
+    private ZoneLeaseRelease CreateLeaseRelease(bool rejoin, bool checkpoint = false, ZoneArrival? arrival = null)
     {
+        // only a map we really stand on: on our way to one, our tile is still the one of the map we left
+        var stoodIn = Session.AwayZone is { } away && _zone == away ? away.uid : -1;
+
         if (!Session.IsZoneAuthority || Session.AwayZone is not { } zone) {
             // a guest (or a player refused on its way) holds no zone, it only brings its character
             return new() {
@@ -876,6 +887,8 @@ internal partial class ElinNetClient
                 UidNext = game.cards.uidNext,
                 Rejoin = rejoin,
                 Checkpoint = checkpoint,
+                StoodZoneUid = stoodIn,
+                Arrival = arrival,
             };
         }
 
@@ -890,6 +903,8 @@ internal partial class ElinNetClient
             UidNext = game.cards.uidNext,
             Rejoin = rejoin,
             Checkpoint = checkpoint,
+            StoodZoneUid = stoodIn,
+            Arrival = arrival,
             GuestCharas = (Session.ZoneSession as ElinNetHost)?.CollectGuestCharas(),
             GuestCompanions = (Session.ZoneSession as ElinNetHost)?.CollectGuestCompanions(),
         };

@@ -148,6 +148,26 @@ internal class EmpConsole
         return $"Link timeout {(on != 0 ? "as in a release build" : "off")}";
     }
 
+    /// <summary>
+    ///     Bench: the world is saved by itself that often instead of every 2 minutes, 0 for the real pace
+    /// </summary>
+    [ConsoleCommand("autosave_every")]
+    internal static string AutosaveEvery(int seconds = 0)
+    {
+        EmpAutoHost.SaveEvery(seconds);
+        return seconds > 0 ? $"Autosave every {seconds}s" : "Autosave at its real pace";
+    }
+
+    /// <summary>
+    ///     Bench: a world loaded in this window opens its session by itself, on the local port (see EmpAutoHost)
+    /// </summary>
+    [ConsoleCommand("auto_open")]
+    internal static string AutoOpen(int on = 1)
+    {
+        EmpAutoHost.BenchOpens = on != 0;
+        return $"Session opened by itself at load: {(on != 0 ? "on" : "off")}";
+    }
+
     private static void SetPacketLoss(float percent)
     {
         var value = Marshal.AllocHGlobal(sizeof(float));

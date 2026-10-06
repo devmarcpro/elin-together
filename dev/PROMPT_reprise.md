@@ -1,4 +1,4 @@
-> **Mise à jour du 6 octobre, 15h.** Avant tout : lis `dev/HANDOFF.md`, section « État au 6 octobre, 15h » : elle remplace
+> **Mise à jour du 6 octobre, 18h.** Avant tout : lis `dev/HANDOFF.md`, section « État au 6 octobre, 18h » et `dev/PLAN_retours_soiree_6_octobre.md` : elle remplace
 > les points « Le travail » ci-dessous (la 0.26.506 est publiée, un travail NON COMMITÉ est dans l'arbre : l'étape 1 du conseil 9, ne l'écrase pas). Effort faible : réponses courtes, peu
 > d'agents. Le reste de ce message (but, façon de travailler, interdits, résumés) vaut toujours.
 

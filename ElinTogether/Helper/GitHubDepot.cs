@@ -50,10 +50,19 @@ internal static class GitHubDepot
     // the save last sent, accepted or not: GitHub may have taken it and its answer been lost on the way
     private static string? _triedSha;
 
+    // where the game of this player is joined, written in the lock with its name
+    private static string _join = "";
+
     /// <summary>
     ///     The version of the depot's world this game plays from (taken, or last sent). Null: none
     /// </summary>
     internal static string? WorldSha => _worldSha;
+
+    /// <summary>
+    ///     Where the player who holds the world is joined, as the lock last read says (the `join` of that player's
+    ///     requests). Empty: nobody else holds it, or the lock was written by a version that did not say
+    /// </summary>
+    internal static string HeldJoin { get; private set; } = "";
 
     static GitHubDepot()
     {
@@ -68,8 +77,9 @@ internal static class GitHubDepot
     ///     PUT of a save kept from an earlier session: the version of the depot's world it was played from. The
     ///     depot holding anything else is "changed": such a save never replaces a world it does not come from
     /// </param>
+    /// <param name="join">where the others join this player's game, kept in the lock while it holds the world</param>
     internal static (bool Ok, string Text, byte[]? Body) Ask(string repo, string token, string command, string me,
-        string name, byte[]? body = null, string? descends = null)
+        string name, byte[]? body = null, string? descends = null, string? join = null)
     {
         // one request at a time: two writes of one player would refuse each other
         lock (_gate) {
@@ -80,6 +90,7 @@ internal static class GitHubDepot
             }
 
             _token = token.Trim();
+            _join = join ?? "";
             // (a save of an earlier session is compared for this one request: refused, it leaves nothing behind
             // that a save put in the depot afterwards would be compared with)
             var lent = command == "PUT" && _worldSha is null && descends is not null;
@@ -252,28 +263,35 @@ internal static class GitHubDepot
         }
     }
 
-    private static string? Holder((string Id, string Name, string? Sha, DateTime Beat, DateTime Now) held, string me)
+    private static string? Holder((string Id, string Name, string? Sha, DateTime Beat, DateTime Now, string Join) held, string me)
     {
-        return held.Id.Length > 0 && held.Id != me && held.Now - held.Beat < _lockLife ? held.Name : null;
+        var other = held.Id.Length > 0 && held.Id != me && held.Now - held.Beat < _lockLife;
+        HeldJoin = other ? held.Join : "";
+        return other ? held.Name : null;
     }
 
     // the time is GitHub's (the Date of its answer), read and written: two PCs never agree to the second
-    private static (string Id, string Name, string? Sha, DateTime Beat, DateTime Now) ReadLock()
+    private static (string Id, string Name, string? Sha, DateTime Beat, DateTime Now, string Join) ReadLock()
     {
         var reply = Send("GET", "/contents/lock.json");
         if (reply.Status != 200) {
-            return ("", "", null, default, reply.Date);
+            return ("", "", null, default, reply.Date, "");
         }
 
         var file = JObject.Parse(Encoding.UTF8.GetString(reply.Body));
         var held = JObject.Parse(Encoding.UTF8.GetString(Convert.FromBase64String((string)file["content"]!)));
         return ((string?)held["id"] ?? "", (string?)held["name"] ?? "", (string)file["sha"]!,
-            ((DateTime?)held["beat"] ?? default).ToUniversalTime(), reply.Date);
+            ((DateTime?)held["beat"] ?? default).ToUniversalTime(), reply.Date, (string?)held["join"] ?? "");
     }
 
-    private static bool WriteLock(string id, string name, (string Id, string Name, string? Sha, DateTime Beat, DateTime Now) read)
+    private static bool WriteLock(string id, string name, (string Id, string Name, string? Sha, DateTime Beat, DateTime Now, string Join) read)
     {
+        // (added to the three fields every version reads; a free lock carries none)
         var held = new JObject { ["id"] = id, ["name"] = name, ["beat"] = read.Now };
+        if (id.Length > 0 && _join.Length > 0) {
+            held["join"] = _join;
+        }
+
         return Write("lock.json", Encoding.UTF8.GetBytes(held.ToString(Formatting.None)), read.Sha,
             id.Length > 0 ? "hosted by " + name : "free") is not null;
     }

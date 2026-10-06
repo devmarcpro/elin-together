@@ -1,7 +1,7 @@
 """Personnage a la connexion. Test court, sur des instances deja lancees (host + 1 client).
 
     python _tools/mp_test.py
-    python _tools/chara_suite.py      # ~5 minutes, finit avec le client en jeu sur son premier personnage
+    python _tools/chara_suite.py      # ~12 minutes, finit avec le client en jeu sur son premier personnage
 
 Depuis l'etape 1 du conseil 9 (A1) un joueur qui revient n'est plus interroge : il reprend le dernier personnage
 joue. L'ecran de choix ne s'ouvre que si l'host coche « Players choose their character when joining » (reglage
@@ -14,6 +14,16 @@ C2  case de l'host cochee : il revient, l'ecran propose son personnage et "nouve
 C3  case cochee : il revient, l'ecran propose les deux, il reprend le premier, avec sa renommee
 C4  il prend le second (case cochee), puis case decochee : il revient sans ecran sur le second, le dernier joue,
     pas le premier de la liste
+C5  il change de personnage (il jouait le second, il revient avec le premier) : le second n'est sur la carte ni chez
+    l'host ni chez l'invite, n'est plus dans le groupe ni parmi les habitants de la base, tout de suite, quand
+    l'invite tient une carte seul, apres que l'host a quitte la carte et y est revenu ; il garde son sac, son or et
+    ses points de vie ; le joueur le reprend et le retrouve tel quel
+    Ce que C5 ne joue pas comme un joueur : aucun chemin du jeu n'a ete trouve qui remet l'ancien personnage sur
+    une carte, alors le banc pose lui-meme les trois etats que l'enquete a trouves (par eval) : « sa zone est une
+    carte » dans le monde de l'invite puis dans celui de l'host (ce que Map.OnDeactivate laisse a un personnage
+    reste sur une carte quittee), et « sur la carte avec une zone vide » chez l'host. Les cartes sont changees par
+    MoveZone direct, pas a pied. Pas joue : un combat pres de l'ancien personnage, une sauvegarde puis un
+    rechargement de l'host, trois joueurs (l'ancien personnage vu par un autre invite qui tient la carte).
 
 Ce que le banc ne joue pas comme un joueur : les boutons sont cliques par le pont, pas a la souris ; le joueur quitte
 par ResetSession (le bouton « Disconnect » du mod fait la meme chose) ; connexion locale par port, un seul compte
@@ -28,7 +38,8 @@ sys.path.insert(0, str(Path(__file__).parent))
 import emp  # noqa: E402
 from combat_suite import set_option  # noqa: E402
 from mp_test import EMBARK, log, ok, shot, state, wait  # noqa: E402
-from travel_suite import RESULTS, check, ev, eventually, scan_logs  # noqa: E402
+from travel_suite import (HOME, LUMIEST, RESULTS, VERNIS, both_joined, check, client_settled, ev, eventually, move,  # noqa: E402
+                          scan_logs, zone_uid)
 
 H, A = 27551, 27552
 
@@ -103,6 +114,92 @@ def roster():
                  'return string.Join(";", r.Values.Select(l => string.Join(",", l)));')
 
 
+def standing(port, uid):
+    """Le personnage est-il sur la carte active de ce jeu."""
+    return ev(port, f'EClass._map.charas.Any(c => c.uid == {uid}).ToString()') == "True"
+
+
+def waiting(uid):
+    """Chez l'host : "<sans zone>|<dans le groupe>|<habitant de la base>|<mort>" ; un personnage qui attend son
+    joueur donne True|False|-|False (il reste habitant de la base : le retirer detruisait des artefacts en double a chaque retour)."""
+    return ev(H, f'var c = EClass.game.cards.globalCharas.Find({uid}); if (c == null) return "disparu"; '
+                 'return (c.currentZone == null) + "|" + EClass.pc.party.members.Contains(c) + "|" '
+                 '+ "-" + "|" + c.isDead;')  # (habitant : il le reste, voir RemoveRemoteChara)
+
+
+def belongings(port, uid):
+    """"<objets du sac>|<or>|<points de vie>" du personnage, tel que ce jeu le connait (sans les jetons de competence,
+    que seul le jeu de celui qui le joue fabrique)."""
+    return ev(port, f'var c = EClass.game.cards.globalCharas.Find({uid}); if (c == null) return "disparu"; '
+                    'return c.things.Count(t => !(t.trait is TraitAbility)) + "|" + c.GetCurrency() + "|" + c.hp;')
+
+
+def rearm(port, uid, zone):
+    """Ce que Map.OnDeactivate laisse a un personnage reste sur une carte quittee : sa zone est cette carte."""
+    ev(port, f'EClass.game.cards.globalCharas.Find({uid}).currentZone = EClass.game.spatials.Find({zone}); "ok"')
+
+
+def c5(first, second):
+    log("--- C5")
+    # il joue le second (fin de C4). Ce qu'il a, vu par l'host, avant de le laisser
+    time.sleep(3)
+    had = belongings(H, second)
+    log(f"le second a : {had} (objets|or|vie)")
+    set_option("ChooseCharacter", True)
+    time.sleep(2)
+    leave()
+    check("le joueur parti, son personnage attend : sans zone, hors du groupe, vivant",
+          waiting(second) == "True|False|-|False")
+    connect()
+    click(0)
+    check("il revient avec l'autre personnage (le premier)", in_game() == first)
+    check("tout de suite : l'ancien n'est sur la carte ni chez l'host ni chez l'invite",
+          not standing(H, second) and not standing(A, second) and waiting(second) == "True|False|-|False")
+
+    # l'host quitte la carte : l'invite la tient seul, aucun filet de l'host ne tourne dans son jeu
+    move(H, VERNIS)
+    wait(lambda: zone_uid(H) == VERNIS, "host a Vernis", timeout=180)
+    wait(client_settled(A, HOME, True), "l'invite tient la Prairie seul", timeout=120)
+    check("l'invite tient la carte seul : l'ancien n'y est pas", not standing(A, second))
+    # dans le monde de l'invite (la copie recue a sa connexion) l'ancien personnage a encore une carte pour zone
+    rearm(A, second, LUMIEST)
+    move(A, LUMIEST)
+    wait(client_settled(A, LUMIEST, True), "l'invite seul a Lumiest", timeout=180)
+    time.sleep(3)
+    check("l'invite active seul une carte ou son monde range l'ancien personnage : il n'y est pas",
+          not standing(A, second))
+
+    # chez l'host : l'ancien etait reste sur la Prairie quand il l'a quittee
+    rearm(H, second, HOME)
+    move(H, HOME)
+    wait(lambda: zone_uid(H) == HOME, "host de retour a la Prairie", timeout=180)
+    check("l'host revient sur la carte : l'ancien n'y est pas, des l'arrivee", not standing(H, second))
+    move(A, HOME)
+    both_joined(H, A, HOME)
+    check("les deux de retour sur la carte : l'ancien n'y est ni chez l'host ni chez l'invite",
+          not standing(H, second) and not standing(A, second))
+
+    # sur la carte avec une zone vide : le filet de l'host le laissait la (RemoveRemoteChara, branche « ailleurs »)
+    ev(H, f'var c = EClass.game.cards.globalCharas.Find({second}); '
+          'EClass._zone.AddCard(c, EClass.pc.pos.GetNearestPoint(allowChara: false) ?? EClass.pc.pos); c.currentZone = null; "ok"')
+    check("pose sur la carte avec une zone vide : retire en quelques secondes, chez l'host et chez l'invite",
+          eventually(lambda: not standing(H, second) and not standing(A, second), timeout=15))
+    time.sleep(10)
+    check("dix secondes plus tard il attend toujours : sans zone, hors du groupe, vivant",
+          waiting(second) == "True|False|-|False" and not standing(H, second) and not standing(A, second))
+    check(f"il a toujours son sac, son or et ses points de vie ({belongings(H, second)} pour {had})", belongings(H, second) == had)
+
+    leave()
+    connect()
+    click(1)
+    check("le joueur reprend l'ancien personnage", in_game() == second)
+    check(f"il le retrouve tel quel dans son jeu ({belongings(A, second)} pour {had})", belongings(A, second) == had)
+    check("il est de nouveau sur la carte chez les deux, une seule fois parmi les habitants de la base",
+          standing(H, second) and standing(A, second)
+          and ev(H, f'EClass.pc.homeBranch.members.Count(c => c.uid == {second}).ToString()') == "1")
+    check("et c'est le premier qui attend a son tour", waiting(first) == "True|False|False|False" and not standing(H, first))
+
+
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
     t0 = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
@@ -162,9 +259,9 @@ def main():
         leave()
         check("case decochee, deux personnages : aucun ecran de choix", connect_unasked())
         check("il reprend le dernier joue (le second), pas le premier de la liste", in_game() == second)
+
+        c5(first, second)
         # finir sur le premier personnage, comme les autres suites l'attendent
-        set_option("ChooseCharacter", True)
-        time.sleep(2)
         leave()
         connect()
         click(0)
