@@ -1,5 +1,6 @@
 using ElinTogether.Net;
 using HarmonyLib;
+using UnityEngine;
 
 namespace ElinTogether.Patches;
 
@@ -17,8 +18,17 @@ internal class GameSaveLoad
 
         EmpLog.Debug("Blocked saving game as client");
         __result = true;
+
+        // the game also saves by itself (changing map, sleeping): one line now and then, not one per save
+        if (EClass.core.IsGameStarted && Time.realtimeSinceStartup - _saveNoticeAt > 60f) {
+            _saveNoticeAt = Time.realtimeSinceStartup;
+            Msg.Say("emp_ui_save_kept".lang());
+        }
+
         return false;
     }
+
+    private static float _saveNoticeAt = float.MinValue;
 
     [HarmonyPrefix]
     [HarmonyPatch(typeof(Game), nameof(Game.TryLoad))]

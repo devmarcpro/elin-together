@@ -231,13 +231,23 @@ internal partial class EmpConfig
             "Otherwise the game's own menu opens the other player's bag, as for an ally\n" +
             "相邻的玩家可以通过双方确认的窗口交换物品和金币");
 
+        // not the "ChooseCharacter" key of earlier versions: every settings file already written holds it as true,
+        // and a player who comes back is no longer asked at every connection
         Server.ChooseCharacter = config.Bind(
             "Server",
-            "ChooseCharacter",
+            "AskCharacter",
+            false,
+            "Every joining player is asked which of its characters in this world to play, or to make a new one\n" +
+            "Otherwise it gets the character it played last, without a question\n" +
+            "每位加入的玩家都会被询问使用自己在这个世界的哪个角色或新建角色，否则直接使用上次的角色");
+
+        Server.AutoReconnect = config.Bind(
+            "Server",
+            "AutoReconnect",
             true,
-            "A player joining picks one of the characters it already has in this world, or makes a new one\n" +
-            "Otherwise it always gets the character it played last\n" +
-            "加入的玩家可以选择自己在这个世界已有的角色或新建角色，否则总是使用上次的角色");
+            "A player who loses the connection joins the same game again by itself, every 5 seconds for 3 minutes\n" +
+            "Not after leaving, being kicked or being refused. Otherwise it is left on the title screen\n" +
+            "掉线的玩家会自动重新加入同一个游戏（每 5 秒一次，持续 3 分钟）；主动离开、被踢出或被拒绝时不会。关闭时回到标题画面");
 
         Server.ImportCharacter = config.Bind(
             "Server",
@@ -332,6 +342,7 @@ internal partial class EmpConfig
         internal static ConfigEntry<bool> Duels { get; set; } = null!;
         internal static ConfigEntry<bool> PersonalQuests { get; set; } = null!;
         internal static ConfigEntry<bool> ChooseCharacter { get; set; } = null!;
+        internal static ConfigEntry<bool> AutoReconnect { get; set; } = null!;
         internal static ConfigEntry<bool> ImportCharacter { get; set; } = null!;
         internal static ConfigEntry<bool> PlayerTrade { get; set; } = null!;
         internal static ConfigEntry<bool> PlayerCombatTime { get; set; } = null!;

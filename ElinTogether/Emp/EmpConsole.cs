@@ -2,6 +2,13 @@ using ElinTogether.Common;
 using ElinTogether.Net;
 using ElinTogether.Net.Steam;
 using ReflexCLI.Attributes;
+#if DEBUG
+using System;
+using System.Collections;
+using System.Runtime.InteropServices;
+using Steamworks;
+using UnityEngine;
+#endif
 
 namespace ElinTogether;
 
@@ -109,6 +116,53 @@ internal class EmpConsole
     {
         var client = NetSession.Instance.InitializeComponent<ElinNetClient>();
         client.ConnectLocalPort();
+    }
+
+    /// <summary>
+    ///     Bench: the link of this game drops as on a network failure, for that many seconds. Nothing gets
+    ///     through either way and nobody is told, each side finds out by itself (Steam's own fake packet loss)
+    /// </summary>
+    [ConsoleCommand("cut_link")]
+    internal static string CutLink(int seconds = 20)
+    {
+        ElinNetClient.UseTimeout = true;
+        SetPacketLoss(100f);
+        EmpMod.Instance.StartCoroutine(Restore());
+        return $"Link cut for {seconds}s";
+
+        IEnumerator Restore()
+        {
+            yield return new WaitForSecondsRealtime(seconds);
+            SetPacketLoss(0f);
+            EmpLog.Information("Link back after {Seconds}s", seconds);
+        }
+    }
+
+    /// <summary>
+    ///     Bench: a dead link ends the session after the timeout as in a release build, a debug build waits for good
+    /// </summary>
+    [ConsoleCommand("link_timeout")]
+    internal static string LinkTimeout(int on = 1)
+    {
+        ElinNetClient.UseTimeout = on != 0;
+        return $"Link timeout {(on != 0 ? "as in a release build" : "off")}";
+    }
+
+    private static void SetPacketLoss(float percent)
+    {
+        var value = Marshal.AllocHGlobal(sizeof(float));
+        try {
+            Marshal.Copy(new[] { percent }, 0, value, 1);
+            foreach (var config in new[] {
+                         ESteamNetworkingConfigValue.k_ESteamNetworkingConfig_FakePacketLoss_Send,
+                         ESteamNetworkingConfigValue.k_ESteamNetworkingConfig_FakePacketLoss_Recv,
+                     }) {
+                SteamNetworkingUtils.SetConfigValue(config, ESteamNetworkingConfigScope.k_ESteamNetworkingConfig_Global,
+                    IntPtr.Zero, ESteamNetworkingConfigDataType.k_ESteamNetworkingConfig_Float, value);
+            }
+        } finally {
+            Marshal.FreeHGlobal(value);
+        }
     }
 
     [ConsoleCommand("d1")]

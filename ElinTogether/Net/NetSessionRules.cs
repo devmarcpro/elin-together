@@ -112,7 +112,15 @@ public class NetSessionRules
     [Key(15)]
     public bool AllowDuels { get; set; } = true;
 
+    /// <summary>
+    ///     A player whose link with the host dropped by itself joins the same game again by itself (see
+    ///     NetReconnect). Off: it is left on the title screen
+    /// </summary>
+    [Key(16)]
+    public bool AllowReconnect { get; set; } = true;
+
     public static NetSessionRules Default => new() {
+        AllowReconnect = EmpConfig.Server.AutoReconnect.Value,
         HostManagesBase = EmpConfig.Server.HostManagesBase.Value,
         AllowDuels = EmpConfig.Server.Duels.Value,
         AllowPlayerKill = EmpConfig.Server.PlayerKill.Value,

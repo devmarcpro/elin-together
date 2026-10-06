@@ -251,5 +251,11 @@
     "LangGeneral.emp_connection_no_server.text": "那个游戏还没有开放。请稍后再试。",
     "LangGeneral.emp_zone_session_empty.text": "这里已经没有其他玩家了",
     "LangGeneral.emp_ui_timeout_steam.text": "游戏没有响应：对方可能已经离开或断线了。",
-    "LangGeneral.emp_trade_nothing_to_offer.text": "没有可以提供的物品。"
+    "LangGeneral.emp_trade_nothing_to_offer.text": "没有可以提供的物品。",
+    "LangGeneral.emp_ui_reconnecting.text": "连接已断开，正在让你回到游戏…",
+    "LangGeneral.emp_ui_reconnect_cancel.text": "取消",
+    "LangGeneral.emp_ui_reconnect_failed.text": "无法回到游戏：3 分钟没有响应，游戏可能已经结束。",
+    "LangGeneral.emp_ui_save_kept.text": "你的进度由你加入的游戏保存。",
+    "LangGeneral.emp_ui_sv_cfg_auto_reconnect.text": "掉线的玩家自动重新加入",
+    "LangGeneral.emp_ui_sv_desc_auto_reconnect.text": "开：掉线的玩家会在 3 分钟内自动重新加入游戏。关：回到标题画面。"
 }

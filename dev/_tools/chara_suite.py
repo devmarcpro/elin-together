@@ -1,12 +1,23 @@
-"""Choix du personnage a la connexion. Test court, sur des instances deja lancees (host + 1 client).
+"""Personnage a la connexion. Test court, sur des instances deja lancees (host + 1 client).
 
     python _tools/mp_test.py
-    python _tools/chara_suite.py      # ~3 minutes, finit avec le client en jeu sur son premier personnage
+    python _tools/chara_suite.py      # ~5 minutes, finit avec le client en jeu sur son premier personnage
 
-C1  le client se deconnecte et revient : l'ecran propose son personnage, il le reprend (meme personnage)
-C2  il revient et choisit "nouveau personnage" : creation (avec un objet detruit sous le pointeur, voir
-    CharaMakerHoverPatch), un autre personnage, l'host en garde deux
-C3  il revient : l'ecran propose les deux, il reprend le premier, avec sa renommee
+Depuis l'etape 1 du conseil 9 (A1) un joueur qui revient n'est plus interroge : il reprend le dernier personnage
+joue. L'ecran de choix ne s'ouvre que si l'host coche « Players choose their character when joining » (reglage
+ChooseCharacter, eteint par defaut), ou si rien ne dit quel personnage il jouait.
+
+C1  le client se deconnecte et revient : aucun ecran, il reprend son personnage
+C2  case de l'host cochee : il revient, l'ecran propose son personnage et "nouveau personnage" ; il choisit
+    "nouveau personnage" : creation (avec un objet detruit sous le pointeur, voir CharaMakerHoverPatch), un autre
+    personnage, l'host en garde deux
+C3  case cochee : il revient, l'ecran propose les deux, il reprend le premier, avec sa renommee
+C4  il prend le second (case cochee), puis case decochee : il revient sans ecran sur le second, le dernier joue,
+    pas le premier de la liste
+
+Ce que le banc ne joue pas comme un joueur : les boutons sont cliques par le pont, pas a la souris ; le joueur quitte
+par ResetSession (le bouton « Disconnect » du mod fait la meme chose) ; connexion locale par port, un seul compte
+Steam. Pas joue : un joueur qui a plusieurs personnages et dont le dernier joue n'existe plus (l'ecran doit s'ouvrir).
 """
 import sys
 import time
@@ -15,6 +26,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 import emp  # noqa: E402
+from combat_suite import set_option  # noqa: E402
 from mp_test import EMBARK, log, ok, shot, state, wait  # noqa: E402
 from travel_suite import RESULTS, check, ev, eventually, scan_logs  # noqa: E402
 
@@ -61,6 +73,17 @@ def connect():
     return list(found)
 
 
+def connect_unasked():
+    """Demande la connexion et regarde jusqu'a l'arrivee en jeu ; vrai si aucun ecran de choix ne s'est ouvert."""
+    ok(emp.call(A, "command", {"cmd": "emp.connect_udp"}))
+    asked = False
+    end = time.time() + 90
+    while time.time() < end and not (state(A)["sceneMode"] == "Zone" and state(A)["connected"]):
+        asked = asked or bool(ev(A, CHOICES))
+        time.sleep(0.5)
+    return not asked
+
+
 def in_game():
     def cond():
         if state(A)["sceneMode"] == "Zone" and state(A)["connected"]:
@@ -93,16 +116,20 @@ def main():
         fame = int(ev(A, 'EClass.player.fame.ToString()'))
 
         log("--- C1")
+        set_option("ChooseCharacter", False)
+        time.sleep(2)
         leave()
-        choices = connect()
-        log(f"choix proposes : {choices}")
-        check("l'ecran propose son personnage et \"nouveau personnage\"", len(choices) == 2 and choices[-1] == "A new character")
-        click(0)
+        check("il revient : aucun ecran de choix", connect_unasked())
         check("il reprend le meme personnage", in_game() == first)
 
         log("--- C2")
+        set_option("ChooseCharacter", True)
+        time.sleep(2)
         leave()
         choices = connect()
+        log(f"choix proposes : {choices}")
+        check("case de l'host cochee : l'ecran propose son personnage et \"nouveau personnage\"",
+              len(choices) == 2 and choices[-1] == "A new character")
         click(-1)
         # ce que le pointeur survolait a ete detruit entre-temps (une fenetre sans le focus garde ses anciens
         # objets survoles) : l'ecran de creation du jeu trebuchait dessus en s'ouvrant, le bouton gardait
@@ -124,6 +151,24 @@ def main():
         click(0)
         check("il reprend le premier", in_game() == first)
         check("avec sa renommee", eventually(lambda: int(ev(A, 'EClass.player.fame.ToString()')) == fame, timeout=10))
+
+        log("--- C4")
+        leave()
+        connect()
+        click(1)
+        check("case cochee : il prend le second", in_game() == second)
+        set_option("ChooseCharacter", False)
+        time.sleep(2)
+        leave()
+        check("case decochee, deux personnages : aucun ecran de choix", connect_unasked())
+        check("il reprend le dernier joue (le second), pas le premier de la liste", in_game() == second)
+        # finir sur le premier personnage, comme les autres suites l'attendent
+        set_option("ChooseCharacter", True)
+        time.sleep(2)
+        leave()
+        connect()
+        click(0)
+        check("pour finir il reprend le premier", in_game() == first)
     except Exception as ex:  # noqa: BLE001
         check(f"interrompu : {type(ex).__name__}: {ex}", False)
         for name, port in (("host", H), ("A", A)):
@@ -131,6 +176,11 @@ def main():
                 print(f"    capture {name} : {shot(f'fail-chara-{name}', port)}")
             except Exception:  # noqa: BLE001
                 pass
+    finally:
+        try:
+            set_option("ChooseCharacter", False)
+        except Exception:  # noqa: BLE001
+            pass
 
     scan_logs(t0)
     failed = [label for label, good in RESULTS if not good]

@@ -20,6 +20,15 @@ public static class EmpDisconnectInfo
     public const string VersionMismatch = "emp_dc_version_mismatch";
     public const string ActMappingMismatch = "emp_dc_act_mismatch";
 
+    /// <summary>
+    ///     The link dropped without anyone deciding it (dead link, no answer, closed without a word): the player
+    ///     did not leave and was not turned away, see NetReconnect
+    /// </summary>
+    public static bool IsLinkLost(string? reason)
+    {
+        return string.IsNullOrEmpty(reason) || reason is Timeout or InactivePeer or RemoteClosed;
+    }
+
     public static string Describe(string? reason)
     {
         if (BuildVersionIntegrity.GetGtfoReason(reason, out var mod, out var game)) {

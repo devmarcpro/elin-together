@@ -54,19 +54,56 @@ internal partial class ElinNetClient : ElinNetBase
             }
         }
 
-#if !DEBUG
-        var elapsed = DateTime.Now - _lastTimeout;
-        if (elapsed.TotalSeconds > EmpConfig.Policy.Timeout.Value) {
-            EmpPop.Information((IsDirectConnection ? "emp_ui_timeout" : "emp_ui_timeout_steam").lang());
-            EndSession(EmpDisconnectInfo.Timeout);
+#if DEBUG
+        // a debug build waits on a dead link for good (breakpoints, slow starts), unless a test asks for what a
+        // release build does: emp.cut_link, emp.link_timeout
+        if (!UseTimeout) {
+            return;
         }
 #endif
+        var elapsed = DateTime.Now - _lastTimeout;
+        if (elapsed.TotalSeconds > EmpConfig.Policy.Timeout.Value) {
+            NetReconnect.Begin();
+            // coming back by itself says so on its own
+            if (!NetReconnect.Active) {
+                EmpPop.Information((IsDirectConnection ? "emp_ui_timeout" : "emp_ui_timeout_steam").lang());
+            }
+
+            EndSession(EmpDisconnectInfo.Timeout);
+        }
     }
+
+#if DEBUG
+    internal static bool UseTimeout;
+#endif
+
+    /// <summary>
+    ///     How to join the same game again once this component is gone: the same local port or address, else
+    ///     the same Steam lobby. Null when nothing says where that game is
+    /// </summary>
+    internal Action? Rejoin
+    {
+        get {
+            if (_rejoin is not null) {
+                return _rejoin;
+            }
+
+            var lobby = Session.Lobby.Current;
+            if (!lobby.IsValid) {
+                return null;
+            }
+
+            return () => Session.Lobby.ConnectLobby(lobby);
+        }
+    }
+
+    private Action? _rejoin;
 
     public void ConnectLocalPort(ushort port = EmpConstants.LocalPort)
     {
         Stop();
         IsLocalConnection = true;
+        _rejoin = () => Session.InitializeComponent<ElinNetClient>().ConnectLocalPort(port);
         Socket.Connect(port);
     }
 
@@ -79,6 +116,7 @@ internal partial class ElinNetClient : ElinNetBase
         Stop();
         IsLocalConnection = false;
         IsDirectConnection = true;
+        _rejoin = () => Session.InitializeComponent<ElinNetClient>().ConnectAddress(address);
         Socket.Connect(address);
     }
 
@@ -187,9 +225,21 @@ internal partial class ElinNetClient : ElinNetBase
             return;
         }
 
+        var reason = Router.DisconnectReason;
+        if (EmpDisconnectInfo.IsLinkLost(reason)) {
+            NetReconnect.Begin();
+        } else if (reason != EmpDisconnectInfo.HostShutdown) {
+            // turned away, kicked, or the player's own way out: no coming back by itself.
+            // HostShutdown is not told apart: it is also how any component of ours closes its link
+            NetReconnect.Stop();
+        }
+
         Session.ResetSession();
 
-        EmpPop.Information("emp_disconnected_host".Loc(disconnectInfo));
+        // coming back by itself says so on its own
+        if (!NetReconnect.Active) {
+            EmpPop.Information("emp_disconnected_host".Loc(disconnectInfo));
+        }
     }
 
 #endregion

@@ -297,7 +297,11 @@ public class SteamNetLobbyManager : EClass
 
             NetSession.Instance.ResetSession();
 
-            EmpPop.Information("emp_lobby_enter_failed".lang(), enter.Response);
+            // an attempt among others while coming back by itself, see NetReconnect
+            if (!NetReconnect.Active) {
+                EmpPop.Information("emp_lobby_enter_failed".lang(), enter.Response);
+            }
+
             return;
         }
 

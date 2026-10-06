@@ -16,8 +16,14 @@ public sealed class SteamNetMessageRouter : ISteamNetListener
         OnPeerConnectedEvent?.Invoke(peer);
     }
 
+    /// <summary>
+    ///     The reason of the last disconnection as it was given, the event only carries its text
+    /// </summary>
+    public string? DisconnectReason { get; private set; }
+
     public void OnPeerDisconnected(ISteamNetPeer peer, string reason)
     {
+        DisconnectReason = reason;
         OnPeerDisconnectedEvent?.Invoke(peer, EmpDisconnectInfo.Describe(reason));
     }
 

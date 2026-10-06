@@ -172,7 +172,8 @@ internal partial class ElinNetHost
     /// </summary>
     private void CloseZoneSessionIfEmpty(ISteamNetPeer leaving)
     {
-        if (Socket.Peers.Any(p => p.Id != leaving.Id)) {
+        // by reference: a guest coming back holds the same id on its new link while the old one closes
+        if (Socket.Peers.Any(p => !ReferenceEquals(p, leaving))) {
             return;
         }
 

@@ -77,18 +77,16 @@ internal partial class ElinNetHost
         }
 
         var roster = RosterOf(peer.User);
-        // not for the guests of a zone hosted by a player: they come with the character they are playing
-        var choose = EmpConfig.Server.ChooseCharacter.Value;
         var import = EmpConfig.Server.ImportCharacter.Value;
-        // bringing a character alone (no choice of character): asked once, when the player has nobody here yet.
-        // Afterwards it gets the character it played last without a question at every connection
         var known = SavedRemoteCharas.TryGetValue(peer.User, out var played) && game.cards.globalCharas.Find(played) is not null;
-        if (!IsZoneSession && ((roster.Count > 0 && choose) || (import && (choose || !known)))) {
-            // without the choice of character, only the one it played last
-            if (!choose) {
-                roster = roster.Where(c => SavedRemoteCharas.TryGetValue(peer.User, out var last) && c.uid == last).ToList();
-            }
-
+        // no question at every connection: a player who comes back gets the character it played last. Asked only
+        // when nothing says which one (several characters, none of them played last), when it has nobody here
+        // and may bring someone, or when the host wants every joining player asked
+        var ask = EmpConfig.Server.ChooseCharacter.Value
+            ? roster.Count > 0 || import
+            : !known && (roster.Count > 1 || (roster.Count == 0 && import));
+        // not for the guests of a zone hosted by a player: they come with the character they are playing
+        if (!IsZoneSession && ask) {
             // the player picks who to play, brings someone from its own saves, or makes someone new
             peer.Send(new SessionCharaSelectRequest {
                 AllowImport = import,
@@ -101,6 +99,11 @@ internal partial class ElinNetHost
                     .ToList(),
             });
             return;
+        }
+
+        // its only character here
+        if (!IsZoneSession && !known && roster.Count == 1) {
+            SavedRemoteCharas[peer.User] = roster[0].uid;
         }
 
         if (!SavedRemoteCharas.TryGetValue(peer.User, out var charaUid) ||

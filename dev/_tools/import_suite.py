@@ -109,6 +109,8 @@ def main():
             from mp_test import join_client
             join_client(H, A, "client")
         first = state(A)["pc"]["uid"]
+        # l'ecran de choix ne s'ouvre plus tout seul (conseil 9, A1) : la case de l'host, pour toute la suite
+        set_option("ChooseCharacter", True)
 
         shutil.rmtree(SOLO, ignore_errors=True)
         shutil.copytree(PRISTINE, SOLO, copy_function=shutil.copy)
@@ -220,7 +222,6 @@ def main():
             check("import seul coche : pas d'ecran de choix pour un joueur qui a deja un personnage ici", not asked)
             check("il reprend le dernier personnage joue", in_game() == first)
         finally:
-            set_option("ChooseCharacter", True)
             set_option("ImportCharacter", False)
     except Exception as ex:  # noqa: BLE001
         check(f"interrompu : {type(ex).__name__}: {str(ex)[:300]}", False)
@@ -232,6 +233,7 @@ def main():
     finally:
         try:
             set_option("ImportCharacter", False)
+            set_option("ChooseCharacter", False)
         except Exception:  # noqa: BLE001
             pass
         shutil.rmtree(SOLO, ignore_errors=True)
