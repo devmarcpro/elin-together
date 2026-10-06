@@ -121,3 +121,12 @@ n'est pas vérifié. Fichier neuf `Patches/` + une case host à ajouter (`EmpCon
 - Un invité seul sur une carte à lui, ou l'host dans la zone d'un invité : le jeu paie comme avant (pas de demande).
 - `bill_debt` (dette d'un prêteur) n'est pas couvert.
 - Le nom du payeur est `NameSimple` du personnage vu par l'host.
+
+## Après relecture (6 octobre 2026, compilé, rien joué)
+
+- **Préfixe sur `Msg.Say` retiré** (`DumpSparesBeltPatch.cs`) : il ne servait qu'à un journal Debug et `Msg.Say` est
+  appelé très souvent. Pas de trace dans le postfixe : `ListThingsToPut` sert aussi à décider si un coffre vaut la visite,
+  une ligne y dirait « rangé » pour des objets jamais rangés. Conséquence : l'information « lignes `dumped:` » du test
+  `d3b` (`hunt_suite.py`, fichier non touché ici) vaudra 0 ; elle était informative seulement.
+- **Condition « en session »** : laissée à `Transport is not null` (verdict : « dans une partie ouverte par le mod, host
+  seul compris »), pas `NetCompany.HasCompany`. Rien changé.

@@ -241,3 +241,15 @@ Invité « parti voyager » (sans test aujourd'hui) : `travel_suite`, vérifier 
 Ordre : S1 à S4 et C2, puis S6, S7, C7 (mesurer), puis le reste, C1 et C8 en dernier (conseil).
 
 Limites : aucun test joué ; `Helper/PersonalQuests.cs`, `ElinNetHostTravel.cs` et `Models/Delta/*` lus en partie ; coûts en ms supposés.
+
+## Après relecture (6 octobre 2026, compilé, rien joué)
+
+- **S13 retiré** : `CardGenEvent.cs` n'a pas de porte `HasCompany` (la porte a été ôtée volontairement, risque de
+  désynchronisation). La table disait « fait » à tort : corrigée. M9 (copie `LZ4Bytes.Create` par carte créée, sans
+  destinataire) reste un coût ouvert.
+- **S15** : seul, `ActionModeCombat` vide aussi `EnemyVisibility` (ce que les autres avaient vu avant de partir ne reste
+  pas vrai ; vider un dictionnaire vide ne coûte rien). `CharaVisibilityChangeEvent` n'écrit rien quand on est seul, le
+  vidage chaque image y suffit : rien changé dans ce fichier. Reste : seul dans une zone éloignée (`Connection` nulle),
+  la branche d'avant ne vide pas ; `ZoneActivateEvent` le fait à chaque nouvelle carte.
+- **`NetCompany.Invalidate()`** est appelée par `SteamNetManager.AddConnection` : le cache de 50 ms est relu dès l'arrivée
+  d'une connexion.

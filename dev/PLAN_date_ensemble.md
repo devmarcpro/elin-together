@@ -89,3 +89,31 @@ Aucune nécessaire. Rien n'a été écrit dans `PersonalQuests.cs`, `SleepSynchr
   la protection du corps pour les sauts qui restent (nuit commune, cases décochées).
 - Pas joué par le banc : compagnons, voyage express réel, troisième joueur, invité sur sa propre copie de la
   carte du monde pendant que l'host y marche, concert et mariage.
+
+## Après relecture (6 octobre 2026, compilé, rien joué)
+
+- **Transpileurs** (`RemoteTravelRegionPatch.cs`) : un motif absent (`currentZone.IsRegion`, `AdvanceMin`, ou
+  `AdvanceHour` pour le voyage express) ne lève plus : le transpileur rend les instructions d'origine (tout ou rien) et
+  écrit un avertissement. Le jeu publié est en 23.352, le décompilé relu en 23.351.
+- **Le message « tes amis sont ailleurs »** n'est dit que par l'host (`Tell` : `Transport is ElinNetHost`), le seul à
+  savoir que c'est vrai. L'invité à côté de l'host et l'invité seul sur sa copie de la carte du monde (là `session.IsHost`
+  est vrai mais `Transport` est un client) ne le lisent plus, ni au pas ni au voyage express.
+- **Case décochée** : `DateMoves` rend vrai avant tout autre test, pas de message, `IsPayingStep` faux : la date de
+  l'invité seul avance comme avant. Relu, rien à corriger.
+- **Inégalité host/invité qui reste** (case cochée) : un invité ne sait pas où sont les autres, donc SES pas ne font
+  jamais avancer la date (ni à côté de l'host, ni seul sur sa copie). Tout le monde sur la carte du monde : l'host fait
+  un pas, la date avance de 3 h pour tous ; l'invité fait un pas, elle n'avance pas. La date de la copie d'un invité
+  suit celle de l'host. Pour l'égalité il faudrait dire à l'invité où sont les autres (un message de plus).
+- **Compte double des tours** (suspect B4, vérifié avec la Harmony du jeu, 2.10, sur .NET Framework) : un préfixe qui
+  rend `false` n'empêche pas les préfixes suivants de tourner, ils voient `__runOriginal == false`. Donc
+  `CharaTickConditionEvent` envoyait son propre `CharaTickConditionDelta` après `TravelStepTurnsPatch` : un second message
+  pour chaque compagnon de l'invité, et un message pour chaque personnage NON simulé (dont l'original était sauté).
+  Corrigé : `CharaTickConditionEvent` prend `bool __runOriginal` et sort sans rien dire si l'original est sauté.
+- **Volume réseau** : `CharaTickConditionDelta` a un champ `Count` (clé 1, 1 par défaut : un ancien message compte pour
+  un tour). Pendant un pas (`IsPayingStep`), les tours sont comptés par personnage (`CharaTickConditionDelta.Emit`) et
+  envoyés en UN message chacun à la fin du pas (`OnMoveEnd`, aussi sur abandon ou exception) : ~120 messages -> 1 par
+  personnage, chez l'invité comme chez l'host (même code). À l'arrivée le tour est joué `Count` fois (au plus 1000, arrêt
+  si le personnage meurt). Hors pas, un message par tour comme avant. Effet de bord : ces messages partent à la fin du
+  pas et non entre deux tours (l'ordre avec les autres messages du pas change).
+- Pas sûr : `IsPayingStep` n'est remis à faux que par le pas du joueur ; un pas d'un autre personnage sur la carte du monde
+  le laisserait vrai jusqu'au prochain pas du joueur (déjà vrai avant, plus visible maintenant que les tours sont comptés).

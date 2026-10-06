@@ -49,3 +49,19 @@ tampon raisonnable ne tient un monde de plusieurs Mo, et « essayer, garder si r
 3. Rouge sur l'ancien build : le client rejoint ou revient, journal de l'host « Message of N bytes not sent ».
    Vert sur le nouveau : « Message of N bytes sent in K pieces », le client charge, `parity_suite` reste verte.
 4. Faire partir un invité avec cette carte, attendre un point de passage (60 s), revenir : carte identique.
+
+## Après relecture (6 octobre 2026, compilé, `chunk_check` : ALL OK, rien joué)
+
+- **Trou définitif fermé** (`SteamNetPeer.cs`, `Break`) : au-delà de 64 Mio en attente, ou sur une erreur de Steam autre
+  que « file pleine » pendant `Flush`, le pair est marqué cassé (`BrokenReason = RemoteClosed`), sa file est vidée,
+  avertissement au journal, et `SteamNetManager.Poll` appelle `Disconnect` sur lui à l'image suivante. Les deux côtés
+  lisent `RemoteClosed` comme un lien perdu (`IsLinkLost`) : l'invité se reconnecte seul (`NetReconnect`). Pas de fermeture
+  depuis `Send` même : il tourne chez n'importe qui (diffusion, gestionnaires) et `Disconnect` rappelle l'écouteur.
+  Pas couvert : une erreur autre que « file pleine » sur le chemin direct de `Send` (message fiable seul, file vide)
+  renvoie encore `false` sans fermer (le lien est sans doute déjà mort ; à décider si on veut le même traitement).
+- **`SteamNetTypeRegistry`** : un type dont le hash vaut `NetFragments.Magic` fait lever une exception à
+  l'enregistrement du gestionnaire (au démarrage), message qui dit de renommer le type.
+- **`InterruptedMessages`** est lu dans `SteamNetManager.Poll` : avertissement « A big message of … was given up ».
+- **Mémoire à la demande** (`NetFragments.cs`) : l'assembleur garde les morceaux reçus et ne fabrique le message entier
+  qu'au dernier morceau (une copie de plus, jamais de réservation de 64 Mio sur la foi de l'en-tête). Test ajouté dans
+  `chunk_check` : « a first piece claiming 64 MB reserves nothing ».
