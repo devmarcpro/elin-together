@@ -53,11 +53,6 @@ internal static class CardGenEvent
             return;
         }
 
-        // alone: nobody to tell, who arrives gets the whole map
-        if (!NetCompany.HasCompany) {
-            return;
-        }
-
         connection.Delta.AddRemote(CardGenDelta.Create(__result));
     }
 }

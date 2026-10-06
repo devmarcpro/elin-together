@@ -25,8 +25,18 @@ K1  (nuit commune) l'invite a SON grimoire, SON oreiller, SON lit : au reveil il
     sort appris chez lui et chez l'host, un tirage de recette, un sort en reve, oreiller, puissance de son lit) et
     l'host n'a rien recu de son livre (plan : dev/PLAN_retours_soiree_6_octobre.md, point 10)
 
+« Chacun dort pour soi » (conseil 10, point iii ; case host « OwnSleep », cochee ; plan : dev/PLAN_nuit_chacun_pour_soi.md)
+N1  l'invite se couche, l'host marche : l'invite se reveille seul en moins de 20 secondes, repose (fatigue a zero,
+    faim +20) ; la date des deux jeux a avance de moins de 30 minutes ; l'host n'a ni dormi ni eu faim en plus
+N2  l'inverse : l'host se couche, l'invite marche
+N3  les deux se couchent : « tout le monde dort », la date avance d'une nuit, une seule fois, des deux cotes
+N4  un joueur repose essaie de se coucher seul : refuse comme en solo ; il peut des que l'autre dort deja
+Avec cette regle les etapes d'avant decrivent toujours la nuit commune (Z1, Z2, P2, B1, K1 : l'invite se couche,
+l'host tout de suite apres) ; B2 et B3 (« l'invite renonce ») et Y1 (« l'heure a avance ») suivent la regle en cours.
+
     python _tools/sleep_suite.py --only z0,p1,z1,p2,z2      # la nuit des chats
     python _tools/sleep_suite.py --only y2                  # a lancer a la Prairie, host et invite ensemble
+    python _tools/sleep_suite.py --only n1,n2,n3,n4         # chacun dort pour soi
 """
 import argparse
 import sys
@@ -135,8 +145,9 @@ def p1(ctx):
 
 def p2(ctx):
     """la nuit commune vient de commencer, le tour « dormir a cote » est passe : chaque chat est pres de SON dormeur
-    L'host et l'invite se couchent dans le meme tour (la nuit n'a lieu que quand tous sont prets) : cette nuit
-    couvre « l'host dort » et « l'invite dort ». Meme limites que p1 ; l'invite dort par pc.Sleep() et non dans un
+    L'host et l'invite se couchent l'un apres l'autre (z1) : cette nuit couvre « l'host dort » et « l'invite dort ».
+    Avec « chacun dort pour soi » le chat de l'invite vient des que l'invite s'endort, celui de l'host au debut de
+    la nuit de l'host. Meme limites que p1 ; l'invite dort par pc.Sleep() et non dans un
     lit. Rouge avant la correction : le chat de l'invite est sur le lit de l'host, rien ne vient a l'invite"""
     d = ev(H, f'var h = EClass.pc; var g = EClass._map.charas.Find(x => x.uid == {ctx["a"]}); '
               f'var ch = EClass._map.charas.Find(x => x.uid == {ctx["hc"]}); var cg = EClass._map.charas.Find(x => x.uid == {ctx["ac"]}); '
@@ -152,7 +163,9 @@ def p2(ctx):
 
 
 def z1(ctx):
-    """l'invite demande a dormir, l'host se couche : l'ecran de sommeil s'ouvre des deux cotes"""
+    """l'invite demande a dormir, l'host se couche : l'ecran de sommeil s'ouvre des deux cotes
+    Avec « chacun dort pour soi » l'invite dort tout de suite sa propre nuit ; l'host se couche pendant qu'elle
+    dure, et c'est la nuit commune (si l'host tardait plus que la nuit de l'invite, chacun dormirait la sienne)"""
     ctx["before"] = {"H": view(H), "A": view(A)}
     log(f"avant : host {ctx['before']['H']}")
     log(f"avant : client {ctx['before']['A']}")
@@ -235,6 +248,24 @@ def lie_down(ctx):
     return ok and eventually(lambda: where(ctx, H) == "sol,sol" and where(ctx, A) == "sol,sol", timeout=10)
 
 
+OWN_RULE = 'ElinTogether.Net.NetSession.Instance.Rules.UseOwnSleep.ToString()'
+
+
+def own_rule(*ports):
+    """la regle « chacun dort pour soi » est celle de ces jeux"""
+    return all(ev(p, OWN_RULE) == "True" for p in (ports or (H, A)))
+
+
+def give_up():
+    """l'invite renonce a dormir. Regle d'avant : il bouge avant que l'host dorme, son sommeil est annule.
+    « Chacun dort pour soi » : on ne renonce pas (l'ecran de nuit est la tout de suite, comme en solo), sa nuit
+    finit seule en quelques secondes"""
+    if own_rule():
+        return eventually(lambda: awake(A), timeout=40)
+    ev(A, STEP)
+    return eventually(lambda: not view(A)["asleep"], timeout=15)
+
+
 def b1(ctx):
     """l'invite dort avec le lit et l'oreiller de son sac : au reveil ils sont revenus dans son sac
     (signale par l'utilisateur le 2026-10-02 : le lit restait pose par terre)"""
@@ -254,12 +285,12 @@ def b1(ctx):
 
 
 def b2(ctx):
-    """l'invite se couche puis renonce (il bouge avant que l'host dorme) : lit et oreiller reviennent aussi"""
+    """l'invite se couche puis renonce (il bouge avant que l'host dorme) : lit et oreiller reviennent aussi
+    Avec « chacun dort pour soi » : l'invite dort seul sa nuit (l'host reste debout), voir give_up"""
     bedding(ctx)
     ok = lie_down(ctx)
     check(f"l'invite se couche : lit et oreiller poses au sol des deux cotes (host : {where(ctx, H)})", ok)
-    ev(A, STEP)
-    check("l'invite n'attend plus le sommeil", eventually(lambda: not view(A)["asleep"], timeout=15))
+    check("l'invite n'attend plus le sommeil", give_up())
     ok = eventually(lambda: where(ctx, A) == "sac,sac", timeout=15)
     check(f"chez l'invite, lit et oreiller sont revenus dans son sac ({where(ctx, A)})", ok)
     ok = eventually(lambda: where(ctx, H) == "sac,sac", timeout=15)
@@ -277,8 +308,7 @@ def b3(ctx):
     ev(A, f'EClass.pc.Sleep(EClass._map.things.Find(t => t.uid == {bed})); "ok"')
     check("l'host note que l'invite veut dormir",
           eventually(lambda: ev(H, f'(EClass._map.charas.Find(x => x.uid == {ctx["me"]}).conSleep != null).ToString()') == "True", timeout=10))
-    ev(A, STEP)
-    check("l'invite n'attend plus le sommeil", eventually(lambda: not view(A)["asleep"], timeout=15))
+    check("l'invite n'attend plus le sommeil", give_up())
     time.sleep(3)
     check(f"le lit est reste sur la carte (invite : {where(ctx, A)}, host : {where(ctx, H)})",
           where(ctx, A) == "sol" and where(ctx, H) == "sol")
@@ -381,6 +411,165 @@ def k1(ctx):
               + (f'EClass.player.domains.Remove({domain}); ' if domain != "0" else "") + '"ok"')
 
 
+BODY = ('var p = EClass.pc; return p.sleepiness.value + "|" + p.hunger.value + "|" + (p.conSleep != null) + "|" '
+        '+ EClass.world.date.GetRaw() + "|" + p.pos.x + "," + p.pos.z;')
+
+
+def body(port):
+    """le corps de ce joueur dans son propre jeu (fatigue et faim ne se lisent que la), et la date de ce jeu"""
+    tired, hunger, asleep, now, pos = ev(port, BODY).split("|")
+    return {"tired": int(tired), "hunger": int(hunger), "asleep": asleep == "True", "now": int(now), "pos": pos}
+
+
+def ready_for_bed(port, tired):
+    """ce joueur est epuise, ou au contraire repose (fatigue a zero, endurance pleine : le jeu refuse alors le lit) ;
+    faim a 30 pour que +20 se lise ; un lit dans son sac (cree par l'host, qui tient la carte, s'il n'en a pas)"""
+    dismiss_dialogs(port)
+    ev(port, 'var p = EClass.pc; p.hunger.Set(30); p.stamina.Set(p.stamina.max); '
+             + ('p.sleepiness.Set(p.sleepiness.max); ' if tired else 'p.sleepiness.Set(0); ') + '"ok"')
+    has = lambda: ev(port, '(EClass.pc.things.Find<TraitBed>() != null).ToString()') == "True"  # noqa: E731
+    if not has():
+        who = "EClass.pc" if port == H else f'EClass._map.charas.Find(x => x.uid == {state(port)["pc"]["uid"]})'
+        ev(H, f'{who}.AddThing(ThingGen.Create("bed")); "ok"')
+        eventually(has, timeout=10)
+    return has()
+
+
+def to_bed(port):
+    """« Dormir » de la barre : le jeu verifie la fatigue, pose le lit du sac aux pieds du joueur et le couche
+    (c'est l'action que lance le clic sur la barre ; le clic lui-meme n'est pas joue)"""
+    ev(port, 'new HotItemActionSleep().Perform(); "ok"')
+
+
+def up(port):
+    """ce joueur est debout : ni ecran de nuit, ni sommeil"""
+    v = view(port)
+    return "LayerSleep" not in v["layers"] and not v["asleep"]
+
+
+def bed_in_bag(port):
+    return ev(port, '(EClass.pc.things.Find<TraitBed>() != null && !EClass._map.things.Any(t => t.trait is TraitBed && t.pos.Equals(EClass.pc.pos))).ToString()') == "True"
+
+
+def night_alone(sleeper, walker, s, w):
+    """un joueur se couche, l'autre marche. Mesures prises dans le jeu de chacun
+    Ce que le banc ne joue pas comme un joueur : la fatigue, la faim et l'endurance de depart sont posees par
+    eval, le lit est cree dans le sac ; le dormeur passe par l'action « Dormir » de la barre (pas par le clic) ;
+    celui qui marche fait un pas par seconde vers la case libre voisine (SetAIImmediate, comme une touche) ;
+    les compagnons de celui qui marche ne sont pas regardes ; les textes a l'ecran ne sont pas lus"""
+    if not check("la regle « chacun dort pour soi » est active des deux cotes", own_rule()):
+        return
+    ready_for_bed(walker, tired=False)
+    if not check(f"{s} est epuise et a un lit dans son sac", ready_for_bed(sleeper, tired=True)):
+        return
+    time.sleep(2)
+    before = {p: body(p) for p in (sleeper, walker)}
+    t0 = time.time()
+    to_bed(sleeper)
+    check(f"{s} s'endort tout de suite", eventually(lambda: body(sleeper)["asleep"], timeout=10))
+    woke, dozed = None, False
+    while time.time() - t0 < 60:
+        ev(walker, STEP)
+        dozed = dozed or not up(walker)
+        if up(sleeper):
+            woke = time.time() - t0
+            break
+        time.sleep(1)
+    check(f"{s} se reveille seul, sans attendre personne, en moins de 20 secondes ({'jamais' if woke is None else f'{woke:.0f} s'})",
+          woke is not None and woke < 20)
+    time.sleep(3)
+    after = {p: body(p) for p in (sleeper, walker)}
+    v = view(sleeper)
+    log(f"{s} : {before[sleeper]} -> {after[sleeper]} ; {w} : {before[walker]} -> {after[walker]}")
+    check(f"{s} est repose : fatigue a zero ({before[sleeper]['tired']} -> {after[sleeper]['tired']})", after[sleeper]["tired"] <= 2)
+    gain = after[sleeper]["hunger"] - before[sleeper]["hunger"]
+    check(f"{s} : +20 de faim (+{gain})", 18 <= gain <= 26)
+    check(f"{s} peut agir (entrees {'bloquees' if v['halted'] else 'libres'}, mode {v['mode']})", not v["halted"] and not v["dead"])
+    check(f"{s} : le lit pose par la barre est revenu dans son sac", eventually(lambda: bed_in_bag(sleeper), timeout=10))
+    for p, who in ((sleeper, s), (walker, w)):
+        moved = after[p]["now"] - before[p]["now"]
+        check(f"la date du jeu de {who} n'a pas saute (+{moved} min, moins de 30)", 0 <= moved < 30)
+    check(f"{w} n'a jamais dormi ni vu d'ecran de nuit", not dozed and up(walker))
+    gain = after[walker]["hunger"] - before[walker]["hunger"]
+    check(f"{w} n'a pas eu faim en plus (+{gain}) ni ete repose de force (fatigue {before[walker]['tired']} -> {after[walker]['tired']})",
+          gain <= 3 and after[walker]["tired"] >= before[walker]["tired"])
+    check(f"{w} a marche pendant ce temps ({before[walker]['pos']} -> {after[walker]['pos']})", after[walker]["pos"] != before[walker]["pos"])
+    if sleeper == A:
+        me = state(A)["pc"]["uid"]
+        check("vu de l'host, l'invite ne dort plus",
+              eventually(lambda: ev(H, f'(EClass._map.charas.Find(x => x.uid == {me}).conSleep == null).ToString()') == "True", timeout=10))
+
+
+def n1(ctx):
+    """l'invite se couche, l'host marche : l'invite dort sa nuit a lui, tout de suite, la date ne bouge pas
+    (rouge avant « chacun dort pour soi » : l'invite attend sans fin que l'host se couche). Limites : night_alone"""
+    night_alone(A, H, "l'invite", "l'host")
+
+
+def n2(ctx):
+    """l'host se couche, l'invite marche : l'host vit ce que l'invite vit en n1 (ni l'invite ni ses compagnons ne
+    sont endormis, soignes ou affames par le sommeil de l'host). Limites : night_alone"""
+    night_alone(H, A, "l'host", "l'invite")
+
+
+def n3(ctx):
+    """les deux se couchent, l'host d'abord, l'invite aussitot apres : la nuit passe, une seule fois
+    Ce que le banc ne joue pas comme un joueur : memes poses par eval que night_alone ; un seul ordre est joue ici
+    (z1 joue l'autre : l'invite d'abord) ; la longueur de la nuit n'est verifiee qu'entre 3 et 19 heures (le jeu la
+    tire entre 4 et 18 selon la fatigue)"""
+    if not check("la regle « chacun dort pour soi » est active des deux cotes", own_rule()):
+        return
+    for port, who in ((H, "l'host"), (A, "l'invite")):
+        check(f"{who} est epuise et a un lit dans son sac", ready_for_bed(port, tired=True))
+    time.sleep(2)
+    before = {p: body(p) for p in (H, A)}
+    to_bed(H)
+    to_bed(A)
+    for port, who in ((H, "l'host"), (A, "l'invite")):
+        check(f"l'ecran de nuit s'ouvre chez {who}", eventually(lambda port=port: "LayerSleep" in view(port)["layers"], timeout=30))
+    for port, who in ((H, "l'host"), (A, "l'invite")):
+        check(f"{who} se reveille", eventually(lambda port=port: awake(port), timeout=180))
+    time.sleep(3)
+    after = {p: body(p) for p in (H, A)}
+    log(f"host : {before[H]} -> {after[H]} ; invite : {before[A]} -> {after[A]}")
+    for port, who in ((H, "l'host"), (A, "l'invite")):
+        moved = after[port]["now"] - before[port]["now"]
+        check(f"chez {who} la date a avance d'une nuit, une seule ({moved // 60} h {moved % 60} min)", 180 <= moved <= 19 * 60)
+        gain = after[port]["hunger"] - before[port]["hunger"]
+        check(f"{who} est repose (fatigue {after[port]['tired']}) et n'a eu qu'une nuit de faim (+{gain})",
+              after[port]["tired"] <= 2 and 18 <= gain <= 26)
+    check(f"la meme date des deux cotes ({after[H]['now']} / {after[A]['now']})", abs(after[H]["now"] - after[A]["now"]) <= 15)
+
+
+def n4(ctx):
+    """un joueur repose essaie de se coucher seul : refuse comme en solo (« pas sommeil ») ; il est accepte des que
+    l'autre dort deja. Joue dans les deux sens
+    Ce que le banc ne joue pas comme un joueur : memes poses par eval que night_alone ; « l'autre dort deja » est
+    juge une seconde apres qu'il s'est couche (le temps que l'invite l'apprenne de l'host)"""
+    if not check("la regle « chacun dort pour soi » est active des deux cotes", own_rule()):
+        return
+    for port, who in ((A, "l'invite"), (H, "l'host")):
+        for p in (H, A):
+            ready_for_bed(p, tired=False)
+        told = said(port, "notSleepy")
+        to_bed(port)
+        time.sleep(3)
+        check(f"{who}, repose, ne peut pas se coucher seul : il reste debout, son lit dans son sac, et lit « pas sommeil »",
+              up(port) and bed_in_bag(port) and said(port, "notSleepy") > told)
+    for first, second, f, s in ((H, A, "l'host", "l'invite"), (A, H, "l'invite", "l'host")):
+        if not check("tout le monde est debout", eventually(lambda: up(H) and up(A), timeout=60)):
+            return
+        ready_for_bed(first, tired=True)
+        ready_for_bed(second, tired=False)
+        to_bed(first)
+        check(f"{f}, epuise, se couche", eventually(lambda first=first: body(first)["asleep"], timeout=10))
+        time.sleep(1)
+        to_bed(second)
+        check(f"{s}, repose, peut le rejoindre : il s'endort aussi", eventually(lambda second=second: body(second)["asleep"], timeout=10))
+        for port, who in ((H, "l'host"), (A, "l'invite")):
+            check(f"{who} se reveille", eventually(lambda port=port: awake(port), timeout=180))
+
+
 def z3(ctx):
     """panne provoquee : la fin de la nuit plante chez l'host. Personne ne doit rester dans l'ecran de sommeil
     (a lancer seul : --only z3 ; les exceptions des journaux sont voulues, elles ne sont pas comptees)"""
@@ -423,7 +612,11 @@ def y1(ctx):
         v = view(A)
         check(f"l'invite se reveille et peut agir (ecrans : {v['layers'] or 'aucun'}, entrees "
               f"{'bloquees' if v['halted'] else 'libres'})", woke and not v["halted"])
-        check("chez lui, l'heure a avance", v["now"] > before["A"]["now"])
+        if own_rule(H):
+            # chacun dort pour soi : sa nuit ne fait pas avancer la date du monde, meme seul sur sa carte
+            check(f"chez lui, la date n'a pas saute (+{v['now'] - before['A']['now']} min)", 0 <= v["now"] - before["A"]["now"] < 30)
+        else:
+            check("chez lui, l'heure a avance", v["now"] > before["A"]["now"])
     h = view(H)
     check("l'host n'a pas dormi", not h["asleep"] and "LayerSleep" not in h["layers"])
     move(A, HOME)
@@ -487,9 +680,9 @@ def main():
     t0 = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
 
     ctx = {}
-    steps = [z0, p1, z1, p2, z2, b1, b2, b3, k1, y1, y2]
+    steps = [z0, p1, z1, p2, z2, n1, n2, n3, n4, b1, b2, b3, k1, y1, y2]
     if a.only:
-        steps = [s for s in (w0, z0, p1, z1, p2, z2, b1, b2, b3, k1, y1, y2, z3) if s.__name__ in a.only.split(",")]
+        steps = [s for s in (w0, z0, p1, z1, p2, z2, n1, n2, n3, n4, b1, b2, b3, k1, y1, y2, z3) if s.__name__ in a.only.split(",")]
     for step in steps:
         log(f"--- {step.__name__.upper()} : {step.__doc__}")
         try:

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using ElinTogether.Helper;
 using ElinTogether.Net;
 using ElinTogether.Patches;
 using MessagePack;
@@ -11,6 +12,7 @@ public class CharaSleepDelta : ElinDelta
 {
     private static bool _waking;
     private static bool? _dream;
+    private static int _power;
 
     [Key(0)]
     public required int Power { get; init; }
@@ -31,6 +33,13 @@ public class CharaSleepDelta : ElinDelta
     [Key(3)]
     public string? Recipe { get; init; }
 
+    /// <summary>
+    ///     Guest -> host, once awake: it slept a night of its own (NetSessionRules.UseOwnSleep), nobody slept it
+    ///     for its character there. Power is then the power of the bed it slept in
+    /// </summary>
+    [Key(4)]
+    public bool Own { get; init; }
+
     protected override void OnApply(ElinNetBase net)
     {
         if (net is ElinNetHost host) {
@@ -42,19 +51,49 @@ public class CharaSleepDelta : ElinDelta
             return;
         }
 
+        // the host of the world to a player away from its map: that night ends in its own game
+        if (NetSession.Instance.IsAway && !net.IsZoneSession) {
+            SleepSynchronizationContext.EndAwayNight();
+            return;
+        }
+
         EmpLog.Debug("Applying host sleep {SleepPower}", Power);
 
         var bed = SleepSynchronizationContext.TakeBed();
         try {
             if (pc.conSleep is { } sleep) {
-                WakeUp(net, sleep, bed);
-            } else {
+                WakeUp(net, sleep, bed, false);
+            } else if (!NetSession.Instance.Rules.UseOwnSleep) {
                 using var _ = Simulate();
                 pc.OnSleep(Power, Days, pc.pos.IsSunLit);
                 player.DreamSpell();
             }
         } finally {
             SleepSynchronizationContext.CloseSleepLayerIfOpen();
+        }
+    }
+
+    /// <summary>
+    ///     The night of its own of a guest is over (its night screen ran to its end): it wakes by itself and
+    ///     tells the game that keeps the map
+    /// </summary>
+    internal static void WakeOwn(ElinNetBase net)
+    {
+        if (pc is { isDead: false, conSleep: { } sleep }) {
+            new CharaSleepDelta {
+                Power = 0,
+                Days = 1,
+            }.WakeUp(net, sleep, SleepSynchronizationContext.TakeBed(), true);
+        }
+    }
+
+    /// <summary>
+    ///     Chara.OnSleep of the local player: the power of its rest, for the report of its own night
+    /// </summary>
+    internal static void Rested(int power)
+    {
+        if (_waking) {
+            _power = power;
         }
     }
 
@@ -77,55 +116,71 @@ public class CharaSleepDelta : ElinDelta
     ///     This player wakes as one alone would: the power of its own bed (LayerSleep.Advance), then the game's
     ///     own end of the sleep (ConSleep.OnRemoved): its grimoire, a recipe, a dream spell, its pillow, its karma
     /// </summary>
-    private void WakeUp(ElinNetBase net, ConSleep sleep, Thing? bed)
+    /// <param name="own">a night of its own: the host is told in any case, the character still sleeps there</param>
+    private void WakeUp(ElinNetBase net, ConSleep sleep, Thing? bed, bool own)
     {
         var books = pc.things.Find<TraitGrimoire>()?.things.List(b => b.trait is TraitBaseSpellbook)
             .Select(b => (Book: b, Charges: b.c_charges, Read: b.isOn)).ToList() ?? [];
 
+        string? recipe = null;
         _dream = null;
+        _power = 0;
         _waking = true;
         try {
-            using var _ = Simulate();
-            pc.OnSleep(bed, Days);
-            sleep.slept = true;
-            sleep.Kill();
+            try {
+                using var _ = Simulate();
+                pc.OnSleep(bed, Days);
+                sleep.slept = true;
+                sleep.Kill();
+            } finally {
+                _waking = false;
+            }
+
+            if (_dream is { } ehekatl) {
+                var known = new Dictionary<string, int>(player.recipes.knownRecipes);
+                player.recipes.OnSleep(ehekatl);
+                Rand.SetSeed();
+
+                // one recipe, and the variants the game learns with it (pillar, bridge): the shortest id brings them
+                recipe = player.recipes.knownRecipes
+                    .Where(r => !known.TryGetValue(r.Key, out var count) || count != r.Value)
+                    .Select(r => r.Key)
+                    .OrderBy(id => id.Length)
+                    .FirstOrDefault();
+            }
         } finally {
-            _waking = false;
+            // told even when the wake-up threw: the host keeps the books, and what was read of them is read
+            var read = books.Where(b => b.Book.c_charges != b.Charges || b.Book.isOn != b.Read)
+                .SelectMany(b => new[] { b.Book.uid, b.Book.c_charges, b.Book.isOn ? 1 : 0 })
+                .ToArray();
+            if (own || read.Length > 0 || recipe is not null) {
+                net.Delta.AddRemote(new CharaSleepDelta {
+                    Power = own ? _power : Power,
+                    Days = Days,
+                    Books = read,
+                    Recipe = recipe,
+                    Own = own,
+                });
+            }
         }
-
-        string? recipe = null;
-        if (_dream is { } ehekatl) {
-            var known = new Dictionary<string, int>(player.recipes.knownRecipes);
-            player.recipes.OnSleep(ehekatl);
-            Rand.SetSeed();
-
-            // one recipe, and the variants the game learns with it (pillar, bridge): the shortest id brings them
-            recipe = player.recipes.knownRecipes
-                .Where(r => !known.TryGetValue(r.Key, out var count) || count != r.Value)
-                .Select(r => r.Key)
-                .OrderBy(id => id.Length)
-                .FirstOrDefault();
-        }
-
-        var read = books.Where(b => b.Book.c_charges != b.Charges || b.Book.isOn != b.Read)
-            .SelectMany(b => new[] { b.Book.uid, b.Book.c_charges, b.Book.isOn ? 1 : 0 })
-            .ToArray();
-        if (read.Length == 0 && recipe is null) {
-            return;
-        }
-
-        net.Delta.AddRemote(new CharaSleepDelta {
-            Power = Power,
-            Days = Days,
-            Books = read,
-            Recipe = recipe,
-        });
     }
 
     private void OnGuestAwake(ElinNetHost host)
     {
         if (!host.ActiveRemoteCharas.TryGetValue(OriginPeer, out var sender)) {
             return;
+        }
+
+        // a night of its own: its character still sleeps here, and what the end of a night does for "the party"
+        // was done by nobody: its body and its own companions rest here too (hit points are the host's to keep)
+        if (Own && NetSession.Instance.Rules.UseOwnSleep && sender.conSleep is { } sleep) {
+            using var _ = Simulate();
+            sleep.Kill();
+            foreach (var chara in CompanionHelper.CompanionsOf(sender).Prepend(sender)) {
+                if (chara is { isDead: false, IsInActiveMap: true }) {
+                    chara.OnSleep(System.Math.Clamp(Power, 0, 1000));
+                }
+            }
         }
 
         // only its own books, only fewer charges

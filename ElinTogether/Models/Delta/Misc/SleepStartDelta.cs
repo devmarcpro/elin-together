@@ -1,4 +1,5 @@
 using ElinTogether.Net;
+using ElinTogether.Patches;
 using MessagePack;
 
 namespace ElinTogether.Models;
@@ -16,7 +17,8 @@ public class SleepStartDelta : ElinDelta
             return;
         }
 
-        if (pc.isDead || ui.GetLayer<LayerSleep>() is not null) {
+        // own sleep: a player awake is left alone, the night screen of one asleep becomes the world's
+        if (pc.isDead || SleepSynchronizationContext.JoinNight(Hours, NetSession.Instance.IsAway && !net.IsZoneSession)) {
             return;
         }
 

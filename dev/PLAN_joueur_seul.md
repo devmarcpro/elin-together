@@ -4,6 +4,49 @@ Enquête en lecture seule (2026-10-06). Rien compilé, rien joué. **lu** = code
 `dev/_decomp/Elin_23351`). **supposé** = déduit, à prouver au banc. Règle visée : `CurrentPlayers.Count <= 1`
 = jeu solo, bascule propre quand un invité arrive ou part.
 
+## État (2026-10-06, appliqué non testé en jeu : compilé seulement, build ReleaseNightly 0 erreur)
+
+**Porte commune** : `ElinTogether/Net/NetCompany.cs`, `NetCompany.HasCompany` (fichier neuf, lecture seule de l'état existant).
+Elle dit « un autre joueur existe dans ce monde » et PAS `CurrentPlayers.Count > 1` ni `HasActiveConnection` :
+`Connection` nulle (pas de session, ou seul dans une zone éloignée) = faux ; client = vrai (l'host est un autre joueur) ;
+host = `CurrentPlayers.Count > 1` **ou** au moins un pair connecté (`Connection.IsConnected` : poignée de main, choix du
+personnage, invité parti voyager seul). Le test des pairs est relu au plus toutes les 50 ms (il interroge Steam ; les
+lectures de compétence sont le chemin le plus chaud du jeu). Un invité qui arrive est donc vu au plus 50 ms en retard.
+Conséquence voulue : un invité qui voyage seul garde l'host en mode « plusieurs » (le plan voulait, pour la pause des menus
+seulement, `Count > 1` : décision à prendre, voir S16).
+
+| # | État | Où (après changement) | Condition |
+|---|---|---|---|
+| S1 | fait | `AIFuckPatch.cs:16` | `!HasCompany` -> `return true` (le jeu fait l'acte) |
+| S2 | fait | `CharaTaskRemoteEvent.cs:46` (idle) et `:57` (case prise) | `HasCompany` ajouté aux deux tests |
+| S3 | fait | `RemotePlayerKillPatch.cs:29` | `Connection is ElinNetHost && HasCompany` |
+| S4 | fait | `RemoteResidentPatch.cs:131` | `&& HasCompany` sur le refus de la réserve |
+| S5 | fait | `InvSplitThingEvent.cs:17` | `!HasCompany` -> `return true` |
+| S6 | fait | `ElinNetHostZone.cs:25` | `peer is null && Socket.Peers.Count == 0` (pairs, pas la porte : même sens, sans cache) ; ligne du salon gardée ; `InviteToQuestZone` sauté aussi (sans pair il n'envoie rien : relu) |
+| S7 | fait | `ElementChangedEvent.cs:43` (préfixe), `:55` (postfixe) | `!HasCompany` -> sortie |
+| S8 | **pas fait** | `CardAddThingEvent.cs:99` (fichier interdit) et `ShippingStackPatch.cs:15` | le plan les lie : sans la moitié `CardAddThingEvent`, la moitié `ShippingStackPatch` seule fusionnerait des piles d'expéditeurs différents (un reste d'un invité absorbe l'objet de l'host) : à faire ensemble, avec `HasCompany` |
+| S9 | fait | `QuestGiveClientPatch.cs:23` | `&& HasCompany` |
+| S10 | **pas fait** | `AreaWatch.cs:40` (`Patches/Synchronization/**`, interdit) | à faire : `if (!NetCompany.HasCompany) { _map = null; return; }` en tête de `Update` |
+| S11 | n'existe pas dans le plan | | |
+| S12 | fait | `CharaVisibilityChangeEvent.cs:16, 39, 63` | `!HasCompany` -> sortie. Pas de minuteur à forcer ici : `ActionModeCombat` (S15) le remet « dû » |
+| S13 | fait | `CardGenEvent.cs:57` | `!HasCompany` -> sortie avant `AddRemote` (le chemin client et « ability fake card » ne changent pas) |
+| S14 | fait | `TileStateDelta.cs:44` (`Mark`) et `:67` (`Flush`) | `&& HasCompany` ; `_dirty` est vidé à la fin de `Flush` comme avant |
+| S15 | fait | `ActionModeCombat.cs:64` | `!HasCompany` -> `_visibilityTimer = VisibilityRefreshInterval; ChangePhaseLocal(Inactive); return` (la porte vaut vrai pour un client : rien ne change pour lui) |
+| S16 | fait | `PauseGame.cs:44`, `RemoteSharedSpeedPatch.cs:13` | `HasCompany` à la place de `HasActiveConnection`. Pas fait : `RemoteMinimapPatch.cs:16, 29`, `RemotePartyPatch.cs:22` (cités en M16, absents de S16) |
+
+À décider avant de passer plus loin : (a) S16, invité parti voyager seul : la pause des menus de l'host revient-elle (plan, `Count > 1`)
+ou reste-t-elle coupée (appliqué, plus prudent) ? (b) un client seul dans une zone éloignée (`Connection` nulle) passe maintenant
+au jeu pur pour la pause des menus et la vitesse partagée (avant : `HasActiveConnection` vrai) ; cohérent avec « le jeu tourne en solo
+là-bas », non testé. (c) S2 : seul, le test « idle identique ignoré » est levé : `CharaTaskDelta` d'une tâche vide est alors fabriqué et
+envoyé à personne à chaque `SetAI` idle du joueur (coût faible, `NetProfileSynchronizationContext.Update` seulement un delta si la main
+change) ; une sortie anticipée `host seul -> return true` en tête de `OnSetAI` couvrirait S2 en entier et supprimerait ce coût.
+
+**Reste à faire** : S8 (deux fichiers, dont `CardAddThingEvent.cs:99` : `ShippingHelper.Enabled ?` -> `ShippingHelper.Enabled && NetCompany.HasCompany ?`, puis
+`ShippingStackPatch.cs:15` : première condition `&& NetCompany.HasCompany`), S10 (`AreaWatch.cs:40`), C1 à C8 (non touchés). Test : `dev/_tools/solo_suite.py`
+(écrit, jamais lancé ; couvre Z0 à Z10 = S1 à S7, S12, S15, S16 ; pas S13, S14, S6 seulement par les lignes du journal).
+Le plan §6 dit pour S2 « refusé seulement si l'invité vise la case » : le code refuse pour tout perso de la carte (`TaskCache.IsPosTaken`
+lit `map.charas`), la suite attend ce que fait le code. Décompilation de référence : `Elin_23351`, jeu actuel 23.352 (non relue).
+
 ## 0. Faits qui changent le tableau
 
 - **Release : les patchs n'existent que pendant une session** (`Net/Base/ElinNetBase.cs:41-47` PatchAll au démarrage du

@@ -1,4 +1,5 @@
 using ElinTogether.Net;
+using ElinTogether.Patches;
 using MessagePack;
 
 namespace ElinTogether.Models;
@@ -17,8 +18,8 @@ public class SleepCancelDelta : ElinDelta
             return;
         }
 
-        // too late if high rtt
-        if (ui.GetLayer<LayerSleep>() is not null) {
+        // too late if high rtt (a night of the host's own holds nobody else)
+        if (ui.GetLayer<LayerSleep>() is not null && !SleepSynchronizationContext.IsOwnNight) {
             return;
         }
 

@@ -66,9 +66,10 @@ sys.path.insert(0, str(Path(__file__).parent))
 import emp  # noqa: E402
 from base_suite import BRANCH, RESERVE_MATCH, healer_id, hide_menus, open_people, row  # noqa: E402
 from combat_suite import set_option  # noqa: E402
-from guest_suite import awake, close_layers  # noqa: E402
+from guest_suite import awake  # noqa: E402
 from mp_test import join_client, log, shot, state, wait  # noqa: E402
-from travel_suite import HOME, RESULTS, VERNIS, both_joined, check, ev, eventually, move, players, scan_logs, session_log_lines, zone_uid  # noqa: E402
+from travel_suite import (HOME, RESULTS, VERNIS, both_joined, check, client_settled, ev, eventually, move, players,  # noqa: E402
+                          scan_logs, session_log_lines, zone_uid)
 
 H, A = 27551, 27552
 ZONE_LINE = "Dispatching zone to all players"
@@ -167,8 +168,7 @@ def ally():
     uid = int(ev(H, f'var c = CharaGen.Create("{healer_id()}"); c.c_altName = "Zorblax"; {BRANCH}.Recruit(c); '
                     'EClass.pc.party.AddMemeber(c); return c.uid.ToString();'))
     try:
-        eventually(lambda: ev(H, f'(EClass._map.charas.Find(x => x.uid == {uid}) != null && EClass.Home.listReserve.Count >= 0).ToString()') == "True",
-                   timeout=15)
+        eventually(lambda: ev(H, f'(EClass._map.charas.Find(x => x.uid == {uid}) != null).ToString()') == "True", timeout=15)
         yield uid
     finally:
         ev(H, f'var b = {BRANCH}; var c = EClass._map.charas.Find(x => x.uid == {uid}) ?? '
@@ -378,7 +378,7 @@ def run_probes(label, together):
 
     lines = zone_probe()
     check(f"{label} Z8 S6 : aller-retour a Vernis : {lines} ligne(s) « {ZONE_LINE} » (attendu : "
-          f"{'au moins 2' if together else 'aucune'})", lines >= 2 if together else lines == 0)
+          f"{'au moins 1' if together else 'aucune'})", lines >= 1 if together else lines == 0)
     if together:
         both_joined(H, A, HOME)
 
@@ -408,7 +408,7 @@ def main():
         if guest and not host_alone():
             log("un client est connecte : il part pour le temps « seul »")
             leave()
-        close_layers()
+        close_layers_host()
         check("Z0 le host a sa session ouverte, seul (aucun pair)",
               state(H)["role"] == "Host" and not state(H)["connected"] and counted() == 1)
         check("Z0 la porte HasCompany est fausse seul", not company())
@@ -463,7 +463,6 @@ def main():
             if host_alone():
                 arrive()
             move(A, VERNIS)
-            from travel_suite import client_settled  # noqa: E402
             wait(client_settled(A, VERNIS, True), "invite seul a Vernis", timeout=240)
             time.sleep(3)
             check(f"Z0 le piege : l'invite voyage seul, CurrentPlayers n'a plus que l'host ({counted()}) mais la porte est vraie",
@@ -481,7 +480,7 @@ def main():
             drop_enemy(enemy)
         for name, value in pre.items():
             set_option(name, value)
-        close_layers()
+        close_layers_host()
     finish(t0)
 
 

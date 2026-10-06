@@ -274,5 +274,8 @@
     "LangGeneral.emp_ui_sv_desc_dump_spares_belt.text": "开：自动收纳不会收走手持的物品和工具腰带里的物品（和快捷栏一样）。关：与原版相同。",
     "LangGeneral.emp_ui_travel_no_date.text": "同伴们在别处：你的旅行不会让日期前进。",
     "LangGeneral.emp_ui_bill_paid.text": "{0} 支付了账单：{1}（{2}）",
-    "LangGeneral.emp_ui_bill_already_paid.text": "这张账单已经付过了，没有扣你的钱。"
+    "LangGeneral.emp_ui_bill_already_paid.text": "这张账单已经付过了，没有扣你的钱。",
+    "LangGeneral.emp_ui_sleep_alone.text": "你睡了一觉。世界的时间没有前进：{0} 还醒着。",
+    "LangGeneral.emp_ui_sleep_count.text": "{0} 睡着了（{1}/{2}）",
+    "LangGeneral.emp_ui_sleep_all.text": "所有人都睡着了：夜晚过去了。"
 }
