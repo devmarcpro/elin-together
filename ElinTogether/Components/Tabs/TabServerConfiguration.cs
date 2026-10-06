@@ -32,6 +32,9 @@ internal class TabServerConfiguration : TabEmpBase
         Option(own, "player_trade", EmpConfig.Server.PlayerTrade);
         Option(own, "guest_build", EmpConfig.Server.GuestBuild);
         Option(own, "player_kill", EmpConfig.Server.PlayerKill);
+        Option(own, "own_sleep", EmpConfig.Server.OwnSleep);
+        Option(own, "time_jumps_together", EmpConfig.Server.TimeJumpsTogether);
+        Option(own, "dump_spares_belt", EmpConfig.Server.DumpSparesBelt);
         Option(own, "host_manages_base", EmpConfig.Server.HostManagesBase);
         Option(own, "duels", EmpConfig.Server.Duels);
 

@@ -119,7 +119,30 @@ public class NetSessionRules
     [Key(16)]
     public bool AllowReconnect { get; set; } = true;
 
+    /// <summary>
+    ///     Council 10: a player who goes to bed sleeps at once for itself; the night passes for the world when all
+    ///     the players sleep at the same time. Off: everyone waits for everyone
+    /// </summary>
+    [Key(17)]
+    public bool UseOwnSleep { get; set; } = true;
+
+    /// <summary>
+    ///     Council 10: a step on the world map moves the date only when all the players travel on it together;
+    ///     else the traveller pays its own turns. Off: every step adds its hours for all
+    /// </summary>
+    [Key(18)]
+    public bool TimeJumpsTogether { get; set; } = true;
+
+    /// <summary>
+    ///     Council 10: auto-dump leaves the held item and the tool belt, as it leaves the hotbar
+    /// </summary>
+    [Key(19)]
+    public bool DumpSparesBelt { get; set; } = true;
+
     public static NetSessionRules Default => new() {
+        UseOwnSleep = EmpConfig.Server.OwnSleep.Value,
+        TimeJumpsTogether = EmpConfig.Server.TimeJumpsTogether.Value,
+        DumpSparesBelt = EmpConfig.Server.DumpSparesBelt.Value,
         AllowReconnect = EmpConfig.Server.AutoReconnect.Value,
         HostManagesBase = EmpConfig.Server.HostManagesBase.Value,
         AllowDuels = EmpConfig.Server.Duels.Value,

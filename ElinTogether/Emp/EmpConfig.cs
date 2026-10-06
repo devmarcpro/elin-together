@@ -265,6 +265,36 @@ internal partial class EmpConfig
             "Only friends can join, and the world needs a claimed land. Otherwise the host clicks \"Start Server\"\n" +
             "读取世界时游戏自动对其他玩家开放，无需点击“启动服务器”；只有好友可以加入，且世界需要已占领的土地。关闭时由主机点击“启动服务器”");
 
+        Server.OwnSleep = config.Bind(
+            "Server",
+            "OwnSleep",
+            true,
+            "A player who goes to bed sleeps at once, for itself, without waiting for the others
+" +
+            "The night only passes for the world when every player is asleep at the same time. Otherwise everyone waits for everyone
+" +
+            "玩家上床后立刻为自己睡觉，不用等别人；只有所有玩家同时睡着时，世界才会过夜。关闭时所有人互相等待");
+
+        Server.TimeJumpsTogether = config.Bind(
+            "Server",
+            "TimeJumpsTogether",
+            true,
+            "A step on the world map only moves the date of the world when all the players travel on it together
+" +
+            "Otherwise the traveller pays its own turns and the date stays. Off: every step of anyone adds 3 hours for all
+" +
+            "只有所有玩家一起在世界地图上旅行时，世界地图上的一步才会推进世界日期；否则旅行者只消耗自己的回合。关闭时任何人的每一步都会让所有人过 3 小时");
+
+        Server.DumpSparesBelt = config.Bind(
+            "Server",
+            "DumpSparesBelt",
+            true,
+            "Auto-dump leaves what the player holds and what is in the tool belt, as it leaves the hotbar
+" +
+            "Otherwise as in the game
+" +
+            "自动收纳不会收走玩家手持的物品和工具腰带里的物品，就像它不会收走快捷栏一样。关闭时与原版相同");
+
         Server.ImportCharacter = config.Bind(
             "Server",
             "ImportCharacter",
@@ -361,6 +391,9 @@ internal partial class EmpConfig
         internal static ConfigEntry<bool> AutoReconnect { get; set; } = null!;
         internal static ConfigEntry<bool> AutoSave { get; set; } = null!;
         internal static ConfigEntry<bool> AutoHost { get; set; } = null!;
+        internal static ConfigEntry<bool> OwnSleep { get; set; } = null!;
+        internal static ConfigEntry<bool> TimeJumpsTogether { get; set; } = null!;
+        internal static ConfigEntry<bool> DumpSparesBelt { get; set; } = null!;
         internal static ConfigEntry<bool> ImportCharacter { get; set; } = null!;
         internal static ConfigEntry<bool> PlayerTrade { get; set; } = null!;
         internal static ConfigEntry<bool> PlayerCombatTime { get; set; } = null!;
