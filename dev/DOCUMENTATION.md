@@ -10,7 +10,7 @@ joueurs**. Chacun va où il veut, avec ses compagnons, et le monde (quêtes, bas
 - Journal détaillé (pièges, essais, dates) : `MODLOG.md`. Ce document-ci dit ce qui existe et comment s'en servir.
 - Les chemins `_tools/`, `_lab/`, `_shots/`, `_release/` de ce document sont relatifs à `dev/`. Le journal parle
   encore de `Documents\ElinMods\` : c'était leur place avant le 2026-10-02.
-- État : 2026-10-05, soir. Dernière version publiée : **0.26.494** (compilée pour Elin EA 23.352 ; elle remplace la 0.26.463,
+- État : 2026-10-05, soir. Dernière version publiée : **0.26.506** (compilée pour Elin EA 23.352 ; elle remplace la 0.26.463,
   commit `895d5b0`). Voir `HANDOFF.md` pour le détail à jour. Dossier de travail : `G:\ElinMods`.
 - Ce document a été complété à 19h30 pour tout ce qui est nouveau depuis la 0.26.463 : les lignes ajoutées sont dans
   les tableaux de la section 1, les options (section 2), le dépôt GitHub (sections 3 et 4), les suites (section 5), les
@@ -101,19 +101,19 @@ Settings », comme les autres dépôts), voir section 3.
 **Pour jouer (toi et ton ami, même zip des deux côtés)** : `_release/ElinTogether-independance.zip`, puis
 `Installer.bat`. `Desinstaller.bat` remet le mod du Workshop. Refaire le zip : `make_release.ps1`. Le zip n'est
 pas dans le dépôt : il se fabrique sur chaque machine.
-La dernière version publiée est la **0.26.494** (2026-10-05, au soir, compilée pour Elin EA 23.352,
-https://github.com/devmarcpro/elin-together/releases/tag/independance-0.26.494). Elle remplace la 0.26.463 (15h35, commit
+La dernière version publiée est la **0.26.506** (2026-10-05, au soir, compilée pour Elin EA 23.352,
+https://github.com/devmarcpro/elin-together/releases/tag/independance-0.26.506). Elle remplace la 0.26.463 (15h35, commit
 `895d5b0`) et la 0.26.442 (commit `f096255`, compilée pour 23.351). **Tout ce qui est décrit dans ce document comme « depuis
-la 0.26.463 » est dans la 0.26.494** (mode construction d'un invité complet, terrain, zones, base gérée par un invité,
-duels, dépôt GitHub, etc.) ; ce qui est écrit « depuis la 0.26.494 » n'y est pas : une nouvelle version se publie
+la 0.26.463 » est dans la 0.26.506** (mode construction d'un invité complet, terrain, zones, base gérée par un invité,
+duels, dépôt GitHub, etc.) ; ce qui est écrit « depuis la 0.26.506 » n'y est pas : une nouvelle version se publie
 seulement avec l'accord de l'utilisateur. Le zip de `_release` est celui de la dernière
 publication ; il est aussi sur la page des versions du dépôt (https://github.com/devmarcpro/elin-together/releases) :
 c'est le lien à donner à un ami. La note de version est `NOTE_version.md`, les README des quatre langues ont
 8 captures dans `assets/screens/` (prises par `_tools/showcase.py`).
-**Le jeu de cette machine peut avoir un build de TEST plus récent que la 0.26.494** (`build.ps1`) : avant de jouer avec
+**Le jeu de cette machine peut avoir un build de TEST plus récent que la 0.26.506** (`build.ps1`) : avant de jouer avec
 quelqu'un, relancer `Installer.bat` du zip publié, sinon la connexion est refusée (versions différentes).
 
-**Garder le monde sur GitHub (dépôt « GitHub », depuis `1d698a5`, dans la 0.26.494).** C'est la troisième sorte de
+**Garder le monde sur GitHub (dépôt « GitHub », depuis `1d698a5`, dans la 0.26.506).** C'est la troisième sorte de
 dépôt du mode « sans Elin », avec un dossier partagé et Elin Together Server. Les quatre étapes sont aussi écrites dans
 le mod (onglet « Client Settings »). Celui qui est propriétaire du dépôt :
 1. crée sur github.com un dépôt **vide et privé**, uniquement pour ce monde (jamais le dépôt public du mod) ;

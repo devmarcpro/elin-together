@@ -1,12 +1,12 @@
-> **Mise à jour du 6 octobre, 2h.** Avant tout : lis `dev/HANDOFF.md`, section « État au 6 octobre, 2h » : elle remplace
-> les points « Le travail » ci-dessous (la 0.26.494 est publiée, arbre propre). Effort faible : réponses courtes, peu
+> **Mise à jour du 6 octobre, 15h.** Avant tout : lis `dev/HANDOFF.md`, section « État au 6 octobre, 15h » : elle remplace
+> les points « Le travail » ci-dessous (la 0.26.506 est publiée, un travail NON COMMITÉ est dans l'arbre : l'étape 1 du conseil 9, ne l'écrase pas). Effort faible : réponses courtes, peu
 > d'agents. Le reste de ce message (but, façon de travailler, interdits, résumés) vaut toujours.
 
 # Message de départ pour une nouvelle session
 
 Pour un travail **sans arrêt**, tape `/loop` puis colle le texte ci-dessous juste après, dans une nouvelle session
 ouverte dans **`G:\ElinMods`** (le dossier a été déplacé le 2026-10-04 ;
-`C:\Users\steamdeckwin\Documents\ElinMods` n'est plus qu'un raccourci vers lui). État décrit : 2026-10-05, 14h45 (session arrêtée à ma demande pour compacter ; rien en cours, arbre propre).
+`C:\Users\steamdeckwin\Documents\ElinMods` n'est plus qu'un raccourci vers lui). État décrit : 2026-10-05, 14h45 (session arrêtée à ma demande pour compacter ; rien en cours, un travail NON COMMITÉ est dans l'arbre : l'étape 1 du conseil 9, ne l'écrase pas).
 
 ---
 

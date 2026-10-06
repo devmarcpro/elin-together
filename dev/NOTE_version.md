@@ -1,6 +1,33 @@
-# Elin Together « indépendance » 0.26.494
+# Elin Together « indépendance » 0.26.506
 
 (English below / version anglaise plus bas)
+
+## Nouveau dans la 0.26.506 (elle remplace la 0.26.494)
+
+- **Le jeu sait tout seul quel personnage est à qui, sans jamais rien demander.** Celui qui reprend un monde (dépôt)
+  joue son propre personnage ; celui de l'ancien hébergeur l'attend et lui revient quand il rejoint. Cela marche aussi
+  pour un monde d'avant cette version. Un joueur qui n'a encore aucun personnage dans le monde passe par l'écran de
+  création du jeu, puis joue le sien. Une copie de secours est faite avant chaque échange.
+- **Corrigé : la 0.26.494 pouvait se tromper de personnage** en reprenant un monde (elle lisait les données de la partie
+  précédente). Ne reprenez pas un monde avec la 0.26.493 ou la 0.26.494.
+- **Dix petites gênes en moins** : boutons du dépôt qui débordaient, messages affichés en code brut ou faux à la
+  connexion, textes japonais restés en anglais, « Add an item » muet dans l'échange, une boîte à valider en moins.
+- **Limite connue**, seulement pour un monde d'avant et à trois joueurs ou plus : un nouveau venu arrivé avant l'ancien
+  hébergeur recevrait son personnage. À deux joueurs, ce cas n'existe pas.
+- **Pas encore dans cette version** (écrit, en test) : le retour automatique après une coupure, la fin de l'écran
+  « Who do you want to play? » à chaque connexion.
+- Testé au banc (deux fenêtres sur un PC) : reprise du monde dans tous les cas 33/33, dépôt GitHub 36/36, quinze autres
+  suites vertes. **Jamais joué à deux vrais PC.** Rouges connus, intermittents : après un duel les points de vie du
+  perdant ne sont pas toujours remis au maximum dans son jeu ; la laisse du compagnon d'un invité ne tire pas toujours.
+
+**New in 0.26.506 (it replaces 0.26.494).** The game knows by itself whose character is whose, and never asks: the
+player who takes a world over plays its own character, the former host's waits and is its own again when it joins;
+worlds made before this version are covered; a player with no character yet makes one on the game's creation screen. A
+backup is made before any exchange. Fixed: 0.26.494 could pick the wrong character when a world was taken over (do not
+take a world over with 0.26.493 or 0.26.494). Ten small frictions removed. Known limit, old worlds with three players or
+more only: a newcomer who arrives before the former host would get its character. Not in this version yet (written, in
+test): automatic reconnection, no character question at each connection. Bench-tested with two windows on one PC, never
+played on two real PCs.
 
 ## Pour qui
 
@@ -71,14 +98,14 @@ Si quelque chose ne va pas : [les tickets](https://github.com/devmarcpro/elin-to
 ## Installer
 
 Il faut [YK Framework](https://steamcommunity.com/sharedfiles/filedetails/?id=3400020753) et Elin sur le canal
-**Nightly** (compilé pour EA 23.352). Chacun télécharge `ElinTogether-independance-0.26.494.zip`, le décompresse et
+**Nightly** (compilé pour EA 23.352). Chacun télécharge `ElinTogether-independance-0.26.506.zip`, le décompresse et
 lance `Installer.bat` (`Desinstaller.bat` fait l'inverse). **Tous les joueurs doivent avoir exactement ce zip.**
 `LISEZMOI.txt` dans le zip explique le reste. Pour héberger : lancer Elin par Steam, charger une partie qui a un
 terrain revendiqué, puis Échap → Mods → Elin Together.
 
 ---
 
-# Elin Together "independence" 0.26.494
+# Elin Together "independence" 0.26.506
 
 ## Who it is for
 
@@ -149,7 +176,7 @@ If something goes wrong: [the issues](https://github.com/devmarcpro/elin-togethe
 ## Install
 
 Requires [YK Framework](https://steamcommunity.com/sharedfiles/filedetails/?id=3400020753) and Elin on the
-**Nightly** branch (built for EA 23.352). Each player downloads `ElinTogether-independance-0.26.494.zip`, unzips it
+**Nightly** branch (built for EA 23.352). Each player downloads `ElinTogether-independance-0.26.506.zip`, unzips it
 and runs `Installer.bat` (`Desinstaller.bat` switches back). **Every player must have exactly this zip.** The
 installer and its notes (`LISEZMOI.txt` in the zip) are in French. To host: launch Elin through Steam, load a save
 that has a claimed land, then Esc → Mods → Elin Together.

@@ -3,7 +3,31 @@
 À lire en premier par la session suivante. Détail daté : fin de `MODLOG.md` (« Étape D suite, Elin 23.352 »).
 Mode d'emploi : `DOCUMENTATION.md`. Règles : `../CLAUDE.md`. Message de départ : `PROMPT_reprise.md`.
 
-## État au 6 octobre, 2h (le plus récent : lire ceci d'abord)
+## État au 6 octobre, 15h (le plus récent : lire ceci d'abord)
+
+- **Publiée : 0.26.506** (accord de l'utilisateur : « fais la release dès que tu peux »), compilée pour Elin EA 23.352. Elle
+  contient : le jeu sait seul quel personnage est à qui (`45acadd`, `29c4fa5`, plan `PLAN_personnages_sans_question.md`),
+  dix frictions (`f0da018`). Elle NE contient PAS l'étape 1 du conseil 9.
+- **Dans l'arbre, PAS COMMITÉ, compilé et installé en Debug** : l'étape 1 du conseil 9 (verdict `PLAN_conseil9_verdict.md`) :
+  retour automatique après coupure (`Net/NetReconnect.cs`, case `AutoReconnect`, règle 16), plus d'écran de choix du
+  personnage à chaque connexion (clé `AskCharacter`), ligne quand la sauvegarde d'un invité est refusée, commandes de test
+  `emp.cut_link`, `emp.link_timeout`. `reconnect_suite.py` R1 à R3 verts (retour en 28 s) ; lire la fin de
+  `_shots/reconnect-v1.log` (R4, R5) et `_shots/*-e1.log` (chara, import, leave, version) avant de commiter. Pas joué : le
+  salon Steam.
+- **Règle de l'utilisateur (6 octobre)** : aucune question au joueur, aucune démarche ; le jeu décide seul. Elle passe avant
+  un verdict de conseil. Les décisions de conception passent toujours par le conseil.
+- **Passe large sur le code publié** (`_shots/*-v32.log`) : dépôt GitHub 36/36, recruit 45, quest 59, build2 58, equal2 35,
+  hunt 135, hunt2 133, together 131, death 11, parity 15, sleep 32, instance 32, base 178, setting 35, unplayed 75, council
+  30, tous verts ; duel 91/92 (PV du perdant pas toujours au maximum dans son jeu après un duel : défaut réel intermittent,
+  course entre le soin de l'host et le dernier coup) ; travel 34/35 (S15, délai, déjà vu) ; guest 316/317 (laisse G36 : le
+  chat n'est ni en combat ni empêché ; piste : un obstacle laissé par un test d'avant).
+- **Piège** : `depot_suite` vidait les réglages de dépôt du joueur ; corrigé (elle les remet). Les siens ont été effacés :
+  il doit ressaisir dépôt et clé (et refaire une clé GitHub avec « Contents : Read and write »).
+- **À faire ensuite** : 1) finir et commiter l'étape 1 du conseil 9, puis ses étapes 2 à 5 ; 2) les lignes 38 à 52 de
+  `PLAN_chasse_differences_3.md` (double paiement, artefact de dieu détruit d'abord) ; 3) les frictions du groupe B de
+  `PLAN_sans_friction.md` qui restent ; 4) le soin après duel ; 5) G36 et l'exception de T8 (`PLAN_enquete_t8_g36.md`).
+
+## État au 6 octobre, 2h (dépassé)
 
 - **Publiée : 0.26.494** (remplace la 0.26.493, toujours en ligne : la retirer ? question posée à l'utilisateur). Le jeu de
   cette machine a le build de TEST (Debug) du dernier commit : `Installer.bat` du zip avant de jouer avec quelqu'un.
