@@ -118,7 +118,10 @@ internal partial class ElinNetHost
             if (at is { IsInBounds: true }) {
                 keepSpot = spot.Arrival is null && !spot.Stale;
                 // that very tile when it is free: it may hold something to stand on (stairs, a bed)
-                pos = _zone.IsRegion ? at.Copy() : at.GetNearestPoint(allowChara: false) ?? at.Copy();
+                // its own tile is not taken by someone else: a map reloaded in place must not push it one tile away
+                pos = _zone.IsRegion || (chara.pos.x == at.x && chara.pos.z == at.z)
+                    ? at.Copy()
+                    : at.GetNearestPoint(allowChara: false) ?? at.Copy();
             }
         }
         if (chara.IsInActiveMap && _map.charas.Contains(chara)) {
