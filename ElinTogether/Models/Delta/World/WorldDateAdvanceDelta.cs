@@ -65,7 +65,7 @@ public class WorldDateAdvanceDelta : ElinDelta
             zoneEvent.minElapsed += Minutes;
         }
 
-        if (pc.isDead) {
+        if (pc is not { isDead: false }) {
             return;
         }
 

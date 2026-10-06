@@ -72,7 +72,7 @@ public class ZoneLeaseRelease
     ///     host is the one coming there, the player stays on its tile
     /// </summary>
     [Key(11)]
-    public int StoodZoneUid { get; init; } = -1;
+    public int StoodZoneUid { get; set; } = -1;
 
     /// <summary>
     ///     Returning by walking into the host's map: the way in

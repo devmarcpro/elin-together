@@ -37,7 +37,7 @@ public class ZoneArrival
     public string? IdTele { get; init; }
 
     [Key(6)]
-    public float RatePos { get; init; } = -1f;
+    public float RatePos { get; set; } = -1f;
 
     /// <summary>
     ///     The move the local player is about to make, before the game runs it

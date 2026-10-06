@@ -1,8 +1,8 @@
-# Elin Together « indépendance » 0.26.509
+# Elin Together « indépendance » 0.26.510
 
 (English below / version anglaise plus bas)
 
-## Nouveau dans la 0.26.509 (corrections après une vraie soirée à trois joueurs et plus)
+## Nouveau dans la 0.26.510 (corrections après une vraie soirée à trois joueurs et plus)
 
 - **Les invités ne sont plus téléportés sur l'hébergeur.** Quand l'hébergeur part ou revient, chaque invité garde sa
   case. Un invité qui entre sur une carte arrive par l'entrée, et jamais dans l'eau sur la carte du monde.
@@ -26,7 +26,7 @@
 - Testé au banc sur un PC : à trois fenêtres, téléportations 17/17 et temps 25/25 ; à deux fenêtres, les suites
   habituelles. **Les corrections n'ont pas encore été rejouées entre vrais PC.**
 
-**New in 0.26.509 (fixes after a real evening with three players and more).** Guests are no longer moved onto the host
+**New in 0.26.510 (fixes after a real evening with three players and more).** Guests are no longer moved onto the host
 when the host leaves or comes back; a guest enters a map by its entrance, never in water on the world map. Time passed by
 another player costs you nothing (no hunger, no rotten food, no condition or quest deadline change). Only the sleeper's
 own pets join it. Another player's character no longer throws coins at a musician. A player character nobody plays no

@@ -14,7 +14,7 @@ mod lui-même leur revient (voir [Crédits](#crédits)).
 > **État : expérimental.** Tout ce qui suit est testé sur un seul PC avec deux fenêtres du jeu (suites de tests
 > automatiques en jeu, plus de 900 vérifications, dossier `dev/`). C'est **très peu joué entre deux PC par
 > Steam** : une seule soirée, qui a trouvé un bug que les tests n'avaient pas vu, et presque rien de ce qui est nouveau dans cette
-> version (0.26.509) n'a encore été essayé à deux vrais PC. Faites d'abord une copie de vos sauvegardes :
+> version (0.26.510) n'a encore été essayé à deux vrais PC. Faites d'abord une copie de vos sauvegardes :
 > `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
 
 ## Ce que cette version ajoute
