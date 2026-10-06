@@ -2428,3 +2428,19 @@ Les cinq : duel sur place d'abord ; « aucune perte », pas de renommée perdue 
   classe `internal` s'atteint dans un `eval` par `AccessTools.TypeByName` ; l'ancien host recevait la hache de départ.
 - Publication 0.26.493 demandée par l'utilisateur (« fais attention à ce que la release corresponde bien à la dernière
   version nightly d'elin ») : branche nightly de Steam = build 25723206 = celui installé (EA 23.352).
+
+## 2026-10-06 : conseil 8, le monde qui change de main (refait AVEC le conseil)
+
+- L'utilisateur a jugé « inacceptable » la décision prise seule (option A, `0a254ca`) et sa limite (un vieux monde devait
+  d'abord être hébergé par son host d'origine). Question, réponses et relectures : `_shots/conseil8_*.md` (hors dépôt).
+- **Verdict** : C + D, on ne devine jamais. Un monde « non confirmé » (ancien, ou touché par 0.26.493 / 0.26.494) demande une
+  fois à celui qui le charge « lequel est ton personnage ? » (le local, ceux inscrits à son nom, ou en créer un) ; celui qui
+  rejoint sans personnage se voit proposer « reprendre <nom> » ou « créer » ; « rendre ce personnage » dans le même écran,
+  pour host et invité ; copie de secours avant tout échange ; plus aucun cas muet ; `pc_owner` écrit seulement après
+  confirmation. Correctif 0.26.495, sans retirer les versions en ligne.
+- **Écarté** : B (attribuer d'office au premier venu : exact à deux, faux à trois) ; E (changer de modèle) ; écrire le
+  propriétaire au simple chargement ; un bouton de réparation réservé à l'host.
+- **Trouvé à la relecture** : faux positif de la 0.26.494 (un joueur qui recharge SON vieux monde où il a joué une fois en
+  invité serait basculé sur cet ancien personnage) ; la 0.26.494 note comme propriétaire celui qui héberge sans vérifier
+  (lu dans le code, pas testé) ; le dépôt ne connaît pas le compte Steam du dernier joueur.
+- État : rien d'écrit ; la phrase de la question est soumise à l'utilisateur d'abord. Tests à écrire rouges dans `depot_suite.py`.
