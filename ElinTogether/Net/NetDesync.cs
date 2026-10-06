@@ -122,9 +122,18 @@ internal static class NetDesync
     /// </summary>
     internal static bool RepairOwnBag;
 
+    /// <summary>
+    ///     Asking again for a bag that differs: written, never played, off until it has been seen running
+    /// </summary>
+    internal static bool RepairBags;
+
     // player chara uid -> next time its bag may be asked again, how often it was, what was compared then
     private static readonly Dictionary<int, float> _nextBagAsk = [];
     private static readonly Dictionary<int, int> _bagAsks = [];
+
+    // how often each bag was asked during this stay on the map, whatever came of it: no more after MaxBagAsks
+    private const int MaxBagAsks = 3;
+    private static readonly Dictionary<int, int> _bagAsksOnMap = [];
     private static readonly Dictionary<int, (int Ours, int Theirs, float At)> _askedBags = [];
 
     // an answer older than that is about a bag that had time to change
@@ -232,6 +241,7 @@ internal static class NetDesync
             _zoneUid = host.ZoneUid;
             _repairs = _fruitless = 0;
             _gaveUp = false;
+            _bagAsksOnMap.Clear();
         }
 
         // a map just loaded: what the host did meanwhile is still on its way
@@ -291,7 +301,7 @@ internal static class NetDesync
         var repair = _mapStrikes >= Strikes && ShouldRepair(session, client, now, out gaveUp);
 
         // not while the map is asked again: the answer would land in the middle of its load
-        if (!repair && bags is not null && _bagStrikes >= Strikes) {
+        if (RepairBags && !repair && bags is not null && _bagStrikes >= Strikes) {
             AskBags(session, client, now, local, host, bags);
         }
 
@@ -371,7 +381,8 @@ internal static class NetDesync
     /// <summary>
     ///     A bag that stood different for <see cref="Strikes" /> comparisons: ask its keeper for that character in
     ///     full (<see cref="CharaBagDelta" />), at most once per <see cref="Cooldown" /> and per character (doubled
-    ///     each time until that bag is the same again), under the rule and the stillness a map reload needs
+    ///     each time until that bag is the same again) and at most <see cref="MaxBagAsks" /> times per stay on a map,
+    ///     under the rule and the stillness a map reload needs
     /// </summary>
     private static void AskBags(NetSession session, ElinNetClient client, float now, MapSums local, MapSums host, List<int> bags)
     {
@@ -381,10 +392,12 @@ internal static class NetDesync
 
         foreach (var uid in bags) {
             var own = EClass.pc.uid == uid;
-            if ((own && !RepairOwnBag) || (_nextBagAsk.TryGetValue(uid, out var next) && now < next)) {
+            if ((own && !RepairOwnBag) || (_nextBagAsk.TryGetValue(uid, out var next) && now < next) ||
+                _bagAsksOnMap.GetValueOrDefault(uid) >= MaxBagAsks) {
                 continue;
             }
 
+            _bagAsksOnMap[uid] = _bagAsksOnMap.GetValueOrDefault(uid) + 1;
             var asks = _bagAsks.GetValueOrDefault(uid);
             _bagAsks[uid] = asks + 1;
             _nextBagAsk[uid] = now + Cooldown * (1 << Math.Min(asks, 4));

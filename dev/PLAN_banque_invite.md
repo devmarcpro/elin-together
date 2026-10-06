@@ -125,7 +125,7 @@ fichiers de textes, `dev/_tools/bank_suite.py`.
   (`ShippingHelper.TookKey`, clé entière, `ElinNetClientShipping.OnWorldBox`) et demande un point de sauvegarde ;
   l'objet et la marque partent dans le même personnage. Toutes les 0,5 s l'host regarde le sac qu'il garde pour ce joueur :
   marque ≥ numéro, l'invité a l'objet, on lâche la copie ; sinon, si le lien est coupé, si le joueur est revenu sur la
-  carte de l'host, ou si trois intervalles de sauvegarde + 30 s ont passé sans nouvelle : l'objet est remis dans son
+  carte de l'host (le délai de trois intervalles + 30 s a été retiré après relecture, voir plus bas) : l'objet est remis dans son
   conteneur (même chemin qu'un dépôt, marque de l'expéditeur d'origine gardée pour la caisse). Pas d'accusé séparé : le
   point de sauvegarde EST l'accusé, donc aucun message perdu entre l'objet et sa preuve.
 - **Ce qui reste possible** : (1) cette partie de jeu qui se ferme entre la reprise et le contrôle (≈ une demi-seconde)
@@ -142,6 +142,30 @@ fichiers de textes, `dev/_tools/bank_suite.py`.
   un retrait que le joueur ne peut pas ranger (sac plein) est remis après 10 s avec sa ligne ; l'invité seul ailleurs ne
   voit pas les lignes (la liste de ce qu'il laisse entrer en voyage ne contient pas `BillPayDelta`).
 - Test : `bank_suite.py` (lignes dans B1, B2, B3 ; étape `b6` à part).
+
+### Après relecture (6 octobre 2026, compilé, rien joué)
+
+- **A1, jeton** (`ElinNetHostShipping.cs`, `SendWorldBox`) : le jeton est maintenant
+  `Max(_takeSeq + 1, secondes unix, marque déjà sur le personnage gardé + 1)`. Un monde repris par un host dont l'horloge
+  est en retard garde peut-être une marque plus haute que les secondes du jour ; sans ce troisième terme, elle lisait
+  « confirmé » pour un jeton neuf. Fait avec `KeptChara(peer)`, la même lecture que `SettleTaken`.
+- **A2, plus de remise sur délai** (`SettleTaken`) : tant que l'invité est connecté et absent de la carte, l'objet n'est
+  jamais remis, quel que soit le retard de son point de sauvegarde (avant : `3 x intervalle + 30 s`, puis doublon si le
+  point arrivait ensuite avec la marque ET l'objet). Remis seulement à la coupure du lien, ou au retour de l'invité sur la
+  carte sans la marque. Champ `Since` de `TakenPart` retiré (plus lu). Coût accepté : un invité connecté et absent qui ne
+  sauvegarde jamais (et dont la prise n'a pas abouti) garde l'objet hors du conteneur jusqu'à son retour ou sa coupure ;
+  `TravelCheckpointSeconds` = 0 donnait déjà ce comportement. Le retour passe par `ReplaceRemoteChara` AVANT
+  `_departed.Remove` dans `ElinNetHostTravel.cs` (lu) : la marque du personnage rapporté est lue avant la remise.
+- **A3, `try/catch`** (`SettleTaken`) : l'entrée est retirée avant la remise, la remise est dans un `try` (avertissement
+  écrit). Si l'exception tombe après la recréation de l'objet, il peut exister dans le monde sans être dans son
+  conteneur : on préfère cela à une recréation toutes les 0,5 s. Le même `PutInWorldBox` dans `SendWorldBox` (envoi
+  raté) n'est pas dans un `try` : non touché.
+- **B3, « a retiré »** (`WorldBoxPatch.cs`, `OnPlayerTake` + `OnPlayerTaken`) : pour un joueur sur la carte de l'host, la
+  ligne est dite APRÈS `ThingRequest.OnApply`, pour ce que la banque a réellement perdu (avant moins après), et pas du tout si
+  la demande est refusée (pile disparue, tenue par un autre joueur, nombre nul). Reste : l'or sorti que le joueur ne peut pas
+  ranger (sac plein) est remis après 10 s, la ligne a déjà été dite. Ce qui n'est pas simple et n'est pas fait : le dire
+  seulement quand l'or est entré dans le sac du joueur.
+- Pas rejoué : aucun de ces points. `bank_suite.py` dit en tête ce qu'il ne couvre pas.
 
 ## 9. Test : `dev/_tools/bank_suite.py` (jamais lancé)
 

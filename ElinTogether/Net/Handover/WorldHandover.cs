@@ -59,7 +59,7 @@ internal static class WorldHandover
         _last = offer;
         _me = session.Self is { } self ? (ulong)self.User : 0UL;
         // the host is the player 0 of its own list
-        _guests = session.CurrentPlayers.Where(p => p.Index != 0).Select(p => (ulong)p.User).ToArray();
+        _guests = session.CurrentPlayers.Where(p => p is not null && p.Index != 0).Select(p => (ulong)p.User).ToArray();
     }
 
     /// <summary>
@@ -76,6 +76,11 @@ internal static class WorldHandover
     {
         var folder = WorldCopyStore.Folder(new() { Host = host, World = world });
         foreach (var (dir, manifest) in WorldCopyStore.Copies(folder)) {
+            // a copy that lacks files of the world is not one to open it from
+            if (manifest.Incomplete) {
+                continue;
+            }
+
             return new Copy {
                 Dir = dir,
                 World = manifest.World,

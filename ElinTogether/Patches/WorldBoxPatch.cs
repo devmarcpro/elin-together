@@ -77,19 +77,29 @@ internal static class WorldBoxPatch
     }
 
     /// <summary>
-    ///     A player on this map asks for gold of the bank (every gesture starts with this request): told now, the
-    ///     deposit is told when the gold lands in the bank. ponytail: gold moved inside the bank window reads as a
-    ///     withdrawal then a deposit, and one the player cannot take (full bag) is put back after 10 s without a line
+    ///     A player on this map asks for gold of the bank (every gesture starts with this request): told once the
+    ///     gold is out of the bank (a refused request says nothing), the deposit is told when the gold lands in the
+    ///     bank. ponytail: gold moved inside the bank window reads as a withdrawal then a deposit, and one the player
+    ///     cannot take (full bag) is put back after 10 s without a line
     /// </summary>
     [HarmonyPrefix]
     [HarmonyPatch(typeof(ThingRequest), "OnApply")]
-    internal static void OnPlayerTake(ThingRequest __instance, ElinNetBase net)
+    internal static void OnPlayerTake(ThingRequest __instance, ElinNetBase net, out int __state)
     {
-        if (net is ElinNetHost { IsZoneSession: false } host && __instance.Num > 0 &&
-            __instance.Thing?.Find() is Thing { id: "money", parent: Card box } stack &&
-            ShippingHelper.OtherWorldBox(box) == ShippingHelper.BoxBank &&
+        __state = net is ElinNetHost { IsZoneSession: false } && __instance.Num > 0 &&
+                  __instance.Thing?.Find() is Thing { id: "money", parent: Card box } &&
+                  ShippingHelper.OtherWorldBox(box) == ShippingHelper.BoxBank
+            ? BankGold()
+            : -1;
+    }
+
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(ThingRequest), "OnApply")]
+    internal static void OnPlayerTaken(ThingRequest __instance, ElinNetBase net, int __state)
+    {
+        if (__state >= 0 && __state - BankGold() is var taken and > 0 && net is ElinNetHost host &&
             host.ActiveRemoteCharas.GetValueOrDefault(__instance.OriginPeer) is { } who) {
-            BillPayDelta.TellBank(host, who.NameSimple, Math.Min(__instance.Num, stack.Num), false);
+            BillPayDelta.TellBank(host, who.NameSimple, taken, false);
         }
     }
 

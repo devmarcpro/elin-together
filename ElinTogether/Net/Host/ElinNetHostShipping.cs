@@ -65,8 +65,11 @@ internal partial class ElinNetHost
             var shipper = part.ShipperUid;
             part.SetInt(ShippingHelper.ShipperKey, 0);
             taken = LZ4Bytes.Create(part);
-            _takeSeq = Math.Max(_takeSeq + 1, (int)DateTimeOffset.UtcNow.ToUnixTimeSeconds());
-            held = new(taken, ask.Box, shipper, _takeSeq, part.id == "money", part.Num, peer, Time.unscaledTime);
+            // above the mark already on the kept character too: this world may come from a host whose clock was
+            // behind, and an old mark must not read as the confirmation of this take
+            _takeSeq = Math.Max(Math.Max(_takeSeq + 1, (int)DateTimeOffset.UtcNow.ToUnixTimeSeconds()),
+                (KeptChara(peer)?.GetInt(ShippingHelper.TookKey) ?? 0) + 1);
+            held = new(taken, ask.Box, shipper, _takeSeq, part.id == "money", part.Num, peer);
             // out of the box now (nobody else can take it); the bytes are the way back, see SettleTaken
             part.Destroy();
 
@@ -101,7 +104,15 @@ internal partial class ElinNetHost
     ///     A thing a player took out of a box of the world, kept as bytes until we know the player has it
     /// </summary>
     private sealed record TakenPart(LZ4Bytes Bytes, int Box, int Shipper, int Token, bool Money, int Num,
-        ISteamNetPeer Peer, float Since);
+        ISteamNetPeer Peer);
+
+    /// <summary>
+    ///     The character the host keeps for a player (replaced by each checkpoint and by its return)
+    /// </summary>
+    private Chara? KeptChara(ISteamNetPeer peer)
+    {
+        return SavedRemoteCharas.TryGetValue(peer.User, out var uid) ? game.cards.globalCharas.Find(uid) : null;
+    }
 
     private readonly List<TakenPart> _taken = [];
     private int _takeSeq;
@@ -118,32 +129,39 @@ internal partial class ElinNetHost
     /// <summary>
     ///     The player has what it took when the bag the host keeps for it (replaced by each checkpoint, and by its
     ///     return) carries the number sent with it: the mark and the thing are saved in the same character, so no
-    ///     message can be lost between them. Nothing there and the link gone, the player back on this map, or no
-    ///     word for a long time: the thing goes back into its box. <br />
+    ///     message can be lost between them. Nothing there and the link gone, or the player back on this map: the
+    ///     thing goes back into its box. Never on a delay while the player is connected and away: its checkpoint
+    ///     may be late, and putting the thing back then would give it twice when the checkpoint comes. <br />
     ///     Left possible: this game ending in the instant between the take and this check loses the thing; a
     ///     player that lost the link but keeps playing its own copy and brings it back later holds it too; a player
-    ///     that cannot checkpoint for three intervals and then does (or has checkpoints off and returns later)
-    ///     holds it twice. A bank line is told only for a confirmed take
+    ///     that stays connected and away without ever checkpointing keeps the thing out of its box until it returns
+    ///     or drops. A bank line is told only for a confirmed take
     /// </summary>
     private void SettleTaken()
     {
-        var every = Session.Rules.TravelCheckpointSeconds;
         foreach (var held in _taken.ToArray()) {
-            var kept = SavedRemoteCharas.TryGetValue(held.Peer.User, out var uid) ? game.cards.globalCharas.Find(uid) : null;
-            if (kept?.GetInt(ShippingHelper.TookKey) >= held.Token) {
-                if (held.Money && held.Box == ShippingHelper.BoxBank) {
-                    BillPayDelta.TellBank(this, kept.NameSimple, held.Num, false);
-                }
-            } else if (IsAway(held.Peer) && held.Peer.IsConnected && Socket.Peers.Any(p => ReferenceEquals(p, held.Peer)) &&
-                       !(every > 0 && Time.unscaledTime - held.Since > every * 3 + 30)) {
+            var kept = KeptChara(held.Peer);
+            var confirmed = kept?.GetInt(ShippingHelper.TookKey) >= held.Token;
+            if (!confirmed && IsAway(held.Peer) && held.Peer.IsConnected && Socket.Peers.Any(p => ReferenceEquals(p, held.Peer))) {
                 continue;
-            } else {
-                PutInWorldBox(held.Bytes, held.Box, held.Shipper);
-                EmpLog.Information("Player {@Peer} never confirmed taking a thing out of world box {Box}, put back",
-                    held.Peer, held.Box);
             }
 
+            // the entry goes whatever happens below: a failure must not repeat every half second
             _taken.Remove(held);
+            try {
+                if (confirmed) {
+                    if (held.Money && held.Box == ShippingHelper.BoxBank) {
+                        BillPayDelta.TellBank(this, kept!.NameSimple, held.Num, false);
+                    }
+                } else {
+                    PutInWorldBox(held.Bytes, held.Box, held.Shipper);
+                    EmpLog.Information("Player {@Peer} never confirmed taking a thing out of world box {Box}, put back",
+                        held.Peer, held.Box);
+                }
+            } catch (Exception ex) {
+                EmpLog.Warning(ex, "Could not settle a thing taken out of world box {Box} by player {@Peer}",
+                    held.Box, held.Peer);
+            }
         }
 
         if (_taken.Count == 0) {

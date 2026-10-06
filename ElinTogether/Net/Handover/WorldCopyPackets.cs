@@ -33,6 +33,13 @@ public class WorldCopyManifest
 
     [Key(4)]
     public WorldCopyFile[] Files { get; set; } = [];
+
+    /// <summary>
+    ///     Files of the host's save were left out of <see cref="Files" /> (a name a guest's disk would refuse): the
+    ///     copy is not the whole world, and a takeover must not open it
+    /// </summary>
+    [Key(5)]
+    public bool Incomplete { get; set; }
 }
 
 [MessagePackObject]

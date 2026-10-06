@@ -461,6 +461,13 @@ internal partial class ElinNetClient
                 leaving = Leaving();
             }
 
+            if (_rejoining) {
+                // the copy could not be loaded, we are on our way back to the host
+                _pendingTravel = null;
+                _handoffDeadline = 0;
+                return;
+            }
+
             EnterAway(zone);
         } else {
             // still open if the owner has not closed it yet
@@ -470,6 +477,12 @@ internal partial class ElinNetClient
             // the copy the owner handed back to the host is the one everyone else gets: loaded as a leased map is
             if (AdoptHostCopy(zone, grant, "its owner")) {
                 leaving = Leaving();
+            }
+
+            if (_rejoining) {
+                _pendingTravel = null;
+                _handoffDeadline = 0;
+                return;
             }
         }
 
@@ -539,17 +552,37 @@ internal partial class ElinNetClient
         // we stay on our tile: the game only moves a character that walks in, see Zone.AddGlobalCharasOnActivate
         pc.global.transition = null;
 
-        // as OnZoneActivateResponse reloads the active map
-        zone.Deactivate();
+        // close the windows of the player before the map goes (a bag or a chest open on it): Scene.Init, which
+        // player.MoveZone runs, does the same but after the unload. Not waited for: a fight going on or a
+        // menu the player is in is cut short (known limit, the reload is not delayed until the player is idle)
+        ui.RemoveLayers();
 
-        // the game puts the artifacts lying here in our bag on the way out (Zone.Deactivate): they come back
-        // with the host's map
-        foreach (var thing in pc.things.Flatten().Where(t => !carried.Contains(t.uid)).ToList()) {
-            thing.parentCard?.RemoveCard(thing);
+        try {
+            // as OnZoneActivateResponse reloads the active map
+            zone.Deactivate();
+
+            // the game puts the artifacts lying here in our bag on the way out (Zone.Deactivate): they come back
+            // with the host's map
+            foreach (var thing in pc.things.Flatten().Where(t => !carried.Contains(t.uid)).ToList()) {
+                thing.parentCard?.RemoveCard(thing);
+            }
+
+            zone.UnloadMap();
+            ZoneLeaseState.WriteMap(zone, grant.Map);
+        } catch (Exception ex) {
+            // no map to stand on (disk, truncated map): back to the host, which sends us its own
+            EmpLog.Warning(ex, "Taking over {ZoneFullName} from {From}: their copy could not be loaded, returning to the host",
+                zone.ZoneFullName, from);
+
+            // a visitor that no longer holds a good map must not hand it back as the zone's: it is a guest again
+            if (Session.IsAway) {
+                Session.IsGuest = true;
+            }
+
+            SendRejoin();
+            return false;
         }
 
-        zone.UnloadMap();
-        ZoneLeaseState.WriteMap(zone, grant.Map);
         player.MoveZone(zone);
 
         if (pc.isDead) {
@@ -558,6 +591,9 @@ internal partial class ElinNetClient
 
         // what we carry cannot lie on the floor too: picked up in the last round trip, that copy never saw it.
         // Kept where a player alone would have it, in the bag
+        // Known limits, not handled (the uid is what is compared): a pick-up merged into a stack of the bag (the
+        // floor thing is gone from our bag, the floor copy stays: doubled), a partial pick-up of a stack (same),
+        // a thing taken from a chest of the received map (it is back in the chest)
         var doubled = _map.things.Where(t => carried.Contains(t.uid)).ToList();
         foreach (var thing in doubled) {
             zone.RemoveCard(thing);

@@ -17,6 +17,10 @@ M4  tache INCONNUE de la table (AI_Paint, peindre sur un chevalet : pas de ligne
     a l'host et l'arrete seul. Deux temps : (a) il peint jusqu'au bout (avant : l'host repondait « no matching act »
     et la peinture s'arretait) ; (b) un arret demande en pleine peinture prend tout de suite, sans attendre l'host
     (avant : l'arret etait retenu). La toile peinte est lue chez l'host a titre d'information seulement.
+M5  l'invite s'entraine, la copie de sa tache est effacee chez l'host (SetNoGoal sur sa copie), puis il arrete : l'arret
+    prend (l'host renvoie l'ordre d'arret quand il ne trouve pas la tache ; sinon le filet de 2 s chez l'invite).
+    Avant : l'arret restait retenu pour toujours. Le delai lu dit lequel des deux a joue (< 1 s : l'host). Pas joue :
+    que SetNoGoal sur la copie de l'host efface bien la tache comme une disparition reelle.
 
 Ce que le banc appelle : le clic gauche sur la case du mannequin (ActPlan._Update, la liste que le jeu propose),
 l'entree AI_PracticeDummy, puis Item.Perform() : ce que fait le clic. L'arret : AIAct.Cancel() apres
@@ -147,6 +151,42 @@ def m3(ctx):
         both_joined(H, A, HOME)
 
 
+def m5(ctx):
+    """la copie de la tache de l'invite a disparu chez l'host : son arret prend quand meme (reponse de l'host, sinon filet de 2 s)"""
+    port, uid = ctx["a"]
+    clear_conditions(uid)
+    dummy_id = first_id("TrainingDummy")
+    spot = free_next_to(port, uid, 1)
+    if not check(f"un mannequin existe ({dummy_id}) et une case est libre a cote de l'invite ({spot})", dummy_id and spot):
+        return
+    x, z = spot.split(",")
+    dummy = int(ev(H, f'var t = ThingGen.Create("{dummy_id}"); EClass._zone.AddCard(t, new Point({x}, {z})).Install(); return t.uid.ToString();'))
+    try:
+        check("le mannequin est pose chez l'invite", eventually(
+            lambda: ev(port, f'var t = EClass._map.things.Find(m => m.uid == {dummy}); return (t != null && t.IsInstalled).ToString();') == "True",
+            timeout=15))
+        ev(port, 'EClass.pc.SetNoGoal(); EClass.pc.stamina.value = EClass.pc.stamina.max; "ok"')
+        time.sleep(3)
+        awake(port)
+        did = use_menu(port, (x, z), "i.act is AI_PracticeDummy")
+        if not check(f"il lance l'entrainement ({did})", did.startswith("ok AI_PracticeDummy")):
+            return
+        if not check("il s'entraine (4 tours)", eventually(lambda: awake(port) and practice(port)[0] >= 4, timeout=60)):
+            return
+        # the host's copy of the player loses its task, then the player asks to stop
+        ev(H, f'{chara(H, uid)}.SetNoGoal(); "ok"')
+        ev(port, 'if (EClass.pc.ai.CanManualCancel()) EClass.pc.ai.Cancel(); "ok"')
+        t0 = time.time()
+        stopped = eventually(lambda: practice(port)[0] < 0, timeout=12)
+        check(f"son arret prend alors que l'host n'a plus la tache ({time.time() - t0:.1f} s ; reponse de l'host ou filet de 2 s)", stopped)
+        # tied to the act: a task started right after is not stopped by the old request
+        time.sleep(3)
+        check("pas d'arret en retard sur la suite (il est au repos)", practice(port)[0] < 0)
+    finally:
+        ev(port, 'if (EClass.pc.ai is AI_PracticeDummy) EClass.pc.SetNoGoal(); "ok"')
+        ev(H, f'var t = EClass._map.things.Find(m => m.uid == {dummy}); if (t != null) t.Destroy(); "ok"')
+
+
 def m4(ctx):
     """l'invite peint sur un chevalet : une tache inconnue de la table va au bout et s'arrete sans l'host"""
     port, uid = ctx["a"]
@@ -211,7 +251,7 @@ def main():
     t0 = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
 
     ctx = {"a": (A, state(A)["pc"]["uid"]), "h": (H, state(H)["pc"]["uid"])}
-    steps = [m1, m2, m3, m4]
+    steps = [m1, m2, m3, m4, m5]
     if a.only:
         steps = [s for s in steps if s.__name__ in a.only.split(",")]
     for step in steps:

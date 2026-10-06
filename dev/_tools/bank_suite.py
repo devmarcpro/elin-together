@@ -23,6 +23,12 @@ B6 (seulement avec --only b6, laisse l'invite deconnecte) invite seul ailleurs :
    coupe par l'host aussitot : banque + sac garde de l'invite inchange, rien de perdu ni de double. Le moment de la
    coupure est une course : si la demande n'est pas arrivee, la verification est verte sans avoir rien prouve.
 
+Pas joue (relecture du 6 octobre, ElinNetHostShipping.SettleTaken) : un point de sauvegarde de l'invite qui traine plus
+de trois intervalles (l'objet n'est plus remis sur delai tant que l'invite est connecte et absent, seulement a la coupure
+ou au retour sans la marque) ; une vieille marque plus haute que le jeton neuf (monde repris par un host en retard) ;
+une exception pendant la remise (l'entree est retiree dans tous les cas). Il faudrait un invite dont on retient les
+points de sauvegarde (TravelCheckpointSeconds tres grand) pour le premier cas.
+
 Les lignes « X a depose / retire N pieces » (BillPayDelta.LastLine) sont lues dans B1, B2, B3 pour chaque depot et chaque
 retrait : chez l'host, et chez l'invite quand il est sur la carte de l'host (pas quand il est seul ailleurs).
 

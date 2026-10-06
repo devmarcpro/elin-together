@@ -45,10 +45,11 @@ internal static class ZoneLeaseState
 
     /// <summary>
     ///     What a copy of the map carries, as numbers two games compare when the map changes hands: count then mix
-    ///     of the things on the floor (uid, tile, amount), of what they hold (uid, holder, amount) and of the
+    ///     of the things on the floor (uid, amount), of what they hold (uid, holder, amount) and of the
     ///     characters saved with the map (uid). <br />
-    ///     Left out: the terrain, what characters carry, where they stand, and the characters of the world
-    ///     (players, companions, residents), which Map.Save leaves out too
+    ///     Left out: the terrain, what characters carry, where they stand, where things lie (a thrown or scattered
+    ///     thing lands by the dice of each game, see NetDesync: it would reload the map at every departure after
+    ///     a fight), and the characters of the world (players, companions, residents), which Map.Save leaves out too
     /// </summary>
     internal static int[] Sums(Map map)
     {
@@ -61,7 +62,7 @@ internal static class ZoneLeaseState
                 }
 
                 sums[0]++;
-                sums[1] += Mix(thing.uid, thing.pos.x, thing.pos.z, thing.Num);
+                sums[1] += Mix(thing.uid, thing.Num, 0, 0);
 
                 foreach (var held in thing.things.Flatten()) {
                     if (!Skipped(held)) {

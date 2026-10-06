@@ -155,3 +155,22 @@ n'est pas vérifié. Fichier neuf `Patches/` + une case host à ajouter (`EmpCon
   `d3b` (`hunt_suite.py`, fichier non touché ici) vaudra 0 ; elle était informative seulement.
 - **Condition « en session »** : laissée à `Transport is not null` (verdict : « dans une partie ouverte par le mod, host
   seul compris »), pas `NetCompany.HasCompany`. Rien changé.
+- **`Paid` d'un invité absent borné** (`BillPayDelta.SettleAway`, B1). Dans le jeu (`InvOwnerDeliver.PayBill`, Elin 23.351)
+  le cadeau est `facture.GetInt(35) / 1000`, et l'entier 35 est l'impôt supplémentaire (`player.extraTax`) écrit à la
+  création de la facture (`FACTION.cs:414`) : la facture est dans les mains de l'invité, l'host ne peut pas la relire. Il
+  borne donc : le montant au plus à `Faction.GetTotalTax(false)` pour un impôt (au plus `player.unpaidBill` pour une
+  livraison), le cadeau entre 0 et `montant / 1000` (l'impôt supplémentaire est une part du montant de la facture), et
+  au plus un `Paid` accepté par joueur toutes les 10 secondes (`LastPaid`, par numéro de lien). Choix : un montant trop
+  haut est RAMENÉ à la borne, pas refusé, pour ne pas bloquer un paiement vrai quand la renommée a baissé depuis la
+  facture. Risque connu : deux factures d'impôt payées par le même joueur à moins de 10 s d'écart (deux vrais paiements
+  rapides) : le second ne baisse pas le compteur de l'host (silencieux). Le cadeau vrai peut aussi être raboté si
+  l'impôt du moment est plus bas que celui de la facture. Test : `bills_suite.py` étape `p4` (message truqué), pas lancée.
+- **Invité dans la zone d'un autre invité (B2)** : `SendAway` (`BillPayDelta.cs`) n'exigeait pas seulement
+  `IsAway` mais aussi `Connection: null`, faux dans une session de zone (invité de quelqu'un, ou celui qui tient une zone
+  avec des invités) : l'or partait (le jeu paie seul), rien n'arrivait à l'host. Le lien principal vers l'host reste
+  ouvert dans ces cas (`SleepSynchronizationContext.ReportAway` s'en sert déjà avec `IsAway` et `Transport`) : la
+  condition est maintenant `IsAway` + `Transport is ElinNetClient`, donc le même chemin `SendWhileAway`. L'host accepte
+  (`IsAwayPeer` : tout joueur parti de sa carte, y compris vers une zone d'invité, lu dans `DepartFromHostMap`).
+  Pas joué ; l'invité qui visite ne lit pas la ligne « X a payé » (liste de réception en voyage). Si la copie des
+  compteurs de l'invité dit 0, le jeu répond « mauvaise idée » et rien n'est envoyé (inchangé).
+- **Ligne « retiré » de la banque (B3)** : voir `PLAN_banque_invite.md`, « Après relecture ».

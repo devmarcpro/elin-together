@@ -28,6 +28,9 @@ P3  l'invite seul sur une autre carte (Vernis) paie une facture dans son propre 
     moins chez lui, compteur de l'host a moins un, la ligne chez l'host. ROUGE avant SendAway : compteur immobile.
     La facture est fabriquee dans sa copie du monde et mise dans son sac, pas apportee d'un coffre de livraison ;
     l'invite seul ne voit pas la ligne (la liste de ce qu'il recoit en voyage ne contient pas BillPayDelta)
+P4  un message « payee » truque d'un invite seul (montant 10^9, cadeau 10^6) : le compteur baisse d'un, le montant et le
+    cadeau sont bornes a l'impot du moment ; un second message dans les 10 s est ignore, un autre apres 10 s passe.
+    Pas joue : l'invite dans la zone d'un autre invite (meme chemin, SendAway), pas de deuxieme joueur sous la main
 
 Ce que le banc ne joue pas comme un joueur :
 - la date est posee au 30 a 23 h 50 (jour, heure, minute) dans les DEUX jeux, puis le temps passe par GameDate.AdvanceMin
@@ -404,6 +407,42 @@ def p3(ctx):
         reset(base)
 
 
+def forged_paid(port, amount, gift):
+    """Le message « payee » d'un invite seul, tel qu'il part de SendAway, mais avec des chiffres choisis."""
+    ev(port, 'var m = ElinTogether.Net.NetSession.Instance.Transport as ElinTogether.Net.ElinNetClient; '
+             'm.SendWhileAway(new ElinTogether.Models.BillPayDelta { Answer = ElinTogether.Models.BillAnswer.Paid, Payer = "forge", '
+             f'Id = "bill_tax", Amount = {amount}, Gift = {gift} }}); return "ok";')
+
+
+def p4(ctx):
+    """un message « payee » truque (montant et cadeau enormes, repete) : borne au montant de l'impot, un par 10 s"""
+    port, uid = ctx["a"]
+    base = counters()
+    reset(base)
+    try:
+        ev(H, 'EClass.player.taxBills = 3; "ok"')
+        away()
+        tax = int(ev(H, 'EClass.Home.GetTotalTax(false).ToString()'))
+        coins = lambda: int(ev(H, 'EClass.game.cards.listPackage.Where(c => c.id == "parcel_mysiliaGift").SelectMany(c => c.things).Sum(c => c.Num).ToString()'))
+        c0 = coins()
+        ev(H, f'{LINE}.SetValue(null, ""); "ok"')
+        forged_paid(port, 1000000000, 1000000)
+        check(f"le compteur baisse d'un (3 -> {counters()[0]})", eventually(lambda: counters()[0] == 2, timeout=15))
+        line = say(H)
+        check(f"la ligne dit un montant dans la borne ({tax}), pas 1000000000 : « {line} »", "1000000000" not in line)
+        gift = coins() - c0
+        check(f"le cadeau n'est pas de 1000000 pieces mais au plus {tax // 1000} (recu : {gift})", gift <= tax // 1000)
+        forged_paid(port, 100, 0)
+        time.sleep(2)
+        check(f"un deuxieme message dans les 10 s est ignore (compteur {counters()[0]})", counters()[0] == 2)
+        time.sleep(10)
+        forged_paid(port, 100, 0)
+        check(f"un message apres 10 s passe (compteur {counters()[0]})", eventually(lambda: counters()[0] == 1, timeout=15))
+    finally:
+        home()
+        reset(base)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--only")
@@ -411,7 +450,7 @@ def main():
     sys.stdout.reconfigure(encoding="utf-8")
     t0 = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
     ctx = {"a": (A, state(A)["pc"]["uid"]), "h": (H, state(H)["pc"]["uid"])}
-    steps = [c1, c2, c3, p1, p1h, p2, t1, b2705, p3]
+    steps = [c1, c2, c3, p1, p1h, p2, t1, b2705, p3, p4]
     if a.only:
         steps = [s for s in steps if s.__name__ in a.only.split(",")]
     for step in steps:

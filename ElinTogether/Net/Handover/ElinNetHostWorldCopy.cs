@@ -21,8 +21,8 @@ namespace ElinTogether.Net;
 internal partial class ElinNetHost
 {
     // a part and what it may wait behind (48 KB) hold the game's messages back for about a third of a second
-    // on a 1 Mbit/s upload: 128 KB/s at most, a world of 5 MB in 40 s, a usual save (game.txt and the maps
-    // that changed, about 1 MB) in 8 s
+    // on a 1 Mbit/s upload: 128 KB/s at most in all, whatever the number of guests (one is served at a time), a
+    // world of 5 MB in 40 s, a usual save (game.txt and the maps that changed, about 1 MB) in 8 s
     private const int WorldCopyPieceSize = 32 * 1024;
     private const float WorldCopyPiecesPerSecond = 4f;
 
@@ -34,6 +34,12 @@ internal partial class ElinNetHost
     private WorldSnapshot? _worldSnapshotRead;
     private int _worldSnapshotReading;
     private bool _worldCopyStarted;
+    private int _worldCopyOmittedTold;
+    private int _worldCopyTooBigTold;
+
+    // peer id -> the save (its Saved) that guest was sent whole: a link made again for the same player does not
+    // offer that save a second time
+    private readonly Dictionary<int, long> _worldCopyGiven = [];
 
     /// <summary>
     ///     How many times this world was taken over by another player after its host was lost, kept in the save.
@@ -89,7 +95,20 @@ internal partial class ElinNetHost
 
                 EmpLog.Information("World copy: save of {Files} files, {Bytes} bytes read in {Ms} ms",
                     snapshot.Data.Length, snapshot.Data.Sum(d => (long)d.Length), watch.ElapsedMilliseconds);
+
+                // told when the number changes, not at every save
+                if (Interlocked.Exchange(ref _worldCopyOmittedTold, snapshot.Omitted) != snapshot.Omitted && snapshot.Omitted > 0) {
+                    EmpLog.Warning("World copy: {Omitted} file(s) of the save have a name a guest's disk would refuse and are left out: the copy is marked incomplete and will not be used to take the world over",
+                        snapshot.Omitted);
+                }
+
                 Volatile.Write(ref _worldSnapshotRead, snapshot);
+            } catch (WorldSnapshot.TooBigException big) {
+                // the same save would come again at each autosave: told once
+                if (Interlocked.Exchange(ref _worldCopyTooBigTold, 1) == 0) {
+                    EmpLog.Warning("World copy: the save is too big for a guest to keep ({Files} files, {Bytes} bytes; at most {MaxFiles} files, {MaxBytes} bytes), no copy is made of it",
+                        big.Files, big.Bytes, WorldCopyStore.MaxFiles, WorldCopyStore.MaxBytes);
+                }
             } catch (Exception ex) {
                 EmpLog.Warning("World copy: the save could not be read: {Why}", ex.Message);
             } finally {
@@ -99,8 +118,8 @@ internal partial class ElinNetHost
     }
 
     /// <summary>
-    ///     A few times a second: the latest save is offered to who does not have it, one part goes to each guest
-    ///     that asked for files
+    ///     A few times a second: the latest save is offered to who does not have it, one part goes to one guest
+    ///     that asked for files (the first in line, the others wait their turn)
     /// </summary>
     private void PumpWorldCopy()
     {
@@ -115,6 +134,10 @@ internal partial class ElinNetHost
         if (_worldSnapshot is not { } latest || !Session.Rules.KeepWorldCopy) {
             return;
         }
+
+        // one guest is served at a time (its turn lasts until it has what it asked for): the upload of the host
+        // is shared by all guests, not multiplied by their number. The others wait with what they asked for
+        var serving = false;
 
         foreach (var peer in Socket.Peers) {
             // in the game: its first state came in, or it is on a map of its own
@@ -131,11 +154,19 @@ internal partial class ElinNetHost
             }
 
             if (link.Sending is not null) {
-                SendWorldCopyPiece(link);
+                // (a guest whose link is full does not hold the turn: nothing of the host's upload goes to it)
+                serving = serving || SendWorldCopyPiece(link);
             } else if (!ReferenceEquals(link.Offered, latest)) {
                 // never while an older save is on its way: a copy that takes longer than the time between two
                 // saves would never be whole
                 link.Offered = latest;
+
+                // it was sent that very save whole by an earlier link: no list of files again. (It does not hear
+                // of this save, so WorldHandover.Remember waits for the next one)
+                if (_worldCopyGiven.TryGetValue(peer.Id, out var given) && given == latest.Manifest.Saved) {
+                    continue;
+                }
+
                 peer.Send(latest.Manifest);
             }
         }
@@ -161,7 +192,8 @@ internal partial class ElinNetHost
         link.Offset = 0;
     }
 
-    private static void SendWorldCopyPiece(WorldCopyLink link)
+    /// <returns>true when a part went out (this tick's share of the upload is used)</returns>
+    private bool SendWorldCopyPiece(WorldCopyLink link)
     {
         var snapshot = link.Sending!;
 
@@ -172,11 +204,12 @@ internal partial class ElinNetHost
 
         if (link.Next >= link.Wanted.Length) {
             link.Sending = null;
-            return;
+            _worldCopyGiven[link.Peer.Id] = snapshot.Manifest.Saved;
+            return false;
         }
 
         if (PendingReliable(link.Peer) > WorldCopyQueueLimit) {
-            return;
+            return false;
         }
 
         var file = link.Wanted[link.Next];
@@ -202,6 +235,8 @@ internal partial class ElinNetHost
             // the guest keeps the files that are whole and asks for the rest at the next save
             link.Sending = null;
         }
+
+        return sent;
     }
 
     /// <summary>
@@ -240,6 +275,7 @@ internal partial class ElinNetHost
     {
         public required WorldCopyManifest Manifest { get; init; }
         public required byte[][] Data { get; init; }
+        public int Omitted { get; init; }
         private (long Size, DateTime Written)[] _stamps = [];
 
         /// <summary>
@@ -247,7 +283,14 @@ internal partial class ElinNetHost
         /// </summary>
         public static WorldSnapshot? Read(string dir, WorldCopyManifest manifest, WorldSnapshot? last)
         {
-            var listed = List(dir);
+            var listed = List(dir, out var omitted);
+
+            // before anything is read: a guest refuses a world past these limits (WorldCopyStore.IsSafe)
+            var total = listed.Sum(f => f.Info.Length);
+            if (listed.Count > WorldCopyStore.MaxFiles || total > WorldCopyStore.MaxBytes) {
+                throw new TooBigException(listed.Count, total);
+            }
+
             var known = new Dictionary<string, int>();
             for (var i = 0; last is not null && i < last.Data.Length; i++) {
                 known[last.Manifest.Files[i].Path] = i;
@@ -275,7 +318,7 @@ internal partial class ElinNetHost
                 };
             }
 
-            var after = List(dir);
+            var after = List(dir, out _);
             if (after.Count != listed.Count ||
                 after.Where((f, i) => f.Path != listed[i].Path || (f.Info.Length, f.Info.LastWriteTimeUtc) != stamps[i]).Any() ||
                 files.Where((f, i) => f.Size != stamps[i].Item1).Any()) {
@@ -283,25 +326,40 @@ internal partial class ElinNetHost
             }
 
             manifest.Files = files;
+            manifest.Incomplete = omitted > 0;
             return new() {
                 Manifest = manifest,
                 Data = data,
+                Omitted = omitted,
                 _stamps = stamps,
             };
+        }
+
+        /// <summary>
+        ///     The save is past what a guest keeps: nothing was read
+        /// </summary>
+        public sealed class TooBigException(int files, long bytes) : Exception
+        {
+            public int Files { get; } = files;
+            public long Bytes { get; } = bytes;
         }
 
         /// <summary>
         ///     The files of a save, as the game's own backup takes them: not the maps of the visit under way
         ///     (Temp), not the archive made of the folder for the Steam cloud
         /// </summary>
-        private static List<(string Path, FileInfo Info)> List(string dir)
+        /// <param name="omitted">Files a guest's disk would refuse, left out of the list: the copy lacks them</param>
+        private static List<(string Path, FileInfo Info)> List(string dir, out int omitted)
         {
             var root = new DirectoryInfo(dir).FullName.TrimEnd('/', '\\');
-            return new DirectoryInfo(root).GetFiles("*", SearchOption.AllDirectories)
+            var all = new DirectoryInfo(root).GetFiles("*", SearchOption.AllDirectories)
                 .Select(f => (Path: f.FullName.Substring(root.Length + 1).Replace('\\', '/'), Info: f))
                 .Where(f => !f.Path.StartsWith("Temp/", StringComparison.OrdinalIgnoreCase) &&
-                            !f.Path.Equals("cloud.zip", StringComparison.OrdinalIgnoreCase) &&
-                            WorldCopyStore.IsSafePath(f.Path))
+                            !f.Path.Equals("cloud.zip", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            omitted = all.Count(f => !WorldCopyStore.IsSafePath(f.Path));
+            return all
+                .Where(f => WorldCopyStore.IsSafePath(f.Path))
                 .OrderBy(f => f.Path, StringComparer.Ordinal)
                 .ToList();
         }

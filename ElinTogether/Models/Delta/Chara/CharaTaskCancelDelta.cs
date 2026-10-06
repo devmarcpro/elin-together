@@ -52,6 +52,13 @@ public class CharaTaskCancelDelta : ElinDelta
         if (ai is not { status: AIAct.Status.Running }) {
             if (ai is null) {
                 LastCancelDelta.Remove(Owner.Uid);
+                // a player's stop is held back until this answer (see CharaTaskCancelEvent): when this copy of the
+                // task is gone, say stop all the same, or the player would wait for good
+                if (net is ElinNetHost relayTo && relayTo.ActiveRemoteCharas.TryGetValue(OriginPeer, out var asker) &&
+                    asker == chara) {
+                    net.SendDeltaTo(OriginPeer, this);
+                }
+
                 return;
             }
 

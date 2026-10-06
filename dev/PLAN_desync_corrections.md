@@ -198,6 +198,33 @@ reste (sa propre case était refusée comme occupée, il sautait d'une case à c
   `No active map to send with the world to player {@Peer}`, la carte suivante de l'host le débloque.
 - Les messages « différés » de l'host (`DeferRemote`) partent encore après les copies : rejoués une fois de trop
   chez l'arrivant. Peu nombreux (non recensés).
+
+## Après relecture (seconde passe, 2026-10-06, nuit) : passage d'une carte
+
+Compilé (`ReleaseNightly`, 0 erreur), **jamais lancé**. Remplace ce que D2 et D2 bis disent plus haut quand ils se
+contredisent.
+
+- **La case des objets au sol n'est plus dans `ZoneLeaseState.Sums`** (numéro + quantité ; le contenu des coffres
+  reste compté : numéro, contenant, quantité). Les lignes plus haut qui disent « objets au sol (numéro, case,
+  quantité) » et « les nombres du passage de main comptent la case, donc rechargement à chaque passage » sont
+  fausses depuis cette passe. Un objet lancé ou éparpillé qui est à une autre case chez le repreneur n'est plus vu :
+  il est remis à sa case au prochain rechargement, quel qu'en soit le motif.
+- **`AdoptHostCopy` (`ElinNetClientTravel.cs`) ne laisse plus le repreneur sans carte** : `Deactivate`, retrait des
+  artefacts, `UnloadMap` et `WriteMap` sont dans un `try`. Échec : Warning
+  `Taking over {ZoneFullName} from {From}: their copy could not be loaded, returning to the host` (avec l'exception),
+  puis `SendRejoin()` ; l'appelant (`TakeOverZone`) s'arrête là (`_rejoining`). Un visiteur (`Session.IsAway`) repasse
+  invité avant de partir : sinon son bail rendrait la carte à moitié détruite comme celle de la zone.
+- **Fenêtres du joueur** : `ui.RemoveLayers()` juste avant le rechargement. Le chargement ordinaire
+  (`OnZoneActivateResponse`) n'a aucun code propre pour cela : c'est `Scene.Init`, appelé par `player.MoveZone`, qui
+  retire les fenêtres, et après le déchargement. Ici c'est fait avant. Non fait : attendre la fin d'un combat ou d'un
+  menu (le rechargement coupe ce que le joueur faisait ; limite connue).
+- **Limites connues, non corrigées**, de « un objet porté et aussi au sol de la carte reçue est retiré du sol »
+  (comparaison par numéro) : (1) un ramassage fusionné dans une pile du sac (l'objet du sol n'existe plus chez nous,
+  l'autre exemplaire reste au sol : en double) ; (2) un ramassage partiel d'une pile (idem) ; (3) un objet pris dans un
+  coffre de la carte reçue (il est de retour dans le coffre). L'inverse (objet posé dans le dernier aller-retour,
+  perdu) reste comme avant.
+- Pas sûr : le chemin d'échec n'a jamais tourné ; l'état exact de la session après `SendRejoin()` en plein
+  `TakeOverZone` (côté host : bail abandonné « gone meanwhile ») est lu, pas vu.
 - Seconde carte pendant une retenue : ce qui a été retenu sur la première carte est rejoué sur la seconde (cartes
   inconnues = sans effet, lu pour les types courants ; pas pour tous).
 - D5 : les autres invités gardent leur fantôme jusqu'à ce qu'ils le touchent (alors ils sont corrigés à leur tour).

@@ -276,7 +276,7 @@ internal partial class EmpConfig
         Server.WorldCopy = config.Bind(
             "Server",
             "WorldCopy",
-            true,
+            false,
             "After each save the game makes by itself, every other player's game keeps a copy of the world on its own disk, outside its saves\n" +
             "Sent in the background, a little at a time, only what changed. Otherwise the world is on the host's PC only\n" +
             "每次自动保存后，其他玩家的游戏会在自己的硬盘上保留一份世界副本（不在存档文件夹内）；在后台一点一点发送，只发送有变化的部分。关闭时世界只存在于主机的电脑上");

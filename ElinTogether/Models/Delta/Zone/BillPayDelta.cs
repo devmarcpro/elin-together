@@ -89,11 +89,13 @@ public class BillPayDelta : ElinDelta
 
     /// <summary>
     ///     Alone on another map, the game paid the bill itself (its gold, its copy of the counters): the host's
-    ///     counter is told, the host reads nothing it could not know (the bill is in this player's hands)
+    ///     counter is told, the host reads nothing it could not know (the bill is in this player's hands). Also from
+    ///     a zone session (a guest of another player, or the holder of a zone with guests): the link to the host of
+    ///     the world is the main one
     /// </summary>
     internal static void SendAway(Thing bill)
     {
-        if (NetSession.Instance is { IsAway: true, Connection: null, Transport: ElinNetClient main }) {
+        if (NetSession.Instance is { IsAway: true, Transport: ElinNetClient main }) {
             main.SendWhileAway(new BillPayDelta {
                 Answer = BillAnswer.Paid,
                 Payer = EClass.pc.NameSimple,
@@ -214,8 +216,15 @@ public class BillPayDelta : ElinDelta
         }
     }
 
-    // a player alone on another map paid with its own gold: only the counter is left to lower, and only while
-    // it says there is something to pay (a repeated word of the same player finds it at 0)
+    // the last accepted Paid of each player (peer id -> time)
+    private static readonly Dictionary<int, float> LastPaid = [];
+
+    private const float PaidEverySeconds = 10f;
+
+    // a player away from this map paid with its own gold: only the counter is left to lower, and only while
+    // it says there is something to pay (a repeated word of the same player finds it at 0). The bill is in the
+    // sender's hands, so its words are kept within what this game knows: at most one a player every 10 s, the
+    // amount within the tax of the moment (or the delivery bills owed), the gift within what the bill can hold
     private void SettleAway(ElinNetHost host)
     {
         var tax = Id == "bill_tax";
@@ -223,8 +232,19 @@ public class BillPayDelta : ElinDelta
             return;
         }
 
-        LowerCounters(tax, Amount, Gift);
-        Tell(host, Payer ?? "", Id!, Amount);
+        if (LastPaid.TryGetValue(OriginPeer, out var last) && UnityEngine.Time.unscaledTime - last < PaidEverySeconds) {
+            return;
+        }
+
+        var amount = Math.Min(Amount, tax ? EClass.Home?.GetTotalTax(false) ?? 0 : player.unpaidBill);
+        if (amount <= 0) {
+            return;
+        }
+
+        LastPaid[OriginPeer] = UnityEngine.Time.unscaledTime;
+        // the gift is the extra tax of the bill / 1000, and the extra tax is a part of the bill's amount
+        LowerCounters(tax, amount, Math.Clamp(Gift, 0, amount / 1000));
+        Tell(host, Payer ?? "", Id!, amount);
     }
 
     private void OnAnswer()

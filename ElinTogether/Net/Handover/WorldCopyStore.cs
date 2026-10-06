@@ -25,8 +25,8 @@ internal static class WorldCopyStore
     private const int CopiesKept = 2;
 
     // what a host may ask this disk to hold
-    private const int MaxFiles = 20000;
-    private const long MaxBytes = 1L << 30;
+    internal const int MaxFiles = 20000;
+    internal const long MaxBytes = 1L << 30;
 
     /// <summary>
     ///     To read on the game's thread first
@@ -54,7 +54,9 @@ internal static class WorldCopyStore
     /// </summary>
     internal static bool IsSafe(WorldCopyManifest manifest)
     {
-        if (manifest.World is null || manifest.Files is not { Length: > 0 and <= MaxFiles } files) {
+        // a date that DateTime cannot hold would throw wherever the copy is told
+        if (manifest.World is null || manifest.Saved < 0 || manifest.Saved > DateTime.MaxValue.Ticks ||
+            manifest.Files is not { Length: > 0 and <= MaxFiles } files) {
             return false;
         }
 
@@ -81,12 +83,29 @@ internal static class WorldCopyStore
 
         foreach (var part in path.Split('/')) {
             if (part.Length == 0 || part is "." or ".." || part[^1] is '.' or ' ' ||
-                part.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || part.IndexOfAny(['\\', ':']) >= 0) {
+                part.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || part.IndexOfAny(['\\', ':']) >= 0 ||
+                IsReservedName(part)) {
                 return false;
             }
         }
 
         return true;
+    }
+
+    /// <summary>
+    ///     Windows device names, with or without an extension ("nul", "NUL.txt", "com1.save"): a file of that
+    ///     name cannot be created there
+    /// </summary>
+    private static bool IsReservedName(string part)
+    {
+        var stem = part.Split('.')[0].TrimEnd(' ');
+        if (stem.ToUpperInvariant() is "CON" or "PRN" or "AUX" or "NUL" or "CONIN$" or "CONOUT$") {
+            return true;
+        }
+
+        return stem.Length == 4 && stem[3] is >= '0' and <= '9' &&
+               (stem.StartsWith("COM", StringComparison.OrdinalIgnoreCase) ||
+                stem.StartsWith("LPT", StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>
@@ -213,14 +232,18 @@ internal static class WorldCopyStore
             Directory.Move(incoming, target);
             result = Closed.Kept;
 
+            // (Saved is within DateTime's range: IsSafe)
             EmpLog.Information("World copy kept: {Files} files, {Bytes} bytes, handover {Handover}, saved {Saved:u}, in {Dir}",
                 manifest.Files.Length, manifest.Files.Sum(f => f.Size), manifest.Handover,
                 new DateTime(manifest.Saved, DateTimeKind.Utc), target);
 
+            // never the one just written, whatever its number: a copy of an older handover sorts after the others
+            var written = Path.GetFullPath(target);
             foreach (var old in Copies(folder).Skip(CopiesKept)) {
-                Directory.Delete(old.Dir, true);
+                if (!string.Equals(Path.GetFullPath(old.Dir), written, StringComparison.OrdinalIgnoreCase)) {
+                    Directory.Delete(old.Dir, true);
+                }
             }
-
         } catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException) {
             if (result != Closed.Kept) {
                 EmpLog.Warning("World copy not kept, the previous one stays: {Why}", ex.Message);

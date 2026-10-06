@@ -92,3 +92,33 @@ n'est pas touché, 843 reste libre.
 aucun gel de plus de 200 ms chez l'invité ; C2 seuls les fichiers changés partent ; C3 copie coupée au milieu
 (`emp.cut_link`), l'ancienne reste entière, la suivante se termine ; C4 aucune sauvegarde de l'invité touchée.
 À deux PC seulement : le débit par le relais Steam, une liaison lente, un vrai plantage de l'host en plein envoi.
+
+## Après relecture (2026-10-06, nuit)
+
+Compilé (`ReleaseNightly`, 0 erreur), **jamais lancé** ; la case reste décochée par défaut (non changé).
+
+- **Plafond avant lecture** (`ElinNetHostWorldCopy.cs`, `WorldSnapshot.Read`) : la somme des tailles et le nombre de
+  fichiers sont comptés d'après la liste du dossier, avant d'en lire un seul ; au-delà de 1 Go ou 20 000 fichiers (les
+  limites de l'invité, `WorldCopyStore.MaxBytes` / `MaxFiles`, maintenant `internal`) rien n'est lu ni haché. Warning
+  une seule fois : `World copy: the save is too big for a guest to keep (...)`.
+- **Débit** : un seul invité est servi à la fois (le premier de la liste qui a demandé des fichiers et dont le lien
+  n'est pas plein) : 4 parts de 32 Ko par seconde en tout, quel que soit le nombre d'invités. Les autres gardent ce
+  qu'ils ont demandé et attendent. Un invité lent ne retient pas les autres. Pas vu tourner à plusieurs.
+- **Manifeste** : l'host retient pour chaque joueur (numéro de lien) la dernière sauvegarde qu'il lui a envoyée en
+  entier ; un nouveau lien du même joueur ne reçoit plus la liste de cette même sauvegarde. Prix : il n'entend pas
+  parler de cette sauvegarde, donc `WorldHandover.Remember` (monde, liste des invités) attend la suivante (au plus
+  2 minutes) s'il avait redémarré son jeu. Pas de nouveau message ; seulement ce cas, rien d'autre n'est évité (chaque
+  sauvegarde a sa propre liste, il faut qu'elle parte).
+- `WorldHandover.Remember` : `p is not null` avant `p.Index` (une entrée nulle plantait).
+- **Élagage** (`WorldCopyStore.Close`) : ne supprime jamais le dossier qui vient d'être écrit, même si son numéro de
+  reprise est plus petit que celui de deux copies déjà là (il peut alors y en avoir trois).
+- **Fichier au chemin refusé** : omis de la liste comme avant, mais Warning
+  `World copy: {Omitted} file(s) of the save have a name a guest's disk would refuse and are left out ...` (quand le
+  nombre change, pas à chaque sauvegarde) et `WorldCopyManifest.Incomplete` (clé 5, écrit dans `copy.json`).
+  `WorldHandover.Find` (donc `Mine()`, `IsMyTurn`) saute une copie incomplète. Ne compte pas : `Temp/`, `cloud.zip`.
+- **Date hors plage** : `IsSafe` refuse un manifeste dont `Saved` n'est pas dans `[0, DateTime.MaxValue.Ticks]` (offre
+  refusée et copie ignorée à la lecture) ; plus aucun `new DateTime(Saved)` ne peut lever.
+- **Noms réservés Windows** : `IsSafePath` refuse `CON`, `PRN`, `AUX`, `NUL`, `CONIN$`, `CONOUT$`, `COM0-9`, `LPT0-9`,
+  avec ou sans extension (`nul.txt`), casse ignorée. L'host les omet donc aussi (copie « incomplète »).
+- Pas sûr : un monde (donc une sauvegarde) qui change de taille entre la liste et la lecture n'est pas replafonné ;
+  `Incomplete` n'est pas testé (aucun test ne fabrique de nom réservé) ; `worldcopy_suite.py` non changé.

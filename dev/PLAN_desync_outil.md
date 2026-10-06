@@ -65,7 +65,8 @@ Compilé (`ReleaseNightly`, 0 erreur), **jamais lancé**.
   « objets au sol » du tableau plus haut. Un objet qui n'est pas à la même case chez deux joueurs n'est donc **plus
   vu** ; il est remis à sa case par tout rechargement de la carte. Le texte de l'avertissement dit maintenant
   `(not the same ones or amounts)`.
-- Les nombres du passage de main (`ZoneLeaseState.Sums`, D2) comptent toujours la case : non touché.
+- Les nombres du passage de main (`ZoneLeaseState.Sums`, D2) comptaient la case ici : **ce n'est plus vrai**, voir
+  « Après relecture (seconde passe) » en bas.
 - `DesyncReportDelta` : le nom de la carte et le détail envoyés par l'invité sont coupés à 200 caractères avant
   d'entrer dans le journal de l'host.
 - `resync_suite.py` R2 : le seau déplacé de 2 cases reste dans le test, mais l'écart n'est plus vu que par le seau
@@ -161,3 +162,22 @@ Une remise à niveau coûte à l'host une copie de la carte (comme une arrivée 
 - `pc.HasNoGoal` chez un invité au repos : supposé vrai (sinon aucune remise à niveau ne part, sans danger).
 - Session de zone (invité chez un invité) : même code, pas dans la suite.
 - Le rechargement de la carte active d'un invité installé est un chemin peu emprunté (`ElinNetClientZone.cs:184-188`).
+
+## Après relecture (seconde passe, 2026-10-06, nuit)
+
+Compilé (`ReleaseNightly`, 0 erreur), **jamais lancé**.
+
+- **Les nombres du passage de main ne comptent plus la case** des objets au sol (`ZoneLeaseState.Sums`) : numéro +
+  quantité, comme `NetDesync.Collect`. Raison : un objet lancé ou éparpillé tombe aux dés de chaque jeu ; avec la case,
+  le repreneur rechargeait la carte de l'host à chaque départ après un combat. Le contenu des coffres reste compté
+  (numéro, contenant, quantité). Un objet à une case différente n'est donc plus vu par ce passage non plus.
+  `dev/_tools/desync_suite.py` ne dépend pas de la case dans ses vérifications de rechargement (le seau retiré du sol
+  change le nombre d'objets) : rien à y changer.
+- **Demande de sac** (le drapeau `NetDesync.RepairBags` n'est pas changé, il reste éteint) : au plus **3 demandes par
+  personnage et par séjour sur une carte** (`_bagAsksOnMap`, remis à zéro quand la carte comparée change, comme
+  `MaxFruitless`), en plus de l'attente doublée ; côté host (`CharaBagDelta.Answer`) au plus **une réponse par 30 s et
+  par personnage**, quel que soit le demandeur (c'était 5 s). La réponse part à tous : une demande refusée par cette
+  attente est perdue, le demandeur ne la renouvelle qu'après sa propre attente (30 s puis 60 s...).
+  La phrase plus haut « au plus une fois par 5 s et par personnage » est donc devenue « par 30 s ».
+- Pas sûr : la suite `resync_suite.py` R4/R5 (non relue ici, hors de ma liste) peut compter sur l'ancienne attente de
+  5 s de l'host ; la case des sacs est éteinte de toute façon.

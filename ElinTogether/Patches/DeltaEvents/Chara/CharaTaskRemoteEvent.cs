@@ -71,7 +71,7 @@ internal static class CharaTaskRemoteEvent
             TaskCut task => TaskCutArgs.Create(task),
             TaskDig task => TaskDigArgs.Create(task),
             TaskDrawWater task => TaskDrawWaterArgs.Create(task),
-            // not sent: it reads "the player's" bag and closes "the player's" windows wherever it runs, the others
+            // TaskDump is not sent: it reads "the player's" bag and closes "the player's" windows wherever it runs, the others
             // see it as a busy player and the items reach them as they are put away
             TaskHarvest task => TaskHarvestArgs.Create(task),
             TaskMine task => TaskMineArgs.Create(task),
@@ -180,7 +180,8 @@ internal static class CharaTaskRemoteEvent
 
         // our own player's task the host cannot stand for: it runs and stops here (CharaTaskProgressEvents, CharaTaskCancelEvent)
         // (not crafting: it would use the ingredients up here and its product is not one the host knows, so it is
-        // stopped by the host as before, nothing spent, until it is handled for real)
+        // stopped by the host as before, nothing spent, until it is handled for real. The game cannot start it yet:
+        // its only caller is the floating craft list, filled by Thing.GetRecipes, an empty method in 23.352)
         if (connection.IsClient && __instance.IsPC && args is FakeTask && g is not TaskCraft) {
             FakeTask.Mark(g);
         }

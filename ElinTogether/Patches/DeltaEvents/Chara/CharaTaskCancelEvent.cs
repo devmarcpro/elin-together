@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using ElinTogether.API.SourceValidation;
 using ElinTogether.Elements;
 using ElinTogether.Models;
@@ -50,7 +52,42 @@ internal static class CharaTaskCancelEvent
                 : (byte)0,
         });
 
+        // the stop is held back for the host's answer: when none comes the stop is made here, for this act only
+        if (prevent && net is ElinNetClient && current.parent is { } act && Waiting.Add(act)) {
+            EmpMod.Instance.StartCoroutine(StopIfNoAnswer(owner, act));
+        }
+
         return !prevent;
+    }
+
+    private const float AnswerSeconds = 2f;
+
+    // the acts whose stop waits for an answer
+    private static readonly HashSet<AIAct> Waiting = [];
+
+    /// <summary>
+    ///     The host answers a stop by sending it back, and says nothing when it holds the stop back (the act is not
+    ///     running there). After <see cref="AnswerSeconds" /> without an answer the act is stopped here. It is tied to
+    ///     the act that was asked to stop: once it is over, or replaced by the next task of the player, nothing happens
+    /// </summary>
+    private static IEnumerator StopIfNoAnswer(Chara owner, AIAct act)
+    {
+        yield return new UnityEngine.WaitForSecondsRealtime(AnswerSeconds);
+        Waiting.Remove(act);
+
+        for (var ai = owner.ai?.Current; ai is not null; ai = ai.parent) {
+            if (ai != act) {
+                continue;
+            }
+
+            if (act.status == AIAct.Status.Running) {
+                EmpLog.Warning("No answer to the stop of {ActType} after {Seconds} s, stopping it here",
+                    act.GetType().Name, AnswerSeconds);
+                act.Stub_Cancel();
+            }
+
+            yield break;
+        }
     }
 
     extension(AIAct aIAct)

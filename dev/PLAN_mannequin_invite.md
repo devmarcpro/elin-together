@@ -166,3 +166,34 @@ dessous est maintenant locale.
   de la toile ont ces traits (nom de classe sans `Trait`) ; sinon la première vérification échoue en le disant. L'arrêt
   de (b) est un `Cancel()` direct après quelques `Tick()` (pas un arrêt de joueur). Rouge attendu avant la correction :
   (b) « la tâche tourne encore : True », (a) « no matching act ».
+
+## Après relecture (6 octobre 2026, compilé, rien joué)
+
+**Arrêt d'une tâche CONNUE qui reste retenu pour toujours** (`CharaTaskCancelDelta.cs`, `CharaTaskCancelEvent.cs`).
+Cas : l'invité arrête une tâche connue de la table, l'arrêt est retenu (`prevent`) en attendant l'host ; l'host ne trouve
+plus la tâche sur sa copie (`ai is null`) et revenait sans rien dire : l'invité ne pouvait plus arrêter, ni à la main ni par
+épuisement. Fait (vérifié dans le code avant) :
+
+- **Host** : quand il ne trouve pas la tâche, et que l'envoyeur est bien le joueur de ce personnage
+  (`ActiveRemoteCharas[OriginPeer] == chara`, comme la ligne du livre de sorts plus bas), il renvoie l'ordre d'arrêt à
+  CE joueur seul (`SendDeltaTo`). Dans le cas normal l'ordre est relayé aux clients (`net.Delta.AddRemote(this)`) ;
+  ici la copie des autres joueurs a déjà perdu la tâche, seul le demandeur attend. Vaut aussi pour l'hôte d'une session de zone (invité d'un autre invité).
+- **Invité, filet** : après avoir retenu l'arrêt, une coroutine attend 2 s (temps réel) puis, si l'acte est toujours
+  dans la chaîne de tâches du joueur ET toujours `Running`, l'arrête ici (`Stub_Cancel`, ce que fait l'ordre de l'host).
+  La demande est liée à l'OBJET : on garde l'acte (`current.parent`), pas son type. Une tâche lancée depuis (autre objet) n'est
+  pas touchée ; une tâche finie ou déjà arrêtée par la réponse de l'host non plus. Une seule attente par acte (appuyer
+  plusieurs fois sur la touche d'arrêt n'en empile pas ; chaque appui envoie quand même son ordre, le compte de
+  `ForceCancelCountRequired` de l'host est inchangé).
+- Couvre aussi, par la même occasion : l'host qui retient l'arrêt parce que l'acte n'est « pas en cours » chez lui
+  (premier appui, `LastCancelDelta` < 2) : sans réponse, le filet arrête au bout de 2 s.
+
+Pas sûr :
+
+- **L'ordre de l'host est par type d'acte** (`ActId`), pas par objet : un ordre qui arrive très en retard (plus de 2 s,
+  le filet a déjà arrêté) pourrait arrêter la tâche SUIVANTE du joueur si elle est du même type. Même défaut qu'avant dans
+  le cas normal, un peu plus probable maintenant que le filet agit avant une réponse lente. Pas de numéro d'acte dans le
+  message (ça changerait le format du delta) : à faire si on le voit en jeu.
+- Le filet arrête un acte `Running` même si la réponse de l'host était justement de ne rien faire (acte vraiment
+  en cours pour lui et le joueur a demandé l'arrêt : c'est le but).
+- Test : `dummy_suite.py` étape `m5` (la copie de la tâche est effacée chez l'host par `SetNoGoal`, l'invité arrête). Pas
+  lancé ; que `SetNoGoal` sur la copie de l'host reproduise une disparition réelle n'est pas sûr.

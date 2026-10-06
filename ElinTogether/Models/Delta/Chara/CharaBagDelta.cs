@@ -19,8 +19,9 @@ namespace ElinTogether.Models;
 [MessagePackObject]
 public class CharaBagDelta : ElinDelta
 {
-    // one answer serves every game that asked in the same comparison
-    private const float AnswerGap = 5f;
+    // one answer per character, whoever asked: it goes to everyone, so it serves every game that asked in the
+    // same comparison, and no player can make the host send a whole bag more often than that
+    private const float AnswerGap = 30f;
 
     private static readonly Dictionary<int, float> _answered = [];
 

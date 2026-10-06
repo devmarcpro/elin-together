@@ -151,7 +151,7 @@ public class NetSessionRules
     ///     (see Net/Handover). Off: the world is on the host's disk only
     /// </summary>
     [Key(21)]
-    public bool KeepWorldCopy { get; set; } = true;
+    public bool KeepWorldCopy { get; set; } = false;
 
     /// <summary>
     ///     Council 10: the tax is computed on the highest fame among the connected players (see SharedTaxPatch).
