@@ -9,7 +9,10 @@ R1  deux jeux synchronises : pendant 30 s les deux joueurs marchent, ramassent e
 R2  ecart fait a la main chez l'invite seulement (un seau retire du sol, un autre deplace de 2 cases, un poulet retire
     de la carte et de la memoire des cartes) : l'avertissement parait en moins de 10 s chez l'invite ET chez l'host,
     la carte est redemandee, et 15 s plus tard les nombres sont egaux, le seau, la case de l'autre seau et le poulet
-    sont revenus chez l'invite, et l'invite n'a pas ete deplace a cote de l'host (2 cases au plus)
+    sont revenus chez l'invite, et l'invite n'a pas ete deplace a cote de l'host (2 cases au plus).
+    Les nombres ne comptent plus la case des objets (un objet lance ou eparpille tombe selon les des de chaque jeu) :
+    le seau deplace seul ne serait PAS vu. L'ecart est vu par le seau retire et le poulet ; le seau deplace reste
+    dans le test pour verifier que le rechargement le remet a sa case
 R3  case decochee : meme ecart (un seau retire) : avertissement dans les deux journaux, pas de rechargement en 20 s.
     Case recochee : la carte est rechargee toute seule (au plus un rechargement par 30 s, deja passees ici) et le seau
     revient. Les avertissements voulus de R2 et R3 sont listes par le releve des journaux a la fin : c'est normal

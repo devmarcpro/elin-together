@@ -14,7 +14,7 @@ mod lui-même leur revient (voir [Crédits](#crédits)).
 > **État : expérimental.** Tout ce qui suit est testé sur un seul PC avec deux fenêtres du jeu (suites de tests
 > automatiques en jeu, plus de 900 vérifications, dossier `dev/`). C'est **très peu joué entre deux PC par
 > Steam** : une seule soirée, qui a trouvé un bug que les tests n'avaient pas vu, et presque rien de ce qui est nouveau dans cette
-> version (0.26.510) n'a encore été essayé à deux vrais PC. Faites d'abord une copie de vos sauvegardes :
+> version (0.26.524) n'a encore été essayé à deux vrais PC. Faites d'abord une copie de vos sauvegardes :
 > `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
 
 ## Ce que cette version ajoute
@@ -50,6 +50,10 @@ mod lui-même leur revient (voir [Crédits](#crédits)).
 | Le temps des autres ne coûte rien | Quand un autre joueur voyage ou dort, la date avance, mais vous n'avez pas plus faim, votre nourriture ne pourrit pas, vos délais de quête ne bougent pas. Au sommeil, seuls les familiers du dormeur le rejoignent. |
 | Coupure sans conséquence | Un invité qui perd sa liaison revient tout seul dans la partie (essais pendant 3 minutes). Case de l'host « AutoReconnect » (cochée). |
 | L'host n'a plus rien à faire | Le monde est sauvegardé tout seul toutes les 2 minutes quand un autre joueur est là ; un monde déjà partagé ouvre sa partie tout seul au chargement (amis Steam). Cases « AutoSave » et « AutoHost » (cochées). |
+| Les jeux restent d'accord | Aucun message n'est plus jeté quand la liaison est saturée ; les gros envois partent en morceaux ; ce que les autres font pendant qu'un joueur charge est rejoué ensuite ; toutes les 2 secondes les jeux comparent quelques nombres par carte et la carte est rechargée sur place si un écart dure. Case de l'host « Repair the map by itself » (cochée). Jamais joué en vrai. |
+| Chacun dort pour soi | Celui qui se couche dort tout de suite ; la nuit ne passe pour le monde que si tous dorment en même temps. L'invité lit son grimoire, profite de son lit et de son oreiller. Case « Everyone sleeps for themselves » (cochée). |
+| Le temps ne saute que quand tous sautent | Un pas sur la carte du monde ne fait plus avancer la date des autres ; le voyageur paie sa propre faim. Case « Time only jumps when everyone jumps » (cochée). |
+| Banque, factures, rangement | La banque et la caisse d'expédition d'un invité montrent le vrai contenu partout ; un invité peut payer une facture ; le rangement automatique épargne la main et la ceinture à outils. |
 
 Presque toutes sont une **case à cocher côté host** (Échap → Mods → Elin Together → *Server Setting*) ; décochée,
 le mod se comporte comme l'original. Les quêtes à donjon à deux et les corrections « un invité joue comme un joueur
@@ -72,8 +76,6 @@ solo » n'ont pas de case.
 
 - Très peu joué entre deux PC par Steam (une soirée) ; les nouveautés de cette version, pas encore.
 - Une seule date pour le monde, celle du joueur le plus avancé ; seuls ses effets (faim, pourriture, délais) sont par joueur.
-- Banque et caisse d'expédition : un invité seul sur une autre carte que l'host voit sa fenêtre se rouvrir vide (ce qu'il a
-  déposé est chez l'host). Déposez sur la carte de l'host. Correction en cours.
 - Trois joueurs ou plus : testé à trois fenêtres sur un PC pour les places et le temps seulement ; le jeu ralentit quand
   le nombre d'invités augmente. Le rangement automatique peut ranger des objets de la barre d'outils.
 - Quand l'host part ou plante, aucun invité ne reprend le monde tout seul : il faut le reprendre à la main (dépôt).

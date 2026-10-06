@@ -60,12 +60,18 @@ public class DesyncReportDelta : ElinDelta
             return;
         }
 
+        // text written by another game: cut before it reaches this journal
         EmpLog.Warning("Player {PeerIndex} reports a map checksum that differs on {ZoneFullName} (there/here): {Detail}, reload {Resync}",
-            OriginPeer, ZoneFullName, Detail, Resync);
+            OriginPeer, Cut(ZoneFullName), Cut(Detail), Resync);
 
         if (Resync) {
             host.KeepSpotForResync(OriginPeer);
         }
+    }
+
+    private static string? Cut(string? text)
+    {
+        return text is { Length: > 200 } ? text.Substring(0, 200) : text;
     }
 }
 
@@ -76,8 +82,9 @@ public class DesyncReportDelta : ElinDelta
 ///     sides stood still on it for 3 comparisons in a row: what is on its way (a move, a pickup) changes the numbers
 ///     of one side between two comparisons. Then a warning in both journals, and with the host rule AutoResync the
 ///     map is asked again <br />
-///     Left out on purpose: where characters stand (the snapshot allows 2 tiles), dead characters, cards waiting
-///     for their number (<see cref="PendingUid" />), ability tokens, what chests hold, the world map
+///     Left out on purpose: where characters stand (the snapshot allows 2 tiles), where items lie (what is thrown
+///     or scattered lands by the dice of each game), dead characters, cards waiting for their number
+///     (<see cref="PendingUid" />), ability tokens, what chests hold, the world map
 /// </summary>
 internal static class NetDesync
 {
@@ -154,7 +161,8 @@ internal static class NetDesync
                     }
 
                     things++;
-                    thingMix += Mix(thing.uid, thing.pos.x, thing.pos.z, thing.Num);
+                    // not its tile: a thrown item, an arrow, scattered loot land by the dice of each game
+                    thingMix += Mix(thing.uid, thing.Num, 0, 0);
                 }
             }
 
@@ -360,7 +368,7 @@ internal static class NetDesync
 
         if (mapDiffers && (local.Things != host.Things || local.ThingMix != host.ThingMix)) {
             parts.Add($"things {local.Things}/{host.Things}" +
-                      (local.Things == host.Things ? " (not the same ones, tiles or amounts)" : ""));
+                      (local.Things == host.Things ? " (not the same ones or amounts)" : ""));
         }
 
         if (bags is not null) {

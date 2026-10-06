@@ -64,6 +64,10 @@ internal partial class ElinNetHost
         }
 
         if (zone is not null) {
+            // as in SendSaveProbe: what is already done is in the copy, it goes out before it
+            Delta.RefreshBuffer();
+            WorldStateDeltaUpdate();
+
             PropagateZoneChangeState(zone, peer);
         } else {
             EmpLog.Warning("Player {@Peer} requested invalid zone state",

@@ -249,7 +249,9 @@ internal partial class ElinNetClient
         core.actionsNextFrame.Add(LayerTitle.KillActor);
 
         // no zone request: the host sent its map right behind the world, taken at the same moment, so that
-        // nothing happens between the two copies (see ElinNetHost.SendSaveProbe)
+        // nothing happens between the two copies (see ElinNetHost.SendSaveProbe). Should that map never come, it
+        // is asked for once
+        StartCoroutine(AskMissingMap(++_mapAwaited));
 
         EmpPop.Debug("emp_wait_zone".lang());
 

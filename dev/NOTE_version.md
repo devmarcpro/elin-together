@@ -1,103 +1,130 @@
-# Elin Together « indépendance » 0.26.510
+# Elin Together « indépendance » 0.26.524
 
 (English below / version anglaise plus bas)
 
-Corrections après une vraie soirée à trois joueurs et plus. Compilé pour Elin **EA 23.352 Patch 1** (canal Nightly).
-**Tous les joueurs doivent installer ce même zip.**
+**Version non testée en jeu.** Elle répond aux retours d'une vraie soirée à trois joueurs et plus (« énormément de
+désynchronisations »). Tout a été écrit, relu et compilé, mais **rien n'a été joué**, même pas par les tests
+automatiques. Si elle se passe mal, revenez à la 0.26.510, qui reste en ligne. Compilé pour Elin **EA 23.352 Patch 1**
+(canal Nightly). **Tous les joueurs doivent installer ce même zip.** Faites une copie de vos sauvegardes avant :
+`%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
+
+## Désynchronisations entre joueurs
+
+- **Plus aucun message n'est jeté** quand la liaison Steam est saturée : il attend et repart dans l'ordre. Les gros
+  envois (carte, monde) partent en morceaux. Avant, un message refusé par Steam était perdu sans trace.
+- **Arrivée ou retour d'un joueur** : le monde et la carte partent ensemble, et ce que les autres font pendant son
+  chargement est rejoué ensuite au lieu d'être perdu.
+- **L'hébergeur quitte sa carte** : sa copie fait foi. Le joueur qui garde la carte ne la recharge que si la sienne
+  diffère.
+- **Objet inconnu de l'hébergeur** : il ne disparaît plus chez tout le monde.
+- **Réparation automatique** : toutes les 2 secondes les jeux comparent quelques nombres par carte ; si un écart dure,
+  il est écrit dans les journaux et la carte est rechargée sur place. Case « Repair the map by itself » (cochée).
 
 ## Corrigé
 
-- **Les invités ne sont plus téléportés sur l'hébergeur.** Quand l'hébergeur part ou revient, chaque invité garde sa
-  case. Un joueur entre sur une carte par son entrée, et n'arrive plus dans l'eau sur la carte du monde.
-- **Le temps d'un autre joueur ne vous coûte plus rien.** Quand un joueur voyage ou dort, la date avance pour tous, mais
-  vous n'avez pas plus faim, votre nourriture ne pourrit pas, vos états et vos délais de quête ne bougent pas.
-- **Sommeil** : seuls les familiers du dormeur le rejoignent ; un invité qui dort seul ne voit plus sa carte rechargée.
-- **Musique** : le personnage d'un autre joueur ne jette plus de pièces au musicien.
-- **Ancien personnage** : un personnage de joueur que personne ne joue ne reste plus sur la carte à se battre.
-- **Cave** : une cave où se trouve un joueur n'est plus refaite quand un autre y entre.
-- **Chargement rapide** : arrêté dans une partie à plusieurs (il ouvrait une fenêtre d'erreur chez l'invité).
+- **Boss de donjon invisible pour les invités, donjon « conquis » sans boss vaincu** : rejoindre un joueur à l'étage
+  du boss ne le fait plus fuir.
+- **Objets qui « disparaissent » quand un invité marche dessus, sac plein** : ils restent par terre, comme en solo.
+- **Banque et coffre d'expédition d'un invité** seul sur une autre carte : la fenêtre montre le vrai contenu, on peut
+  déposer et reprendre.
+- **Recette apprise par un invité** comptée deux fois chez lui.
+- **Quête de récolte ou de concert** qui échouait quand un autre joueur faisait passer le temps.
 
-## Nouveau
+## Nouveau (chacun a sa case côté hébergeur, cochée)
 
-- **Coupure de liaison** : l'invité revient tout seul dans la partie (essais pendant 3 minutes).
-- **Plus d'écran « Who do you want to play? »** à chaque connexion : chacun retrouve son personnage.
-- **Sauvegarde automatique** chez l'hébergeur, toutes les 2 minutes quand un autre joueur est là.
-- **Un monde déjà partagé ouvre sa partie tout seul** au chargement (amis Steam).
-- **Dépôt (GitHub ou dossier)** : si quelqu'un héberge déjà le monde, le joueur suivant est envoyé dans sa partie
-  (bouton « Join ») au lieu d'en ouvrir une copie.
+- **Chacun dort pour soi** (« Everyone sleeps for themselves ») : on dort tout de suite sans attendre personne ; la
+  nuit ne passe pour le monde que si tous dorment en même temps. L'invité lit son grimoire, profite de son lit et de
+  son oreiller, tire sa propre recette.
+- **Le temps ne saute que quand tous sautent** (« Time only jumps when everyone jumps ») : un pas sur la carte du
+  monde ne fait plus avancer la date des autres ; le voyageur paie sa propre faim.
+- **Le rangement automatique épargne la main et la ceinture à outils.**
+- **Un invité peut payer une facture** ; tout le monde lit qui a payé.
+- **Prendre le monde d'un dépôt ouvre la partie tout seul.**
+- **Un joueur connu du monde entre sans être ami Steam** de l'hébergeur.
+- **Seul dans sa partie**, l'hébergeur retrouve les règles du jeu solo.
+- **Moins de lenteurs à plusieurs** : une seule sauvegarde quand un invité revient, un message au lieu de 120 par
+  pas sur la carte du monde.
 
-## Pas encore corrigé
+## En cas de problème pendant une partie
 
-- Banque et coffre d'expédition d'un invité seul sur une autre carte que l'hébergeur : sa fenêtre se rouvre vide (ce
-  qu'il a déposé est chez l'hébergeur). En attendant, déposez sur la carte de l'hébergeur.
-- Le rangement automatique peut ranger des objets de la barre d'outils.
-- Deux factures au lieu d'une ; un donjon marqué conquis sans que le boss soit vaincu.
-- Au réveil, la recette apprise est celle de l'hébergeur ; le grimoire et l'oreiller de l'invité ne comptent pas.
-- Le jeu ralentit quand le nombre d'invités augmente.
-- Quand l'hébergeur part ou plante, aucun invité ne reprend le monde tout seul : il faut le reprendre à la main.
+- L'hébergeur décoche la case de la nouveauté en cause (Échap → Mods → Elin Together → Server Setting) : l'ancien
+  comportement revient tout de suite.
+- Un joueur désynchronisé tape `emp.reconnect_self` dans la console du jeu.
+- Après la partie, envoyez les journaux de l'hébergeur et d'un invité :
+  `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin\ElinMP\Logs\Session_AAAAMMJJ.log`.
 
-## Ce qui a été testé
+## Pas encore fait
 
-Sur un seul PC : à trois fenêtres du jeu, les places des joueurs (17/17) et le temps (25/25) ; à deux fenêtres, les
-suites habituelles. **Ces corrections n'ont pas encore été rejouées entre vrais PC**, et la redirection par Steam
-n'a jamais été jouée entre deux comptes. La cave et l'ancien personnage sont les corrections les moins sûres.
-Faites une copie de vos sauvegardes avant : `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
+- Quand l'hébergeur part ou plante, aucun invité ne reprend le monde tout seul.
+- Un écart dans un sac est signalé au journal, pas encore réparé.
+- Deux factures (impôt, livraison) ne sont pas un doublon ; l'impôt se calcule encore sur la renommée de l'hébergeur.
 
 ## Installer
 
 Il faut [YK Framework](https://steamcommunity.com/sharedfiles/filedetails/?id=3400020753) et Elin sur le canal
 **Nightly**. Chacun télécharge `ElinTogether-independance.zip` (ci-dessous), le décompresse et lance `Installer.bat`
-(`Desinstaller.bat` fait l'inverse). `LISEZMOI.txt` dans le zip explique le reste. Pour héberger : lancer Elin par
-Steam, charger une partie qui a un terrain revendiqué, puis Échap → Mods → Elin Together.
+(`Desinstaller.bat` fait l'inverse). `LISEZMOI.txt` dans le zip explique le reste.
 
 ---
 
-# Elin Together "independence" 0.26.510
+# Elin Together "independence" 0.26.524
 
-Fixes after a real evening with three players and more. Built for Elin **EA 23.352 Patch 1** (Nightly branch).
-**Every player must install this same zip.**
+**Not tested in game.** It answers the reports of a real evening with three players and more ("a lot of desync").
+Everything was written, reviewed and compiled, but **nothing was played**, not even by the automated tests. If it goes
+wrong, go back to 0.26.510, which stays online. Built for Elin **EA 23.352 Patch 1** (Nightly branch). **Every player
+must install this same zip.** Back up your saves first: `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
+
+## Desync between players
+
+- **No message is dropped any more** when the Steam link is saturated: it waits and goes out in order. Big sends (map,
+  world) go in pieces. Before, a message refused by Steam was lost without a trace.
+- **A player arriving or coming back**: world and map are sent together, and what the others do while it loads is
+  replayed afterwards instead of being lost.
+- **The host leaves its map**: its copy is the reference. The player who keeps the map only reloads it when its own
+  differs.
+- **An item the host does not know** no longer vanishes for everyone.
+- **Automatic repair**: every 2 seconds the games compare a few numbers per map; a lasting difference is written to
+  the logs and the map is reloaded in place. Checkbox "Repair the map by itself" (checked).
 
 ## Fixed
 
-- **Guests are no longer teleported onto the host.** When the host leaves or comes back, every guest keeps its tile. A
-  player enters a map by its entrance, and no longer lands in water on the world map.
-- **Another player's time costs you nothing.** When a player travels or sleeps, the date moves on for all, but you are
-  no hungrier, your food does not rot, your conditions and quest deadlines do not move.
-- **Sleep**: only the sleeper's own pets join it; a guest sleeping alone no longer gets its map reloaded.
-- **Music**: another player's character no longer throws coins at the musician.
-- **Former character**: a player character nobody plays no longer stays on the map and fights.
-- **Cave**: a cave with a player in it is no longer rebuilt when another player enters.
-- **Quick load**: stopped in a shared game (it opened an error window for the guest).
+- **Dungeon boss invisible to guests, dungeon "conquered" with its boss alive**: joining a player on the boss floor no
+  longer makes it flee.
+- **Items "vanishing" when a guest walks on them with a full bag**: they stay on the ground, as in solo.
+- **Bank and shipping chest of a guest** alone on another map: the window shows the real content, deposit and take back.
+- **A recipe learnt by a guest** counted twice for that guest.
+- **Harvest or concert quest** failing when another player made time pass.
 
-## New
+## New (each has a host checkbox, checked)
 
-- **Dropped link**: the guest comes back into the game by itself (tries for 3 minutes).
-- **No more "Who do you want to play?" screen** at each connection: everyone gets their character back.
-- **Automatic save** on the host, every 2 minutes while someone else plays.
-- **A world already shared opens its session by itself** on load (Steam friends).
-- **Depot (GitHub or folder)**: if someone already hosts the world, the next player is sent into that game ("Join"
-  button) instead of opening a copy.
+- **Everyone sleeps for themselves**: you sleep at once without waiting; the night only passes for the world when all
+  sleep at the same time. A guest reads its spellbook, uses its own bed and pillow, draws its own recipe.
+- **Time only jumps when everyone jumps**: a step on the world map no longer moves the others' date; the traveller pays
+  its own hunger.
+- **Auto-dump spares the hand and the tool belt.**
+- **A guest can pay a bill**; everyone reads who paid.
+- **Taking a world from a depot opens the session by itself.**
+- **A player known to the world comes in without being a Steam friend** of the host.
+- **Alone in its session**, the host gets the solo rules back.
+- **Less slowness with several guests**: one save when a guest comes back, one message instead of 120 per step on the
+  world map.
 
-## Not fixed yet
+## If something goes wrong during a game
 
-- Bank and shipping chest of a guest alone on another map than the host: the window reopens empty (what was deposited
-  is with the host). Until then, deposit on the host's map.
-- Auto-dump may put toolbar items away.
-- Two bills instead of one; a dungeon marked as conquered while its boss is alive.
-- On waking, the recipe learned is the host's; the guest's spellbook and pillow do not count.
-- The game slows down as guests are added.
-- When the host leaves or crashes, no guest takes the world over by itself: it is taken over by hand.
+- The host unticks the checkbox of the feature (Esc → Mods → Elin Together → Server Setting): the former behaviour is
+  back at once.
+- A desynced player types `emp.reconnect_self` in the game's console.
+- After the game, send the logs of the host and of a guest:
+  `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin\ElinMP\Logs\Session_YYYYMMDD.log`.
 
-## What was tested
+## Not done yet
 
-On one PC: with three game windows, player positions (17/17) and time (25/25); with two windows, the usual suites.
-**These fixes have not been replayed between real PCs yet**, and being sent to the current host through Steam has
-never been played between two accounts. The cave and former-character fixes are the least certain. Back up your saves
-first: `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
+- When the host leaves or crashes, no guest takes the world over by itself.
+- A difference in a bag is written to the log, not repaired yet.
+- Two bills (tax, delivery) are not a duplicate; tax is still computed on the host's fame.
 
 ## Install
 
 Requires [YK Framework](https://steamcommunity.com/sharedfiles/filedetails/?id=3400020753) and Elin on the **Nightly**
 branch. Each player downloads `ElinTogether-independance.zip` (below), unzips it and runs `Installer.bat`
-(`Desinstaller.bat` switches back). The installer and its notes (`LISEZMOI.txt` in the zip) are in French. To host:
-launch Elin through Steam, load a save that has a claimed land, then Esc → Mods → Elin Together.
+(`Desinstaller.bat` switches back). The installer and its notes (`LISEZMOI.txt` in the zip) are in French.

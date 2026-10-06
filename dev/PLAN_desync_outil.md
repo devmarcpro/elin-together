@@ -55,6 +55,25 @@ sac (et la mémoire des cartes), demandé par l'invité en écart : ~40 lignes, 
 3. En session de zone, la ligne arrive dans le journal de l'invité qui tient la carte, pas dans celui de l'host : il
    faudrait la faire suivre (`SendWhileAway`) et l'ajouter à la liste de `ElinNetHostUpdate.cs:116`.
 
+## Après relecture (2026-10-06, nuit)
+
+Compilé (`ReleaseNightly`, 0 erreur), **jamais lancé**.
+
+- **La case des objets au sol n'est plus dans les nombres** (`NetDesync.cs`, `Collect`) : numéro + quantité seulement,
+  comme pour les personnages. Raison : un objet lancé, une flèche, un butin éparpillé tombent selon les dés de chaque
+  jeu ; une case d'écart aurait fait un écart immobile, donc des rechargements pour rien. Ceci remplace la ligne
+  « objets au sol » du tableau plus haut. Un objet qui n'est pas à la même case chez deux joueurs n'est donc **plus
+  vu** ; il est remis à sa case par tout rechargement de la carte. Le texte de l'avertissement dit maintenant
+  `(not the same ones or amounts)`.
+- Les nombres du passage de main (`ZoneLeaseState.Sums`, D2) comptent toujours la case : non touché.
+- `DesyncReportDelta` : le nom de la carte et le détail envoyés par l'invité sont coupés à 200 caractères avant
+  d'entrer dans le journal de l'host.
+- `resync_suite.py` R2 : le seau déplacé de 2 cases reste dans le test, mais l'écart n'est plus vu que par le seau
+  retiré et le poulet ; le test vérifie toujours que le rechargement remet le seau déplacé à sa case.
+- Le calcul a changé : host et invité doivent avoir la même version du mod (la connexion vérifie déjà la version du
+  mod, `ElinNetHostIntegrity.cs`, non relu en détail), sinon l'écart serait permanent sur toute carte avec des objets
+  au sol, jusqu'à l'arrêt des rechargements (3 sans effet).
+
 ## Coût
 Un passage sur `_map.charas` et `_map.things`, 4 multiplications par carte, plus le sac des joueurs présents ; une fois
 toutes les 2 s chez l'host et chez chaque invité. Estimé sous 0,2 ms pour 5 000 objets ; **non mesuré** : `emp.desync`

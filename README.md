@@ -13,7 +13,7 @@ goes to them (see [Credits](#credits)).
 
 > **Status: experimental.** Everything below is tested on one PC with two game windows (automated in-game test
 > suites, over 900 checks, see `dev/`). It has been **barely played between two PCs over Steam**: one evening, which
-> found a bug the tests had missed, and almost nothing new in this version (0.26.510) has been tried on two real PCs yet. Back up
+> found a bug the tests had missed, and almost nothing new in this version (0.26.524) has been tried on two real PCs yet. Back up
 > your saves first: `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
 
 ## What the fork adds
@@ -49,6 +49,10 @@ goes to them (see [Credits](#credits)).
 | Other players' time costs nothing | When another player travels or sleeps, the date moves on, but you are no hungrier, your food does not rot, your quest deadlines do not move. On sleep, only the sleeper's own pets join it. |
 | A dropped link is harmless | A guest who loses the link comes back into the game by itself (tries for 3 minutes). Host checkbox "AutoReconnect" (checked). |
 | Nothing left for the host to do | The world saves itself every 2 minutes while someone else plays; a world already shared opens its session by itself on load (Steam friends). Checkboxes "AutoSave" and "AutoHost" (checked). |
+| The games stay in agreement | No message is dropped any more when the link is saturated; big sends go in pieces; what the others do while a player loads is replayed afterwards; every 2 seconds the games compare a few numbers per map and the map is reloaded in place when a difference lasts. Host checkbox "Repair the map by itself" (checked). Never played for real. |
+| Everyone sleeps for themselves | A player who goes to bed sleeps at once; the night only passes for the world when all sleep at the same time. A guest reads its spellbook, uses its own bed and pillow. Checkbox "Everyone sleeps for themselves" (checked). |
+| Time only jumps when everyone jumps | A step on the world map no longer moves the others' date; the traveller pays its own hunger. Checkbox "Time only jumps when everyone jumps" (checked). |
+| Bank, bills, auto-dump | A guest's bank and shipping chest show the real content everywhere; a guest can pay a bill; auto-dump spares the hand and the tool belt. |
 
 Most of these are a **checkbox on the host's side** (Esc → Mods → Elin Together → *Server Setting*); unchecked,
 the mod behaves like the original. Dungeon quests for two and the "a guest plays like a solo player" fixes have no
@@ -71,8 +75,6 @@ checkbox.
 
 - Barely played between two PCs over Steam (one evening); the new features of this version, not yet.
 - One date for the world, that of the player furthest ahead; only its effects (hunger, rot, deadlines) are per player.
-- Bank and shipping chest: a guest alone on another map than the host sees the window reopen empty (what was deposited
-  is with the host). Deposit on the host's map. Fix in progress.
 - Three players or more: tested with three windows on one PC for positions and time only; the game slows down as guests
   are added. Auto-dump may put toolbar items away.
 - When the host leaves or crashes, no guest takes the world over by itself: it is taken over by hand (depot).

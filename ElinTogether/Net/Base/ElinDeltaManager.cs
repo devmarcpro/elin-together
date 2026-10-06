@@ -38,7 +38,8 @@ public class ElinDeltaManager
 
     public bool HasPendingOut => _outBuffer.Count > 0 || _outBufferDeferred.Count > 0;
     // what is held counts: it is replayed even when nothing else comes in
-    public bool HasPendingIn => _inBuffer.Count > 0 || _inBufferDeferred.Count > 0 || _held.Count > 0;
+    public bool HasPendingIn =>
+        _inBuffer.Count > 0 || _inBufferDeferred.Count > 0 || _held.Count > 0 || _beforeHold.Count > 0;
     public bool IsIdle => !HasPendingOut && !HasPendingIn;
 
     public int BatchCount { get; private set; }
@@ -140,13 +141,20 @@ public class ElinDeltaManager
             _untilPlaced = false;
         }
 
+        // came in before the map copy that opened the hold and is in that copy: applied first, never kept
+        var unheld = _beforeHold.Count;
+        batch.InsertRange(0, _beforeHold);
+        _beforeHold.Clear();
+
+        var index = 0;
         foreach (var delta in batch) {
+            var keep = hold && index++ >= unheld;
             try {
                 if (delta is null) {
                     continue;
                 }
 
-                if (hold && delta.RequiresGameStarted) {
+                if (keep && delta.RequiresGameStarted) {
                     // happened after the copy being loaded right now was taken: applied once it is there
                     if (_held.Count < MaxHeld) {
                         _held.Add(delta);
@@ -234,6 +242,7 @@ public class ElinDeltaManager
     {
         _inBuffer.Clear();
         _inBufferDeferred.Clear();
+        _beforeHold.Clear();
         _held.Clear();
         _heldLost = 0;
         _holding = false;
@@ -245,6 +254,8 @@ public class ElinDeltaManager
     private const float MaxHoldSeconds = 10f;
 
     private readonly List<ElinDelta> _held = [];
+    // what was waiting when a map arrived with the game running: it came before that copy was taken
+    private readonly List<ElinDelta> _beforeHold = [];
     private bool _holding;
     // the game was running when the map arrived: only the placement on that map tells it is loaded
     private bool _untilPlaced;
@@ -268,16 +279,25 @@ public class ElinDeltaManager
         var running = EClass.core.IsGameStarted;
         // a map on top of what is already kept (the world it comes with, or an earlier map): the characters of
         // the players are in no map, what is kept about them and what they carry is still to be applied
-        if (!world && _holding && (!running || _untilPlaced)) {
+        if (!world && _holding) {
+            // placed on the earlier map but what is kept was not replayed yet: kept until the placement on this one
+            _untilPlaced |= running;
             return;
         }
 
         // a world replaces the game that runs; a map alone leaves it running until the placement
         running &= !world;
-        if (!running) {
-            _inBuffer.Clear();
-            _inBufferDeferred.Clear();
+        if (running) {
+            // already waiting here: it came before this copy was taken and is in it. Applied to the map being
+            // left, as it would be without a hold, and not once more after the placement
+            _beforeHold.AddRange(_inBuffer);
+            _beforeHold.AddRange(_inBufferDeferred);
+        } else {
+            _beforeHold.Clear();
         }
+
+        _inBuffer.Clear();
+        _inBufferDeferred.Clear();
 
         _held.Clear();
         _heldLost = 0;

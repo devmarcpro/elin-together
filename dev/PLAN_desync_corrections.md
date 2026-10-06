@@ -110,6 +110,42 @@
     (ils reviennent avec la carte de l'host). Le rechargement existant (`ElinNetClientZone.cs:187`, outil de
     resynchronisation) a le même piège et ne le traite pas : à voir à part.
 
+## Après relecture (2026-10-06, nuit)
+
+Compilé (`ReleaseNightly`, 0 erreur), **rien n'a tourné en jeu**. Ce qui suit remplace ce que D1 et D4 disent plus haut
+quand les deux se contredisent.
+
+- **D4, messages d'avant la carte appliqués deux fois** (`Net/Base/ElinDeltaManager.cs`). Ce qui attendait déjà quand
+  la carte arrive (même image) était retenu puis rejoué sur la nouvelle carte, qui le contient. Maintenant : mis de
+  côté (`_beforeHold`) et appliqué d'abord, sans retenue, sur la carte qu'on quitte, comme avant D4. Seul ce qui
+  arrive après la carte est retenu.
+- **Seconde carte juste après le placement** (`HoldForIncomingMap`). Le cas « retenue ouverte, jeu lancé, pas encore
+  rejoué » vidait ce qui était retenu depuis la copie du monde. Maintenant : une carte reçue pendant une retenue ne
+  vide jamais rien ; si le jeu tourne, la retenue dure jusqu'au placement sur cette carte (ou 10 s).
+- **Carte qui n'arrive jamais après le monde** (`Net/Client/ElinNetClientPlayer.cs`, `ElinNetClientZone.cs`,
+  `AskMissingMap`). 15 s après la copie du monde sans aucune carte reçue : l'invité la redemande **une fois** par le
+  chemin d'avant (`RequestZoneState`). Journal invité, Warning : `No map {Seconds:F0}s after the world copy, asking the
+  host for it once`. Si la première carte arrive juste après la demande : la seconde est refusée comme « reçue deux
+  fois » (même carte, moins de 10 s, pas encore placé), ou chargée par-dessus (cas du point précédent).
+- **D5, `SendDeltaTo` hors file** : laissé. Il n'existe pas d'envoi « à un seul joueur » qui passe par la file ordonnée
+  (la file de sortie part à tous, `Broadcast`). Le « quantité 0 » peut donc doubler un `CardGen` encore en file pour ce
+  joueur (au plus une image d'envoi, 20 ms).
+
+Pas sûr, pas corrigé :
+- **L'host ne vide pas sa file avant de copier la carte demandée** (`Net/Host/ElinNetHostZone.cs`, `OnMapDataRequest`,
+  fichier non touché) : ce qu'il a déjà fait mais pas encore envoyé (au plus 20 ms) part après la carte, est retenu
+  par l'invité et rejoué sur une carte qui le contient. Correction : `Delta.RefreshBuffer(); WorldStateDeltaUpdate();`
+  avant `PropagateZoneChangeState`, comme dans `SendSaveProbe`.
+- Carte redemandée après 15 s : ce qui a été retenu entre la copie du monde et cette carte est rejoué sur une carte
+  qui le contient déjà (pour ce qui touche la carte). Prix du filet ; sans lui l'invité attendait sans fin.
+- Si l'host n'a aucune carte active au moment de la demande tardive, il coupe l'invité (`InvalidZone`, code existant).
+- Placement qui arrive plus de 10 s après la carte, jeu lancé : la retenue est lâchée avant, ce qui a été rejoué
+  l'est sur l'ancienne carte et manque sur la nouvelle (l'outil de somme de contrôle le rattrape).
+- Un message d'avant la carte qui se remet lui-même en attente (carte pas encore connue : `ZoneAddCardDelta`,
+  `CharaMoveDelta`, `CharaMakeAllyDelta`) est retenu à son tour et rejoué après le placement, comme avant D4.
+- Carte reçue, réponse envoyée, mais l'host ne dit jamais où se placer, jeu pas encore lancé : toujours pas de filet
+  (comme avant). Le prochain changement de carte de l'host débloque.
+
 ## Hors plan, demandé en cours de route
 
 `Net/Host/ElinNetHostZone.cs` (`OnZoneDataReceivedResponse`) : un joueur déjà debout sur la case où on le remet y

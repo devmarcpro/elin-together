@@ -26,6 +26,34 @@ internal partial class ElinNetClient
         Host.Send(request);
     }
 
+    private const float MapWaitSeconds = 15f;
+
+    // changed by each world copy and each map received: a wait started before that is over
+    private int _mapAwaited;
+
+    /// <summary>
+    ///     The host sends its map right behind the world. Should none have come after
+    ///     <see cref="MapWaitSeconds" />, it is asked for once, as a joining player always did, instead of
+    ///     waiting on the loading screen for good. A map that crosses this request is either refused as received
+    ///     twice or loaded on top of the first, see <see cref="ElinDeltaManager.HoldForIncomingMap" />
+    /// </summary>
+    private System.Collections.IEnumerator AskMissingMap(int awaited)
+    {
+        var until = UnityEngine.Time.unscaledTime + MapWaitSeconds;
+        while (UnityEngine.Time.unscaledTime < until) {
+            yield return null;
+        }
+
+        if (awaited != _mapAwaited || !IsConnected) {
+            yield break;
+        }
+
+        EmpLog.Warning("No map {Seconds:F0}s after the world copy, asking the host for it once",
+            MapWaitSeconds);
+
+        RequestZoneState(MapDataRequest.CurrentRemoteZone);
+    }
+
     private void RetryZoneSync()
     {
         if (++_zoneSyncFailures >= MaxZoneSyncRetries) {
@@ -71,6 +99,9 @@ internal partial class ElinNetClient
         }
 
         EmpLog.Information("Received zone state");
+
+        // the map awaited since the world copy, see AskMissingMap
+        _mapAwaited++;
 
         Delta.HoldForIncomingMap();
         response.WriteToTemp();
