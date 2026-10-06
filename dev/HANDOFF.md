@@ -1,5 +1,27 @@
 # Passation — ElinTogether « indépendance », état au 2026-10-05, 19h30 (haut du fichier ; le reste date de 14h15 à 17h)
 
+## État au 6 octobre, 20h30 (à lire en premier)
+
+- **Publiée : 0.26.510** (commit `b1f83c3`, Elin EA 23.352 Patch 1), `feat/independent-travel` poussée au même commit.
+  Elle contient les corrections de la soirée (table : `PLAN_retours_soiree_6_octobre.md`) sauf les points 4, 10, 11, 12, 13.
+- Preuves : trio_place 17/17, trio_time 25/25 (trois fenêtres) ; passe à deux fenêtres `*-rel.log` : together 132/132,
+  death 12/12, parity 16/16, quest 60/60, trade 123/123, base 179/179, hunt 136/136, guest 317/318 (G36 connu).
+- Rouges de cette passe, à traiter : `hunt2_suite` E3 (3 rouges ATTENDUS : le test veut que la viande de l'invité vieillisse
+  avec le saut de l'host ; à réécrire) ; `council_suite` C5 (le test pose le piège sur une case en hauteur : depuis la
+  correction des places, l'invité mort revient près de l'entrée de la mine, case 33,60 ; choisir une case atteignable) ;
+  `equal2_suite` E1 (fanatique qui n'appelle pas) et `recruit_suite` R7 (boule à monstre) : vus UNE fois, relance
+  `*-rel2.log` à lire.
+- La version publiée a trois retouches non rejouées en jeu (exigées par le build Release : un test de null dans
+  `WorldDateAdvanceDelta.cs`, `init` -> `set` sur `ZoneArrival.RatePos` et `ZoneLeaseRelease.StoodZoneUid`).
+  PIÈGE : le build Release refuse ce que Debug accepte : lancer `devuild.ps1 Release` AVANT la passe de tests.
+- Non commité dans l'arbre : la correction de la banque / caisse d'expédition de l'invité (`PLAN_banque_invite.md`,
+  `bank_suite.py` jamais lancé ; relecture : trois défauts en cours de correction par un agent).
+- Retour n° 15 : donjon marqué conquis sans boss vaincu : enquête `PLAN_donjon_conquis.md` (agent).
+- Captures du README pas refaites ; `showcase.py reconnect` est écrit, jamais lancé.
+- Ensuite, dans l'ordre convenu avec l'utilisateur : banque ; n° 15 ; réveil de l'invité (`_shots/reveil_invite.patch`) ;
+  conseil pour barre d'outils / factures / nuit bloquée ; lenteurs à plusieurs invités ; PUIS la reprise automatique
+  quand l'host part (conseil 9, étapes 3 à 5 : « on pourra commencer une fois que tout le reste est bon »).
+
 À lire en premier par la session suivante. Détail daté : fin de `MODLOG.md` (« Étape D suite, Elin 23.352 »).
 Mode d'emploi : `DOCUMENTATION.md`. Règles : `../CLAUDE.md`. Message de départ : `PROMPT_reprise.md`.
 
