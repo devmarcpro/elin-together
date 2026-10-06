@@ -14,6 +14,9 @@ Q3  l'host repart a Vernis ; l'invite (celui qui ne tient pas la Prairie) sort p
     il arrive par l'entree, pas sur l'host ; celui qui tient la Prairie n'a pas bouge
 Q4  (`--only q4`, a part) l'host entre dans la zone d'une quete prise en ville : le teneur ET le visiteur voient la
     question, le visiteur dit Oui et arrive, une seule fois (B4)
+Q5  (`--only q5`, a part) B, avec un compagnon, part seul a Vernis et revient, puis quitte la partie et la rejoint,
+    pendant que A reste : apres chaque retour A et l'host voient B et son compagnon sur la bonne case, une seule fois,
+    meme apres un rechargement de la carte de A ; world_diff ne trouve aucun personnage en trop ni en moins
 
 Ce que le banc ne joue pas comme un joueur :
 - l'host change de carte par `pc.MoveZone(zone)`, pas par une sortie a pied ;
@@ -155,6 +158,78 @@ def q4(ctx):
           ev(H, f'EClass._map.charas.Count(c => c.uid == {uid[other]}).ToString()') == "1")
 
 
+def q5(ctx):
+    """Joueurs invisibles (dev/PLAN_joueurs_invisibles.md), jamais joue encore. B a un compagnon. B part seul a Vernis et
+    revient, puis quitte la partie et la rejoint, pendant que A reste a la Prairie avec l'host. Apres chaque depart,
+    ni A ni l'host n'ont B ou son compagnon sur la carte ; apres chaque retour, A et l'host les voient sur la case ou
+    le jeu de B les a ; A recharge alors sa carte et les voit toujours ; world_diff ne trouve rien en trop ni en moins.
+    Ce que le banc ne joue pas : il tourne en Debug, ou les patchs du mod ne sont jamais retires (ElinNetBase.OnDestroy,
+    `#if !DEBUG`) : la cause principale de la partie du 6 octobre ne se voit qu'avec une version Release"""
+    from companion_suite import recruit
+    from desync_suite import RELOAD
+    from mp_test import ok
+    from world_diff import diff
+
+    move(H, HOME)
+    wait(lambda: zone_uid(H) == HOME, "host a la Prairie", timeout=240)
+    with_host(A, B)
+    a, b = (state(p)["pc"]["uid"] for p in (A, B))
+    pet = recruit(B, b, host=H)
+    check(f"B a un compagnon ({pet}) que A voit", try_wait(lambda: seen_at(A, pet) is not None, "A voit le compagnon", 30))
+    step_away(B, 6, -5)
+    time.sleep(3)
+    names = {H: "host", A: "A", B: "B"}
+
+    def gone(why):
+        for p in (H, A):
+            check(f"{why} : chez {names[p]}, ni B ni son compagnon ne sont sur la carte "
+                  f"({seen_at(p, b)}, {seen_at(p, pet)})",
+                  try_wait(lambda p=p: seen_at(p, b) is None and seen_at(p, pet) is None, "B et son compagnon partis", 30))
+        check(f"{why} : A est toujours a la Prairie, une seule fois chez l'host",
+              ev(H, f'EClass._map.charas.Count(c => c.uid == {a}).ToString()') == "1")
+
+    def back(why):
+        time.sleep(4)
+        mine, pet_at = pc_pos(B), seen_at(B, pet)
+        for p in (H, A):
+            check(f"{why} : chez {names[p]}, B est sur sa case ({seen_at(p, b)} / chez lui {mine})",
+                  try_wait(lambda p=p: (at := seen_at(p, b)) is not None and dist(at, pc_pos(B)) <= 2, "B visible", 20))
+            check(f"{why} : chez {names[p]}, son compagnon est sur sa case ({seen_at(p, pet)} / chez B {pet_at})",
+                  try_wait(lambda p=p: (at := seen_at(p, pet)) is not None and (there := seen_at(B, pet)) is not None
+                           and dist(at, there) <= 2, "compagnon visible", 20))
+            for uid in (b, pet):
+                check(f"{why} : chez {names[p]}, {uid} n'est qu'une fois sur la carte et dans le monde",
+                      ev(p, f'(EClass._map.charas.Count(c => c.uid == {uid}) == 1 && '
+                            f'EClass.game.cards.globalCharas.Find({uid}) == EClass._map.charas.Find(c => c.uid == {uid})).ToString()') == "True")
+        # the reload a guest asks for by itself brings the map file only: the others must still stand there
+        ev(A, RELOAD)
+        time.sleep(3)
+        wait(settled(A, HOME, away=False), "A sur la carte rechargee", timeout=120)
+        time.sleep(3)
+        check(f"{why} : A recharge sa carte et voit toujours B et son compagnon ({seen_at(A, b)}, {seen_at(A, pet)})",
+              try_wait(lambda: seen_at(A, b) is not None and seen_at(A, pet) is not None, "B apres rechargement", 20))
+        gaps = [g for g in diff([H, A, B], names) if g.startswith("personnage")]
+        check(f"{why} : aucun personnage en trop ni en moins entre les trois jeux ({len(gaps)} ecart(s))", not gaps)
+        for g in gaps[:8]:
+            print(f"      {g}")
+
+    move(B, VERNIS)
+    wait(settled(B, VERNIS, away=True), "B seul a Vernis", timeout=240)
+    gone("B parti a Vernis")
+    move(B, HOME)
+    wait(settled(B, HOME, away=False), "B de retour chez l'host", timeout=300)
+    back("B revenu de Vernis")
+
+    ok(emp.call(B, "command", {"cmd": "emp.disconnect"}))
+    wait(lambda: not state(B).get("connected"), "B hors de la partie", timeout=60)
+    gone("B deconnecte")
+    ok(emp.call(B, "command", {"cmd": "emp.connect_udp"}))
+    wait(settled(B, HOME, away=False), "B de nouveau chez l'host", timeout=300)
+    back("B reconnecte")
+    for p in (A, B):
+        shot(f"q5-{NAMES[p]}", p)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--reuse", action="store_true")
@@ -169,7 +244,7 @@ def main():
     ctx = {}
     steps = [q1, q2, q3]
     if a.only:
-        steps = [s for s in (*steps, q4) if s.__name__ in a.only.split(",")]
+        steps = [s for s in (*steps, q4, q5) if s.__name__ in a.only.split(",")]
     for step in steps:
         log(f"--- {step.__name__.upper()}")
         try:
