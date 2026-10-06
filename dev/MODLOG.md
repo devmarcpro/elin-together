@@ -2444,3 +2444,22 @@ Les cinq : duel sur place d'abord ; « aucune perte », pas de renommée perdue 
   invité serait basculé sur cet ancien personnage) ; la 0.26.494 note comme propriétaire celui qui héberge sans vérifier
   (lu dans le code, pas testé) ; le dépôt ne connaît pas le compte Steam du dernier joueur.
 - État : rien d'écrit ; la phrase de la question est soumise à l'utilisateur d'abord. Tests à écrire rouges dans `depot_suite.py`.
+
+## 2026-10-06 : la demande « seamless » de l'utilisateur, le correctif des personnages, le conseil 9
+
+- L'utilisateur a refusé la question du conseil 8 : « le jeu devrait savoir quel personnage est à qui… le joueur n'a pas à
+  réfléchir ». Fait sans question : `45acadd` (règles, orphelin, copie de secours ; le contrôle court une image après le
+  chargement, les tables de la sauvegarde n'étant lues qu'après le crochet : la 0.26.494 marchait par chance), `29c4fa5`
+  (un nouveau joueur qui prend le monde d'un autre crée son personnage). `depot_suite` 33/33 (P1, P2, `DEPOT_OLD=1|2`).
+- Dix frictions sûres corrigées (`f0da018`, audit `PLAN_sans_friction.md`) ; troisième chasse (`PLAN_chasse_differences_3.md`,
+  lignes 38 à 52, rien de joué) ; enquête T8 et G36 (`PLAN_enquete_t8_g36.md`).
+- Piège grave du banc : `depot_suite` vidait les réglages de dépôt du joueur (la fenêtre host lit son vrai fichier) ; elle
+  les garde et les remet maintenant. Les siens ont été effacés ce jour-là.
+- **Conseil 9, l'hébergeur part ou plante** (faits : `PLAN_hote_qui_part.md` ; verdict complet : `PLAN_conseil9_verdict.md`).
+  Verdict : dans l'ordre, (1) retour automatique après coupure + fin de l'écran « Who do you want to play? » + message quand
+  la sauvegarde de l'invité est refusée ; (2) sauvegarde de l'host toutes les 2 minutes quand un invité est là (chronométrer
+  d'abord) + « Start Server » automatique ; (3) l'host envoie son monde à chaque invité après chaque sauvegarde ; (4) reprise
+  automatique par le plus petit identifiant Steam présent, un numéro de reprise dans le monde pour départager deux hosts et
+  le « Continue » sur une vieille sauvegarde ; (5) dépôt en bonus, verrou de 45 s. Tout allumé par défaut. Écarté : la copie
+  en mémoire de l'invité (doublons), la migration à chaud (trop gros), le serveur à port ouvert. Rien de Steam n'est
+  prouvable sans deux PC.

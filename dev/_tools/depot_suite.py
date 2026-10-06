@@ -133,6 +133,8 @@ DEP = 'HarmonyLib.AccessTools.TypeByName("ElinTogether.Helper.SaveDepot")'
 SET = ('var e = HarmonyLib.AccessTools.Property(HarmonyLib.AccessTools.TypeByName("ElinTogether.EmpConfig+Client"), "DepotPath").GetValue(null); '
        'HarmonyLib.AccessTools.Property(e.GetType(), "Value").SetValue(e, @"%s"); "ok"')
 PASSWORD = SET.replace("DepotPath", "DepotPassword")
+GET = ('var e = HarmonyLib.AccessTools.Property(HarmonyLib.AccessTools.TypeByName("ElinTogether.EmpConfig+Client"), "%s").GetValue(null); '
+       'return (string)HarmonyLib.AccessTools.Property(e.GetType(), "Value").GetValue(e);')
 CALL = 'HarmonyLib.AccessTools.Method(' + DEP + ', "%s").Invoke(null, null); "ok"'
 DIALOG = 'var d = EClass.ui.layers.OfType<Dialog>().LastOrDefault(); return d == null ? "" : d.textDetail.text;'
 JOIN = ('HarmonyLib.AccessTools.Method(HarmonyLib.AccessTools.TypeByName("ElinTogether.Components.TabLobbyBrowser"), '
@@ -634,6 +636,14 @@ def main():
     t0 = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
     start_ts = time.time()
     unsent = SAVES / "world_depot.unsent"
+    # les reglages de depot du joueur (la fenetre host lit son vrai fichier de reglages) : gardes en memoire, jamais
+    # affiches, et remis a la fin quoi qu il arrive (le 6 octobre la suite avait efface son depot et sa cle)
+    kept = {}
+    for port in (H, A):
+        try:
+            kept[port] = (ev(port, GET % "DepotPath"), ev(port, GET % "DepotPassword"))
+        except Exception:  # noqa: BLE001
+            pass
     only = os.environ.get("DEPOT_ONLY", "").lower()
     if "--only" in sys.argv:
         only = sys.argv[sys.argv.index("--only") + 1].lower()
@@ -847,9 +857,9 @@ def main():
             fake.wait()
         for port in (H, A):
             try:
-                ev(port, SET % "")
-                if GITHUB:
-                    ev(port, PASSWORD % "")  # (la cle de test ne reste pas dans les reglages du mod)
+                path, key = kept.get(port, ("", ""))
+                ev(port, SET % path.replace('"', '""'))
+                ev(port, PASSWORD % key.replace('"', '""'))
             except Exception:  # noqa: BLE001
                 pass
 
