@@ -22,7 +22,7 @@ internal class TabLobbyBrowser : TabEmpBase
         if (!EClass.core.IsGameStarted) {
             // the world kept in the depot: whoever comes first takes it and hosts it
             if (SaveDepot.Enabled) {
-                btnGroup.Button(SaveDepot.HeldBy() is { } who ? "emp_ui_depot_held".Loc(who) : "emp_ui_depot_take".lang(), () => {
+                btnGroup.Button(SaveDepot.HeldBy() is { } who ? "emp_ui_depot_held_btn".Loc(who) : "emp_ui_depot_take".lang(), () => {
                     LayerElinTogether.Instance?.Close();
                     SaveDepot.Take();
                 });
@@ -42,7 +42,6 @@ internal class TabLobbyBrowser : TabEmpBase
                 }).input.field.characterLimit = 0;
             });
 
-            btnGroup.Header("emp_ui_unclaimed_zone");
             return;
         }
 
@@ -50,6 +49,11 @@ internal class TabLobbyBrowser : TabEmpBase
             btnGroup.Button("emp_ui_sv_start".lang(), StartServerFromPanel);
             if (SaveDepot.Enabled && Game.id != SaveDepot.WorldId) {
                 btnGroup.Button("emp_ui_depot_put".lang(), SaveDepot.Put);
+            }
+
+            // where "Start Server" fails
+            if (EClass.player.chara?.homeBranch?.owner is null) {
+                Text("emp_ui_unclaimed_zone".lang());
             }
         } else {
             btnGroup.Button("emp_ui_sv_invite".lang(), NetSession.Instance.Lobby.InviteSteamOverlay);

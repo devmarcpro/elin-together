@@ -130,6 +130,7 @@ internal class TabPlayerTrade : YKLayout<object>
         // the same rule as when both confirm, so nothing is offered that would be refused then
         var things = EClass.pc.things.Where(t => PlayerTrade.Refuse(t) is null).ToList();
         if (things.Count == 0) {
+            EmpPop.Information("emp_trade_nothing_to_offer".lang());
             return;
         }
 

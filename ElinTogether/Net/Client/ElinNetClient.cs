@@ -57,7 +57,7 @@ internal partial class ElinNetClient : ElinNetBase
 #if !DEBUG
         var elapsed = DateTime.Now - _lastTimeout;
         if (elapsed.TotalSeconds > EmpConfig.Policy.Timeout.Value) {
-            EmpPop.Information("emp_ui_timeout".lang());
+            EmpPop.Information((IsDirectConnection ? "emp_ui_timeout" : "emp_ui_timeout_steam").lang());
             EndSession(EmpDisconnectInfo.Timeout);
         }
 #endif

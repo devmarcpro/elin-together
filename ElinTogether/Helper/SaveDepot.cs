@@ -306,10 +306,9 @@ internal static class SaveDepot
 
         // the save now lives in the depot: it is played from there, so that every later save goes back to it
         // (played on under its own name, it would never reach the depot again)
-        Dialog.Ok("emp_ui_depot_put_done", () => {
-            EClass.scene.Init(Scene.Mode.Title);
-            EClass.core.actionsNextFrame.Add(Take);
-        });
+        EmpPop.Information("emp_ui_depot_put_done".lang());
+        EClass.scene.Init(Scene.Mode.Title);
+        EClass.core.actionsNextFrame.Add(Take);
     }
 
     private static string Refusal(string why)
