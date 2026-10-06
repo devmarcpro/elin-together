@@ -243,7 +243,13 @@ internal partial class ElinNetHost
     /// </summary>
     internal void ShipPlayersGoods()
     {
-        if (IsZoneSession || !Session.Rules.UsePlayerShipping || game.cards.container_shipping is not { } box) {
+        if (IsZoneSession) {
+            return;
+        }
+
+        PayOwnShipping();
+
+        if (!Session.Rules.UsePlayerShipping || game.cards.container_shipping is not { } box) {
             return;
         }
 
@@ -257,6 +263,10 @@ internal partial class ElinNetHost
         }
 
         var players = SavedRemoteCharas.Values.Concat(PlayerRosters.Values.SelectMany(roster => roster)).ToHashSet();
+        // the character this game plays is not another player, whatever the tables say (the host of a world taken
+        // over stays in the roster of its account): its goods are left to the game's own sale, paid and reported
+        // as in single player
+        players.Remove(pc.uid);
         var goods = box.things
             .Where(t => t.trait.CanBeShipped && players.Contains(t.ShipperUid))
             .GroupBy(t => t.ShipperUid)
@@ -265,6 +275,37 @@ internal partial class ElinNetHost
         foreach (var group in goods) {
             ShipFor(group.Key, group.ToList(), zone);
         }
+    }
+
+    /// <summary>
+    ///     What is owed to the character this game plays: sales made while it was a guest of this world, and the
+    ///     sales 0.26.532 and before made "for a player" who was the host itself (no peer to pay, kept in the save)
+    /// </summary>
+    private static void PayOwnShipping()
+    {
+        if (pc is null || !ShippingAccounts.TryGetValue(pc.uid, out var account) || account.Length < 2) {
+            return;
+        }
+
+        var money = (int)Math.Clamp(account[AccountOwedMoney], 0, int.MaxValue);
+        var bonus = (int)Math.Clamp(account[AccountOwedBonus], 0, int.MaxValue);
+        if (money == 0 && bonus == 0) {
+            return;
+        }
+
+        account[AccountOwedMoney] -= money;
+        account[AccountOwedBonus] -= bonus;
+
+        // as GameDate.ShipGoods hands its income over
+        if (money > 0) {
+            pc.Pick(ThingGen.Create("money").SetNum(money));
+        }
+
+        if (bonus > 0) {
+            pc.Pick(ThingGen.Create("money2").SetNum(bonus));
+        }
+
+        EmpLog.Information("Paid the host what its own shipping was owed: {ShipIncome}, bonus {ShipBonus}", money, bonus);
     }
 
     private void ShipFor(int shipperUid, List<Thing> goods, Zone zone)

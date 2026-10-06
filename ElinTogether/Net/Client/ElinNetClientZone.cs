@@ -220,7 +220,7 @@ internal partial class ElinNetClient
             scene.Init(Scene.Mode.Zone);
 
             // as Game.Load does after its own Scene.Init: the windows that were open before the world was replaced
-            Helper.OpenWindows.Reopen();
+            Helper.OwnSettings.Reopen();
         } else {
             if (_zone == currentZone) {
                 EmpLog.Debug("Reloading active zone from received snapshot");

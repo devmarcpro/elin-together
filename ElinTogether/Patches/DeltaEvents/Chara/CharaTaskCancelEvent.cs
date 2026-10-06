@@ -87,8 +87,14 @@ internal static class CharaTaskCancelEvent
             }
 
             if (act.status == AIAct.Status.Running) {
-                EmpLog.Warning("No answer to the stop of {ActType} after {Seconds} s, stopping it here",
-                    act.GetType().Name, AnswerSeconds);
+                if (ReferenceEquals(NetSession.Instance.Connection, asked)) {
+                    EmpLog.Warning("No answer to the stop of {ActType} after {Seconds} s, stopping it here",
+                        act.GetType().Name, AnswerSeconds);
+                } else {
+                    EmpLog.Information("The game that kept the map is gone, the stop of {ActType} is made here",
+                        act.GetType().Name);
+                }
+
                 act.Stub_Cancel();
             }
 

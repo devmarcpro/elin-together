@@ -20,20 +20,12 @@ internal static class PendingOnHost
     private const int OverdueTurns = 20;
     private const float OverdueSeconds = 6f;
 
+    // when the turns do not pass here: no game speed is slower than a turn a second
+    private const float SecondsPerTurn = 1f;
+
     internal static void Watch(AIProgress progress, ElinNetBase keeper)
     {
         EmpMod.Instance.StartCoroutine(WatchHeld(progress, keeper));
-    }
-
-    /// <summary>
-    ///     Let go what this game's player waits for, now. The held progress watches the connection by itself: this
-    ///     is for a caller that knows nobody will answer while the connection stays the same
-    /// </summary>
-    internal static void Release()
-    {
-        if (EClass.core.IsGameStarted && EClass.pc?.ai?.Current is AIProgress progress && IsHeld(progress)) {
-            Release(progress);
-        }
     }
 
     private static bool IsHeld(AIProgress progress)
@@ -52,17 +44,22 @@ internal static class PendingOnHost
     {
         var since = Time.realtimeSinceStartup;
 
+        // asked from inside the first tick of the progress: watched from the next frame, once it is in place
+        yield return null;
+
         while (IsHeld(progress)) {
             if (!ReferenceEquals(NetSession.Instance.Connection, keeper)) {
                 Release(progress);
                 yield break;
             }
 
-            if (Time.realtimeSinceStartup - since > OverdueSeconds &&
-                TurnsHeld(progress) > (long)progress.MaxProgress * OverdueFactor + OverdueTurns) {
+            var seconds = Time.realtimeSinceStartup - since;
+            if (seconds > OverdueSeconds &&
+                (TurnsHeld(progress) > (long)progress.MaxProgress * OverdueFactor + OverdueTurns ||
+                 seconds > OverdueSeconds + progress.MaxProgress * SecondsPerTurn)) {
                 EmpLog.Warning("No end to {ActType} after {Turns} turns ({MaxProgress} needed) and {Seconds:F0} s, stopping it",
                     progress.parent?.GetType().Name ?? progress.GetType().Name, TurnsHeld(progress),
-                    progress.MaxProgress, Time.realtimeSinceStartup - since);
+                    progress.MaxProgress, seconds);
 
                 // the player's own stop: told to the keeper, made here when it does not answer (CharaTaskCancelEvent)
                 EClass.pc.Say("cancel_act_pc", EClass.pc);

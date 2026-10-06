@@ -41,7 +41,24 @@ Où vit l'état :
 (ii) arrive à chaque retour auprès de l'host, à chaque rappel, à chaque entrée dans la carte d'un autre joueur : c'est le défaut signalé.
 Les sacs portés : leur `c_windowSaveData` vient de la copie de l'host, qui n'a que ce que le personnage rapportait à son dernier retour.
 
-## 3. Correction (`ElinTogether/Helper/OpenWindows.cs`)
+## 2 bis. Type de combat automatique (retour du 7 octobre : « oublié à chaque changement de carte »)
+
+- Il vit dans `Game.config.autoCombat.idType` (`ConfigAutoCombat.cs`, `Game.cs:94`), choisi dans l'onglet stratégie
+  (`ContentTactics.cs:67-71`), avec toutes les cases de combat automatique et `Game.config.tactics` (les deux consignes).
+  Pas sur le personnage : `Chara._tactics` n'est qu'un cache non sauvegardé, bâti depuis `idType` (`Tactics.cs`, fin).
+- Le combat automatique d'un invité tourne dans SON jeu (`GoalAutoCombat` n'est pas envoyé à l'host,
+  `CharaTaskRemoteEvent.cs:155`) : l'host n'a rien à en savoir. Il est perdu parce que `Game.config` arrive avec la copie
+  du monde : c'est celui de l'host. Même cause pour les deux consignes : `RemoteTacticsPatch.Update` lisait alors celles de
+  l'host et les redisait à l'host comme celles de l'invité (le « propre à chaque joueur » ne tenait que jusqu'à la carte suivante).
+- Corrigé par le même mécanisme que les fenêtres (`Game.config` repris en entier, cache `_tactics` vidé).
+
+## 3. Correction (`ElinTogether/Helper/OwnSettings.cs`, ex `OpenWindows.cs`, repris et fini le 7 octobre)
+
+Ajouts à ce qui suit : tout est rangé dans un objet `Kept`, gardé en mémoire ET écrit dans un fichier de la machine,
+`%persistentDataPath%/ElinMP/OwnSettings/<graine du monde>_<uid du personnage>.lz4` (même sérialiseur que les sauvegardes,
+hors des sauvegardes). `Carry` prend la mémoire si elle est de ce monde et de ce personnage, sinon le fichier : première
+connexion de la séance et reconnexion comprises. `Patches/OwnSettingsPatch.cs` (préfixe de `Game.Kill`) note aussi quand
+l'invité quitte la partie. Les barres de raccourcis (`hotbars`) ne vont pas dans le fichier (elles tiennent des objets).
 
 - `Keep()` (`ElinNetClientPlayer.cs:189`, avant la destruction du jeu) : écrit les places comme `Game.Save` (`player.OnBeforeSave`,
   `widgets.UpdateConfigs`), note sac ouvert / aptitudes ouvertes / conteneurs portés ouverts (uid) / `c_windowSaveData` de tout ce
@@ -59,11 +76,14 @@ dans le monde d'un autre (`ElinNetHostHandOver.cs:179-202`) passe par `Game.Load
 Remplacé par celui de l'host à chaque copie du monde, **corrigé** par `Carry` : `pref` (tris, sac/aptitudes ouverts, onglet),
 `dataWindow`, `layerAbilityConfig`, widgets (place, mini-carte ouverte ou non, thème), `hotbars` (raccourcis), `Game.config`
 (zoom, toit, tactiques, préférences), `windowAllyInv`, `openContainerCenter`, `dataPick`, `favAbility`, `priorityActions`,
-`questTracker`, `tracked*`, `memo`, `memo2`, filtres et tri des sacs portés, zoom éloigné.
+`questTracker`, `tracked*`, `memo`, `memo2`, `lastRecipes`, `favMoongate`, `cinemaConfig`, `hotbarPage`, `customLightMod`,
+filtres et tri des sacs portés, zoom éloigné.
 
 Reste (noté, pas fait) :
-- première connexion de la séance (et après une déconnexion) : rien à reprendre, l'invité part de l'écran de l'host. Il faudrait
-  garder l'écran dans un fichier par monde et par personnage.
+- toute première venue dans un monde (aucun fichier) : l'invité part des réglages de l'host, pas de ceux d'une partie neuve.
+- `hotbars` à la reconnexion après avoir fermé le jeu : celles de l'host (gardées seulement d'une carte à l'autre).
 - journal déplié, carte au trésor ouverte, sac d'un compagnon ouvert : perdus à chaque copie du monde.
-- `Player.currentHotItem`, `lastRecipes`, `cinemaConfig`, `knownBGMs`, `popups` : ceux de l'host, non regardés.
+- à décider (propres au joueur mais ce sont du jeu, pas de l'écran) : `returnInfo`, `partySetups`, `currentHotItem`,
+  `showShippingResult`, `pleaseDontTouch`, `stats`, `nums`, `knownBGMs`, `sketches`, `knownSongs`, `popups`, `hangIcons`.
+- jeu fermé sans quitter la partie (Alt+F4, plantage) : le fichier date du dernier changement de monde.
 - un joueur mort au moment où la carte arrive ne retrouve pas ses fenêtres en revenant à la vie.

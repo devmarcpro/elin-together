@@ -18,6 +18,13 @@ B5 invite seul ailleurs, banque et caisse ouvertes ensemble : il ferme la caisse
    ses pieces (fermer une fenetre ne vide que son conteneur).
 S1 caisse d'expedition, invite seul ailleurs : il y met une planche, ferme, rouvre : elle y est ; il la reprend : elle
    est dans son sac, plus dans la caisse de l'host, un seul exemplaire.
+S2 caisse d'expedition de l'HOST (retour 22, 0.26.532 : « le shipping chest de l'host ne fonctionne pas ») : il y met
+   une planche, ferme, rouvre : elle y est ; la vente du matin (GameDate.ShipGoods, appelee directement : pas la nuit) :
+   vendue, l'or dans SA bourse, un rapport de plus, rien « du » dans la sauvegarde.
+S3 la meme chose pour un host dont le personnage a ete echange (TakeOverPc) : seule la trace de l'echange est ecrite a
+   la main (son personnage dans PlayerRosters ; le vrai chemin est depot_suite P1), avec 266 pieces « dues » par les
+   ventes d'avant : elles sont versees avec la vente. ROUGE attendu sur la 0.26.532 : rapport, or, « du ».
+   S2 et S3 se jouent en premier, les deux joueurs a la Prairie (la vente lit la base de l'host).
 B6 (seulement avec --only b6, laisse l'invite deconnecte) invite seul ailleurs : une reprise normale ne revient pas en banque
    (l'host la garde de cote jusqu'au point de sauvegarde de l'invite, puis la lache) ; puis demande de reprise et lien
    coupe par l'host aussitot : banque + sac garde de l'invite inchange, rien de perdu ni de double. Le moment de la
@@ -334,6 +341,74 @@ def s1(ctx):
     close_box(A, SHIP)
 
 
+HOST_T = 'var t = HarmonyLib.Traverse.Create(HarmonyLib.AccessTools.TypeByName("ElinTogether.Net.ElinNetHost")); '
+OWED = HOST_T + 'var d = t.Property("ShippingAccounts").GetValue<System.Collections.Generic.Dictionary<int, long[]>>(); '
+ROSTER = (HOST_T + 'var me = t.Property("LocalUser").GetValue<ulong>(); '
+          'var r = t.Property("PlayerRosters").GetValue<System.Collections.Generic.Dictionary<ulong, System.Collections.Generic.List<int>>>(); ')
+
+
+def owed(uid="EClass.pc.uid"):
+    """Ce que l'expedition « doit » a ce personnage dans la sauvegarde de l'host (or, lingots)."""
+    return ev(H, OWED + f'long[] a; return d.TryGetValue({uid}, out a) && a.Length >= 2 ? a[0] + "," + a[1] : "0,0";')
+
+
+def host_ships(who, due=0):
+    """L'host depose une planche dans SA caisse, ferme, rouvre, la nuit passe : vendue, payee a l'host, rapport affiche.
+    `due` : ce que la sauvegarde lui devait deja (ventes d'avant la correction), verse en meme temps."""
+    ev(H, 'EClass.pc.AddThing(ThingGen.Create("plank")); "ok"')
+    h0 = held(H, SHIP, "plank")
+    open_box(H, SHIP)
+    check(f"{who} : le depot part (une planche lachee dans sa caisse)", deposit(H, SHIP, "plank", 1) == "ok")
+    check(f"{who} : elle est dans la caisse", eventually(lambda: held(H, SHIP, "plank") == h0 + 1, timeout=10))
+    reopen(H, SHIP)
+    check(f"{who} : caisse fermee puis rouverte, la planche y est (fenetre et conteneur)",
+          eventually(lambda: shown(H, SHIP, "plank") == h0 + 1 and held(H, SHIP, "plank") == h0 + 1, timeout=10))
+    close_box(H, SHIP)
+    time.sleep(1)
+    check(f"{who} : fenetre fermee, la planche est toujours dans la caisse", held(H, SHIP, "plank") == h0 + 1)
+    tag = ev(H, f'{SHIP}.things.Where(t => t.id == "plank").Select(t => t.GetInt("emp_shipper")).Last().ToString()')
+    log(f"{who} : marque de la planche = {tag}, personnage de l'host = {ev(H, 'EClass.pc.uid.ToString()')}")
+
+    p0 = purse(H)
+    r0 = int(ev(H, 'EClass.player.shippingResults.Count.ToString()'))
+    ev(H, 'EClass.player.showShippingResult = false; "ok"')
+    # the 5 o'clock sale (GameDate.AdvanceHour calls exactly this), not the night itself. The flag is read and
+    # put down in the same call: the report window itself would stand in the way of the next steps
+    asked = ev(H, 'EClass.world.date.ShipGoods(); var s = EClass.player.showShippingResult; EClass.player.showShippingResult = false; '
+                  'return (s == EClass.core.config.game.showShippingResult).ToString();')
+    check(f"{who} : la nuit passe, la caisse n'a plus de planche", eventually(lambda: held(H, SHIP, "plank") == 0, timeout=10))
+    check(f"{who} : un rapport de vente de plus chez l'host",
+          int(ev(H, 'EClass.player.shippingResults.Count.ToString()')) == r0 + 1)
+    income = int(ev(H, 'EClass.player.shippingResults.Count == 0 ? "0" : EClass.player.shippingResults.LastItem().GetIncome().ToString()'))
+    check(f"{who} : le rapport est demande a l'ecran (comme le reglage du jeu le veut ; la fenetre elle-meme n'est pas lue)",
+          asked == "True")
+    got = purse(H) - p0
+    check(f"{who} : l'or de la vente est dans la bourse de l'host (recu {got}, vente {income}, du d'avant {due})",
+          income > 0 and got == income + due)
+    check(f"{who} : rien n'est garde « du a l'host » dans la sauvegarde ({owed()})", owed().startswith("0,"))
+    check(f"{who} : l'invite voit la caisse vide", eventually(lambda: held(A, SHIP, "plank") == 0, timeout=10))
+
+
+def s2(ctx):
+    """caisse d'expedition de l'HOST : depot, fermeture, reouverture, vente du matin, or et rapport chez l'host"""
+    host_ships("host")
+
+
+def s3(ctx):
+    """la meme chose pour un host dont le personnage a ete echange (monde repris, ElinNetHost.TakeOverPc), et l'or
+    que les ventes d'avant lui devaient (retour 22, LemiWinks, 0.26.532 : 95 + 171 pieces) lui est verse.
+    Le vrai chemin (depot, echange, rechargement) est depot_suite P1 ; ici seule la trace qu'il laisse est ecrite a
+    la main : le personnage de l'host reste dans la liste des personnages de son compte (PlayerRosters)."""
+    uid = ev(H, 'EClass.pc.uid.ToString()')
+    log("tables : " + ev(H, ROSTER + OWED.replace(HOST_T, "") +
+                         f'if (!r.ContainsKey(me)) r[me] = new System.Collections.Generic.List<int>(); if (!r[me].Contains({uid})) r[me].Add({uid}); '
+                         f'd[{uid}] = new long[] {{ 266, 2 }}; return "roster " + string.Join(",", r[me]) + " | du " + d[{uid}][0];'))
+    try:
+        host_ships("host echange", due=266)
+    finally:
+        ev(H, ROSTER + f'if (r.ContainsKey(me)) {{ r[me].Remove({uid}); if (r[me].Count == 0) r.Remove(me); }} "ok"')
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--only", help="liste de scenarios, ex. b1,b3")
@@ -342,7 +417,7 @@ def main():
     t0 = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
 
     ctx = {"a": state(A)["pc"]["uid"], "h": state(H)["pc"]["uid"]}
-    steps = [b1, b2, b3, b4, b5, s1]
+    steps = [s2, s3, b1, b2, b3, b4, b5, s1]
     # b6 leaves the guest disconnected: only asked for by name
     if a.only and "b6" in a.only.split(","):
         steps.append(b6)

@@ -185,8 +185,8 @@ internal partial class ElinNetClient
             }
         }
 
-        // the open windows and the screen layout of this player go with the game: noted, see OpenWindows
-        OpenWindows.Keep();
+        // the open windows and the settings of this player go with the game: noted, see OwnSettings
+        OwnSettings.Keep();
 
         if (returning || (IsZoneSession && core.IsGameStarted)) {
             // the cards of the game going away are no host cards: destroying them must not reach the host
@@ -220,8 +220,8 @@ internal partial class ElinNetClient
         player.chara = remoteChara;
         player.RefreshDomain();
 
-        // before the game reads them (widgets, window places): this player's own screen, not the host's
-        OpenWindows.Carry(remoteChara);
+        // before the game reads them (widgets, window places): this player's own settings, not the host's
+        OwnSettings.Carry(remoteChara);
 
         probeGame.isCloud = false;
         probeGame.isLoading = true;

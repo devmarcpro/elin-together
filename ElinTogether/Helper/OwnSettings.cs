@@ -1,0 +1,324 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using ElinTogether.Helper.Extensions;
+using ElinTogether.Models;
+using Newtonsoft.Json;
+using UnityEngine;
+
+namespace ElinTogether.Helper;
+
+/// <summary>
+///     What is a player's own but lives in the game it plays (Game.config: auto combat type, tactics, zoom;
+///     Player: window places, widgets, hotbars, sort, trackers) or only on its screen (the floating windows: bag,
+///     open containers it carries, abilities). <br />
+///     A player alone keeps all of it from map to map. A client gets a whole new game each time the host sends its
+///     world (ElinNetClient.OnSaveDataProbe): the windows are closed with the old one, and the settings of the
+///     new one are the host's. Noted here when a game goes away, put into the next one, the windows opened again
+///     once the map is in place. Also written to a file of this machine, per world and character, never in a
+///     save: a player who joins again finds its own
+/// </summary>
+internal static class OwnSettings
+{
+    private static Kept? _kept;
+    private static bool _reopen;
+
+    private static string Root => field ??= Path.Combine(Application.persistentDataPath, "ElinMP",
+#if DEBUG
+        // test instances on one machine share this folder
+        EmpConfig.Dev.Identity.Value > 0 ? $"OwnSettings_{EmpConfig.Dev.Identity.Value}" :
+#endif
+        "OwnSettings");
+
+    /// <summary>
+    ///     Before the game of a client goes away (a world received, see ElinNetClient.OnSaveDataProbe, or the game
+    ///     left, see OwnSettingsPatch)
+    /// </summary>
+    internal static void Keep()
+    {
+        // a second world before the first one stood on a map: what was kept for the first is still good
+        if (!EClass.core.IsGameStarted || Game.id != ResourceFetch.EmpSaveId || EClass.pc is not { } pc ||
+            EClass.player is not { } player || ReferenceEquals(_kept?.From, player)) {
+            return;
+        }
+
+        try {
+            // as Game.Save writes them down: place and size of the floating windows, place of the widgets
+            player.OnBeforeSave();
+            EClass.ui.widgets.UpdateConfigs();
+
+            var kept = new Kept {
+                From = player,
+                Seed = EClass.game.seed,
+                Chara = pc.uid,
+                Config = EClass.game.config,
+                Pref = player.pref,
+                Windows = player.dataWindow,
+                AbilityConfig = player.layerAbilityConfig,
+                MainWidgets = player.mainWidgets,
+                SubWidgets = player.subWidgets,
+                SubTheme = player.useSubWidgetTheme,
+                AllyInv = player.windowAllyInv,
+                ContainerCenter = player.openContainerCenter,
+                Pick = player.dataPick,
+                FavAbility = player.favAbility,
+                PriorityActions = player.priorityActions,
+                QuestTracker = player.questTracker,
+                TrackedCategories = player.trackedCategories,
+                TrackedCards = player.trackedCards,
+                TrackedElements = player.trackedElements,
+                LastRecipes = player.lastRecipes,
+                FavMoongate = player.favMoongate,
+                Cinema = player.cinemaConfig,
+                HotbarPage = player.hotbarPage,
+                LightMod = player.customLightMod,
+                Memo = player.memo,
+                Memo2 = player.memo2,
+                Hotbars = player.hotbars,
+                Ability = EClass.game.altAbility && EClass.ui.IsAbilityOpen,
+                ZoomOut = ActionMode.Adv?.zoomOut2 ?? false,
+            };
+
+            foreach (var thing in pc.things.Flatten()) {
+                if (thing.c_windowSaveData is { } data) {
+                    kept.Bags[thing.uid] = data;
+                }
+            }
+
+            foreach (var layer in LayerInventory.listInv) {
+                if (!layer.IsFloat) {
+                    continue;
+                }
+
+                if (layer.mainInv) {
+                    kept.Inventory = true;
+                } else if (layer.GetPlayerContainer() is { } bag) {
+                    kept.Open.Add(bag.uid);
+                }
+            }
+
+            _kept = kept;
+
+            Directory.CreateDirectory(Root);
+            File.WriteAllBytes(PathOf(kept.Seed, kept.Chara), LZ4Bytes.Create(kept).Bytes);
+        } catch (Exception ex) {
+            EmpLog.Warning(ex, "Could not note this player's own settings before its game goes away");
+        }
+    }
+
+    /// <summary>
+    ///     The new game is in place, not started yet (before Game.OnGameInstantiated, which reads the widgets, and
+    ///     Player.OnLoad, which reads dataWindow): the settings of this player go in, in place of the host's
+    /// </summary>
+    internal static void Carry(Chara chara)
+    {
+        _reopen = false;
+        if (EClass.game?.player is not { } player) {
+            return;
+        }
+
+        try {
+            // nothing noted for this character in this world (first world of this session): the file
+            var kept = _kept is { } noted && noted.Seed == EClass.game.seed && noted.Chara == chara.uid
+                ? noted
+                : Read(EClass.game.seed, chara.uid);
+            _kept = kept;
+            if (kept is null) {
+                return;
+            }
+
+            EClass.game.config = kept.Config ?? EClass.game.config;
+            // built from the auto combat type of the game it was first asked in
+            chara._tactics = null;
+
+            player.pref = kept.Pref ?? player.pref;
+            player.dataWindow = kept.Windows ?? player.dataWindow;
+            player.layerAbilityConfig = kept.AbilityConfig ?? player.layerAbilityConfig;
+            player.mainWidgets = kept.MainWidgets ?? player.mainWidgets;
+            player.subWidgets = kept.SubWidgets ?? player.subWidgets;
+            player.useSubWidgetTheme = kept.SubTheme;
+            player.windowAllyInv = kept.AllyInv ?? player.windowAllyInv;
+            player.openContainerCenter = kept.ContainerCenter;
+            player.dataPick = kept.Pick ?? player.dataPick;
+            player.favAbility = kept.FavAbility ?? player.favAbility;
+            player.priorityActions = kept.PriorityActions ?? player.priorityActions;
+            player.questTracker = kept.QuestTracker;
+            player.trackedCategories = kept.TrackedCategories ?? player.trackedCategories;
+            player.trackedCards = kept.TrackedCards ?? player.trackedCards;
+            player.trackedElements = kept.TrackedElements ?? player.trackedElements;
+            player.lastRecipes = kept.LastRecipes ?? player.lastRecipes;
+            player.favMoongate = kept.FavMoongate ?? player.favMoongate;
+            player.cinemaConfig = kept.Cinema ?? player.cinemaConfig;
+            player.hotbarPage = kept.HotbarPage;
+            player.customLightMod = kept.LightMod;
+            player.memo = kept.Memo ?? "";
+            player.memo2 = kept.Memo2 ?? "";
+
+            // the cards are other objects in this copy of the world: found again by number
+            var things = chara.things.Flatten().ToList();
+            foreach (var thing in things) {
+                if (kept.Bags.TryGetValue(thing.uid, out var data)) {
+                    // closing the window with the old game marked it closed
+                    data.open |= kept.Open.Contains(thing.uid);
+                    thing.c_windowSaveData = data;
+                }
+            }
+
+            _reopen = true;
+
+            // hotbars hold cards: only from one game to the next, not in the file
+            if (kept.Hotbars is not { } hotbars) {
+                return;
+            }
+
+            player.hotbars = hotbars;
+            foreach (var bar in hotbars.bars) {
+                if (bar is null) {
+                    continue;
+                }
+
+                // its widget went with the old game
+                bar.actor = null;
+                foreach (var page in bar.pages) {
+                    for (var i = 0; i < page.items.Count; i++) {
+                        switch (page.items[i]) {
+                            case HotItemThing hot:
+                                hot.thing = things.Find(t => t.uid == hot.thing?.uid);
+                                if (hot.thing is null) {
+                                    page.items[i] = null;
+                                }
+
+                                break;
+                            case HotItemFocusPos { zone: not null } focus:
+                                focus.zone = EClass.game.spatials.Find(focus.zone.uid);
+                                break;
+                        }
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            EmpLog.Warning(ex, "Could not carry this player's own settings over to the world received");
+        }
+    }
+
+    /// <summary>
+    ///     The map is in place (Scene.Init is done): the windows that were open are opened again, the way Game.Load
+    ///     does after a save is loaded. Never twice, never for a dead player, only what the player carries
+    /// </summary>
+    internal static void Reopen()
+    {
+        if (!_reopen || _kept is not { } kept) {
+            return;
+        }
+
+        _reopen = false;
+
+        try {
+            if (EClass.pc is not { isDead: false } pc) {
+                return;
+            }
+
+            SoundManager.ignoreSounds = true;
+
+            if (EClass.game.altInv) {
+                if (kept.Inventory && !LayerInventory.listInv.Exists(l => l.mainInv)) {
+                    // the bag, and the containers in it whose window is marked open
+                    EClass.ui.OpenFloatInv(true);
+                    SoundManager.ignoreSounds = true;
+                }
+
+                // a container opened on its own, or one inside another
+                foreach (var thing in pc.things.Flatten().ToList()) {
+                    if (kept.Open.Contains(thing.uid) && thing.trait is { IsContainer: true } and not TraitToolBelt &&
+                        !LayerInventory.IsOpen(thing)) {
+                        LayerInventory.CreateContainerPC(thing);
+                    }
+                }
+            }
+
+            if (kept.Ability && EClass.game.altAbility && !EClass.ui.IsAbilityOpen) {
+                EClass.ui.ToggleAbility();
+            }
+
+            if (ActionMode.Adv is { } adv) {
+                adv.zoomOut2 = kept.ZoomOut;
+            }
+
+            TooltipManager.Instance.HideTooltips(immediate: true);
+        } catch (Exception ex) {
+            EmpLog.Warning(ex, "Could not open the windows again after the world was replaced");
+        } finally {
+            SoundManager.ignoreSounds = false;
+        }
+    }
+
+    private static string PathOf(int seed, int chara)
+    {
+        return Path.Combine(Root, $"{seed}_{chara}.lz4");
+    }
+
+    private static Kept? Read(int seed, int chara)
+    {
+        var path = PathOf(seed, chara);
+        if (!File.Exists(path)) {
+            return null;
+        }
+
+        try {
+            var kept = new LZ4Bytes { Bytes = File.ReadAllBytes(path) }.Decompress<Kept>();
+            return kept is { } read && read.Seed == seed && read.Chara == chara ? read : null;
+        } catch (Exception ex) {
+            EmpLog.Warning(ex, "Could not read this player's own settings from {Path}", path);
+            return null;
+        }
+    }
+
+    /// <summary>
+    ///     Written with the serializer of the saves: the game's own classes, as the game writes them
+    /// </summary>
+    private sealed class Kept
+    {
+        // which world (the host's copy carries its seed), which character
+        public int Seed;
+        public int Chara;
+
+        public Game.Config? Config;
+        public Player.Pref? Pref;
+        public Dictionary<string, Window.SaveData>? Windows;
+        public LayerAbility.Config? AbilityConfig;
+        public WidgetManager.SaveData? MainWidgets;
+        public WidgetManager.SaveData? SubWidgets;
+        public bool SubTheme;
+        public Window.SaveData? AllyInv;
+        public bool ContainerCenter;
+        public Window.SaveData? Pick;
+        public HashSet<int>? FavAbility;
+        public Dictionary<string, List<string>>? PriorityActions;
+        public bool QuestTracker;
+        public HashSet<string>? TrackedCategories;
+        public HashSet<string>? TrackedCards;
+        public HashSet<int>? TrackedElements;
+        public Dictionary<string, string>? LastRecipes;
+        public List<string>? FavMoongate;
+        public CinemaConfig? Cinema;
+        public int HotbarPage;
+        public int LightMod;
+        public string? Memo;
+        public string? Memo2;
+
+        // windows of the cards the player carries, by card number; which of them were open
+        public Dictionary<int, Window.SaveData> Bags = [];
+        public HashSet<int> Open = [];
+        public bool Inventory;
+        public bool Ability;
+        public bool ZoomOut;
+
+        [JsonIgnore]
+        public HotbarManager? Hotbars;
+
+        // the game these were noted from: not noted twice
+        [JsonIgnore]
+        public Player? From;
+    }
+}

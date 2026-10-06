@@ -16,8 +16,15 @@ P6  (idem) l'host se reveille sur la carte du monde pendant que A tient la Prair
     dev/PLAN_journal_reel_placement.md n'est pas faite
 P7  (idem) A seul sur la carte du monde, l'host sort de la Prairie et y rentre trois fois : A n'est ni
     recharge ni deplace
+P8  (retour 21 du 2026-10-07, jamais lance) A lit sur la carte de l'host, l'host quitte la carte pendant la lecture :
+    moins de 5 secondes apres que A tient la carte, sa lecture n'attend plus personne ; elle finit une seule fois
+    (ou s'arrete sans rien consommer) et A peut marcher. Un livre de competence (5 tours), puis un grimoire long.
+    Notes : dev/PLAN_bloque_lecture.md
 
 Ce que le banc ne joue pas comme un joueur :
+- P8 : la lecture est posee par `pc.SetAI(new AI_Read)` (ce que fait le clic « lire »), le grimoire est rendu long
+  par son niveau et lu en `godMode` (aucun echec de lecture) ; le livre de competence est si court que l'host peut
+  l'avoir fini avant de partir : seul le grimoire prouve le passage de main en pleine lecture ;
 - l'host change de carte par `pc.MoveZone(zone)` (P1, P2, debut de P3), pas par une sortie a pied ;
 - A et l'host s'eloignent par teleportation (`pc.Teleport`), pas en marchant ;
 - A entre a Vernis par `player.EnterLocalZone(case de Vernis)` sans avoir marche jusqu'a cette case sur la carte
@@ -274,6 +281,75 @@ def p7(ctx):
     shot("p7-A", A)
 
 
+def reading(port):
+    """"libre", ou le compteur de la lecture en cours : negatif tant qu'elle attend le jeu qui tient la carte."""
+    return ev(port, 'if (!(EClass.pc.ai is AI_Read) || !EClass.pc.ai.IsRunning) return "libre"; '
+                    'var p = EClass.pc.ai.Current as AIProgress; return p == null ? "0" : p.progress.ToString();')
+
+
+def within(cond, seconds, every=0.3):
+    end = time.time() + seconds
+    while time.time() < end:
+        if cond():
+            return True
+        time.sleep(every)
+    return cond()
+
+
+def read_while_host_leaves(name, make, left, long):
+    """A lit le livre que `make` fabrique (C#, laisse dans `t`) ; l'host part a Vernis pendant la lecture.
+    `left` : expression C# du nombre qui reste du livre `t` (charges, ou exemplaires)."""
+    back_home()
+    a = state(A)["pc"]["uid"]
+    book = int(ev(H, f'var c = EClass._map.charas.Find(x => x.uid == {a}); {make} return c.AddThing(t, false).uid.ToString();'))
+    find = f'var t = EClass.pc.things.Find(x => x.uid == {book});'
+    wait(lambda: ev(A, f'{find} return (t != null).ToString();') == "True", f"{name} dans le sac de A", timeout=15)
+    count = lambda: int(ev(A, f'{find} return t == null ? "0" : ({left}).ToString();'))  # noqa: E731
+    before = count()
+    ev(A, 'EClass.debug.godMode = true; "ok"')
+    try:
+        if long:
+            ev(A, f'{find} EClass.pc.SetAI(new AI_Read {{ target = t }}); "ok"')
+            held = within(lambda: reading(A).startswith("-"), 5)
+            check(f"{name} : la lecture de A attend l'host ({reading(A)})", held)
+            move(H, VERNIS)
+        else:
+            # cinq tours : l'host part d'abord, la lecture commence pendant son depart
+            move(H, VERNIS)
+            ev(A, f'{find} EClass.pc.SetAI(new AI_Read {{ target = t }}); "ok"')
+        wait(client_settled(A, HOME, True), "A tient la Prairie", timeout=180, every=0.3)
+        free = within(lambda: not reading(A).startswith("-"), 5)
+        check(f"{name} : moins de 5 s apres le passage de main, la lecture de A n'attend plus personne ({reading(A)})", free)
+        done = within(lambda: reading(A) == "libre", 120, every=1.0)
+        after = count()
+        check(f"{name} : la lecture est finie, une fois au plus ({before} -> {after})",
+              done and after in (before, before - 1))
+        log(f"{name} : " + ("lu une fois" if after == before - 1 else "arrete sans rien consommer"))
+        idle = within(lambda: ev(A, 'EClass.pc.HasNoGoal.ToString()') == "True", 5)
+        spot = pc_pos(A)
+        for dx in (1, -1):
+            ev(A, f'EClass.pc.TryMoveTowards(new Point(EClass.pc.pos.x + {dx}, EClass.pc.pos.z)); "ok"')
+            if within(lambda: pc_pos(A) != spot, 3):
+                break
+        check(f"{name} : A est libre et marche ({spot} -> {pc_pos(A)})", idle and pc_pos(A) != spot)
+    finally:
+        ev(A, f'EClass.debug.godMode = false; {find} if (t != null) t.Destroy(); "ok"')
+    wait(lambda: zone_uid(H) == VERNIS, "host a Vernis", timeout=180)
+    shot(f"p8-{name}-A", A)
+
+
+def p8(ctx):
+    """Retour 21 : un invite qui lisait quand l'host a pris l'escalier est reste fige (lecture retenue en attendant
+    l'host, qu'on ne peut pas arreter a la main). Raccourcis du banc : voir l'en-tete."""
+    read_while_host_leaves("livre", 'var t = ThingGen.Create("book_skill");', "t.Num", long=False)
+    # un grimoire d'au moins 200 tours pour ce lecteur : l'host ne l'a pas fini quand il part
+    read_while_host_leaves(
+        "grimoire",
+        'var t = ThingGen.Create("spellbook"); t.c_charges = 4; t.SetBlessedState(BlessedState.Normal); '
+        'for (var lv = 100; lv < 200000 && t.trait.GetActDuration(c) < 200; lv *= 2) t.SetLv(lv);',
+        "t.c_charges", long=True)
+
+
 def back_home():
     """Tout le monde a la Prairie, pour pouvoir relancer."""
     if zone_uid(H) != HOME:
@@ -298,7 +374,7 @@ def main():
     t0 = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
 
     ctx = {}
-    steps = [p1, p2, p3, p4, p5, p6, p7]
+    steps = [p1, p2, p3, p4, p5, p6, p7, p8]
     if a.only:
         steps = [s for s in steps if s.__name__ in a.only.split(",")]
     for step in steps:
