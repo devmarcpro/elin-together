@@ -14,7 +14,7 @@ mod lui-même leur revient (voir [Crédits](#crédits)).
 > **État : expérimental.** Tout ce qui suit est testé sur un seul PC avec deux fenêtres du jeu (suites de tests
 > automatiques en jeu, plus de 900 vérifications, dossier `dev/`). C'est **très peu joué entre deux PC par
 > Steam** : une seule soirée, qui a trouvé un bug que les tests n'avaient pas vu, et presque rien de ce qui est nouveau dans cette
-> version (0.26.506) n'a encore été essayé à deux vrais PC. Faites d'abord une copie de vos sauvegardes :
+> version (0.26.509) n'a encore été essayé à deux vrais PC. Faites d'abord une copie de vos sauvegardes :
 > `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
 
 ## Ce que cette version ajoute
@@ -33,7 +33,7 @@ mod lui-même leur revient (voir [Crédits](#crédits)).
 | Quêtes à donjon à deux | Quand un joueur part en quête, l'autre voit une boîte Oui/Non pour l'accompagner. La zone est commune, la récompense va à celui qui a pris la quête. Dans les deux sens ; quand c'est l'invité qui a la quête : « subjuguer », récolte et musique (la défense reste à faire seul). |
 | Échange entre joueurs | Clic sur un autre joueur → « Échanger » : chacun met des objets et de l'or, les deux confirment. |
 | Échange plus sûr | Il refuse ce que le jeu solo refuse de donner, refuse si le sac de l'autre est plein, et dit pourquoi. |
-| Choix du personnage | En rejoignant, un joueur choisit un de ses personnages de cette partie ou en crée un nouveau. |
+| Le jeu sait quel personnage est à qui | En rejoignant, un joueur retrouve le personnage qu'il jouait, sans aucune question ; un nouveau joueur crée le sien. |
 | Karma et crime par joueur | C'est le joueur fautif qui perd du karma ; les gardes ne poursuivent que lui. |
 | Affinité et guildes communes | L'affinité d'un habitant est la même pour tous ; rejoindre une guilde vaut pour le groupe. |
 | Un invité joue comme un joueur solo | Des dizaines de corrections depuis la 0.26.399 : mort et testament, cadeaux du dieu, pièges, grimoires, guérisseur, bénédiction, investir, runes, rangement automatique, fenêtres qui s'ouvraient chez l'host, objet offert pris dans une pile, monture déjà prise, rondin taillé à la hache, prière qui soigne les compagnons, nourriture du sac qui vieillit… La liste est dans [`dev/DOCUMENTATION.md`](dev/DOCUMENTATION.md). |
@@ -45,7 +45,11 @@ mod lui-même leur revient (voir [Crédits](#crédits)).
 | Pas de meurtre entre joueurs | Un joueur ne peut plus tuer un autre joueur hors duel. Case de l'host « PlayerKill » (décochée). |
 | L'invité de plus en plus comme en solo | Résurrection d'un compagnon chez le barman, objet à copier chez Kettle, grimoire chez Demitas, duel d'autel au même résultat pour tous, outils et fouets (clé à molette…) qui agissent sur le monde de l'host, prière sans dieu, jours et heures de l'invité, prix d'expédition, carte à gratter du casino. |
 | Monde gardé sur GitHub | Un dépôt GitHub privé peut garder le monde partagé (troisième sorte de dépôt, réglage « github:proprietaire/depot », une clé). Fermer le jeu pendant un envoi attend la fin et rend le monde. |
-| Monde qui change de main | Celui qui reprend le monde du dépôt joue son propre personnage, pas celui de l'ancien host ; l'ancien host retrouve le sien quand il rejoint. |
+| Monde qui change de main | Celui qui reprend le monde du dépôt joue son propre personnage, pas celui de l'ancien host ; l'ancien host retrouve le sien quand il rejoint. Si quelqu'un héberge déjà le monde, le suivant est envoyé dans sa partie au lieu d'en ouvrir une copie. |
+| Chacun garde sa place | Quand l'host part ou revient, les invités restent sur leur case : plus de téléportation sur l'host. Un joueur entre sur une carte par son entrée. |
+| Le temps des autres ne coûte rien | Quand un autre joueur voyage ou dort, la date avance, mais vous n'avez pas plus faim, votre nourriture ne pourrit pas, vos délais de quête ne bougent pas. Au sommeil, seuls les familiers du dormeur le rejoignent. |
+| Coupure sans conséquence | Un invité qui perd sa liaison revient tout seul dans la partie (essais pendant 3 minutes). Case de l'host « AutoReconnect » (cochée). |
+| L'host n'a plus rien à faire | Le monde est sauvegardé tout seul toutes les 2 minutes quand un autre joueur est là ; un monde déjà partagé ouvre sa partie tout seul au chargement (amis Steam). Cases « AutoSave » et « AutoHost » (cochées). |
 
 Presque toutes sont une **case à cocher côté host** (Échap → Mods → Elin Together → *Server Setting*) ; décochée,
 le mod se comporte comme l'original. Les quêtes à donjon à deux et les corrections « un invité joue comme un joueur
@@ -62,12 +66,17 @@ solo » n'ont pas de case.
 | ![L'échange entre joueurs](assets/screens/trade.jpg) | ![Renommée et karma propres à chaque joueur](assets/screens/own-fame-karma.jpg) |
 | L'échange entre joueurs | Renommée et karma propres à chaque joueur |
 | ![Choix du personnage à la connexion](assets/screens/character-choice.jpg) | ![Base : ce qu'un invité ne peut pas encore régler est refusé, sans rien lui faire payer](assets/screens/base-host-only.jpg) |
-| Choix du personnage à la connexion | Base : ce qu'un invité ne peut pas encore régler est refusé, sans rien lui faire payer |
+| Choix du personnage (si l'host l'active) | Base : ce qu'un invité ne peut pas encore régler est refusé, sans rien lui faire payer |
 
 ## Limites connues
 
 - Très peu joué entre deux PC par Steam (une soirée) ; les nouveautés de cette version, pas encore.
-- Le temps du monde suit encore l'host.
+- Une seule date pour le monde, celle du joueur le plus avancé ; seuls ses effets (faim, pourriture, délais) sont par joueur.
+- Banque et caisse d'expédition : un invité seul sur une autre carte que l'host voit sa fenêtre se rouvrir vide (ce qu'il a
+  déposé est chez l'host). Déposez sur la carte de l'host. Correction en cours.
+- Trois joueurs ou plus : testé à trois fenêtres sur un PC pour les places et le temps seulement ; le jeu ralentit quand
+  le nombre d'invités augmente. Le rangement automatique peut ranger des objets de la barre d'outils.
+- Quand l'host part ou plante, aucun invité ne reprend le monde tout seul : il faut le reprendre à la main (dépôt).
 - Les tests cliquent maintenant dans de vrais dialogues du jeu pour plusieurs points (guérisseur, boutique,
   prêtresses), mais pas pour l'histoire : les dialogues d'histoire joués par un autre joueur que l'host, et la
   prise des quêtes à donjon, sont testés par appels directs au code du jeu.
@@ -80,8 +89,8 @@ solo » n'ont pas de case.
   (deux vrais PC, sorts, flèches, trois joueurs), meurtre entre joueurs par saignement, poison, feu ou sort, résurrection par
   parchemin ou sort, prix d'expédition, carte à gratter, le vrai GitHub depuis le jeu, deux PC.
 - Duels : pas encore d'arène, de pari ni de bouton abandonner.
-- Monde qui change de main : un monde hébergé pour la dernière fois avec une ancienne version ne sait pas à qui est son
-  personnage ; l'ancien host doit l'héberger une fois avec cette version avant qu'un autre le reprenne.
+- Monde qui change de main, pour un monde d'avant et à trois joueurs ou plus : un nouveau venu arrivé avant l'ancien host
+  recevrait son personnage. La redirection vers celui qui héberge marche entre amis Steam seulement, pas jouée à deux PC.
 - Versions d'Elin différentes : testé en connexion locale seulement ; par le salon Steam, pas joué.
 - Quand l'host revient sur une carte tenue par un invité, l'écran de l'invité se recharge (il est prévenu avant).
   La durée n'est pas mesurée entre deux PC.

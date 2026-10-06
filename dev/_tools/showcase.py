@@ -133,6 +133,16 @@ def choice():
     chara_suite.in_game()
 
 
+def reconnect():
+    """Le lien de l'invite est coupe : le message "on vous ramene dans la partie", puis le retour tout seul."""
+    ok(emp.call(A, "command", {"cmd": "emp.link_timeout 1"}))
+    ok(emp.call(A, "command", {"cmd": "emp.cut_link 30"}))
+    time.sleep(21)
+    snap("14-coupure-l-invite-revient-tout-seul", A)
+    wait(lambda: state(A).get("connected") and state(A).get("sceneMode") == "Zone", "l'invite est revenu", timeout=120, every=3.0)
+    emp.call(A, "command", {"cmd": "emp.link_timeout 0"})
+
+
 def imported():
     """Rejoindre avec le personnage d'une sauvegarde : l'ecran de choix, la liste, puis en jeu."""
     import import_suite
@@ -207,7 +217,7 @@ def main():
     sys.stdout.reconfigure(encoding="utf-8")
     OUT.mkdir(exist_ok=True)
     only = sys.argv[1:]
-    for fn in (options, trade, standing, quests, together, base, choice, imported):
+    for fn in (options, trade, standing, quests, together, base, choice, reconnect, imported):
         if not only or fn.__name__ in only:
             log(f"--- {fn.__name__}")
             step(fn)

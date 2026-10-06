@@ -821,8 +821,9 @@ def main():
             take(H)
             said = ev(H, DIALOG)
             log(f"le premier joueur : {said}")
-            check("pendant ce temps le premier joueur ne peut pas le prendre : on lui dit qui heberge",
-                  "is hosting" in said and state(H).get("sceneMode") == "Title")
+            # celui qui tient le monde n'a pas ouvert sa partie (banc) : pas de redirection, on dit qui l'a (D7 joue la redirection)
+            check("pendant ce temps le premier joueur ne peut pas le prendre : on lui dit qui a le monde",
+                  ("is hosting" in said or "has the world" in said) and state(H).get("sceneMode") == "Title")
             dismiss_dialogs(H)
             if GITHUB:
                 click(H)

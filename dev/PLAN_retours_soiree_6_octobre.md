@@ -39,3 +39,7 @@ sur la nouvelle version. Rien n'est « fait » avant d'être vert ET commité. �
 - Lignes 38 à 52 de `PLAN_chasse_differences_3.md` (double paiement, artefact de dieu détruit…).
 - Questions ouvertes pour l'utilisateur : retirer les 0.26.493 et 0.26.494 de GitHub ? ; quelle cave (point 9) ; dans quelle
   rangée de la barre étaient les objets (point 4) ; un invité avait-il réglé un coffre (point 4).
+
+## Retour ajouté après la table (6 octobre, 19h)
+
+| 15 | « un donjon est considéré comme conquis alors que le boss n'est pas vaincu » | À trouver. Pistes : le boss existe dans un seul jeu (celui qui tient l'étage) et l'autre jeu ne le trouve pas, donc croit l'étage vidé ; ou la cave gardée en vie (point 9) passe pour finie | PAS ÉCRIT : enquête après la 0.26.509. À demander : quel donjon, qui était à l'étage du boss (host ou invité), qui a vu « conquis » |

@@ -1,8 +1,43 @@
-# Elin Together « indépendance » 0.26.506
+# Elin Together « indépendance » 0.26.509
 
 (English below / version anglaise plus bas)
 
-## Nouveau dans la 0.26.506 (elle remplace la 0.26.494)
+## Nouveau dans la 0.26.509 (corrections après une vraie soirée à trois joueurs et plus)
+
+- **Les invités ne sont plus téléportés sur l'hébergeur.** Quand l'hébergeur part ou revient, chaque invité garde sa
+  case. Un invité qui entre sur une carte arrive par l'entrée, et jamais dans l'eau sur la carte du monde.
+- **Le temps d'un autre joueur ne vous coûte plus rien.** Quand un joueur voyage ou dort, la date avance pour tous, mais
+  vous n'avez pas plus faim, votre nourriture ne pourrit pas, vos états et vos délais de quête ne bougent pas.
+- **Sommeil** : seuls les familiers du dormeur le rejoignent ; un invité qui dort seul ne voit plus sa carte rechargée.
+- **Musique** : le personnage d'un autre joueur ne jette plus de pièces au musicien.
+- **Ancien personnage** : un personnage de joueur que personne ne joue ne reste plus sur la carte à se battre.
+- **Cave** : une cave où se trouve un joueur n'est plus refaite quand un autre y entre.
+- **Coupure de liaison** : l'invité revient tout seul dans la partie (essais pendant 3 minutes). Plus d'écran « Who do you
+  want to play? » à chaque connexion.
+- **Hébergeur** : le monde est sauvegardé tout seul toutes les 2 minutes quand un autre joueur est là ; un monde déjà
+  partagé ouvre sa partie tout seul au chargement (amis Steam).
+- **Dépôt GitHub ou dossier** : si quelqu'un héberge déjà le monde, le deuxième joueur est envoyé dans sa partie
+  (bouton « Join »), au lieu d'ouvrir une copie.
+- **Chargement rapide** : il est arrêté dans une partie à plusieurs (il ouvrait une fenêtre d'erreur chez l'invité).
+- **Pas encore corrigé** : la banque et le coffre d'expédition d'un invité seul sur une autre carte que l'hébergeur (ce
+  qu'il dépose va chez l'hébergeur mais sa fenêtre se rouvre vide : déposez sur la carte de l'hébergeur) ; les objets de
+  la barre d'outils rangés par le rangement automatique ; deux factures au lieu d'une ; recette et grimoire propres à
+  l'invité au réveil ; lenteurs à plusieurs invités.
+- Testé au banc sur un PC : à trois fenêtres, téléportations 17/17 et temps 25/25 ; à deux fenêtres, les suites
+  habituelles. **Les corrections n'ont pas encore été rejouées entre vrais PC.**
+
+**New in 0.26.509 (fixes after a real evening with three players and more).** Guests are no longer moved onto the host
+when the host leaves or comes back; a guest enters a map by its entrance, never in water on the world map. Time passed by
+another player costs you nothing (no hunger, no rotten food, no condition or quest deadline change). Only the sleeper's
+own pets join it. Another player's character no longer throws coins at a musician. A player character nobody plays no
+longer stays on the map. A cave with a player in it is not rebuilt when another enters. A guest whose link drops comes
+back by itself; no character question at each connection. The host's world saves itself every 2 minutes while someone
+else plays; a shared world opens its session by itself. With a save depot, the second player is sent into the game of
+the one already hosting. Quick load is stopped in a shared game. Not fixed yet: bank and shipping chest of a guest alone
+on another map than the host (deposit on the host's map), auto-dump taking toolbar items, two bills instead of one.
+Bench-tested with three windows on one PC, not replayed on real PCs yet.
+
+## Dans la 0.26.506
 
 - **Le jeu sait tout seul quel personnage est à qui, sans jamais rien demander.** Celui qui reprend un monde (dépôt)
   joue son propre personnage ; celui de l'ancien hébergeur l'attend et lui revient quand il rejoint. Cela marche aussi

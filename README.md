@@ -13,7 +13,7 @@ goes to them (see [Credits](#credits)).
 
 > **Status: experimental.** Everything below is tested on one PC with two game windows (automated in-game test
 > suites, over 900 checks, see `dev/`). It has been **barely played between two PCs over Steam**: one evening, which
-> found a bug the tests had missed, and almost nothing new in this version (0.26.506) has been tried on two real PCs yet. Back up
+> found a bug the tests had missed, and almost nothing new in this version (0.26.509) has been tried on two real PCs yet. Back up
 > your saves first: `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
 
 ## What the fork adds
@@ -32,7 +32,7 @@ goes to them (see [Credits](#credits)).
 | Dungeon quests for two | When one player sets out on a quest, the other sees a Yes/No box to come along. The zone is shared, the reward goes to whoever took the quest. Works both ways; when the guest took the quest: "subdue", harvest and music quests (defense stays solo). |
 | Trade between players | Click another player → "Trade": both put items and gold, both confirm. |
 | Safer trade | It refuses what the solo game refuses to give away, refuses when the other's bag is full, and says why. |
-| Character choice | When joining, a player picks one of their characters in that world or makes a new one. |
+| The game knows whose character is whose | When joining, a player gets the character they played, with no question asked; a new player makes one. |
 | Karma and crime per player | The player who did it loses the karma; guards only chase that player. |
 | Shared affinity and guilds | An inhabitant's affinity is the same for all; joining a guild counts for the group. |
 | A guest plays like a solo player | Dozens of fixes since 0.26.399: death and will, the god's gifts, traps, spellbooks, healer, blessing, investing, runes, auto-dump, windows that used to open on the host, a gift taken out of a stack, a mount already taken, a log chopped with an axe, a prayer that heals companions, food in the bag that goes off… The list is in [`dev/DOCUMENTATION.md`](dev/DOCUMENTATION.md) (French). |
@@ -44,7 +44,11 @@ goes to them (see [Credits](#credits)).
 | No killing between players | A player can no longer kill another player outside a duel. Host checkbox "PlayerKill" (unchecked). |
 | More solo behaviour for a guest | Bringing a companion back at the barman's, an item to copy at Kettle's, a spellbook at Demitas', the altar duel with the same result for all, tools and whips (wrench...) acting on the host's world, a prayer with no god, the guest's days and hours, shipping prices, the casino's scratch card. |
 | World kept on GitHub | A private GitHub repository can keep the shared world (third kind of depot, setting "github:owner/repository", one key). Closing the game during an upload waits for it and frees the world. |
-| A world that changes hands | Whoever takes the world over from the depot plays their own character, not the former host's; the former host gets theirs back when joining. |
+| A world that changes hands | Whoever takes the world over from the depot plays their own character, not the former host's; the former host gets theirs back when joining. If someone already hosts the world, the next player is sent into that game instead of opening a copy. |
+| Everyone keeps their place | When the host leaves or comes back, guests stay on their tile: no more teleporting onto the host. A player enters a map by its entrance. |
+| Other players' time costs nothing | When another player travels or sleeps, the date moves on, but you are no hungrier, your food does not rot, your quest deadlines do not move. On sleep, only the sleeper's own pets join it. |
+| A dropped link is harmless | A guest who loses the link comes back into the game by itself (tries for 3 minutes). Host checkbox "AutoReconnect" (checked). |
+| Nothing left for the host to do | The world saves itself every 2 minutes while someone else plays; a world already shared opens its session by itself on load (Steam friends). Checkboxes "AutoSave" and "AutoHost" (checked). |
 
 Most of these are a **checkbox on the host's side** (Esc → Mods → Elin Together → *Server Setting*); unchecked,
 the mod behaves like the original. Dungeon quests for two and the "a guest plays like a solo player" fixes have no
@@ -61,12 +65,17 @@ checkbox.
 | ![Trading between players](assets/screens/trade.jpg) | ![Each player has its own fame and karma](assets/screens/own-fame-karma.jpg) |
 | Trading between players | Each player has its own fame and karma |
 | ![Choosing a character when joining](assets/screens/character-choice.jpg) | ![Base: what a guest cannot set yet is refused, at no cost](assets/screens/base-host-only.jpg) |
-| Choosing a character when joining | Base: what a guest cannot set yet is refused, at no cost |
+| Choosing a character (if the host turns it on) | Base: what a guest cannot set yet is refused, at no cost |
 
 ## Known limits
 
 - Barely played between two PCs over Steam (one evening); the new features of this version, not yet.
-- The world's clock still follows the host.
+- One date for the world, that of the player furthest ahead; only its effects (hunger, rot, deadlines) are per player.
+- Bank and shipping chest: a guest alone on another map than the host sees the window reopen empty (what was deposited
+  is with the host). Deposit on the host's map. Fix in progress.
+- Three players or more: tested with three windows on one PC for positions and time only; the game slows down as guests
+  are added. Auto-dump may put toolbar items away.
+- When the host leaves or crashes, no guest takes the world over by itself: it is taken over by hand (depot).
 - The tests now click through real game dialogs for several points (healer, shop, priestesses), but not for the
   story: story dialogs played by a non-host player, and taking dungeon quests, are covered by tests that call the
   game's code directly.
@@ -79,8 +88,8 @@ checkbox.
   arrows, three players), killing between players by bleeding, poison, fire or spells, bringing a companion back with a
   scroll or spell, shipping prices, the scratch card, the real GitHub from inside the game, two PCs.
 - Duels: no arena, betting or give-up button yet.
-- A world that changes hands: a world last hosted with an older version does not know whose character is whose; the
-  former host must host it once with this version before another player takes it over.
+- A world that changes hands, for an older world with three players or more: a newcomer arriving before the former host
+  would get its character. Being sent to the current host works between Steam friends only, not played on two PCs.
 - Different Elin versions: tested on a local connection only; through the Steam lobby, not played.
 - When the host returns to a map held by a guest, the guest's screen reloads (the guest is told first). The time it
   takes has not been measured between two PCs.
