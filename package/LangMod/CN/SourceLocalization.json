@@ -272,5 +272,7 @@
     "LangGeneral.emp_ui_sv_desc_time_jumps_together.text": "开：只有所有玩家一起在世界地图上旅行时，一步才会推进世界日期；否则旅行者只消耗自己的回合。关：任何人的每一步都会让所有人过 3 小时。",
     "LangGeneral.emp_ui_sv_cfg_dump_spares_belt.text": "自动收纳不动手持物和工具腰带",
     "LangGeneral.emp_ui_sv_desc_dump_spares_belt.text": "开：自动收纳不会收走手持的物品和工具腰带里的物品（和快捷栏一样）。关：与原版相同。",
-    "LangGeneral.emp_ui_travel_no_date.text": "同伴们在别处：你的旅行不会让日期前进。"
+    "LangGeneral.emp_ui_travel_no_date.text": "同伴们在别处：你的旅行不会让日期前进。",
+    "LangGeneral.emp_ui_bill_paid.text": "{0} 支付了账单：{1}（{2}）",
+    "LangGeneral.emp_ui_bill_already_paid.text": "这张账单已经付过了，没有扣你的钱。"
 }
