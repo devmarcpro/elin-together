@@ -269,30 +269,24 @@ internal partial class EmpConfig
             "Server",
             "OwnSleep",
             true,
-            "A player who goes to bed sleeps at once, for itself, without waiting for the others
-" +
-            "The night only passes for the world when every player is asleep at the same time. Otherwise everyone waits for everyone
-" +
+            "A player who goes to bed sleeps at once, for itself, without waiting for the others\n" +
+            "The night only passes for the world when every player is asleep at the same time. Otherwise everyone waits for everyone\n" +
             "玩家上床后立刻为自己睡觉，不用等别人；只有所有玩家同时睡着时，世界才会过夜。关闭时所有人互相等待");
 
         Server.TimeJumpsTogether = config.Bind(
             "Server",
             "TimeJumpsTogether",
             true,
-            "A step on the world map only moves the date of the world when all the players travel on it together
-" +
-            "Otherwise the traveller pays its own turns and the date stays. Off: every step of anyone adds 3 hours for all
-" +
+            "A step on the world map only moves the date of the world when all the players travel on it together\n" +
+            "Otherwise the traveller pays its own turns and the date stays. Off: every step of anyone adds 3 hours for all\n" +
             "只有所有玩家一起在世界地图上旅行时，世界地图上的一步才会推进世界日期；否则旅行者只消耗自己的回合。关闭时任何人的每一步都会让所有人过 3 小时");
 
         Server.DumpSparesBelt = config.Bind(
             "Server",
             "DumpSparesBelt",
             true,
-            "Auto-dump leaves what the player holds and what is in the tool belt, as it leaves the hotbar
-" +
-            "Otherwise as in the game
-" +
+            "Auto-dump leaves what the player holds and what is in the tool belt, as it leaves the hotbar\n" +
+            "Otherwise as in the game\n" +
             "自动收纳不会收走玩家手持的物品和工具腰带里的物品，就像它不会收走快捷栏一样。关闭时与原版相同");
 
         Server.ImportCharacter = config.Bind(
