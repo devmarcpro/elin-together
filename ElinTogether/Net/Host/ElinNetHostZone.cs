@@ -108,10 +108,14 @@ internal partial class ElinNetHost
         // we only move their characters to zone when they are ready
         Delta.AddRemote(CardGenDelta.Create(chara));
 
-        // move instead of add. Next to us only when nothing tells where (it joins the game)
-        var pos = _zone.IsRegion
-            ? WorldMapTileNextToUs(chara)
-            : pc.pos.GetNearestPoint(allowChara: false, allowInstalled: false) ?? pc.pos.Copy();
+        // move instead of add. Next to us only when nothing tells where (it joins the game), and only when we
+        // stand on this map: waking up, the game may show a base our character never entered (its walk through
+        // the bases, Player.SimulateFaction, stopped by a recall), and our tile is the world map's then
+        Point? pos = pc.currentZone != _zone
+            ? null
+            : _zone.IsRegion
+                ? WorldMapTileNextToUs(chara)
+                : pc.pos.GetNearestPoint(allowChara: false, allowInstalled: false) ?? pc.pos.Copy();
 
         // it was on this map all along (the one simulating it came or went, or the player dropped): it stands
         // where it stood, with its companions. Or it walks in: it arrives where the game puts a player alone
@@ -128,26 +132,59 @@ internal partial class ElinNetHost
                     : at.GetNearestPoint(allowChara: false) ?? at.Copy();
             }
         }
-        if (chara.IsInActiveMap && _map.charas.Contains(chara)) {
-            if (chara.Stub_Move(pos, Card.MoveType.Force) != Card.MoveResult.Success) {
-                pos = chara.pos.Copy();
+        // never a tile outside this map: the game does not check (Map.OnCardAddedToZone), the character would
+        // be left in the list of the map and on no tile, and its player without an answer
+        if (pos is not { IsValid: true, IsInBounds: true }) {
+            EmpLog.Warning("No tile of {ZoneFullName} for player {@Peer} ({@Pos}, host in {HostZone}), it stands at the entrance",
+                _zone.ZoneFullName, peer, pos, pc.currentZone?.ZoneFullName);
+
+            keepSpot = false;
+            pos = EntrancePoint(chara);
+        }
+
+        try {
+            if (chara.IsInActiveMap && _map.charas.Contains(chara)) {
+                if (chara.Stub_Move(pos, Card.MoveType.Force) != Card.MoveResult.Success) {
+                    pos = chara.pos.Copy();
+                }
+            } else {
+                // its tile on the map it comes from may not exist here
+                if (!chara.pos.IsValid || !chara.pos.IsInBounds) {
+                    chara.pos.Set(pos.x, pos.z);
+                }
+
+                _zone.AddCard(chara, pos);
             }
-        } else {
-            if (!chara.pos.IsValid) {
+        } catch (Exception ex) {
+            EmpLog.Error(ex, "Player {@Peer} could not be put at {@Pos} in {ZoneFullName}, trying the entrance",
+                peer, pos, _zone.ZoneFullName);
+
+            pos = EntrancePoint(chara);
+            try {
                 chara.pos.Set(pos.x, pos.z);
+                if (_map.charas.Contains(chara)) {
+                    _zone.RemoveCard(chara);
+                }
+
+                _zone.AddCard(chara, pos);
+            } catch (Exception again) {
+                EmpLog.Error(again, "Player {@Peer} is not on {ZoneFullName}", peer, _zone.ZoneFullName);
+            }
+        }
+
+        try {
+            if (chara.ai is not GoalRemote) {
+                chara.SetAI(GoalRemote.Default);
             }
 
-            _zone.AddCard(chara, pos);
+            BringCompanions(chara, keepSpot);
+            // sales made while it was a guest somewhere or offline
+            PayShipping(chara.uid);
+            SweepStaleCellEntries();
+        } catch (Exception ex) {
+            // the player is answered whatever happens here: without the answer it waits on its loading screen
+            EmpLog.Error(ex, "Arrival of player {@Peer} in {ZoneFullName} left unfinished", peer, _zone.ZoneFullName);
         }
-
-        if (chara.ai is not GoalRemote) {
-            chara.SetAI(GoalRemote.Default);
-        }
-
-        BringCompanions(chara, keepSpot);
-        // sales made while it was a guest somewhere or offline
-        PayShipping(chara.uid);
-        SweepStaleCellEntries();
 
         EmpLog.Debug("Assigned zone sync position to player {@Peer} at {@Pos}",
             peer, pos);
@@ -167,6 +204,34 @@ internal partial class ElinNetHost
         }
 
         RemoveLeftOverCharas(null);
+    }
+
+    /// <summary>
+    ///     Where a player stands when no tile of this map is known for it: where the game puts someone who comes
+    ///     in with no way in (Zone.GetSpawnPos: the guide spot of a base, the embark tile), else the middle.
+    ///     Always a tile of this map
+    /// </summary>
+    private static Point EntrancePoint(Chara chara)
+    {
+        Point? pos = null;
+        if (!_zone.IsRegion && chara.global is { } data) {
+            try {
+                // not the way it took into another map
+                data.transition = null;
+                pos = _zone.GetSpawnPos(chara, ZoneTransition.EnterState.Center);
+            } catch (Exception ex) {
+                EmpLog.Warning(ex, "No entrance for chara {Uid} in {ZoneFullName}", chara.uid, _zone.ZoneFullName);
+            } finally {
+                data.transition = null;
+            }
+        }
+
+        if (pos is not { IsValid: true, IsInBounds: true }) {
+            var middle = _map.bounds.GetCenterPos();
+            pos = middle.GetNearestPoint(allowChara: false) ?? middle;
+        }
+
+        return pos.Clamp(useBounds: true);
     }
 
     /// <summary>

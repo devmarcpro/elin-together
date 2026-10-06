@@ -35,8 +35,9 @@ public class CharaSwitchHeldDelta : ElinDelta
         chara.NetProfile.RemoteMainHand = new(HeldMainHand, false);
         chara.NetProfile.RemoteOffHand = new(HeldOffHand, false);
 
-        // do not update tool if running task
-        if (chara.ai is GoalRemote { child.status: AIAct.Status.Running }) {
+        // do not update tool if running task (a NoGoal stands for a task the host does not run, as walking: the tool
+        // changed meanwhile must not be lost, the next task needs it)
+        if (chara.ai is GoalRemote { child: { status: AIAct.Status.Running } and not NoGoal }) {
             return;
         }
 

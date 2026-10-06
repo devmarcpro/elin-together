@@ -19,30 +19,40 @@ internal static class CharaTaskProgressEvents
     }
 
     [HarmonyPrefix]
-    internal static void OnProgressBegin(AIProgress __instance)
+    internal static bool OnProgressBegin(AIProgress __instance)
     {
         if (NetSession.Instance.Connection is not { } connection) {
-            return;
+            return true;
         }
 
         if (__instance.owner is not { } owner) {
-            return;
+            return true;
         }
 
         if (__instance is DelegateProgress) {
             __instance.progress = HeldProgress.Held;
-            return;
+            return true;
         }
 
         // a task sent as FakeTask has no act on the host to match: not announced, and not held for a completion that
         // would never come
         if (connection.IsClient && owner.IsPC && FakeTask.IsMarked(__instance)) {
-            return;
+            return true;
         }
 
         if (__instance.parent?.GetType() is not { } actType ||
             !ActMappingValidator.Default.ActToIdMapping.TryGetValue(actType, out var actId)) {
-            return;
+            return true;
+        }
+
+        // the next round of a task that loops (chopping logs, drawing or pouring water) is decided inside the replay
+        // of the round that ended, before what that round changed has landed here (the last log used up): the host,
+        // whose task is over, was told a round began and cancelled it. The round begins on the next tick instead,
+        // after the task has checked again that it can go on (AIProgress.Run: progress 0 calls this again)
+        if (connection.IsClient && owner.IsPC && CharaProgressCompleteDelta.IsReplaying &&
+            __instance.parent is TaskPoint) {
+            __instance.progress = -1;
+            return false;
         }
 
         if (connection.IsClient) {
@@ -53,7 +63,7 @@ internal static class CharaTaskProgressEvents
         // for host, run it only when remote players run it
         if (owner.ai is GoalRemote) {
             __instance.progress = HeldProgress.Held;
-            return;
+            return true;
         }
 
         connection.Delta.AddRemote(new CharaProgressBeginDelta {
@@ -62,5 +72,7 @@ internal static class CharaTaskProgressEvents
             MaxProgress = __instance.MaxProgress,
             ActId = actId,
         });
+
+        return true;
     }
 }

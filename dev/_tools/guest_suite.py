@@ -14,10 +14,15 @@ G3  la baguette de l'invite agit sur le monde et s'use
 G4  coffres de pari : l'invite les ouvre lui-meme, ils s'usent, l'host n'est pas interrompu
     (vu le 2026-10-02 : les coffres de l'invite ne s'usaient jamais, il continuait jusqu'a mourir d'epuisement)
 G5  l'invite remplit une bouteille vide a un point d'eau
+G40 (journal reel du 6 octobre, defaut A) l'host zappe une baguette puis pare les coups d'un monstre a cote de l'invite :
+    aucune « Exception at processing delta » dans le journal, le monstre a les memes points de vie dans les deux jeux
+G41 (journal reel du 6 octobre, defaut B) l'invite prend sa hache en marchant, abat un arbre puis taille les rondins a la
+    chaine : aucun « no matching act » dans le journal, le meme sac dans les deux jeux
 
 La torche a allumer (TraitToolTorch) n'est portee par aucun objet du jeu en EA 23.351 : pas de test.
 """
 import argparse
+import json
 import sys
 import time
 from datetime import datetime, timezone
@@ -25,7 +30,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from mp_test import log, shot, state  # noqa: E402
-from travel_suite import RESULTS, check, dismiss_dialogs, ev, eventually, scan_logs  # noqa: E402
+from travel_suite import RESULTS, check, dismiss_dialogs, ev, eventually, scan_logs, session_log_lines  # noqa: E402
 
 H, A = 27551, 27552
 
@@ -1215,6 +1220,128 @@ def g39(ctx):
         ev(H, f'var t = EClass._map.things.Find(m => m.uid == {w}); if (t != null) t.Destroy(); "ok"')
 
 
+def now():
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+
+
+def journal(t0, text):
+    """Lignes du journal du mod (le fichier que lit scan_logs) ecrites depuis t0 et dont le message contient ce texte."""
+    return [l for l in session_log_lines(t0) if text in json.loads(l).get("@mt", "")]
+
+
+def g40(ctx):
+    """baguette et parade de l'host (journal reel du 6 octobre, defaut A) : rien ne plante chez l'invite, le monstre a les memes
+    points de vie dans les deux jeux
+    Ce que le banc ne joue pas comme un joueur : la parade est donnee a l'host par l'element 437 (un joueur l'a par son
+    equipement) ; l'host passe ses tours par EndTurn ; « une parade a eu lieu » est deduit de ce que le monstre est blesse
+    alors que l'host ne l'attaque pas"""
+    port, uid = ctx["a"]
+    h_uid = ctx["h"][1]
+    hp = lambda p, m: ev(p, f'var m = EClass._map.charas.Find(x => x.uid == {m}); return m == null || m.isDead ? "mort" : m.hp.ToString();')  # noqa: E731
+    t0 = now()
+    rod, mob, foe = 0, 0, 0
+    try:
+        # 1. la baguette de l'host sur un monstre a cote de l'invite
+        rod = give(ctx, "h", "rod_random", extra="TraitRod.Create(t, 50500, 5);")
+        mob = spawn(uid, "putty")
+        if check(f"un monstre apparait a cote de l'invite ({mob})", mob and eventually(lambda: seen(port, mob), timeout=10)):
+            x, z = cell(H, mob).split(",")
+            before = hp(H, mob)
+            log(f"l'host zappe : {use_held(H, rod, at=(x, z), pick='i.act is ActZap')}")
+            check(cond=eventually(lambda: hp(H, mob) != before, timeout=10), label=f"la baguette de l'host blesse le monstre ({before} -> {hp(H, mob)})")
+            check(cond=eventually(lambda: hp(port, mob) == hp(H, mob), timeout=10),
+                  label=f"l'invite voit les memes points de vie ({hp(port, mob)} chez lui, {hp(H, mob)} chez l'host)")
+        # 2. un monstre attaque l'host, qui pare : le coup rendu par la parade n'a pas de numero d'acte
+        ev(H, 'EClass.pc.elements.SetBase(437, 400); EClass.pc.hp = EClass.pc.MaxHP; "ok"')
+        spot = free_next_to(H, h_uid)
+        if check(f"une case libre a cote de l'host ({spot or 'non'})", bool(spot)):
+            fx, fz = spot.split(",")
+            foe = int(ev(H, f'var m = CharaGen.Create("putty"); EClass._zone.AddCard(m, new Point({fx}, {fz})); m.hostility = Hostility.Enemy; '
+                            'm.c_originalHostility = Hostility.Enemy; m.SetEnemy(EClass.pc); m.hp = m.MaxHP; return m.uid.ToString();'))
+            full = hp(H, foe)
+            for _ in range(80):
+                if hp(H, foe) != full:
+                    break
+                ev(H, 'EClass.pc.hp = EClass.pc.MaxHP; EClass.player.EndTurn(); "ok"')
+                time.sleep(0.3)
+            check(f"l'host pare et rend un coup sans attaquer (monstre : {full} -> {hp(H, foe)})", hp(H, foe) != full)
+            check(cond=eventually(lambda: hp(port, foe) == hp(H, foe), timeout=10),
+                  label=f"l'invite voit les memes points de vie ({hp(port, foe)} chez lui, {hp(H, foe)} chez l'host)")
+        time.sleep(2)
+        bad = journal(t0, "Exception at processing delta")
+        check(f"aucune « Exception at processing delta » dans le journal ({len(bad)})", not bad)
+    finally:
+        ev(H, 'EClass.pc.elements.SetBase(437, 0); EClass.pc.hp = EClass.pc.MaxHP; EClass.pc.SetNoGoal(); '
+              f'var r = EClass.pc.things.Find(x => x.uid == {rod}); if (r != null) r.Destroy(); "ok"')
+        drop([mob, foe])
+
+
+def g41(ctx):
+    """recolte et coupe de bois de l'invite, a la chaine (journal reel du 6 octobre, defaut B) : l'host ne les annule pas
+    Ce que le banc ne joue pas comme un joueur : la marche est le clic sur la carte (AI_Goto) pose directement ; la hache est
+    prise en main par HoldCard pendant la marche (un joueur fait tourner sa barre) ; le clic droit est l'entree du plan
+    d'actions executee (use_held), une fois par tour de recolte, sans bouton maintenu ; les rondins a tailler sont poses par
+    l'host"""
+    port, uid = ctx["a"]
+    axe = ev(H, 'var r = EClass.sources.things.rows.FirstOrDefault(x => x.elements != null && x.elements.Length > 0 && x.elements.Contains(225) '
+                '&& x.trait != null && x.trait.Length > 0 && x.trait[0].StartsWith("Tool")); return r == null ? "" : r.id;')
+    if not check(f"le jeu a une hache ({axe})", bool(axe)):
+        return
+    # un arbre a quelques pas de l'invite, et une case ou se tenir a cote
+    tree = ev(port, 'var me = EClass.pc.pos; var best = ""; var near = 99; for (var dx = -14; dx <= 14; dx++) for (var dz = -14; dz <= 14; dz++) { '
+                    'var p = new Point(me.x + dx, me.z + dz); if (!p.IsValid || !p.IsInBounds || !p.HasObj || p.cell.growth == null || !p.cell.growth.IsTree) continue; '
+                    'var d = p.Distance(me); if (d < 4 || d >= near) continue; var s = p.GetNearestPoint(false, false, true, true); '
+                    'if (s == null || s.Distance(p) != 1) continue; near = d; best = p.x + "," + p.z + "," + s.x + "," + s.z; } return best;')
+    if not check(f"un arbre a quelques pas de l'invite ({tree or 'non'})", bool(tree)):
+        return
+    tx, tz, sx, sz = (int(v) for v in tree.split(","))
+    there = lambda p: ev(p, f'new Point({tx}, {tz}).HasObj.ToString()') == "True"  # noqa: E731
+    idle = lambda: awake(port) and ev(port, 'EClass.pc.HasNoGoal.ToString()') == "True"  # noqa: E731
+    wood = lambda p: int(ev(p, f'{chara(p, uid)}.things.Where(t => t.id == "log" || t.id == "plank").Sum(t => t.Num).ToString()'))  # noqa: E731
+    t0 = now()
+    logs = 0
+    try:
+        ev(port, 'if (EClass.pc.held != null) EClass.pc.PickHeld(); EClass.pc.SetNoGoal(); "ok"')
+        tool = give(ctx, "a", axe)
+        time.sleep(2)
+        awake(port)
+        # il clique sur la carte pour y aller, et prend sa hache en main en marchant
+        ev(port, f'EClass.pc.SetAI(new AI_Goto(new Point({sx}, {sz}), 0)); var t = EClass.pc.things.Find(x => x.uid == {tool}); '
+                 'EClass.pc.HoldCard(t); new HotItemHeld(t).OnSetCurrentItem(); "ok"')
+        check(cond=eventually(lambda: awake(port) and cell(port, uid) == f"{sx},{sz}", timeout=40), label=f"l'invite marche jusqu'a l'arbre ({cell(port, uid)})")
+        eventually(idle, timeout=10)
+        # il abat l'arbre : un clic droit par tour de recolte, tant que l'arbre est la
+        rounds = 0
+        while rounds < 12 and there(H):
+            rounds += 1
+            log(f"recolte {rounds} : {use_held(port, tool, at=(tx, tz), pick='i.act is TaskHarvest')}")
+            time.sleep(1)
+            eventually(idle, timeout=60)
+        check(f"l'arbre est abattu chez l'host en {rounds} recolte(s)", not there(H))
+        check(cond=eventually(lambda: not there(port), timeout=10), label="et chez l'invite")
+        # il taille des rondins, a la chaine (la tache boucle d'elle-meme jusqu'au dernier rondin)
+        lx, lz = (int(v) for v in ev(H, f'var p = {chara(H, uid)}.pos.GetNearestPoint(false, false, false, true); return p.x + "," + p.z;').split(","))
+        logs = int(ev(H, f'var t = ThingGen.Create("log"); t.SetNum(3); EClass._zone.AddCard(t, new Point({lx}, {lz})); return t.uid.ToString();'))
+        left = lambda p: ev(p, f'var t = EClass._map.things.Find(m => m.uid == {logs}); return t == null ? "0" : t.Num.ToString();')  # noqa: E731
+        eventually(lambda: left(port) == "3", timeout=10)
+        log(f"l'invite taille : {use_held(port, tool, at=(lx, lz), pick='i.act is TaskChopWood')}")
+        check(cond=eventually(lambda: awake(port) and left(H) == "0", timeout=120), label=f"les trois rondins sont tailles, chez l'host (reste {left(H)})")
+        check(cond=eventually(lambda: left(port) == "0", timeout=10), label=f"et chez l'invite (reste {left(port)})")
+        check(cond=eventually(idle, timeout=10), label="l'invite est libre apres le dernier rondin")
+        # ce qu'il a ramasse est a lui dans les deux jeux
+        ev(port, f'foreach (var t in EClass._map.things.Where(t => (t.id == "log" || t.id == "plank") && t.pos.Distance(EClass.pc.pos) <= 2).ToList()) EClass.pc.Pick(t); "ok"')
+        check(cond=eventually(lambda: wood(port) == wood(H) and wood(H) > 0, timeout=15),
+              label=f"rondins et planches dans le sac de l'invite : {wood(port)} chez lui, {wood(H)} chez l'host")
+        time.sleep(2)
+        bad = journal(t0, "no matching act")
+        check(f"aucun « no matching act » dans le journal ({len(bad)})", not bad)
+    finally:
+        ev(port, 'EClass.pc.SetNoGoal(); "ok"')
+        time.sleep(1)
+        ev(H, f'var t = EClass._map.things.Find(m => m.uid == {logs}); if (t != null) t.Destroy(); '
+              f'var c = {chara(H, uid)}; foreach (var k in c.things.Where(t => t.id == "plank" || t.id == "log" || t.id == "{axe}").ToList()) k.Destroy(); "ok"')
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--only")
@@ -1224,9 +1351,9 @@ def main():
 
     ctx = {"a": (A, state(A)["pc"]["uid"]), "h": (H, state(H)["pc"]["uid"])}
     # G8 en dernier : l'invite y quitte la carte
-    steps = [g5, g3, g2, g11, g1, g4, g6, g7, g9, g10, g12, g14, g15, g16, g19, g21, g23, g24, g25, g30, g31, g32, g33, g34, g35, g36, g37, g38, g39, g8]
+    steps = [g5, g3, g2, g11, g1, g4, g6, g7, g9, g10, g12, g14, g15, g16, g19, g21, g23, g24, g25, g30, g31, g32, g33, g34, g35, g36, g37, g38, g39, g40, g41, g8]
     if a.only:
-        steps = [s for s in (g1, g2, g3, g4, g5, g6, g7, g9, g10, g11, g12, g14, g15, g16, g19, g21, g23, g24, g25, g30, g31, g32, g33, g34, g35, g36, g37, g38, g39, g8)
+        steps = [s for s in (g1, g2, g3, g4, g5, g6, g7, g9, g10, g11, g12, g14, g15, g16, g19, g21, g23, g24, g25, g30, g31, g32, g33, g34, g35, g36, g37, g38, g39, g40, g41, g8)
                  if s.__name__ in a.only.split(",")]
     for step in steps:
         log(f"--- {step.__name__.upper()} : {step.__doc__}")

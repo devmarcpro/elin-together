@@ -46,6 +46,13 @@ internal static class CharaActPerformEvent
         // clients only propagate self
         if (connection.IsHost || Act.CC.IsPC) {
             var delta = CharaActPerformDelta.Create(__instance);
+
+            // a blow struck inside another act (ActMeleeParry, ActMeleeCounter, each hit of a flurry) has no id to be
+            // made again from: the replay of the act around it strikes its own, the damage comes as CardDamageHpDelta
+            if (delta.ActId == 0 && delta.Tool is null) {
+                return;
+            }
+
             connection.Delta.AddRemote(delta);
             EmpLog.Debug("Act {ActId} by chara {OwnerUid} at {@Pos}, target {TargetUid}",
                 delta.ActId, delta.Owner.Uid, delta.Pos, delta.TargetCard?.Uid);

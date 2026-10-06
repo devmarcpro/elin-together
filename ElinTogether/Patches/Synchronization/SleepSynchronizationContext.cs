@@ -881,7 +881,8 @@ internal class SleepSynchronizationContext : SynchronizationContext
             return false;
         }
 
-        return session.Connection is not ElinNetHost || session.CurrentPlayers.Count < 2;
+        // (a player elsewhere is still a player: counting those on our map let the game load every base under the host)
+        return session.Connection is not ElinNetHost host || !host.IsConnected;
     }
 
     /// <summary>

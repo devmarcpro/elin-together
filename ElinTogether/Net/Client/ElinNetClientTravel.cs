@@ -430,7 +430,16 @@ internal partial class ElinNetClient
 
         if ((!visiting && !withHost) || _rejoining) {
             // gone meanwhile, the host drops that lease when we rejoin
-            EmpLog.Warning("Handed zone {ZoneUid} while not in it", grant.ZoneUid);
+            EmpLog.Warning("Handed zone {ZoneUid} while not in it (here {Here}, away {Away}, rejoining {Rejoining})",
+                grant.ZoneUid, _zone?.uid, Session.AwayZone?.uid, _rejoining);
+
+            // not away and not on our way back: we still follow the host (that map was not on our screen yet),
+            // but the host took our character off its map with this message and answers nothing we do from
+            // here. Back to it the way a player away comes back: it drops that lease and puts us on its map
+            if (!Session.IsAway && !_rejoining && core.IsGameStarted) {
+                SendRejoin();
+            }
+
             return;
         }
 
@@ -537,6 +546,13 @@ internal partial class ElinNetClient
         if (ours.SequenceEqual(theirs)) {
             EmpLog.Information("Taking over {ZoneFullName} from {From}: our copy is the same, kept ({Sums})",
                 zone.ZoneFullName, from, ZoneLeaseState.TellSums(ours));
+            return false;
+        }
+
+        if (ZoneLeaseState.SameFloor(ours, theirs)) {
+            // only what the things on the floor hold: told, not a reason to load the map under the player
+            EmpLog.Information("Taking over {ZoneFullName} from {From}: the content of a container differs, our copy is kept (here {Local} | there {Host})",
+                zone.ZoneFullName, from, ZoneLeaseState.TellSums(ours), ZoneLeaseState.TellSums(theirs));
             return false;
         }
 
@@ -769,6 +785,14 @@ internal partial class ElinNetClient
         }
 
         if (Session.AwayZone?.uid != zoneUid || _pendingTravel is not null) {
+            return;
+        }
+
+        // the world map is never recalled: everyone walks its own copy (ElinNetHost.CanEnterNow), the host
+        // stepping on its own is no reason to drop ours and load the whole world again, each time it leaves a
+        // town. We keep walking where we are; to travel with the host, a player joins it from a map
+        if (Session.AwayZone.IsRegion) {
+            EmpLog.Debug("Host walks the world map too, we stay on our copy");
             return;
         }
 

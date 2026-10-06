@@ -55,6 +55,7 @@ REQUEST_LINE = "Received zone state request from player"
 ASK_LINE = "Asking for the bag of {Uid} again"
 ANSWER_LINE = "asks for the bag of {Uid} again"
 BAG_LINE = "Bag of {Uid} brought to its keeper's copy"
+BAG_DIFF_LINE = "holds another bag of {Uid} on {ZoneFullName}"
 OWN = ('HarmonyLib.AccessTools.Field(HarmonyLib.AccessTools.TypeByName("ElinTogether.Net.NetDesync"), "RepairOwnBag")'
        '.SetValue(null, {0}); return "ok";')
 
@@ -314,9 +315,12 @@ def r5(ctx):
                  one not in mine and mine.get(pile, ("", 0))[1] == 2 and ghost in mine and ghost not in reference and one in reference):
         return
     time.sleep(14)
-    warned = [d for d in lines(t0, GUEST_LINE) if "bags of" in str(d.get("Detail"))]
-    check(f"R5 sous-option eteinte : avertissement de sac ({len(warned)}), aucune demande, le sac de l'invite n'a pas bouge",
-          bool(warned) and not said(t0, ASK_LINE, a) and bag(A, a) == mine)
+    # depuis le journal du 6 octobre : un sac qui differe n'avertit plus, l'host nomme les cartes (une fois par 5 min)
+    named = [d for d in lines(t0, BAG_DIFF_LINE) if int(d.get("Uid", 0)) == a]
+    quiet = not [d for d in lines(t0, GUEST_LINE)]
+    check(f"R5 sous-option eteinte : pas d'avertissement, l'host nomme l'ecart ({[d.get('Diff') for d in named]}), "
+          "aucune demande, le sac de l'invite n'a pas bouge",
+          bool(named) and str(ghost) in str(named[0].get("Diff")) and quiet and not said(t0, ASK_LINE, a) and bag(A, a) == mine)
     ev(A, OWN.format("true"))
     try:
         idle(A)

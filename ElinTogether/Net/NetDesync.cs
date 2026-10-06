@@ -36,6 +36,15 @@ public class MapSums
     /// </summary>
     [Key(5)]
     public Dictionary<int, int>? Bags { get; init; }
+
+    /// <summary>
+    ///     Among <see cref="Charas" />, those that are not global: the only ones a copy of the map carries
+    /// </summary>
+    [Key(6)]
+    public int Locals { get; init; }
+
+    [Key(7)]
+    public int LocalMix { get; init; }
 }
 
 /// <summary>
@@ -54,18 +63,41 @@ public class DesyncReportDelta : ElinDelta
     [Key(2)]
     public bool Resync { get; init; }
 
+    /// <summary>
+    ///     What the guest counts, for the keeper's journal to name what differs: uids of its characters when they
+    ///     differ, uid and amount of its floor items when they differ, and per player uid, amount and worn (0 or 1)
+    ///     of what that character carries there
+    /// </summary>
+    [Key(3)]
+    public int[]? Charas { get; init; }
+
+    [Key(4)]
+    public int[]? Things { get; init; }
+
+    [Key(5)]
+    public Dictionary<int, int[]>? Bags { get; init; }
+
     protected override void OnApply(ElinNetBase net)
     {
         if (net is not ElinNetHost host) {
             return;
         }
 
-        // text written by another game: cut before it reaches this journal
-        EmpLog.Warning("Player {PeerIndex} reports a map checksum that differs on {ZoneFullName} (there/here): {Detail}, reload {Resync}",
-            OriginPeer, Cut(ZoneFullName), Cut(Detail), Resync);
+        // without detail: bags alone, which are named below and nothing else
+        if (!string.IsNullOrEmpty(Detail)) {
+            // text written by another game: cut before it reaches this journal
+            EmpLog.Warning("Player {PeerIndex} reports a map checksum that differs on {ZoneFullName} (there/here): {Detail}, reload {Resync}",
+                OriginPeer, Cut(ZoneFullName), Cut(Detail), Resync);
+        }
 
         if (Resync) {
             host.KeepSpotForResync(OriginPeer);
+        }
+
+        try {
+            NetDesync.Explain(host, this, Cut(ZoneFullName));
+        } catch (Exception ex) {
+            EmpLog.Debug(ex, "Map checksum not explained");
         }
     }
 
@@ -81,7 +113,10 @@ public class DesyncReportDelta : ElinDelta
 ///     (<see cref="SessionPlayersSnapshot" />), the others compare with theirs. A difference only counts when both
 ///     sides stood still on it for 3 comparisons in a row: what is on its way (a move, a pickup) changes the numbers
 ///     of one side between two comparisons. Then a warning in both journals, and with the host rule AutoResync the
-///     map is asked again, or the one character whose bag differs (<see cref="CharaBagDelta" />) <br />
+///     map is asked again when a copy of the map can bring what is missing (floor items, characters that are not
+///     global). Bags are compared but neither warn nor reload: the copy a game keeps of ANOTHER player's bag is
+///     not held equal by the mod (dev/PLAN_journal_desync_6_octobre.md); the keeper's journal names the cards
+///     that differ, at most once per <see cref="BagTellGap" /> seconds and per bag <br />
 ///     Left out on purpose: where characters stand (the snapshot allows 2 tiles), where items lie (what is thrown
 ///     or scattered lands by the dice of each game), dead characters, cards waiting for their number
 ///     (<see cref="PendingUid" />), ability tokens, what chests hold, the world map
@@ -139,6 +174,13 @@ internal static class NetDesync
     // an answer older than that is about a bag that had time to change
     private const float BagAnswerWait = 10f;
 
+    // a bag that differs is named in the keeper's journal that often at most
+    private const float BagTellGap = 300f;
+    private static readonly Dictionary<int, float> _nextBagTell = [];
+
+    // lists longer than that are not sent with a report
+    private const int MaxListed = 2000;
+
     private static MapSums? _lastLocal;
     private static MapSums? _lastHost;
     private static string _lastWarning = "none";
@@ -162,16 +204,20 @@ internal static class NetDesync
             }
 
             var bags = new Dictionary<int, int>();
-            int charas = 0, charaMix = 0, things = 0, thingMix = 0;
+            int charas = 0, charaMix = 0, things = 0, thingMix = 0, locals = 0, localMix = 0;
 
             unchecked {
                 foreach (var chara in map.charas) {
-                    if (chara.isDead || !chara.IsInActiveMap || PendingUid.IsPending(chara.uid)) {
+                    if (!Counted(chara)) {
                         continue;
                     }
 
                     charas++;
                     charaMix += Mix(chara.uid, 0, 0, 0);
+                    if (!chara.IsGlobal) {
+                        locals++;
+                        localMix += Mix(chara.uid, 0, 0, 0);
+                    }
 
                     if (players.Contains(chara.uid)) {
                         bags[chara.uid] = Bag(chara);
@@ -198,6 +244,8 @@ internal static class NetDesync
                 Things = things,
                 ThingMix = thingMix,
                 Bags = bags,
+                Locals = locals,
+                LocalMix = localMix,
             };
         } catch (Exception ex) {
             EmpLog.Debug(ex, "Map checksum not computed");
@@ -242,12 +290,14 @@ internal static class NetDesync
             _repairs = _fruitless = 0;
             _gaveUp = false;
             _bagAsksOnMap.Clear();
+            _nextBagTell.Clear();
         }
 
         // a map just loaded: what the host did meanwhile is still on its way
         if (_seenMap is null || !_seenMap.TryGetTarget(out var seen) || !ReferenceEquals(seen, map)) {
             _seenMap = new(map);
-            _quietUntil = now + LoadGrace;
+            // not shorter than the silence a reload asked for
+            _quietUntil = Math.Max(_quietUntil, now + LoadGrace);
         }
 
         if (now < _quietUntil) {
@@ -296,21 +346,46 @@ internal static class NetDesync
             _gaveUp = _repairs >= MaxRepairs;
         }
 
-        var warn = _mapStrikes == Strikes || _bagStrikes == Strikes;
+        // a copy of the map brings floor items and the characters that are not global, nothing else: the
+        // characters of the players, their companions and the other global ones live in the world
+        var charasDiffer = local.Charas != host.Charas || local.CharaMix != host.CharaMix;
+        var thingsDiffer = local.Things != host.Things || local.ThingMix != host.ThingMix;
+        var fixable = thingsDiffer || local.Locals != host.Locals || local.LocalMix != host.LocalMix;
+
+        // bags never warn and never reload, see the summary
+        var warn = _mapStrikes == Strikes;
         var gaveUp = false;
-        var repair = _mapStrikes >= Strikes && ShouldRepair(session, client, now, out gaveUp);
+        var repair = _mapStrikes >= Strikes && fixable && ShouldRepair(session, client, now, out gaveUp);
+
+        Dictionary<int, int[]>? tellBags = null;
+        if (bags is not null && _bagStrikes == Strikes) {
+            foreach (var uid in bags) {
+                if ((_nextBagTell.TryGetValue(uid, out var next) && now < next) ||
+                    map.charas.Find(c => c.uid == uid) is not { } carrier) {
+                    continue;
+                }
+
+                _nextBagTell[uid] = now + BagTellGap;
+                (tellBags ??= [])[uid] = BagList(carrier);
+            }
+        }
 
         // not while the map is asked again: the answer would land in the middle of its load
         if (RepairBags && !repair && bags is not null && _bagStrikes >= Strikes) {
             AskBags(session, client, now, local, host, bags);
         }
 
-        if (!warn && !repair && !gaveUp) {
+        if (!warn && !repair && !gaveUp && tellBags is null) {
             return;
         }
 
         var zoneName = EClass._zone.ZoneFullName;
-        var detail = Detail(local, host, _mapStrikes >= Strikes, _bagStrikes >= Strikes ? bags : null);
+        var detail = warn || repair || gaveUp ? Detail(local, host) : null;
+
+        if (tellBags is not null) {
+            EmpLog.Information("Bags of {Uids} differ from their keeper's on {ZoneFullName}: named in its journal, left as they are",
+                string.Join(",", tellBags.Keys), zoneName);
+        }
 
         if (warn) {
             _lastWarning = $"{DateTime.Now:HH:mm:ss} {zoneName}: {detail}";
@@ -341,6 +416,9 @@ internal static class NetDesync
                     ZoneFullName = zoneName,
                     Detail = detail,
                     Resync = repair,
+                    Charas = warn && charasDiffer ? CharaList(map) : null,
+                    Things = warn && thingsDiffer ? ThingList(map) : null,
+                    Bags = tellBags,
                 },
             ],
         });
@@ -475,24 +553,169 @@ internal static class NetDesync
         return false;
     }
 
-    private static string Detail(MapSums local, MapSums host, bool mapDiffers, List<int>? bags)
+    private static string Detail(MapSums local, MapSums host)
     {
         var parts = new List<string>();
 
-        if (mapDiffers && (local.Charas != host.Charas || local.CharaMix != host.CharaMix)) {
-            parts.Add($"charas {local.Charas}/{host.Charas}" + (local.Charas == host.Charas ? " (not the same ones)" : ""));
+        if (local.Charas != host.Charas || local.CharaMix != host.CharaMix) {
+            parts.Add($"charas {local.Charas}/{host.Charas}" + (local.Charas == host.Charas ? " (not the same ones)" : "") +
+                      $" of which not global {local.Locals}/{host.Locals}");
         }
 
-        if (mapDiffers && (local.Things != host.Things || local.ThingMix != host.ThingMix)) {
+        if (local.Things != host.Things || local.ThingMix != host.ThingMix) {
             parts.Add($"things {local.Things}/{host.Things}" +
                       (local.Things == host.Things ? " (not the same ones or amounts)" : ""));
         }
 
-        if (bags is not null) {
-            parts.Add($"bags of {string.Join(",", bags)}");
+        return string.Join(", ", parts);
+    }
+
+    private static bool Counted(Chara chara)
+    {
+        return !chara.isDead && chara.IsInActiveMap && !PendingUid.IsPending(chara.uid);
+    }
+
+    private static int[]? CharaList(Map map)
+    {
+        var list = new List<int>();
+        foreach (var chara in map.charas) {
+            if (Counted(chara)) {
+                list.Add(chara.uid);
+            }
         }
 
-        return string.Join(", ", parts);
+        return list.Count > MaxListed ? null : list.ToArray();
+    }
+
+    private static int[]? ThingList(Map map)
+    {
+        var list = new List<int>();
+        foreach (var thing in map.things) {
+            if (!Skipped(thing)) {
+                list.Add(thing.uid);
+                list.Add(thing.Num);
+            }
+        }
+
+        return list.Count > MaxListed * 2 ? null : list.ToArray();
+    }
+
+    private static int[] BagList(Chara chara)
+    {
+        var list = new List<int>();
+        foreach (var thing in chara.things.Flatten()) {
+            if (!Skipped(thing) && list.Count < MaxListed * 3) {
+                list.Add(thing.uid);
+                list.Add(thing.Num);
+                list.Add(thing.c_equippedSlot != 0 ? 1 : 0);
+            }
+        }
+
+        return list.ToArray();
+    }
+
+    /// <summary>
+    ///     Keeper side: a guest sent what it counts, this journal names what differs. Only numbers come from the
+    ///     guest, the names are ours. With the rule AutoResync a character the guest lacks is sent to everyone
+    ///     again (<see cref="CardGenDelta" />, without effect where it is known): the positions sent 5 times a
+    ///     second put a known character back on a map, an unknown one never
+    /// </summary>
+    internal static void Explain(ElinNetHost host, DesyncReportDelta report, string? zoneName)
+    {
+        if (EClass._map is not { } map) {
+            return;
+        }
+
+        if (report.Charas is { } theirCharas) {
+            var there = new HashSet<int>(theirCharas);
+            var missing = new List<string>();
+            var resent = 0;
+            foreach (var chara in map.charas) {
+                if (!Counted(chara) || there.Remove(chara.uid)) {
+                    continue;
+                }
+
+                missing.Add($"{chara.uid} {chara.id}{(chara.IsGlobal ? " global" : "")}{(chara.IsPlayer ? " player" : "")}");
+                // only the card this game already tells the others about: caching another one renumbers it
+                if (NetSession.Instance.Rules.AutoResync && resent < 8 && CardCache.Contains(chara)) {
+                    resent++;
+                    host.Delta.AddRemote(CardGenDelta.Create(chara));
+                }
+            }
+
+            var extra = new List<string>();
+            foreach (var uid in there) {
+                extra.Add(CardCache.Find(uid) is Chara known
+                    ? $"{uid} {known.id} ({(known.isDead ? "dead here" : known.currentZone == EClass._zone ? "here but not counted" : "off this map here")})"
+                    : $"{uid} (unknown here)");
+            }
+
+            EmpLog.Information("Player {PeerIndex} on {ZoneFullName}: characters it lacks [{Missing}], characters only it has [{Extra}], sent again {Resent}",
+                report.OriginPeer, zoneName, Some(missing), Some(extra), resent);
+        }
+
+        if (report.Things is { } theirThings) {
+            var here = new Dictionary<int, Thing>();
+            foreach (var thing in map.things) {
+                if (!Skipped(thing)) {
+                    here[thing.uid] = thing;
+                }
+            }
+
+            EmpLog.Information("Player {PeerIndex} on {ZoneFullName}: floor items differ (- it lacks, + only it has, amount there/here) [{Diff}]",
+                report.OriginPeer, zoneName, Some(Diff(here, theirThings, 2)));
+        }
+
+        foreach (var (uid, theirBag) in report.Bags ?? []) {
+            if (map.charas.Find(c => c.uid == uid) is not { } carrier) {
+                continue;
+            }
+
+            var here = new Dictionary<int, Thing>();
+            foreach (var thing in carrier.things.Flatten()) {
+                if (!Skipped(thing)) {
+                    here[thing.uid] = thing;
+                }
+            }
+
+            EmpLog.Information("Player {PeerIndex} holds another bag of {Uid} on {ZoneFullName}, left as it is (- it lacks, + only it has, amount there/here) [{Diff}]",
+                report.OriginPeer, uid, zoneName, Some(Diff(here, theirBag, 3)));
+        }
+    }
+
+    // theirs: uid, amount (and worn) of each card, in groups of step
+    private static List<string> Diff(Dictionary<int, Thing> here, int[] theirs, int step)
+    {
+        var diff = new List<string>();
+        var seen = new HashSet<int>();
+        for (var i = 0; i + step <= theirs.Length; i += step) {
+            var uid = theirs[i];
+            seen.Add(uid);
+            if (!here.TryGetValue(uid, out var ours)) {
+                diff.Add(CardCache.Find(uid) is Thing known
+                    ? $"+{uid} {known.id} ({(known.isDestroyed ? "destroyed here" : known.GetRootCard() is Chara holder ? $"carried by {holder.uid} here" : "elsewhere here")})"
+                    : $"+{uid} (unknown here)");
+            } else if (ours.Num != theirs[i + 1]) {
+                diff.Add($"{uid} {ours.id} {theirs[i + 1]}/{ours.Num}");
+            } else if (step > 2 && ours.c_equippedSlot != 0 != (theirs[i + 2] != 0)) {
+                diff.Add($"{uid} {ours.id} worn {theirs[i + 2] != 0}/{ours.c_equippedSlot != 0}");
+            }
+        }
+
+        foreach (var (uid, ours) in here) {
+            if (!seen.Contains(uid)) {
+                diff.Add($"-{uid} {ours.id} x{ours.Num}");
+            }
+        }
+
+        return diff;
+    }
+
+    private static string Some(List<string> entries)
+    {
+        return entries.Count <= 12
+            ? string.Join(", ", entries)
+            : string.Join(", ", entries.GetRange(0, 12)) + $" and {entries.Count - 12} more";
     }
 
     internal static bool Skipped(Thing thing)
@@ -554,7 +777,7 @@ internal static class NetDesync
             bags.Add($"{uid}:{mix:X8}");
         }
 
-        return $"zone {sums.ZoneUid} charas {sums.Charas}:{sums.CharaMix:X8} things {sums.Things}:{sums.ThingMix:X8} " +
+        return $"zone {sums.ZoneUid} charas {sums.Charas}:{sums.CharaMix:X8} not global {sums.Locals}:{sums.LocalMix:X8} things {sums.Things}:{sums.ThingMix:X8} " +
                $"bags {string.Join(" ", bags)}";
     }
 }

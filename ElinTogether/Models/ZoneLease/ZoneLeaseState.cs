@@ -83,6 +83,18 @@ internal static class ZoneLeaseState
         return sums;
     }
 
+    /// <summary>
+    ///     What decides a reload when a map changes hands: the things on the floor and the characters. Not what
+    ///     the things hold: nothing keeps the content of a container the same in every game while they play (the
+    ///     map check leaves it out, see NetDesync; a stack changed without Card.ModNum is not told, a thing put
+    ///     in stacks by the rules of each game), so it differs for less than a reload under the player is worth
+    /// </summary>
+    internal static bool SameFloor(int[] ours, int[] theirs)
+    {
+        return ours.Length >= 6 && theirs.Length >= 6 &&
+               ours[0] == theirs[0] && ours[1] == theirs[1] && ours[4] == theirs[4] && ours[5] == theirs[5];
+    }
+
     internal static string TellSums(int[] sums)
     {
         return sums.Length < 6

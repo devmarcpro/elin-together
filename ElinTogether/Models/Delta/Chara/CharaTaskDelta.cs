@@ -1,4 +1,5 @@
 using ElinTogether.Elements;
+using ElinTogether.Helper;
 using ElinTogether.Net;
 using ElinTogether.Patches;
 using MessagePack;
@@ -61,9 +62,25 @@ public class CharaTaskDelta : ElinDelta
             remote.SetOwner(chara);
         }
 
+        // the tool the player holds is not put in this copy's hand while a task runs (CharaSwitchHeldDelta), and a
+        // task this game does not stand for (walking: FakeTask, a NoGoal) "runs" until the next one: a tool changed
+        // on the way stayed the old one here, and the task that needs it ended as it started (Card.Tool is chara.held)
+        if (act is not null &&
+            chara.NetProfile.RemoteMainHand.TryGetTarget(out var mainHand) &&
+            chara.NetProfile.RemoteOffHand.TryGetTarget(out var offHand) &&
+            mainHand == offHand && chara.held != mainHand && mainHand.GetRootCard() == chara) {
+            chara.HoldCard(mainHand);
+        }
+
         // now assign new task or reset
         using (Simulate(net.IsHost && RemoteCraft.IsHostRun(act))) {
             remote.InsertAction(act);
+        }
+
+        if (net.IsHost && act is not null && act.status != AIAct.Status.Running) {
+            // what a later "has no matching act" is about
+            EmpLog.Debug("Task {ActType} of chara {Uid} was over as soon as started here, tool {ToolUid}",
+                act.GetType().Name, Owner.Uid, chara.held?.uid ?? 0);
         }
     }
 }

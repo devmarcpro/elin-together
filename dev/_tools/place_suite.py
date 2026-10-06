@@ -9,6 +9,13 @@ P3  l'host est a Vernis ; A sort de la Prairie par le bord puis entre a Vernis :
     (la ou le jeu le met en solo), pas sur l'host
 P4  l'host marche sur la carte du monde ; A sort de Vernis par le bord : il arrive sur la case de Vernis,
     une case ou un joueur peut se tenir, pas sur l'host
+P5  (journal reel du 2026-10-06, jamais lance) A part seul a Vernis, l'host change de carte, A revient chez
+    l'host : sur une case de la carte de l'host, des deux cotes ; pas d'exception dans le journal (scan final)
+P6  (idem) l'host se reveille sur la carte du monde pendant que A tient la Prairie : il reste sur la carte du
+    monde, A n'est pas rappele, puis A le rejoint sur une case valide. ROUGE tant que la correction notee dans
+    dev/PLAN_journal_reel_placement.md n'est pas faite
+P7  (idem) A seul sur la carte du monde, l'host sort de la Prairie et y rentre trois fois : A n'est ni
+    recharge ni deplace
 
 Ce que le banc ne joue pas comme un joueur :
 - l'host change de carte par `pc.MoveZone(zone)` (P1, P2, debut de P3), pas par une sortie a pied ;
@@ -170,6 +177,103 @@ def p4(ctx):
     shot("p4-A", A)
 
 
+def on_tile(port, uid):
+    """Le personnage `uid` est une seule fois sur la carte active de `port`, sur une case de cette carte, et dans
+    la liste de cette case (un personnage a moitie pose est dans la liste de la carte et sur aucune case)."""
+    return ev(port, f'var l = EClass._map.charas.Where(x => x.uid == {uid}).ToList(); '
+                    '(l.Count == 1 && l[0].pos.IsValid && l[0].pos.IsInBounds && l[0].pos.detail != null && '
+                    'l[0].pos.detail.charas.Contains(l[0])).ToString()') == "True"
+
+
+def game_id(port):
+    """Change quand le jeu de `port` recharge le monde (retour chez l'host : OnSaveDataProbe refait core.game)."""
+    return ev(port, 'System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(EClass.game).ToString()')
+
+
+def host_on_own_map(port):
+    return ev(port, '(EClass.pc.currentZone == EClass._zone && !EClass.player.simulatingZone && '
+                    'EClass.pc.pos.IsValid && EClass.pc.pos.IsInBounds).ToString()') == "True"
+
+
+def p5(ctx):
+    """Journal reel du 2026-10-06, defaut 1 (garde-fou) : A part seul sur une autre carte, l'host change de carte,
+    A revient chez l'host : il est sur une case de la carte de l'host, des deux cotes."""
+    back_home()
+    ctx["a"] = state(A)["pc"]["uid"]
+    region = region_uid(A)
+    ev(A, 'EClass.player.ExitBorder(); "ok"')
+    wait(client_settled(A, region, True), "A sur la carte du monde", timeout=120)
+    ev(A, ENTER.format(uid=VERNIS))
+    wait(client_settled(A, VERNIS, True), "A seul a Vernis", timeout=180)
+    step_away(A, 12, 9)
+    ev(H, 'EClass.player.ExitBorder(); "ok"')
+    wait(lambda: zone_uid(H) == region, "host sur la carte du monde", timeout=180)
+    step_away(H, 5, 0)
+    ev(A, 'EClass.player.ExitBorder(); "ok"')
+    both_joined(H, A, region)
+    time.sleep(3)
+    mine, seen = pc_pos(A), seen_at(H, ctx["a"])
+    check(f"A revient : sur une case de la carte de l'host, chez lui ({mine}) et chez l'host ({seen})",
+          on_tile(A, ctx["a"]) and on_tile(H, ctx["a"]))
+    check(f"A revient : meme case des deux cotes ({mine} / {seen})", mine == seen)
+    shot("p5-A", A)
+
+
+def p6(ctx):
+    """Journal reel, defaut 1 (cause) : tous les invites sont ailleurs, l'host se reveille sur la carte du monde
+    et le jeu lui fait faire le tour de ses bases (Player.SimulateFaction) ; la Prairie est tenue par A.
+    Raccourci du banc : pas de nuit, la fonction du reveil est appelee directement, avec du retard pose a la main
+    sur la Prairie (sans retard le jeu saute la base).
+    ROUGE tant que la correction notee dans dev/PLAN_journal_reel_placement.md (SleepSynchronizationContext,
+    OnSimulateFaction) n'est pas faite : l'host regarde la Prairie sans y etre."""
+    back_home()
+    ctx["a"] = state(A)["pc"]["uid"]
+    host = state(H)["pc"]["uid"]
+    region = region_uid(H)
+    spot = step_away(A, 9, 4)
+    ev(H, 'EClass.player.ExitBorder(); "ok"')
+    wait(lambda: zone_uid(H) == region, "host sur la carte du monde", timeout=180)
+    wait(client_settled(A, HOME, True), "A garde la Prairie", timeout=30)
+    ev(H, f'EClass.game.spatials.Find({HOME}).pendingSimHours = 5; EClass.player.SimulateFaction(); "ok"')
+    time.sleep(8)
+    check(f"reveil de l'host : il est toujours sur la carte du monde (zone {zone_uid(H)}, attendu {region})",
+          zone_uid(H) == region)
+    check("reveil de l'host : son personnage est sur la carte qu'il regarde, sur une case de cette carte",
+          host_on_own_map(H) and on_tile(H, host))
+    check(f"A n'a pas ete rappele : il tient la Prairie, sur sa case ({spot} -> {pc_pos(A)})",
+          client_settled(A, HOME, True)() and pc_pos(A) == spot)
+    ev(A, 'EClass.player.ExitBorder(); "ok"')
+    both_joined(H, A, region)
+    time.sleep(3)
+    check(f"A rejoint l'host : sur une case de sa carte, des deux cotes ({pc_pos(A)} / {seen_at(H, ctx['a'])})",
+          on_tile(A, ctx["a"]) and on_tile(H, ctx["a"]) and pc_pos(A) == seen_at(H, ctx["a"]))
+
+
+def p7(ctx):
+    """Journal reel, defaut 2 : A marche seul sur sa copie de la carte du monde ; l'host sort de la Prairie et y
+    rentre trois fois : A n'est ni recharge ni deplace (avant : rappele a chaque sortie de l'host).
+    Raccourci du banc : l'host rentre par `player.EnterLocalZone(case de la Prairie)`."""
+    back_home()
+    region = region_uid(A)
+    ev(A, 'EClass.player.ExitBorder(); "ok"')
+    wait(client_settled(A, region, True), "A seul sur la carte du monde", timeout=120)
+    time.sleep(3)
+    spot, game = pc_pos(A), game_id(A)
+    for i in (1, 2, 3):
+        ev(H, 'EClass.player.ExitBorder(); "ok"')
+        wait(lambda: zone_uid(H) == region, "host sur la carte du monde", timeout=180)
+        time.sleep(6)
+        check(f"passage {i}, l'host est sur la carte du monde : A est toujours seul sur la sienne, meme case "
+              f"({spot} -> {pc_pos(A)}), monde non recharge",
+              client_settled(A, region, True)() and pc_pos(A) == spot and game_id(A) == game)
+        ev(H, ENTER.format(uid=HOME))
+        wait(lambda: zone_uid(H) == HOME, "host a la Prairie", timeout=240)
+        time.sleep(4)
+        check(f"passage {i}, l'host est rentre : A n'a pas bouge ({pc_pos(A)}), monde non recharge",
+              client_settled(A, region, True)() and pc_pos(A) == spot and game_id(A) == game)
+    shot("p7-A", A)
+
+
 def back_home():
     """Tout le monde a la Prairie, pour pouvoir relancer."""
     if zone_uid(H) != HOME:
@@ -194,7 +298,7 @@ def main():
     t0 = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
 
     ctx = {}
-    steps = [p1, p2, p3, p4]
+    steps = [p1, p2, p3, p4, p5, p6, p7]
     if a.only:
         steps = [s for s in steps if s.__name__ in a.only.split(",")]
     for step in steps:
