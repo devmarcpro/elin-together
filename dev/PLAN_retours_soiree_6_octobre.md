@@ -62,3 +62,12 @@ sur la nouvelle version. Rien n'est « fait » avant d'être vert ET commité. �
   (niveau de danger de la zone, niveau ou renommée du personnage « joueur » = celui de l'host aujourd'hui ?) ; les
   invasions et événements de la base ; une case côté host. Choix de conception (le plus bas, la moyenne, celui qui est
   présent) : la demande dit « le plus bas des joueurs connectés ».
+- (7 octobre, 0h40, version 0.26.532) « un bug qui arrive des fois avec certains arrivés : ne pas pouvoir prendre un
+  item en faisant clic gauche ». Mots exacts du joueur, sens à confirmer : « certains arrivés » = certains joueurs qui
+  viennent d'arriver (de rejoindre) ? ou certains objets arrivés ? À demander : qui (un invité qui vient de rejoindre ?),
+  quel objet (au sol, dans un coffre, dans un sac), ce que fait le clic (rien, un message, l'objet revient), et si un
+  changement de carte ou `emp.reconnect_self` le règle. Pistes dans le code : objet connu d'un seul jeu (D5,
+  `Models/Pending/TaskCache.cs` : « quantité 0 » au seul fautif), ramassage non annoncé quand le sac ne peut pas ranger
+  (`CharaPickThingEvent.WillStore`), demande d'objet refusée (`Rejecting ThingRequest … unresolved or parentless`, vu
+  une fois dans le journal de LemiWinks du 6 octobre), objet à numéro provisoire, glisser en attente de l'host.
+  Chercher dans les journaux : `Rejecting ThingRequest`, `Refusing stale`, `cannot be resolved here`, `failed to store`.
