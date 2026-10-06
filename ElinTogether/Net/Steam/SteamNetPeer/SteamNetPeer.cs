@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Threading;
+using ElinTogether.Common;
 using HeathenEngineering.SteamworksIntegration;
 using HeathenEngineering.SteamworksIntegration.API;
 using Steamworks;
@@ -107,7 +108,7 @@ internal class SteamNetPeer : ISteamNetPeer, IDisposable
         var size = bytes.Length;
 
         lock (ArenaLock) {
-            if (Arena == IntPtr.Zero) {
+            if (Arena == IntPtr.Zero || BrokenReason is not null) {
                 return false;
             }
 
@@ -129,7 +130,8 @@ internal class SteamNetPeer : ISteamNetPeer, IDisposable
             }
 
             if (_backlogBytes + size > NetFragments.MaxMessageSize) {
-                EmpLog.Warning("Message of {Size} bytes not sent: {Waiting} bytes already wait", size, _backlogBytes);
+                // a reliable message refused is a hole for this peer for good
+                Break($"message of {size} bytes not sent, {_backlogBytes} bytes already wait");
                 return false;
             }
 
@@ -169,7 +171,7 @@ internal class SteamNetPeer : ISteamNetPeer, IDisposable
     /// </summary>
     internal void Flush()
     {
-        if (NetShutdown.IsQuitting) {
+        if (NetShutdown.IsQuitting || BrokenReason is not null) {
             return;
         }
 
@@ -190,11 +192,8 @@ internal class SteamNetPeer : ISteamNetPeer, IDisposable
                 }
 
                 if (result != EResult.k_EResultOK) {
-                    // the connection is gone, a message with a hole in it is of no use to the other side
-                    EmpLog.Warning("{Waiting} bytes not sent: {Result}", _backlogBytes, result);
-                    _backlog.Clear();
-                    _backlogBytes = 0;
-                    _stalled = false;
+                    // a message with a hole in it is of no use to the other side
+                    Break($"{_backlogBytes} bytes not sent: {result}");
                     return;
                 }
 
@@ -207,6 +206,23 @@ internal class SteamNetPeer : ISteamNetPeer, IDisposable
                 EmpLog.Debug("Send queue of {@Peer} caught up", this);
             }
         }
+    }
+
+    /// <summary>
+    ///     Set once a reliable message was lost for this peer: its stream has a hole, so the connection must be
+    ///     closed (<see cref="SteamNetManager.Poll" /> does) and the guest joins again, see NetReconnect
+    /// </summary>
+    internal string? BrokenReason { get; private set; }
+
+    // under ArenaLock
+    private void Break(string what)
+    {
+        EmpLog.Warning("Connection of {@Peer} will be closed: {What}", this, what);
+
+        BrokenReason = EmpDisconnectInfo.RemoteClosed;
+        _backlog.Clear();
+        _backlogBytes = 0;
+        _stalled = false;
     }
 
     // under ArenaLock

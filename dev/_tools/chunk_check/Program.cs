@@ -182,6 +182,21 @@ foreach (var size in new[] { piece + 1, 2 * piece - 1, 2 * piece, 2 * piece + 1,
     Check("not a piece at all", Throws(() => assembler.Add(new byte[40])) && !NetFragments.IsFragment(new byte[3]));
 }
 
+// a first piece that claims the biggest message holds its own bytes, not 64 MB
+{
+    var header = NetFragments.Split(new byte[2], 1, 1)[0];
+    BitConverter.GetBytes(2).CopyTo(header, 12);
+    BitConverter.GetBytes(NetFragments.MaxMessageSize).CopyTo(header, 16);
+
+    var assembler = new NetFragmentAssembler();
+    var before = GC.GetTotalMemory(true);
+    var accepted = assembler.Add(header) is null && assembler.IsPending;
+    var after = GC.GetTotalMemory(true);
+    GC.KeepAlive(assembler);
+
+    Check("a first piece claiming 64 MB reserves nothing", accepted && after - before < 1_000_000);
+}
+
 // the biggest message accepted
 {
     var message = Message(NetFragments.MaxMessageSize);

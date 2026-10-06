@@ -27,6 +27,12 @@ public class SleepReadyDelta : ElinDelta
     [Key(4)]
     public string? Name { get; init; }
 
+    /// <summary>
+    ///     Only the count, nothing said: a player who comes in while others sleep learns how many do
+    /// </summary>
+    [Key(5)]
+    public bool Quiet { get; init; }
+
     protected override void OnApply(ElinNetBase net)
     {
         // host -> client broadcast only
@@ -35,7 +41,9 @@ public class SleepReadyDelta : ElinDelta
         }
 
         SleepSynchronizationContext.Sleepers = ReadyCount;
-        Play();
+        if (!Quiet) {
+            Play();
+        }
     }
 
     public void Play()

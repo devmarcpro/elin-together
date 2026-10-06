@@ -61,4 +61,11 @@ public class ZoneLeaseGrant
     /// </summary>
     [Key(8)]
     public int QuestUidRangeStart { get; init; }
+
+    /// <summary>
+    ///     The host leaves us the map we stand on (<see cref="Handoff" />): the numbers of its copy, sent along in
+    ///     <see cref="Map" />. Ours is only loaded again when its numbers differ, see <see cref="ZoneLeaseState.Sums" />
+    /// </summary>
+    [Key(9)]
+    public int[]? MapSums { get; set; } = null;
 }

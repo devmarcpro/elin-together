@@ -441,15 +441,22 @@ internal partial class ElinNetClient
         // everyone else leaves this copy of the map: the players (with the host), their companions,
         // those staying join us again with theirs. Listed while the party and the player list still stand
         var players = Session.CurrentPlayers.Where(p => p is not null).Select(p => p.CharaUid).ToHashSet();
-        var leaving = _map.charas
+        List<Chara> Leaving() => _map.charas
             .Where(c => c != pc && (players.Contains(c.uid) || c.GetBool("remote_chara") ||
                                     (c.party is not null && c.party == pc.party && !c.IsCompanionOf(pc)) ||
                                     (c.CompanionOwnerUid != 0 && c.CompanionOwnerUid != pc.uid)))
             .ToList();
+        var leaving = Leaving();
 
         if (withHost) {
             // the results of our last actions on the host map arrived right before this packet
             WorldStateDeltaProcess();
+
+            // while still a client of the host: its map is loaded as any map it sends
+            if (AdoptHostCopy(zone, grant)) {
+                leaving = Leaving();
+            }
+
             EnterAway(zone);
         } else {
             // still open if the owner has not closed it yet
@@ -489,6 +496,56 @@ internal partial class ElinNetClient
         EmpLog.Information("Took over zone {ZoneFullName}, uid range from {UidRangeStart}, from the host {WithHost}",
             zone.ZoneFullName, grant.UidRangeStart, withHost);
         EmpPop.Information("emp_travel_handoff".lang());
+    }
+
+    /// <summary>
+    ///     The host leaves us the map we stand on: its copy is the reference, not what stands on our screen (one
+    ///     message missed earlier would become true for everyone: the others load our copy, and so does the host
+    ///     when it comes back). Same numbers: nothing to do. Otherwise its copy is loaded under our feet
+    /// </summary>
+    /// <returns>true when the map was loaded again</returns>
+    private bool AdoptHostCopy(Zone zone, ZoneLeaseGrant grant)
+    {
+        if (grant.Map is null || grant.MapSums is not { } theirs) {
+            return false;
+        }
+
+        var ours = ZoneLeaseState.Sums(_map);
+        if (ours.SequenceEqual(theirs)) {
+            EmpLog.Information("Taking over {ZoneFullName} from the host: our copy is the same, kept ({Sums})",
+                zone.ZoneFullName, ZoneLeaseState.TellSums(ours));
+            return false;
+        }
+
+        // ponytail: what we did in the last round trip and the host never saw is not in its copy. A thing put
+        // down then is lost, one picked up is there twice. Fix when seen: wait for an ack as a leaving player does
+        EmpLog.Warning("Taking over {ZoneFullName} from the host: our copy differs, replaced by the host's (here {Local} | host {Host})",
+            zone.ZoneFullName, ZoneLeaseState.TellSums(ours), ZoneLeaseState.TellSums(theirs));
+
+        var stood = pc.pos.Copy();
+        var carried = pc.things.Flatten().Select(t => t.uid).ToHashSet();
+
+        // we stay on our tile: the game only moves a character that walks in, see Zone.AddGlobalCharasOnActivate
+        pc.global.transition = null;
+
+        // as OnZoneActivateResponse reloads the active map
+        zone.Deactivate();
+
+        // the game puts the artifacts lying here in our bag on the way out (Zone.Deactivate): they come back
+        // with the host's map
+        foreach (var thing in pc.things.Flatten().Where(t => !carried.Contains(t.uid)).ToList()) {
+            thing.parentCard?.RemoveCard(thing);
+        }
+
+        zone.UnloadMap();
+        ZoneLeaseState.WriteMap(zone, grant.Map);
+        player.MoveZone(zone);
+
+        if (pc.isDead) {
+            PutHimRightEr(stood);
+        }
+
+        return true;
     }
 
     /// <summary>

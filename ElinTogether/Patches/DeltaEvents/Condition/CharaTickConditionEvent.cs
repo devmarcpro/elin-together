@@ -10,8 +10,14 @@ namespace ElinTogether.Patches;
 internal static class CharaTickConditionEvent
 {
     [HarmonyPrefix]
-    internal static bool OnCharaTickConditions(Chara __instance)
+    internal static bool OnCharaTickConditions(Chara __instance, bool __runOriginal)
     {
+        // Harmony runs this prefix even after another one (TravelStepTurnsPatch) skipped the original: nothing is
+        // ticked here then, and nothing is told (or it is told twice)
+        if (!__runOriginal) {
+            return false;
+        }
+
         if (NetSession.Instance.Connection is not { } connection) {
             return true;
         }
@@ -22,9 +28,7 @@ internal static class CharaTickConditionEvent
             return false;
         }
 
-        connection.Delta.AddRemote(new CharaTickConditionDelta {
-            Owner = __instance,
-        });
+        CharaTickConditionDelta.Emit(connection, __instance);
 
         return true;
     }

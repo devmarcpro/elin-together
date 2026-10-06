@@ -21,11 +21,17 @@ public class SleepStateDelta : ElinDelta
     [Key(1)]
     public int Hours { get; init; }
 
+    /// <summary>
+    ///     Its character is dead: a dead player does not take part in the night, it must not hold the others
+    /// </summary>
+    [Key(2)]
+    public bool Dead { get; init; }
+
     protected override void OnApply(ElinNetBase net)
     {
         // away client -> host of the world only
         if (net is ElinNetHost { IsZoneSession: false } host && host.IsAwayPeer(OriginPeer)) {
-            SleepSynchronizationContext.OnAwaySleep(OriginPeer, Asleep, Hours);
+            SleepSynchronizationContext.OnAwaySleep(OriginPeer, Asleep, Hours, Dead);
         }
     }
 }

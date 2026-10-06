@@ -31,11 +31,18 @@ internal static class RemoteTravelRegionPatch
     [HarmonyPatch(typeof(Chara), nameof(Chara._Move))]
     internal static IEnumerable<CodeInstruction> OnRegionTravelIl(IEnumerable<CodeInstruction> instructions)
     {
-        return new CodeMatcher(instructions)
+        var original = instructions.ToList();
+
+        // a game that changed this function must not stop the patches after this one: all or nothing, with a warning
+        var matcher = new CodeMatcher(original)
             .MatchEndForward(
                 new OperandContains(OpCodes.Call, nameof(Chara.currentZone)),
-                new OperandContains(OpCodes.Callvirt, nameof(Spatial.IsRegion)))
-            .EnsureValid("Chara._Move currentZone.IsRegion")
+                new OperandContains(OpCodes.Callvirt, nameof(Spatial.IsRegion)));
+        if (matcher.IsInvalid) {
+            return Unpatched(original, "Chara._Move currentZone.IsRegion");
+        }
+
+        matcher
             .Advance(1)
             .InsertAndAdvance(
                 new CodeInstruction(OpCodes.Ldarg_0),
@@ -63,10 +70,21 @@ internal static class RemoteTravelRegionPatch
                     return false;
                 }))
             .MatchStartForward(
-                new OperandContains(OpCodes.Callvirt, nameof(GameDate.AdvanceMin)))
-            .EnsureValid("Chara._Move date.AdvanceMin")
+                new OperandContains(OpCodes.Callvirt, nameof(GameDate.AdvanceMin)));
+        if (matcher.IsInvalid) {
+            return Unpatched(original, "Chara._Move date.AdvanceMin");
+        }
+
+        return matcher
             .SetAndAdvance(OpCodes.Call, AccessTools.Method(typeof(RemoteTravelRegionPatch), nameof(StepDate)))
             .InstructionEnumeration();
+    }
+
+    internal static IEnumerable<CodeInstruction> Unpatched(List<CodeInstruction> original, string what)
+    {
+        EmpLog.Warning("Travel on the world map: {What} not found in the game's code, the function is left as the " +
+                       "game wrote it (travel moves the date for everyone)", what);
+        return original;
     }
 
     // the step ended, or threw
@@ -76,6 +94,9 @@ internal static class RemoteTravelRegionPatch
     {
         if (__instance.IsPC) {
             IsPayingStep = false;
+
+            // the turns counted during the step go out, one message per character
+            CharaTickConditionDelta.FlushStep(NetSession.Instance.Connection);
         }
     }
 
@@ -89,8 +110,7 @@ internal static class RemoteTravelRegionPatch
 
         if (DateMoves()) {
             date.AdvanceMin(minutes);
-        } else if (session.IsHost) {
-            // not the player next to the host on the world map: the host's steps move its date
+        } else {
             Tell();
         }
     }
@@ -108,15 +128,22 @@ internal static class RemoteTravelRegionPatch
         return session.Transport switch {
             null => true,
             ElinNetHost host => host.AllOnWorldMap(),
-            // ponytail: the date moves by the host's steps only, as the council wrote it. A player on its own
-            // copy of the world map would have to be told where everyone is to move it too
+            // ponytail: with the rule on, only the host's steps can move the date, as the council wrote it (the date
+            // of a guest follows the host's). A guest does not know where the others are, so its own steps never
+            // move it, next to the host or alone on its copy of the world map, and it says nothing about it (Tell).
+            // Host/guest inequality that stays: everyone on the world map, the host steps: the date moves;
+            // the guest steps: it does not. Telling the guest where everyone is would need one more message
             _ => false,
         };
     }
 
+    /// <summary>
+    ///     "Your friends are elsewhere": said only by the host, the one who knows it is true. A guest (next to the
+    ///     host or alone on its copy of the map) cannot tell, so it stays silent
+    /// </summary>
     internal static void Tell()
     {
-        if (_told) {
+        if (_told || NetSession.Instance.Transport is not ElinNetHost) {
             return;
         }
 
@@ -150,9 +177,9 @@ internal static class TravelStepTurnsPatch
             return true;
         }
 
-        client.Delta.AddRemote(new CharaTickConditionDelta {
-            Owner = __instance,
-        });
+        // counted with the step, sent when it ends. Harmony still runs CharaTickConditionEvent after this prefix
+        // returned false, which skips its own message for a skipped original (__runOriginal)
+        CharaTickConditionDelta.Emit(client, __instance);
         return false;
     }
 }
@@ -200,9 +227,15 @@ internal static class TravelExpressPatch
     [HarmonyTranspiler]
     private static IEnumerable<CodeInstruction> OnExpressHourIl(IEnumerable<CodeInstruction> instructions)
     {
-        return new CodeMatcher(instructions)
-            .MatchStartForward(new CodeMatch(il => il.Calls(AdvanceHour)))
-            .EnsureValid("LayerTravel date.AdvanceHour")
+        var original = instructions.ToList();
+
+        var matcher = new CodeMatcher(original)
+            .MatchStartForward(new CodeMatch(il => il.Calls(AdvanceHour)));
+        if (matcher.IsInvalid) {
+            return RemoteTravelRegionPatch.Unpatched(original, "LayerTravel date.AdvanceHour");
+        }
+
+        return matcher
             .SetAndAdvance(OpCodes.Call, AccessTools.Method(typeof(TravelExpressPatch), nameof(ExpressHour)))
             .InstructionEnumeration();
     }

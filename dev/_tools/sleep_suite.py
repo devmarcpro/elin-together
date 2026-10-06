@@ -31,6 +31,8 @@ N1  l'invite se couche, l'host marche : l'invite se reveille seul en moins de 20
 N2  l'inverse : l'host se couche, l'invite marche
 N3  les deux se couchent : « tout le monde dort », la date avance d'une nuit, une seule fois, des deux cotes
 N4  un joueur repose essaie de se coucher seul : refuse comme en solo ; il peut des que l'autre dort deja
+N5  (after review) the guest claims a rest of 1000: the host copy is healed by its bed's power at most
+N6  (after review) a guest awake before the end of the night of the world is not rested a second time by it
 Avec cette regle les etapes d'avant decrivent toujours la nuit commune (Z1, Z2, P2, B1, K1 : l'invite se couche,
 l'host tout de suite apres) ; B2 et B3 (« l'invite renonce ») et Y1 (« l'heure a avance ») suivent la regle en cours.
 
@@ -570,6 +572,90 @@ def n4(ctx):
             check(f"{who} se reveille", eventually(lambda port=port: awake(port), timeout=180))
 
 
+BED_POWER = ('var b = EClass.pc.things.Find<TraitBed>(); var p = EClass.pc.things.Find<TraitPillow>(); '
+             'return ((b == null ? 20 : b.Power + b.Evalue(750) * 5) + (p == null ? 0 : p.Power / 2)).ToString();')
+
+
+def host_hp(uid):
+    """hit points of a guest's character, as the host keeps them (the host owns them), and its maximum"""
+    hp, top = ev(H, f'var c = EClass._map.charas.Find(x => x.uid == {uid}); return c.hp + "," + c.MaxHP;').split(",")
+    return int(hp), int(top)
+
+
+def forge_wake(power):
+    """The guest tells the host its own night is over and claims this rest power, as a modified client could
+    (the wake-up report, CharaSleepDelta with Own, sent as is)"""
+    ev(A, 'var d = new ElinTogether.Models.CharaSleepDelta { Power = %d, Days = 1, Own = true }; '
+          'var q = HarmonyLib.Traverse.Create(ElinTogether.Net.NetSession.Instance.Connection).Field("Delta").GetValue(); '
+          'HarmonyLib.Traverse.Create(q).Method("AddRemote", new object[] { d }).GetValue(); "ok"' % power)
+
+
+def n5(ctx):
+    """a guest cannot heal itself beyond what its bed gives: its wake-up report claims 1000, the host takes the
+    power of the bed and pillow it slept in (20 for a plain bed)
+    What the bench does not play like a player: the report is forged by eval (a real client reports the power of its
+    own bed, which is what the host must accept); hit points are set to 1 on the host copy; the bed is a plain one
+    made by the host and laid by the hotbar action; the report is sent right after the host saw the guest asleep,
+    before its own night screen ends. Red before the fix: the host copy is healed to its maximum"""
+    if not check("own sleep rule on, both games", own_rule()):
+        return
+    ready_for_bed(H, tired=False)
+    if not check("guest is tired and has a bed", ready_for_bed(A, tired=True)):
+        return
+    me = state(A)["pc"]["uid"]
+    asleep = lambda: ev(H, f'(EClass._map.charas.Find(x => x.uid == {me}).conSleep != null).ToString()') == "True"  # noqa: E731
+    bound = int(ev(A, BED_POWER))
+    ev(H, f'EClass._map.charas.Find(x => x.uid == {me}).hp = 1; "ok"')
+    time.sleep(2)
+    hp0, top = host_hp(me)
+    if not check(f"a heal of 1000 can be told from a bed's (max {top}, from {hp0}, bed gives {bound})", top - hp0 > 2 * bound + 20):
+        return
+    to_bed(A)
+    check("host sees the guest asleep", eventually(asleep, timeout=10))
+    forge_wake(1000)
+    check("host takes the report: the guest is no longer asleep there", eventually(lambda: not asleep(), timeout=10))
+    time.sleep(2)
+    hp, _ = host_hp(me)
+    check(f"healed by its bed and no more (+{hp - hp0}, bed gives {bound})", 0 < hp - hp0 <= bound + 10)
+    check("guest wakes and its bed is back in its bag", eventually(lambda: awake(A) and bed_in_bag(A), timeout=60))
+
+
+def n6(ctx):
+    """a guest who woke just before the night of the world ends is not rested a second time by it
+    Both go to bed, so the night of the world starts; the guest's wake-up report (what its own night screen sends
+    when it ends) reaches the host during that night. At its end the host's game rests "the party": the guest,
+    awake, is out of it (red before the fix: its host copy is healed twice, +40 instead of +20 for plain beds)
+    What the bench does not play like a player: the report is sent by eval, at a moment chosen by the test (a real
+    guest wakes by itself within a network round trip of the last one going to bed) ; natural regeneration during
+    the night is allowed 10 points ; the guest's own game is not measured (the rest is the host copy's)"""
+    if not check("own sleep rule on, both games", own_rule()):
+        return
+    for port, who in ((H, "host"), (A, "guest")):
+        check(f"{who} is tired and has a bed", ready_for_bed(port, tired=True))
+    me = state(A)["pc"]["uid"]
+    asleep = lambda: ev(H, f'(EClass._map.charas.Find(x => x.uid == {me}).conSleep != null).ToString()') == "True"  # noqa: E731
+    bound = int(ev(A, BED_POWER))
+    ev(H, f'EClass._map.charas.Find(x => x.uid == {me}).hp = 1; "ok"')
+    time.sleep(2)
+    hp0, top = host_hp(me)
+    if not check(f"two rests of {bound} can be told from one (max {top}, from {hp0})", top - hp0 > 2 * bound + 20):
+        return
+    to_bed(H)
+    to_bed(A)
+    for port, who in ((H, "host"), (A, "guest")):
+        check(f"night screen opens at the {who}", eventually(lambda port=port: "LayerSleep" in view(port)["layers"], timeout=30))
+    check("host sees the guest asleep", eventually(asleep, timeout=10))
+    forge_wake(bound)
+    check("host takes the report: the guest is no longer asleep there", eventually(lambda: not asleep(), timeout=10))
+    if not check("the night of the world is still running when it does (else the test says nothing)", "LayerSleep" in view(H)["layers"]):
+        return
+    for port, who in ((H, "host"), (A, "guest")):
+        check(f"{who} wakes up", eventually(lambda port=port: awake(port), timeout=180))
+    time.sleep(3)
+    hp, _ = host_hp(me)
+    check(f"the guest copy rested once, not twice (+{hp - hp0}, one rest is {bound})", 0 < hp - hp0 <= bound + 10)
+
+
 def z3(ctx):
     """panne provoquee : la fin de la nuit plante chez l'host. Personne ne doit rester dans l'ecran de sommeil
     (a lancer seul : --only z3 ; les exceptions des journaux sont voulues, elles ne sont pas comptees)"""
@@ -680,9 +766,9 @@ def main():
     t0 = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
 
     ctx = {}
-    steps = [z0, p1, z1, p2, z2, n1, n2, n3, n4, b1, b2, b3, k1, y1, y2]
+    steps = [z0, p1, z1, p2, z2, n1, n2, n3, n4, n5, n6, b1, b2, b3, k1, y1, y2]
     if a.only:
-        steps = [s for s in (w0, z0, p1, z1, p2, z2, n1, n2, n3, n4, b1, b2, b3, k1, y1, y2, z3) if s.__name__ in a.only.split(",")]
+        steps = [s for s in (w0, z0, p1, z1, p2, z2, n1, n2, n3, n4, n5, n6, b1, b2, b3, k1, y1, y2, z3) if s.__name__ in a.only.split(",")]
     for step in steps:
         log(f"--- {step.__name__.upper()} : {step.__doc__}")
         try:

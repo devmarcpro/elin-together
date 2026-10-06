@@ -174,11 +174,13 @@ public class CharaSleepDelta : ElinDelta
         // a night of its own: its character still sleeps here, and what the end of a night does for "the party"
         // was done by nobody: its body and its own companions rest here too (hit points are the host's to keep)
         if (Own && NetSession.Instance.Rules.UseOwnSleep && sender.conSleep is { } sleep) {
+            // the power is the guest's word: never more than its bed and pillow give, as the game counts them
+            var power = SleepSynchronizationContext.RestPower(OriginPeer, sender, Power);
             using var _ = Simulate();
             sleep.Kill();
             foreach (var chara in CompanionHelper.CompanionsOf(sender).Prepend(sender)) {
                 if (chara is { isDead: false, IsInActiveMap: true }) {
-                    chara.OnSleep(System.Math.Clamp(Power, 0, 1000));
+                    chara.OnSleep(power);
                 }
             }
         }

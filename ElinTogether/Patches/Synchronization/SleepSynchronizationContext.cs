@@ -4,7 +4,6 @@ using ElinTogether.Helper;
 using ElinTogether.LangMod;
 using ElinTogether.Models;
 using ElinTogether.Net;
-using ElinTogether.Net.Steam;
 using HarmonyLib;
 
 namespace ElinTogether.Patches;
@@ -35,13 +34,24 @@ internal class SleepSynchronizationContext : SynchronizationContext
 
     // own sleep, a guest: it asked to sleep, for that many hours, and plays its night once the sleep came back
     private static bool _requested;
+    private static float _requestedAt;
     private static int _asked;
 
+    // a request the host ignored must not turn a sleep from elsewhere (a spell) into a night screen later
+    private const float RequestLife = 5f;
+
     // own sleep, the host: the players away from its map (by peer, with their name), those of them who said
-    // they sleep, and the hours of the night each sleeper asked for
+    // they sleep, those who said they are dead, and the hours of the night each sleeper asked for
     private static readonly Dictionary<int, string> _away = [];
     private static readonly HashSet<int> _awayAsleep = [];
+    private static readonly HashSet<int> _awayDead = [];
     private static readonly Dictionary<int, int> _nightHours = [];
+
+    // own sleep, the host: the bed and the pillow (uids) each guest asleep on this map asked for
+    private static readonly Dictionary<int, (int Bed, int Pillow)> _guestBeds = [];
+
+    // own sleep, the host: next time the count of sleepers is told again, for players who came in meanwhile
+    private static float _nextCount;
 
     // the party of the game while only the sleeper's own must be in it, see NarrowParty
     private static List<Chara>? _party;
@@ -53,10 +63,6 @@ internal class SleepSynchronizationContext : SynchronizationContext
         AccessTools.FieldRefAccess<LayerSleep, int>("maxMin");
     private static readonly AccessTools.FieldRef<LayerSleep, int> _hoursRef =
         AccessTools.FieldRefAccess<LayerSleep, int>("hours");
-
-    // ponytail: the peers of a connection are protected, an accessor in ElinNetBase would replace this
-    private static readonly AccessTools.FieldRef<ElinNetBase, SteamNetManager> _socketRef =
-        AccessTools.FieldRefAccess<ElinNetBase, SteamNetManager>("Socket");
 
     internal static bool AllPlayersReady { get; private set; } = true;
 
@@ -87,6 +93,10 @@ internal class SleepSynchronizationContext : SynchronizationContext
             _requested = false;
         }
 
+        if (_requested && UnityEngine.Time.unscaledTime - _requestedAt > RequestLife) {
+            _requested = false;
+        }
+
         // own sleep, a guest: the sleep it asked for came back from the game that keeps the map
         if (_requested && session.Connection is ElinNetClient && pc?.conSleep is not null) {
             _requested = false;
@@ -101,7 +111,9 @@ internal class SleepSynchronizationContext : SynchronizationContext
             _lastReady.Clear();
             _away.Clear();
             _awayAsleep.Clear();
+            _awayDead.Clear();
             _nightHours.Clear();
+            _guestBeds.Clear();
             _sleepStarted = false;
             AllPlayersReady = true;
             if (session.CurrentPlayers.Count <= 1) {
@@ -129,24 +141,40 @@ internal class SleepSynchronizationContext : SynchronizationContext
 
         if (own) {
             // everyone connected counts, wherever they are: those away say by themselves when they sleep
-            foreach (var peer in _socketRef(host).Peers) {
-                if (!host.IsAway(peer)) {
+            foreach (var (id, name) in host.AwayPeers) {
+                _away[id] = name;
+
+                // a dead player, as on this map, is not waited for
+                if (_awayDead.Contains(id)) {
                     continue;
                 }
 
                 alive++;
-                _away[peer.Id] = peer.User.Name;
-                if (_awayAsleep.Contains(peer.Id)) {
-                    _ready.Add(peer.Id);
+                if (_awayAsleep.Contains(id)) {
+                    _ready.Add(id);
                 }
             }
 
             _awayAsleep.RemoveWhere(id => !_away.ContainsKey(id));
+            _awayDead.RemoveWhere(id => !_away.ContainsKey(id));
         }
 
         // nobody to wait for when alone (the game's own sleep, as AllowPartySleep)
         AllPlayersReady = _ready.Count >= alive;
         Sleepers = _ready.Count;
+
+        // a player who comes in while others sleep must know it, or it counts nobody (the count is also told
+        // at each change, see Announce)
+        if (own && alive >= 2 && Sleepers > 0 && UnityEngine.Time.unscaledTime >= _nextCount) {
+            _nextCount = UnityEngine.Time.unscaledTime + 5f;
+            host.Delta.AddRemote(new SleepReadyDelta {
+                PlayerIndex = -1,
+                Ready = true,
+                ReadyCount = Sleepers,
+                TotalCount = alive,
+                Quiet = true,
+            });
+        }
 
         if (!own && (_sleepStarted || alive < 2)) {
             if (_sleepStarted && _ready.Count == 0) {
@@ -236,15 +264,37 @@ internal class SleepSynchronizationContext : SynchronizationContext
             main.SendWhileAway(new SleepStateDelta {
                 Asleep = asleep,
                 Hours = hours,
+                Dead = pc is { isDead: true },
             });
         }
     }
 
-    internal static void OnAwaySleep(int peer, bool asleep, int hours)
+    /// <summary>
+    ///     A player away that dies or comes back to life says so: the host skips the dead for the night of the
+    ///     world, as it does on its own map. Dying ends its sleep through ConSleep.OnRemoved (Chara.Die cures
+    ///     it, Condition.Kill), reported there too
+    /// </summary>
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(Chara), nameof(Chara.Die))]
+    [HarmonyPatch(typeof(Chara), nameof(Chara.Revive))]
+    internal static void ReportAwayLife(Chara __instance)
     {
-        EmpLog.Debug("Away player {PeerIndex} asleep {Asleep}", peer, asleep);
+        if (__instance.IsPC) {
+            ReportAway(false);
+        }
+    }
 
-        if (asleep) {
+    internal static void OnAwaySleep(int peer, bool asleep, int hours, bool dead)
+    {
+        EmpLog.Debug("Away player {PeerIndex} asleep {Asleep} dead {Dead}", peer, asleep, dead);
+
+        if (dead) {
+            _awayDead.Add(peer);
+        } else {
+            _awayDead.Remove(peer);
+        }
+
+        if (asleep && !dead) {
             _awayAsleep.Add(peer);
             _nightHours[peer] = System.Math.Clamp(hours, 1, 24);
         } else {
@@ -257,9 +307,10 @@ internal class SleepSynchronizationContext : SynchronizationContext
     ///     player as its night starts is done for it: its own animals come beside it, its own companions sleep,
     ///     no more bleeding, poison or miasma
     /// </summary>
-    internal static void OnGuestAsleep(int peer, Chara guest, int hours)
+    internal static void OnGuestAsleep(int peer, Chara guest, int hours, int bed, int pillow)
     {
         _nightHours[peer] = System.Math.Clamp(hours, 1, 24);
+        _guestBeds[peer] = (bed, pillow);
 
         BringBeside(guest);
         foreach (var chara in CompanionHelper.CompanionsOf(guest)) {
@@ -271,6 +322,38 @@ internal class SleepSynchronizationContext : SynchronizationContext
         guest.RemoveCondition<ConBleed>();
         guest.RemoveCondition<ConPoison>();
         guest.RemoveCondition<ConMiasma>();
+    }
+
+    /// <summary>
+    ///     Own sleep, the game that keeps the map: the power of the rest a guest woke with. The guest says it; what
+    ///     the host takes is at most what its bed and pillow give, as Chara.OnSleep(Thing, int) counts it (bed
+    ///     power or 20, half the pillow's, five per point of element 750 of the bed), with the bed and pillow
+    ///     the guest slept in (SleepRequestDelta): a card of its own bag or of this map, nothing else
+    /// </summary>
+    internal static int RestPower(int peer, Chara guest, int claimed)
+    {
+        _guestBeds.Remove(peer, out var uids);
+        var bed = Real<TraitBed>(uids.Bed, guest);
+        var pillow = Real<TraitPillow>(uids.Pillow, guest);
+
+        var power = bed?.Power ?? 20;
+        if (pillow is not null) {
+            power += pillow.Power / 2;
+        }
+
+        if (bed is not null) {
+            power += bed.Evalue(750) * 5;
+        }
+
+        return System.Math.Clamp(System.Math.Min(claimed, power), 0, 1000);
+    }
+
+    private static Thing? Real<T>(int uid, Chara guest) where T : Trait
+    {
+        return uid != 0 && CardCache.Find(uid) is Thing { isDestroyed: false, trait: T } thing &&
+               (thing.ExistsOnMap || thing.GetRootCard() == guest)
+            ? thing
+            : null;
     }
 
     [HarmonyPostfix]
@@ -337,12 +420,15 @@ internal class SleepSynchronizationContext : SynchronizationContext
 
         var own = NetSession.Instance.Rules.UseOwnSleep;
         _requested = own;
+        _requestedAt = UnityEngine.Time.unscaledTime;
         _asked = own ? NightHours(__instance) : 0;
 
         EmpLog.Debug("Requesting party sleep");
 
         client.Delta.AddRemote(new SleepRequestDelta {
             Hours = _asked,
+            Bed = bed?.uid ?? 0,
+            Pillow = pillow?.uid ?? 0,
         });
         ReportAway(true, _asked);
         if (!own) {
@@ -556,13 +642,13 @@ internal class SleepSynchronizationContext : SynchronizationContext
     ///     all their companions: they are one party here. For a night of its own, the party is the sleeper and
     ///     its own companions for as long as the game's code runs, see <see cref="RestoreParty" />
     /// </summary>
-    private static void NarrowParty(Chara sleeper)
+    private static void NarrowParty(params Chara[] sleepers)
     {
         if (_party is not null || pc?.party is not { } party) {
             return;
         }
 
-        _own = party.members.Where(c => c is not null && CompanionHelper.OwnerOf(c) == sleeper).ToArray();
+        _own = party.members.Where(c => c is not null && sleepers.Contains(CompanionHelper.OwnerOf(c))).ToArray();
         _party = party.members;
         party._members = _own.ToList();
     }
@@ -811,6 +897,14 @@ internal class SleepSynchronizationContext : SynchronizationContext
         var session = NetSession.Instance;
         var guest = session.Connection as ElinNetClient;
         if (guest is null && !_ownNight) {
+            // the end of the night of the world: the game rests and feeds "the party", not a guest who woke
+            // before and was rested already (CharaSleepDelta, Own)
+            if (session is { Connection: ElinNetHost world, Rules.UseOwnSleep: true } &&
+                _minRef(__instance) > _maxMinRef(__instance) &&
+                world.ActiveRemoteCharas.Values.Any(c => c.conSleep is null)) {
+                NarrowParty(world.ActiveRemoteCharas.Values.Where(c => c.conSleep is not null).Append(pc).ToArray());
+            }
+
             return true;
         }
 
@@ -873,7 +967,7 @@ internal class SleepSynchronizationContext : SynchronizationContext
         var names = NetSession.Instance.CurrentPlayers
             .Where(p => p.CharaUid != pc.uid && _map.charas.Find(c => c.uid == p.CharaUid)?.conSleep is null)
             .Select(p => p.User.Name)
-            .Concat(_away.Where(a => !_awayAsleep.Contains(a.Key)).Select(a => a.Value))
+            .Concat(_away.Where(a => !_awayAsleep.Contains(a.Key) && !_awayDead.Contains(a.Key)).Select(a => a.Value))
             .ToList();
         WidgetPopText.Say("emp_ui_sleep_alone".Loc(names.Count == 0 ? "…" : string.Join(", ", names)));
     }

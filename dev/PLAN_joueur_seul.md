@@ -29,7 +29,7 @@ seulement, `Count > 1` : décision à prendre, voir S16).
 | S10 | **pas fait** | `AreaWatch.cs:40` (`Patches/Synchronization/**`, interdit) | à faire : `if (!NetCompany.HasCompany) { _map = null; return; }` en tête de `Update` |
 | S11 | n'existe pas dans le plan | | |
 | S12 | fait | `CharaVisibilityChangeEvent.cs:16, 39, 63` | `!HasCompany` -> sortie. Pas de minuteur à forcer ici : `ActionModeCombat` (S15) le remet « dû » |
-| S13 | fait | `CardGenEvent.cs:57` | `!HasCompany` -> sortie avant `AddRemote` (le chemin client et « ability fake card » ne changent pas) |
+| S13 | **retiré volontairement** (voir « Après relecture ») | `CardGenEvent.cs` (aucune porte `HasCompany`, vérifié) | la ligne « fait » de cette table était fausse : la porte a été ôtée (risque de désynchronisation), M9 reste ouvert |
 | S14 | fait | `TileStateDelta.cs:44` (`Mark`) et `:67` (`Flush`) | `&& HasCompany` ; `_dirty` est vidé à la fin de `Flush` comme avant |
 | S15 | fait | `ActionModeCombat.cs:64` | `!HasCompany` -> `_visibilityTimer = VisibilityRefreshInterval; ChangePhaseLocal(Inactive); return` (la porte vaut vrai pour un client : rien ne change pour lui) |
 | S16 | fait | `PauseGame.cs:44`, `RemoteSharedSpeedPatch.cs:13` | `HasCompany` à la place de `HasActiveConnection`. Pas fait : `RemoteMinimapPatch.cs:16, 29`, `RemotePartyPatch.cs:22` (cités en M16, absents de S16) |

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using ElinTogether.Helper.Extensions;
 
 namespace ElinTogether.Models;
 
@@ -39,6 +40,70 @@ internal static class ZoneLeaseState
             }
 
             asset.DecompressToFile(Path.Combine(zone.pathSave, id));
+        }
+    }
+
+    /// <summary>
+    ///     What a copy of the map carries, as numbers two games compare when the map changes hands: count then mix
+    ///     of the things on the floor (uid, tile, amount), of what they hold (uid, holder, amount) and of the
+    ///     characters saved with the map (uid). <br />
+    ///     Left out: the terrain, what characters carry, where they stand, and the characters of the world
+    ///     (players, companions, residents), which Map.Save leaves out too
+    /// </summary>
+    internal static int[] Sums(Map map)
+    {
+        var sums = new int[6];
+
+        unchecked {
+            foreach (var thing in map.things) {
+                if (Skipped(thing)) {
+                    continue;
+                }
+
+                sums[0]++;
+                sums[1] += Mix(thing.uid, thing.pos.x, thing.pos.z, thing.Num);
+
+                foreach (var held in thing.things.Flatten()) {
+                    if (!Skipped(held)) {
+                        sums[2]++;
+                        sums[3] += Mix(held.uid, held.parentCard?.uid ?? 0, held.Num, 0);
+                    }
+                }
+            }
+
+            foreach (var chara in map.charas) {
+                if (!chara.IsGlobal && !chara.isDead && !PendingUid.IsPending(chara.uid)) {
+                    sums[4]++;
+                    sums[5] += Mix(chara.uid, 0, 0, 0);
+                }
+            }
+        }
+
+        return sums;
+    }
+
+    internal static string TellSums(int[] sums)
+    {
+        return sums.Length < 6
+            ? "none"
+            : $"things {sums[0]}:{sums[1]:X8}, held {sums[2]}:{sums[3]:X8}, charas {sums[4]}:{sums[5]:X8}";
+    }
+
+    // as NetDesync does: cards waiting for their number and ability tokens are each game's own
+    private static bool Skipped(Thing thing)
+    {
+        return thing.isDestroyed || PendingUid.IsPending(thing.uid) || thing.trait is TraitAbility;
+    }
+
+    // summed over the cards: the order of the lists does not matter
+    private static int Mix(int a, int b, int c, int d)
+    {
+        unchecked {
+            var h = (uint)a * 0x9E3779B1u;
+            h = (h ^ (uint)b) * 0x85EBCA6Bu;
+            h = (h ^ (uint)c) * 0xC2B2AE35u;
+            h = (h ^ (uint)d) * 0x27D4EB2Fu;
+            return (int)(h ^ (h >> 15));
         }
     }
 

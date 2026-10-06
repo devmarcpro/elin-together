@@ -21,6 +21,14 @@ internal static class NetCompany
     private static int _at;
     private static bool _peers;
 
+    /// <summary>
+    ///     A connection was added: the next read looks again instead of waiting out the refresh delay
+    /// </summary>
+    public static void Invalidate()
+    {
+        _of = null;
+    }
+
     public static bool HasCompany {
         get {
             var session = NetSession.Instance;

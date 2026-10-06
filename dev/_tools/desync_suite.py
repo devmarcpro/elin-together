@@ -29,7 +29,18 @@ D5b un seau que l'host n'a plus mais que les invites voient encore (un fantome) 
     Attendu : l'host refuse et ne le dit qu'a A (le seau quitte son jeu) ; chez B il est toujours au sol (a trois
     fenetres seulement). Sur la 0.26.510 : il disparait aussi chez B.
 
+D2  TROIS FENETRES. L'host part a Vernis, A garde la carte, B y reste, l'host revient. Deux passes. Sans ecart :
+    le journal de A dit « our copy is the same, kept », personne ne bouge de sa case. Avec ecart (un seau retire du
+    sol chez A seulement, comme resync_suite R2) : le journal de A dit « our copy differs, replaced by the host's »,
+    le seau est au sol chez A, chez B et chez l'host revenu, les objets au sol des trois sont ceux que l'host avait
+    en partant, A et B sont restes sur leur case. Sur la 0.26.510 : le seau a disparu partout. La case « AutoResync »
+    est decochee le temps du test (sinon l'outil de reparation comble l'ecart avant le depart de l'host).
+
 Ce que le banc ne joue pas comme un joueur :
+- D2 : l'ecart est fabrique par eval dans un DynamicDelta (un vrai ecart vient d'un message perdu) ; un seul objet
+  au sol, pas un coffre ni un monstre ; l'host part par `pc.MoveZone`, pas a pied ; A ne fait rien pendant le
+  passage de main (un geste de A dans le dernier aller-retour n'est pas joue) ; pas de carte de quete, pas de carte
+  tenue par un invite qui la passe a un autre invite ;
 - les seaux, le casque et le monstre sont crees par l'host (eval), pas trouves en jouant ;
 - la marche est un AI_Goto vers la case (le deplacement d'un clic), pas une touche enfoncee ; le seau est ramasse
   par cette marche, comme en jeu ;
@@ -63,7 +74,8 @@ from pickup_suite import put, walk_onto, where  # noqa: E402
 from shared_suite import settled, with_host  # noqa: E402
 from travel_suite import (HOME, RESULTS, VERNIS, check, ev, eventually, move, scan_logs, session_log_lines,  # noqa: E402
                           wait, zone_uid)
-from world_diff import diff  # noqa: E402
+from combat_suite import set_option  # noqa: E402
+from world_diff import diff, snapshot  # noqa: E402
 
 H, A, B = 27551, 27552, 27553
 NAMES = {H: "host", A: "A", B: "B"}
@@ -73,7 +85,10 @@ SETTLE = 8  # secondes laissees aux jeux pour se repondre avant de comparer
 SLOW = ('var old = UnityEngine.Application.targetFrameRate + "," + UnityEngine.QualitySettings.vSyncCount; '
         'UnityEngine.QualitySettings.vSyncCount = 0; UnityEngine.Application.targetFrameRate = 5; return old;')
 NET = 'var net = ElinTogether.Net.NetSession.Instance.Connection; '
-RELOAD = (NET + 'HarmonyLib.AccessTools.Method(net.GetType(), "RequestZoneState")'
+# the mod believes it applies a received message: the host is told nothing (as resync_suite R2)
+LOCAL = ('new ElinTogether.Models.DynamicDelta {{ Action = n => {{ {0} }} }}'
+         '.Apply(ElinTogether.Net.NetSession.Instance.Connection); return "ok";')
+RELOAD = (NET +'HarmonyLib.AccessTools.Method(net.GetType(), "RequestZoneState")'
           '.Invoke(net, new object[] { ElinTogether.Models.MapDataRequest.CurrentRemoteZone }); return "ok";')
 
 
@@ -368,6 +383,87 @@ def d5b(ctx):
             ev(p, f'var t = EClass._map.things.Find(m => m.uid == {thing}); if (t != null) t.Destroy(); return "ok";')
 
 
+def cell_of(port):
+    return ev(port, 'return EClass.pc.pos.x + "," + EClass.pc.pos.z;')
+
+
+def floor_gaps(port, reference):
+    """Objets au sol de ce jeu qui ne sont pas comme dans `reference` (uid -> (id, case, quantite)) : lignes lisibles."""
+    mine = snapshot(port)["things"]
+    return [f"{uid} : ici {mine.get(uid)}, host au depart {reference.get(uid)}"
+            for uid in sorted(set(mine) | set(reference)) if mine.get(uid) != reference.get(uid)]
+
+
+def hand_over(ctx, gap):
+    """L'host part a Vernis, A garde la carte, B reste, l'host revient. `gap` : la copie de A a un ecart au depart."""
+    what = "D2 avec ecart" if gap else "D2 sans ecart"
+    uid = pc_uid(A)
+    made = bucket_next_to(ctx, uid)
+    if not made:
+        return
+    thing, x, z = made
+    time.sleep(3)
+    t_log = now_utc()
+    if gap:
+        ev(A, LOCAL.format(f'EClass._zone.RemoveCard(EClass._map.things.Find(x => x.uid == {thing}));'))
+        seen = {NAMES[p]: where(p, uid, thing) for p in ctx["ports"]}
+        if not check(f"{what} : mise en place, le seau manque chez A seulement ({seen})",
+                     seen["A"] == "nulle part" and seen["host"].startswith("sol") and seen["B"].startswith("sol")):
+            return
+    reference = snapshot(H)["things"]
+    stood = {p: cell_of(p) for p in (A, B)}
+
+    move(H, VERNIS)
+    wait(settled(H, VERNIS, away=False), "l'host a Vernis", timeout=240)
+    kept = eventually(lambda: settled(A, HOME, away=True, guest=False)() and settled(B, HOME, away=True, guest=True)(), timeout=120)
+    if not check(f"{what} : A garde la carte, B y reste comme son invite (si c'est B qui la garde, le test ne prouve rien : "
+                 "l'ecart doit etre fabrique chez celui qui la garde)", kept):
+        return
+    time.sleep(SETTLE)
+
+    line = "our copy differs, replaced by the host's" if gap else "our copy is the same, kept"
+    check(f"{what} : le journal de A dit « {line} »", logged(t_log, "Taking over {ZoneFullName} from the host", line))
+    check(f"{what} : le journal de l'host dit que sa copie est partie avec le bail",
+          logged(t_log, "keeps it, uid range from {UidRangeStart}, host copy sent along"))
+    for p in (A, B):
+        gaps = floor_gaps(p, reference)
+        check(f"{what} : les objets au sol de {NAMES[p]} sont ceux que l'host avait en partant ({len(gaps)} ecart(s))", not gaps)
+        for g in gaps[:10]:
+            print("        ", g)
+        check(f"{what} : {NAMES[p]} voit le seau a sa case ({where(p, uid, thing)})", where(p, uid, thing) == f"sol@{x},{z}")
+        check(f"{what} : {NAMES[p]} est reste sur sa case ({stood[p]} -> {cell_of(p)})", cell_of(p) == stood[p])
+    gaps = diff([A, B], NAMES)
+    check(f"{what} : aucun ecart entre A et B sur la carte gardee par A ({len(gaps)})", not gaps)
+    for g in gaps[:10]:
+        print("        ", g)
+
+    move(H, HOME)
+    with_host(A, B)
+    time.sleep(SETTLE)
+    gaps = floor_gaps(H, reference)
+    check(f"{what} : l'host retrouve au sol ce qu'il avait en partant ({len(gaps)} ecart(s))", not gaps)
+    for g in gaps[:10]:
+        print("        ", g)
+    check(f"{what} : le seau est au sol chez l'host revenu ({where(H, uid, thing)})", where(H, uid, thing) == f"sol@{x},{z}")
+    compare(ctx, f"{what}, l'host revenu")
+    ev(H, f'var t = EClass._map.things.Find(m => m.uid == {thing}); if (t != null) t.Destroy(); return "ok";')
+
+
+def d2(ctx):
+    """l'host part, A garde la carte, B reste : c'est la copie de l'host qui fait foi, pas celle de A (trois fenetres)"""
+    if B not in ctx["ports"]:
+        check("D2 demande trois fenetres (pas --two)", False)
+        return
+    # the repair tool would mend the gap of A before the host leaves
+    set_option("AutoResync", False)
+    try:
+        hand_over(ctx, gap=False)
+        with_host(A, B)
+        hand_over(ctx, gap=True)
+    finally:
+        set_option("AutoResync", True)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--reuse", action="store_true")
@@ -387,7 +483,7 @@ def main():
         sys.exit(1)
     compare(ctx, "au depart")
 
-    steps = [d1a, d1b, d4, d5a, d5b]
+    steps = [d1a, d1b, d4, d5a, d5b, d2]
     if a.only:
         steps = [s for s in steps if s.__name__ in a.only.split(",")]
     for step in steps:

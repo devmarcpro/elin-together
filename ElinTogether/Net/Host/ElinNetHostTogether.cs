@@ -1,9 +1,24 @@
+using System.Collections.Generic;
 using System.Linq;
 
 namespace ElinTogether.Net;
 
 internal partial class ElinNetHost
 {
+    /// <summary>
+    ///     The connected players that are not on the host map (see <see cref="IsAway" />): peer id and name
+    /// </summary>
+    internal IEnumerable<(int Id, string Name)> AwayPeers
+    {
+        get {
+            foreach (var peer in Socket.Peers) {
+                if (IsAway(peer)) {
+                    yield return (peer.Id, peer.User.Name);
+                }
+            }
+        }
+    }
+
     /// <summary>
     ///     Council 10: every connected player is on the world map, on the host's or on its own copy of it. Then
     ///     only a jump of the date is everyone's (see RemoteTravelRegionPatch). A player still loading a map,

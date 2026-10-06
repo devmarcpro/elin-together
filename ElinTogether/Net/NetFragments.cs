@@ -25,7 +25,7 @@ internal static class NetFragments
     public const int PieceSize = 128 * 1024;
 
     /// <summary>
-    ///     Nothing bigger is sent, and nothing bigger is reserved on the word of a header
+    ///     Nothing bigger is sent nor accepted; the receiver only holds what really arrived, not what a header says
     /// </summary>
     public const int MaxMessageSize = 64 * 1024 * 1024;
 
@@ -76,13 +76,15 @@ internal static class NetFragments
 /// </summary>
 internal sealed class NetFragmentAssembler
 {
-    private byte[]? _buffer;
+    // the pieces as they came (header included): memory follows what really arrived, not what a header claims
+    private List<byte[]>? _pieces;
     private int _count;
     private int _id;
     private int _next;
     private int _offset;
+    private int _total;
 
-    public bool IsPending => _buffer is not null;
+    public bool IsPending => _pieces is not null;
 
     /// <summary>
     ///     The whole message once its last piece is in, null before that. A piece that does not fit throws,
@@ -101,31 +103,32 @@ internal sealed class NetFragmentAssembler
         var size = piece.Length - NetFragments.HeaderSize;
 
         if (index == 0) {
-            var interrupted = _buffer is not null;
+            var interrupted = _pieces is not null;
             Reset();
 
             if (count < 1 || total < 1 || total > NetFragments.MaxMessageSize || count > total) {
                 throw Bad($"header of {total} bytes in {count} pieces");
             }
 
-            _buffer = new byte[total];
+            _pieces = [];
             _id = id;
             _count = count;
+            _total = total;
 
             if (interrupted) {
-                // the new message is kept, the caller only hears about the lost one once it is whole or fails
+                // the new message is kept, the caller reads InterruptedMessages to tell the lost one
                 InterruptedMessages++;
             }
-        } else if (_buffer is null || id != _id || index != _next || count != _count || total != _buffer.Length) {
+        } else if (_pieces is null || id != _id || index != _next || count != _count || total != _total) {
             throw Bad($"piece {index}/{count} of message {id}, expected {_next}/{_count} of message {_id}");
         }
 
         var last = index == _count - 1;
-        if (size < 1 || size > _buffer!.Length - _offset || (last && size != _buffer.Length - _offset)) {
-            throw Bad($"piece {index}/{count} of {size} bytes at {_offset}/{_buffer!.Length}");
+        if (size < 1 || size > _total - _offset || (last && size != _total - _offset)) {
+            throw Bad($"piece {index}/{count} of {size} bytes at {_offset}/{_total}");
         }
 
-        Buffer.BlockCopy(piece, NetFragments.HeaderSize, _buffer, _offset, size);
+        _pieces!.Add(piece);
         _offset += size;
         _next = index + 1;
 
@@ -133,7 +136,14 @@ internal sealed class NetFragmentAssembler
             return null;
         }
 
-        var message = _buffer;
+        var message = new byte[_total];
+        var at = 0;
+        foreach (var kept in _pieces) {
+            var length = kept.Length - NetFragments.HeaderSize;
+            Buffer.BlockCopy(kept, NetFragments.HeaderSize, message, at, length);
+            at += length;
+        }
+
         Reset();
         return message;
     }
@@ -145,8 +155,8 @@ internal sealed class NetFragmentAssembler
 
     public void Reset()
     {
-        _buffer = null;
-        _id = _count = _next = _offset = 0;
+        _pieces = null;
+        _id = _count = _next = _offset = _total = 0;
     }
 
     private InvalidDataException Bad(string what)

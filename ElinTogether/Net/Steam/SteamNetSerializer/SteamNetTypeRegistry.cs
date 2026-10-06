@@ -42,6 +42,12 @@ internal class SteamNetTypeRegistry
                 Hash = typeName.Aggregate(2166136261U, (current, c) => (current ^ c) * 16777619U);
             }
 
+            // a message with this hash would be taken for a piece of a big message, see NetFragments
+            if (Hash == NetFragments.Magic) {
+                throw new InvalidOperationException(
+                    $"Message type {typeName} has the hash of the big message pieces ({NetFragments.Magic:X8}): rename it");
+            }
+
             _hashToType[Hash] = typeof(T);
             _typeToHash[typeof(T)] = Hash;
         }

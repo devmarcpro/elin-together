@@ -55,6 +55,61 @@
   **La seconde remplace** `Refusing stale {DeltaType} from peer {PeerIndex}, uid {Uid} is gone here` (tableau du §6
   de `PLAN_desync.md` : chercher le début de la ligne).
 
+## D2. Passage de main : la copie de l'host fait foi
+
+Écrit et compilé (`ReleaseNightly`, 0 erreur), **rien n'a tourné en jeu**. Test : `desync_suite.py --only d2` (trois fenêtres).
+
+- **Fait vérifié.** L'host qui part n'envoyait au repreneur qu'un bail `Handoff` sans carte (`Map` nul) : l'état de la
+  zone (drapeaux, dates) et les plages de numéros. Le repreneur gardait sa copie (`TakeOverZone`, qui n'applique même
+  pas l'état reçu). Les autres restés (`Guest` + `Handoff`) rechargent la copie **du repreneur** par sa session de zone
+  (monde + carte, `SendSaveProbe` du repreneur). L'host, en revenant, charge la copie du repreneur
+  (`ZoneLeaseRelease.Map` -> `ApplyLeasedZone`). Raison du choix d'origine : pas de rechargement ni de déplacement pour
+  celui qui garde la carte, et rien de ce qu'il vient de faire n'est perdu.
+- **Choix : (b), en un seul message.** L'host joint au bail sa carte (`Map`, le champ existait) **et** ses nombres
+  (`MapSums`, clé 9). Le repreneur compare avec les siens, après avoir appliqué les derniers messages de l'host :
+  égaux, il ne fait rien (comme avant) ; différents, il recharge la carte de l'host sous ses pieds, par le même chemin
+  que tout rechargement de la carte active, et reste sur sa case.
+- **Pourquoi pas (a)** : rechargement visible à chaque départ de l'host. **Pourquoi pas (b) avec aller-retour** (l'host
+  n'envoie la carte que si on la lui redemande) : entre-temps l'host est parti et les autres restés chargent déjà la
+  copie du repreneur ; il faudrait un message de plus, une attente, et bloquer les autres. Prix du choix : la carte
+  voyage à chaque départ de l'host où quelqu'un reste (comme pour tout bail), et l'host l'enregistre une fois de plus.
+- **Les nombres ne sont pas `NetDesync.Collect()`** : au passage de main les joueurs présents ne sont pas les mêmes
+  des deux côtés (l'host a déjà retiré ceux qui restent). `ZoneLeaseState.Sums` compte ce qu'une copie de carte
+  contient vraiment : objets au sol (numéro, case, quantité), **contenu des coffres et autres contenants au sol**
+  (numéro, contenant, quantité), personnages enregistrés avec la carte (numéro). Si l'on préfère un seul calcul :
+  ajouter à `NetDesync` une variante `Collect(Func<Chara, bool> skip)` et y compter le contenu des contenants.
+- **Journal.** Host, Information :
+  `Host leaves {ZoneFullName}, {@Peer} keeps it, uid range from {UidRangeStart}, host copy sent along {HasMap}: {Sums}`
+  (même début qu'avant). Repreneur, Information :
+  `Taking over {ZoneFullName} from the host: our copy is the same, kept ({Sums})` ; ou Warning :
+  `Taking over {ZoneFullName} from the host: our copy differs, replaced by the host's (here {Local} | host {Host})`.
+  Les nombres : `things N:mélange, held N:mélange, charas N:mélange`. L'host ne sait pas lequel des deux a eu lieu
+  (pas de message retour) : lire le journal du repreneur.
+- **Non couvert par les nombres** : le terrain (murs, sols, cultures), ce que portent les personnages de la carte
+  (marchands compris), leur case et leur vie, les personnages « du monde » (joueurs, compagnons, habitants uniques,
+  aventuriers : ils ne sont pas dans une copie de carte), l'état de la zone. Un écart qui ne touche que cela passe
+  toujours tel quel.
+- **Non corrigé, même défaut** : carte du monde (chacun la sienne, voulu) ; carte de quête laissée à celui qui a pris
+  la quête (pas de carte jointe : rechargement non lu sur une carte de quête) ; **un invité qui tient une carte et la
+  passe à un autre invité** (`HandOverZone`) : l'héritier garde sa copie alors que l'host vient de recevoir celle du
+  partant. Correction possible, même outil : nombres du partant dans `ZoneLeaseRelease`, carte et nombres dans le bail
+  de `HandOverZone`, sauf si le partant est tombé (alors la copie de l'invité est la plus récente).
+- **Déjà bon dans l'autre sens** : un invité qui rend sa carte à l'host (rappel ou retour) envoie sa carte entière,
+  l'host la charge ; ses invités sont rappelés et rechargent la copie de l'host, qui est celle-là.
+- **Pas sûr.**
+  - Un geste du repreneur dans le dernier aller-retour, que l'host n'a pas vu : si les copies diffèrent, la carte de
+    l'host le défait sur la carte mais pas dans le sac (objet posé perdu, objet ramassé en double). Fenêtre : un
+    aller-retour, et seulement quand il y a rechargement. Vraie correction : attendre l'accusé du repreneur comme pour
+    un départ normal.
+  - Si un contenu de coffre diffère « normalement » entre host et invité (non lu pour tous les coffres, ex. coffres de
+    marchand), le repreneur rechargera à chaque départ de l'host : le journal le dira (`held` différent à chaque fois).
+  - Rechargement avec une fenêtre ouverte ou en plein combat chez le repreneur : même chemin que quand l'host change
+    de carte, pas vu tourner ici.
+  - Une très grosse carte (base) alourdit le bail : envoi en morceaux de `9a25491` requis.
+  - `Zone.Deactivate` met dans le sac les artefacts divins au sol : retirés du sac après coup dans `AdoptHostCopy`
+    (ils reviennent avec la carte de l'host). Le rechargement existant (`ElinNetClientZone.cs:187`, outil de
+    resynchronisation) a le même piège et ne le traite pas : à voir à part.
+
 ## Hors plan, demandé en cours de route
 
 `Net/Host/ElinNetHostZone.cs` (`OnZoneDataReceivedResponse`) : un joueur déjà debout sur la case où on le remet y

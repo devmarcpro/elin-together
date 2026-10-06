@@ -13,6 +13,19 @@ public class SleepRequestDelta : ElinDelta
     [Key(0)]
     public int Hours { get; init; }
 
+    /// <summary>
+    ///     Own sleep: uid of the bed it sleeps in, 0 for none. The host keeps it to bound the power of the rest
+    ///     the guest reports at wake-up, see <see cref="CharaSleepDelta" />
+    /// </summary>
+    [Key(1)]
+    public int Bed { get; init; }
+
+    /// <summary>
+    ///     Own sleep: uid of the pillow it sleeps with, 0 for none
+    /// </summary>
+    [Key(2)]
+    public int Pillow { get; init; }
+
     protected override void OnApply(ElinNetBase net)
     {
         // client -> host intent only
@@ -35,7 +48,7 @@ public class SleepRequestDelta : ElinDelta
 
         // it sleeps at once, a night of its own
         if (NetSession.Instance.Rules.UseOwnSleep && chara.conSleep is not null) {
-            SleepSynchronizationContext.OnGuestAsleep(OriginPeer, chara, Hours);
+            SleepSynchronizationContext.OnGuestAsleep(OriginPeer, chara, Hours, Bed, Pillow);
         }
     }
 }

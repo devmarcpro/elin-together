@@ -62,6 +62,8 @@ public class ActionModeCombat
         // alone: no round to wait for. The visibility timer is left due so the first look once somebody is there
         // is not half a second late
         if (!NetCompany.HasCompany) {
+            // what the others saw before they left is not true any more (cheap when empty)
+            EnemyVisibility.Clear();
             _visibilityTimer = VisibilityRefreshInterval;
             ChangePhaseLocal(CombatPhase.Inactive);
             return;

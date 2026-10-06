@@ -19,14 +19,4 @@ internal static class DumpSparesBeltPatch
             __result.RemoveAll(t => t == EClass.pc.held || (t.parent as Thing)?.trait is TraitToolBelt);
         }
     }
-
-    // "dump_item" is said once per thing the dump puts away (TaskDump.Run), for nothing else
-    [HarmonyPrefix]
-    [HarmonyPatch(typeof(Msg), nameof(Msg.Say), typeof(string), typeof(Card), typeof(Card), typeof(string), typeof(string))]
-    private static void OnDumped(string idLang, Card c1, Card c2)
-    {
-        if (idLang == "dump_item") {
-            EmpLog.Debug("dumped: {Item}, {Chest}", c1.Name, c2.Name);
-        }
-    }
 }

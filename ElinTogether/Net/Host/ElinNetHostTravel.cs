@@ -144,7 +144,8 @@ internal partial class ElinNetHost
 
     /// <summary>
     ///     The host leaves its map: with independent travel the players on it stay where they are instead of
-    ///     being dragged along. The first one simulates the map from now on, as it stands on its screen,
+    ///     being dragged along. The first one simulates the map from now on, as it stands on its screen when
+    ///     that is what the host has too, from the host's copy otherwise,
     ///     the others join its zone session (on the world map everyone has its own copy) <br />
     ///     To follow the host, a player takes the same way out
     /// </summary>
@@ -185,8 +186,17 @@ internal partial class ElinNetHost
 
                 var rangeStart = ReserveLease(peer, zone);
 
-                EmpLog.Information("Host leaves {ZoneFullName}, {@Peer} keeps it, uid range from {UidRangeStart}",
-                    zone.ZoneFullName, peer, rangeStart);
+                // our copy is the reference, not what stands on its screen: it goes along with its numbers, and
+                // that player only loads it when its own numbers differ, see ElinNetClient.AdoptHostCopy.
+                // Not the world map (everyone has its own), not the zone of a quest (its taker runs it as it is)
+                // (with the host's "repair the map by itself" box: unticked, the map stays as it stands on its screen)
+                var map = !Session.Rules.AutoResync || zone.IsRegion || zone.IsInstance || zone.map is null
+                    ? null
+                    : ZoneLeaseState.CollectMap(zone);
+                var sums = map is null ? null : ZoneLeaseState.Sums(zone.map);
+
+                EmpLog.Information("Host leaves {ZoneFullName}, {@Peer} keeps it, uid range from {UidRangeStart}, host copy sent along {HasMap}: {Sums}",
+                    zone.ZoneFullName, peer, rangeStart, map is not null, ZoneLeaseState.TellSums(sums ?? []));
 
                 peer.Send(new ZoneLeaseGrant {
                     ZoneUid = zone.uid,
@@ -196,6 +206,8 @@ internal partial class ElinNetHost
                     ZoneState = ZoneLeaseState.GetState(zone),
                     IdCurrentSubset = zone.idCurrentSubset,
                     Handoff = true,
+                    Map = map,
+                    MapSums = sums,
                 });
                 continue;
             }

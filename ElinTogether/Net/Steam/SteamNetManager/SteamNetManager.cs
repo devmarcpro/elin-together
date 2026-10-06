@@ -100,7 +100,13 @@ public partial class SteamNetManager(ISteamNetSerializer? serializer = null) : I
 
                     // a piece of a big message: nothing for the listener before the last one, see SteamNetPeer.Send
                     if (NetFragments.IsFragment(bytes)) {
+                        var interrupted = peer.Fragments.InterruptedMessages;
                         var whole = peer.Fragments.Add(bytes);
+                        if (peer.Fragments.InterruptedMessages != interrupted) {
+                            EmpLog.Warning("A big message of {@Peer} was given up: another one started before its last piece",
+                                peer);
+                        }
+
                         if (whole is null) {
                             continue;
                         }
@@ -132,6 +138,11 @@ public partial class SteamNetManager(ISteamNetSerializer? serializer = null) : I
         // the next pieces of the big messages on their way out, a handler may have dropped a peer
         foreach (var peer in _peers.ToArray()) {
             peer.Flush();
+
+            // a reliable message was lost for this peer (it says so in the log): its stream has a hole
+            if (peer.BrokenReason is { } reason) {
+                Disconnect(peer, reason);
+            }
         }
     }
 
@@ -239,6 +250,8 @@ public partial class SteamNetManager(ISteamNetSerializer? serializer = null) : I
 
         _peers.Add(peer);
         _broadcast.AddTarget(peer);
+
+        NetCompany.Invalidate();
 
         _listener?.OnPeerConnected(peer);
 
