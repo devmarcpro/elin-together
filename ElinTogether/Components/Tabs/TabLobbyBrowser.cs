@@ -133,6 +133,15 @@ internal class TabLobbyBrowser : TabEmpBase
                 total += count;
 
                 HeaderCard("emp_ui_lobby_desc".Loc(lobby.Name, lobby.GameVersion, count, lobby[EmpLobbyData.CurrentZone]));
+
+                // from the title screen: one click joins that game (in a game, the player leaves it first)
+                if (!EClass.core.IsGameStarted) {
+                    var target = lobby;
+                    Horizontal().Button("emp_ui_depot_join_btn".Loc(lobby.Name), () => {
+                        LayerElinTogether.Instance?.Close();
+                        NetSession.Instance.Lobby.ConnectLobby(target);
+                    });
+                }
             }
 
             totalPlayers.text1.text = "emp_ui_lobby_tally".Loc(total);
