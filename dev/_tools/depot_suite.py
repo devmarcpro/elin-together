@@ -36,6 +36,29 @@ D7  (dossier et GitHub) REDIRECTION : le verrou dit ou rejoindre celui qui tient
         automatique
       - le plantage de H (verrou tenu 3 minutes, connexion qui echoue, message, puis verrou perime) n'est pas joue
 
+D8  (depot dossier seulement, joue EN DERNIER de la passe complete, apres P1 et P2 qui ont besoin de l'etat que laisse D7 ;
+    seule : DEPOT_ONLY=d8 ou --only d8, sur n'importe quel etat des fenetres : la suite les ramene au titre)
+    PRENDRE LE MONDE DU DEPOT OUVRE LA PARTIE TOUT SEUL (demande de l'utilisateur : "quand un joueur prend la sauvegarde
+    sur le repo il devrait automatiquement lancer le serveur" ; EmpAutoHost.OpenSession : ouvre si IsSharedWorld OU
+    SaveDepot.Holding). Un monde JAMAIS partage (la copie vierge world_lab.pristine : aucune table remote_chara /
+    pc_owner / pc_orphan) est mis au depot a la place du monde de la passe, puis pris par A (SaveDepot.Take, ce que
+    fait le bouton) avec emp.auto_open 1 (sans quoi une fenetre du banc n'ouvre jamais rien) et AutoHost coche :
+      - IsSharedWorld est faux (sinon le test ne prouverait rien : le monde s'ouvrirait pour une autre raison) et
+        SaveDepot.Holding est vrai ;
+      - apres le chargement, sans emp.add_local ni clic, A est Host, seul, et le verrou du depot dit que sa partie est
+        ouverte ;
+      - le contraire : A quitte (le depot est libre), n'a plus de depot regle, et recharge ce meme monde comme un
+        monde ordinaire (Game.Load "world_depot" : Holding est faux sans depot regle) avec emp.auto_open 1 toujours
+        allume : rien ne s'ouvre (role None, aucun joueur).
+    Ce que D8 ne joue PAS : les boutons (Take est appele, pas clique ; le chargement par Game.Load, la question "mods
+    manquants" passee par CONTINUE comme le fait la suite partout) ; l'ouverture est sur le port local du banc (comme
+    D7), pas par Steam : le salon Steam et "amis seulement" ne sont pas joues ; un monde solo vraiment ordinaire
+    (une sauvegarde locale d'un autre nom, sans aucun depot) n'est pas joue, c'est le meme monde sans depot regle ;
+    le monde jamais partage est la copie vierge posee dans le depot par le banc, pas un monde mis au depot par le
+    bouton "Put" d'un joueur ; avec le logiciel (DEPOT_SERVER) et GitHub, non joue (le monde du depot n'y est pas un
+    dossier que le banc peut remplacer) : un message le dit. A finit au titre, H aussi : un monde du depot et des
+    fenetres au titre, pas l'etat que P1/P2 attendent (les rejouer demande la passe complete).
+
 P1  (depot dossier seulement, a la fin ; seule : DEPOT_ONLY=p1 ou --only p1, sur les fenetres telles que la passe
     complete les laisse : H heberge le monde du depot, A l'a rejoint avec son personnage) ETAT DES LIEUX, sans code
     nouveau dans le mod : quand l'invite prend a son tour le monde du depot et l'heberge, quel personnage joue-t-il ?
@@ -183,6 +206,12 @@ RESET = ('var s = ' + DEP + '; var g = HarmonyLib.AccessTools.TypeByName("ElinTo
 WHO_NOW = 'HarmonyLib.AccessTools.Field(' + DEP + ', "_whoAt").SetValue(null, -1000f); '
 NEXT_SEND0 = 'HarmonyLib.AccessTools.Field(' + DEP + ', "_nextSend").SetValue(null, 0f); "ok"'
 QUIT = 'UnityEngine.Application.Quit(); "ok"'
+# D8 : la case "la partie s'ouvre toute seule" (Server/AutoHost) ; l'etat du monde pour EmpAutoHost.OpenSession
+AUTOHOST = ('var e = (BepInEx.Configuration.ConfigEntry<bool>)HarmonyLib.AccessTools.Property('
+            'HarmonyLib.AccessTools.TypeByName("ElinTogether.EmpConfig+Server"), "AutoHost").GetValue(null); ')
+SHARED = ('((bool)HarmonyLib.AccessTools.Property(HarmonyLib.AccessTools.TypeByName("ElinTogether.Net.ElinNetHost"), '
+          '"IsSharedWorld").GetValue(null)).ToString()')
+HOLDING = '((bool)HarmonyLib.AccessTools.Property(' + DEP + ', "Holding").GetValue(null)).ToString()'
 
 
 def game_id(port):
@@ -712,6 +741,85 @@ def p2():
           still["uid"] == me["uid"] and info(N, uid_o)["place"] == "carte")
 
 
+def d8():
+    """Prendre le monde du depot ouvre la partie tout seul ; le meme monde charge sans depot regle n'ouvre rien.
+    Voir D8 en tete du fichier (ce qui n'est pas joue comme un joueur y est ecrit)."""
+    log("--- D8")
+    DEPOT.mkdir(parents=True, exist_ok=True)
+    if REMOTE or GITHUB or not PRISTINE.exists():
+        log("D8 non jouee : seulement avec le depot dossier et la copie vierge world_lab.pristine du banc")
+        return
+
+    # (1) depart : les deux jeux au titre, le depot libre (ce que la passe laisse n'est pas ce dont D8 a besoin)
+    for port in (H, A):
+        if state(port).get("sceneMode") != "Title":
+            ev(port, 'ElinTogether.Net.NetSession.Instance.ResetSession(); "ok"')
+            time.sleep(3)
+        if state(port).get("sceneMode") != "Title":
+            to_title(port)
+    wait(lambda: all(state(p).get("sceneMode") == "Title" and not state(p)["connected"] for p in (H, A)),
+         "les deux jeux au titre", timeout=60)
+    ev(A, SET % str(DEPOT))
+    check("D8 depart : le monde du depot est libre", eventually(lambda: holder(A) == "" and holder(H) == "", timeout=15))
+
+    # (2) un monde jamais partage dans le depot, a la place du monde de la passe ; la copie locale de A est effacee :
+    # le monde vient bien du depot
+    shutil.rmtree(DEPOT / "world", ignore_errors=True)
+    shutil.copytree(PRISTINE, DEPOT / "world")
+    shutil.rmtree(LOCAL, ignore_errors=True)
+
+    # (3) A prend le monde, avec la case "s'ouvre toute seule" cochee et la commande du banc qui la rallume
+    was_on = ev(A, AUTOHOST + "e.Value.ToString()")
+    try:
+        ev(A, AUTOHOST + "e.Value = true; e.Value.ToString()")
+        log(ok(emp.call(A, "command", {"cmd": "emp.auto_open 1"})))
+        take(A)
+        wait(loaded(A), "A charge le monde jamais partage du depot", timeout=240, every=3.0)
+        dismiss_dialogs(A)
+        opened = eventually(lambda: state(A).get("role") == "Host", timeout=60)
+        shared, holding = ev(A, SHARED), ev(A, HOLDING)
+        check(f"D8 le monde pris est un monde jamais partage (IsSharedWorld {shared}) que le depot tient (Holding {holding}) : "
+              "la seule raison d'ouvrir est le depot", shared == "False" and holding == "True")
+        s = state(A)
+        check(f"D8 apres le chargement, sans emp.add_local ni clic, la partie de A est ouverte : role {s.get('role')}, "
+              f"{len(s.get('players', []))} joueur(s), connected {s.get('connected')}",
+              opened and s.get("role") == "Host" and len(s.get("players", [])) == 1)
+        check(f"D8 le verrou du depot dit ou rejoindre A ({lock_now()[1]!r})",
+              eventually(lambda: lock_now()[1].endswith(" 55556"), timeout=30))
+
+        # (4) le contraire : A quitte, n'a plus de depot, recharge ce meme monde comme un monde ordinaire
+        ev(A, 'ElinTogether.Net.NetSession.Instance.ResetSession(); "ok"')
+        time.sleep(3)
+        if state(A).get("sceneMode") != "Title":
+            to_title(A)
+        check("D8 A quitte : le depot est libre", eventually(lambda: holder(H) == "", timeout=15))
+        ev(A, SET % "")
+        asked = ev(A, 'Game.TryLoad("world_depot", false, () => Game.Load("world_depot", false)).ToString()')
+        if asked != "True":
+            log("Game.TryLoad refuse a l'ecran titre : chargement direct par Game.Load")
+            ev(A, 'Game.Load("world_depot", false); "ok"')
+        wait(loaded(A), "A recharge le meme monde sans depot regle", timeout=240, every=3.0)
+        dismiss_dialogs(A)
+        time.sleep(15)  # (l'ouverture, si elle devait avoir lieu, vient une image apres le chargement)
+        s = state(A)
+        holding, shared = ev(A, HOLDING), ev(A, SHARED)
+        free = ev(A, '(ElinTogether.Net.NetSession.Instance.Transport == null).ToString()')
+        check(f"D8 le meme monde sans depot regle, emp.auto_open toujours allume : rien ne s'ouvre "
+              f"(Holding {holding}, IsSharedWorld {shared}, role {s.get('role')}, aucune session {free})",
+              holding == "False" and shared == "False" and s.get("role") == "None" and free == "True")
+        to_title(A)
+    finally:
+        for cmd in ("emp.auto_open 0",):
+            try:
+                emp.call(A, "command", {"cmd": cmd})
+            except Exception:  # noqa: BLE001
+                pass
+        try:
+            ev(A, AUTOHOST + f"e.Value = {was_on.lower()}; e.Value.ToString()")
+        except Exception:  # noqa: BLE001
+            pass
+
+
 def main():
     global A
     sys.stdout.reconfigure(encoding="utf-8")
@@ -729,10 +837,10 @@ def main():
     only = os.environ.get("DEPOT_ONLY", "").lower()
     if "--only" in sys.argv:
         only = sys.argv[sys.argv.index("--only") + 1].lower()
-    if only not in ("", "p1", "p2"):
-        sys.exit("DEPOT_ONLY / --only : seulement p1 ou p2")
+    if only not in ("", "p1", "p2", "d8"):
+        sys.exit("DEPOT_ONLY / --only : seulement p1, p2 ou d8")
     if only and (REMOTE or GITHUB):
-        sys.exit("P1 et P2 se jouent avec le depot dossier (ni DEPOT_SERVER ni DEPOT_GITHUB)")
+        sys.exit("P1, P2 et D8 se jouent avec le depot dossier (ni DEPOT_SERVER ni DEPOT_GITHUB)")
     server = fake = None
     fake_state = {}
     try:
@@ -922,12 +1030,15 @@ def main():
 
             redirect()
         if REMOTE or GITHUB:
-            log("--- P1 et P2 non jouees : seulement avec le depot dossier")
+            log("--- P1, P2 et D8 non jouees : seulement avec le depot dossier")
         else:
-            if only != "p2":
+            if only in ("", "p1"):
                 p1()
-            if only != "p1":
+            if only in ("", "p2"):
                 p2()
+            # en dernier : D8 remplace le monde du depot et laisse les deux jeux au titre
+            if only in ("", "d8"):
+                d8()
     except Exception as ex:  # noqa: BLE001
         check(f"interrompu : {type(ex).__name__}: {str(ex)[:300]}", False)
         for name, port in (("host", H), ("A", A)):

@@ -152,6 +152,12 @@ internal static class SaveDepot
 
     internal static bool Enabled => Root.Length > 0 && (Asked || Directory.Exists(Root));
 
+    /// <summary>
+    ///     The world being played was taken from the depot in this run of the game: an old local copy of it loaded
+    ///     from the game's own screen is not, someone else may hold the depot
+    /// </summary>
+    internal static bool Taken { get; private set; }
+
     private static bool Holding => Enabled && EClass.core.IsGameStarted && Game.id == WorldId &&
                                    NetSession.Instance.Transport is not ElinNetClient;
 
@@ -299,6 +305,7 @@ internal static class SaveDepot
         _nextSend = 0f;
         _openTold = default;
         EmpLog.Information("Took the world from the depot {Root}", Root);
+        Taken = true;
         Game.Load(WorldId, false);
     }
 
@@ -825,6 +832,10 @@ internal static class SaveDepot
     [ElinPostSceneInit]
     private static void ReleaseAtTitle(Scene.Mode mode)
     {
+        if (mode == Scene.Mode.Title) {
+            Taken = false;
+        }
+
         if (mode != Scene.Mode.Title || !Enabled) {
             return;
         }

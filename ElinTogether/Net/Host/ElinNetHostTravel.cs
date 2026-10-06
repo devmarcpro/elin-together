@@ -237,9 +237,11 @@ internal partial class ElinNetHost
         }
 
         foreach (var peer in Socket.Peers) {
-            // the one keeping that town since the host left it, a player elsewhere has its own business
-            if (!_departed.Contains(peer.Id) || !_leases.TryGetValue(peer.Id, out var zones) ||
-                !zones.ContainsKey(instance.uidZone)) {
+            // the one keeping that town since the host left it, or visiting the one who does: a player elsewhere
+            // has its own business
+            var keeps = _leases.TryGetValue(peer.Id, out var zones) && zones.ContainsKey(instance.uidZone);
+            var visits = _guests.TryGetValue(peer.Id, out var at) && at.ZoneUid == instance.uidZone;
+            if (!_departed.Contains(peer.Id) || !(keeps || visits)) {
                 continue;
             }
 
@@ -690,6 +692,7 @@ internal partial class ElinNetHost
         // going somewhere else than the zone being recalled: the host gave up on it, and must not be pulled
         // there when it comes back later
         if (_pendingHostMove is { } waiting && waiting.Zone != zone) {
+            ZoneLeaseState.Imported.Remove(waiting.Zone.uid);
             _pendingHostMove = null;
         }
 
@@ -1149,8 +1152,14 @@ internal partial class ElinNetHost
                 SendSaveProbe(chara, peer);
             }
 
-            // the zone files are already in the save folder, keep game.txt consistent with them
-            if (!EClass.debug.ignoreAutoSave) {
+            // the zone files are already in the save folder: the save is asked for, not made in this frame, so that
+            // players coming back in a row and the host's own move cost one save. ponytail: until it is made (5 s,
+            // 30 s at most if a menu or a fight holds it) game.txt lacks the character just handed back and the host's
+            // own progress. A host crash then loses what that player took or did on the map it held (a picked-up
+            // object is gone: the map file has it out, game.txt still has the old character) and an object it put
+            // down is there twice. Already so between two checkpoints (60 s of map files against up to 2 min of
+            // game.txt), the return adds at most these seconds. Unticked AutoSave or dedicated server: saved here
+            if (!EClass.debug.ignoreAutoSave && !EmpAutoHost.RequestSave()) {
                 game.Save(isAutoSave: true);
             }
         }
@@ -1254,6 +1263,11 @@ internal partial class ElinNetHost
         // the date came with that copy; before the save and the move of the host that follow a recall
         if (HasPlayerIn(zone)) {
             KeepAlive(zone);
+        }
+
+        // recalled because the host walks in while a player is there, see BossFleePatch
+        if (_pendingHostMove is { } joining && joining.Zone.uid == zone.uid) {
+            ZoneLeaseState.Imported.Add(zone.uid);
         }
 
         // the client just left, no catch-up simulation owed

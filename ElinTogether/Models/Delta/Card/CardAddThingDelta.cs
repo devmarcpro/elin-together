@@ -67,6 +67,13 @@ public class CardAddThingDelta : ElinDelta
             thing.SetInt(ShippingHelper.ShipperKey, Shipper);
         }
 
+        // the bank and the delivery box of a zone session are copies too: what a guest puts in goes to the real
+        // ones, it would be lost with the copy
+        if (net is ElinNetHost boxHost && OriginPeer != 0 && ShippingHelper.OtherWorldBox(parent) is var box and not 0 &&
+            boxHost.ForwardShippingDeposit(thing, 0, box)) {
+            return;
+        }
+
         if (net.IsHost) {
             net.Delta.AddRemote(this);
         }

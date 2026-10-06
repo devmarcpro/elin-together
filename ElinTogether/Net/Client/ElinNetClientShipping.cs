@@ -1,3 +1,7 @@
+using System.Collections.Generic;
+using System.Linq;
+using ElinTogether.Helper;
+using ElinTogether.Helper.Extensions;
 using ElinTogether.Models;
 
 namespace ElinTogether.Net;
@@ -32,30 +36,143 @@ internal partial class ElinNetClient
         // and must not be in the bag the host keeps for this player: quitting before the next checkpoint
         // would leave it sold and kept
         _nextCheckpoint = 0;
+
+        AskWorldBoxSoon(box);
         return true;
+    }
+
+    private readonly HashSet<int> _askingBoxes = [];
+
+    /// <summary>
+    ///     After deposits: ask once for what the box holds now, for the window that is open (many deposits, one answer)
+    /// </summary>
+    private void AskWorldBoxSoon(int box)
+    {
+        if (!_askingBoxes.Add(box)) {
+            return;
+        }
+
+        this.StartDeferredCoroutine(() => {
+            _askingBoxes.Remove(box);
+            if (ShippingHelper.WorldBox(box) is { } container && LayerInventory.IsOpen(container)) {
+                AskWorldBox(box);
+            }
+        }, 0.3f);
     }
 
     /// <summary>
     ///     The boxes shared by the whole world (shipping, deliveries, bank) are the host's: empty in the copy
     ///     of a travelling player, taking from a copy would duplicate what the host still has
     /// </summary>
-    private static void EmptyWorldContainers()
+    internal static void EmptyWorldContainers()
     {
-        Thing?[] containers = [
-            game.cards.container_shipping,
-            game.cards.container_deliver,
-            game.cards.container_deposit,
-        ];
+        EmptyWorldContainer(game.cards.container_shipping);
+        EmptyWorldContainer(game.cards.container_deliver);
+        EmptyWorldContainer(game.cards.container_deposit);
+    }
 
-        foreach (var container in containers) {
-            if (container is null) {
-                continue;
-            }
-
-            foreach (var thing in container.things.ToArray()) {
-                thing.Destroy();
-            }
+    /// <summary>
+    ///     One box only: closing a window must not empty the pictures of another window still open
+    /// </summary>
+    internal static void EmptyWorldContainer(Thing? container)
+    {
+        if (container is null) {
+            return;
         }
+
+        foreach (var thing in container.things.ToArray()) {
+            thing.Destroy();
+        }
+    }
+
+    /// <summary>
+    ///     Alone away (the game runs as single player): the boxes of the world can show what the host holds
+    /// </summary>
+    internal bool MirrorsWorldBoxes => Session.IsAway && !IsZoneSession && Session.Connection is null && core.IsGameStarted;
+
+    /// <summary>
+    ///     Ask the host what a box of the world holds, and with takeNum for that many of its stack takeUid
+    /// </summary>
+    internal bool AskWorldBox(int box, int takeUid = 0, int takeNum = 0)
+    {
+        if (!MirrorsWorldBoxes || box < 0) {
+            return false;
+        }
+
+        Host.Send(new ShippingDeposit {
+            Thing = LZ4Bytes.Empty,
+            Shipper = 0,
+            Box = box,
+            Ask = true,
+            TakeUid = takeUid,
+            TakeNum = takeNum,
+        });
+
+        return true;
+    }
+
+    /// <summary>
+    ///     Net event: what a box of the world holds, and what the host took out of it for us
+    /// </summary>
+    private void OnWorldBox(ShippingPayout content)
+    {
+        var mirrors = MirrorsWorldBoxes && pc is not null;
+
+        if (content.Taken is { } taken) {
+            if (!mirrors) {
+                // we moved on since asking: back into the box it came from
+                Host.Send(new ShippingDeposit {
+                    Thing = taken,
+                    Shipper = 0,
+                    Box = content.Box,
+                });
+                return;
+            }
+
+            var thing = taken.Decompress<Thing>();
+            // its uid comes from another world
+            foreach (var card in thing.things.Flatten().Prepend(thing)) {
+                game.cards.AssignUID(card);
+            }
+
+            EClass.pc.Pick(thing, false);
+
+            // it left the box of the host: it has to be in the bag the host keeps for us
+            _nextCheckpoint = 0;
+
+            EmpLog.Debug("Took {CardId} x{CardNum} out of world box {Box}", thing.id, thing.Num, content.Box);
+        } else if (content.Asked > 0 && mirrors) {
+            EmpPop.Information("emp_ui_thing_gone".lang());
+        }
+
+        if (!mirrors || content.BoxThings is null || ShippingHelper.WorldBox(content.Box) is not { } container) {
+            return;
+        }
+
+        foreach (var old in container.things.ToArray()) {
+            old.Destroy();
+        }
+
+        // only while its window is open: nothing else of this game may count on a picture (bills, month end)
+        if (!LayerInventory.IsOpen(container)) {
+            return;
+        }
+
+        ShippingHelper.FillingMirror = true;
+        try {
+            foreach (var thing in content.BoxThings.Decompress<List<Thing>>()) {
+                foreach (var card in thing.things.Flatten().Prepend(thing)) {
+                    card.SetInt(ShippingHelper.MirrorKey, card.uid);
+                    card.SetInt(ShippingHelper.MirrorBoxKey, content.Box + 1);
+                }
+
+                container.AddThing(thing, false);
+            }
+        } finally {
+            ShippingHelper.FillingMirror = false;
+        }
+
+        LayerInventory.SetDirtyAll();
     }
 
     /// <summary>
@@ -64,6 +181,11 @@ internal partial class ElinNetClient
     private void OnShippingPayout(ShippingPayout payout)
     {
         if (IsZoneSession) {
+            return;
+        }
+
+        if (payout.BoxThings is not null || payout.Taken is not null) {
+            OnWorldBox(payout);
             return;
         }
 

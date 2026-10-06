@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using ElinTogether.Helper;
 using ElinTogether.Net;
 using UnityEngine;
 
@@ -17,8 +18,10 @@ internal static class EmpAutoHost
     private const float RetrySeconds = 10f;
     private const long SlowSaveMs = 500;
     private const float BackupSeconds = 3600f;
+    private const float ForceSeconds = 30f;
 
     private static float _nextSave;
+    private static float _forceAt;
     private static bool _guests;
     private static bool _owed;
     private static bool _slow;
@@ -75,8 +78,9 @@ internal static class EmpAutoHost
         }
 
         // a world nobody else plays in stays a solo game: a session changes rules of the game (no pause in menus,
-        // the turns of a fight) that a player alone never asked for. The first session of a world is opened by hand
-        if (!ElinNetHost.IsSharedWorld) {
+        // the turns of a fight) that a player alone never asked for. The first session of a world is opened by hand,
+        // unless the world was taken from a depot: that is asking to play it with others
+        if (!ElinNetHost.IsSharedWorld && !SaveDepot.Taken) {
             return;
         }
 
@@ -106,30 +110,66 @@ internal static class EmpAutoHost
         if (EmpServer.Requested || session.Transport is not ElinNetHost || !EClass.core.IsGameStarted ||
             !EmpConfig.Server.AutoSave.Value) {
             _guests = _owed = false;
+            _forceAt = 0f;
             return;
         }
 
         var now = Time.unscaledTime;
         var guests = session.CurrentPlayers.Count > 1;
         if (guests != _guests) {
-            // the first player in starts the clock; the last one out is saved at once: what it did is in the world
+            // the first player in starts the clock; the last one out is saved at once: what it did is in the world.
+            // A save asked for by RequestSave survives the first player in
             _guests = guests;
-            _owed = !guests;
-            _nextSave = guests ? now + Interval : now;
+            if (!guests) {
+                _owed = true;
+                _nextSave = now;
+            } else if (!_owed) {
+                _nextSave = now + Interval;
+            }
         }
 
         if ((!guests && !_owed) || now < _nextSave) {
             return;
         }
 
-        if (!CanSave()) {
+        // a save asked for by RequestSave is not put off for good by a menu or a fight: it was never asked
+        if (!CanSave() && (_forceAt <= 0f || now < _forceAt)) {
             _nextSave = now + RetrySeconds;
             return;
         }
 
         _owed = false;
+        _forceAt = 0f;
         Save();
         _nextSave = Time.unscaledTime + Interval;
+    }
+
+    /// <summary>
+    ///     A player came back to the host's map: its character and the map it held are in the world now, and the world
+    ///     is saved soon, once for all the players who come back in a row, instead of in the frame of each return.
+    ///     False when nothing saves by itself here (box unticked, dedicated server, bench window that did not ask):
+    ///     the caller saves then
+    /// </summary>
+    internal static bool RequestSave(float within = 5f)
+    {
+#if DEBUG
+        if (_bench && _benchSeconds <= 0f) {
+            return false;
+        }
+#endif
+
+        if (EmpServer.Requested || !EmpConfig.Server.AutoSave.Value) {
+            return false;
+        }
+
+        var now = Time.unscaledTime;
+        _owed = true;
+        _nextSave = _nextSave > now ? Mathf.Min(_nextSave, now + within) : now + within;
+        if (_forceAt <= 0f) {
+            _forceAt = now + ForceSeconds;
+        }
+
+        return true;
     }
 
     /// <summary>

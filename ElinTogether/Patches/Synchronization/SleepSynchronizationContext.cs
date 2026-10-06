@@ -203,6 +203,13 @@ internal class SleepSynchronizationContext : SynchronizationContext
         return bed is { isDestroyed: false } ? bed : null;
     }
 
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(RecipeManager), nameof(RecipeManager.OnSleep))]
+    internal static bool OnDreamRecipe(bool ehe)
+    {
+        return !CharaSleepDelta.DeferRecipe(ehe);
+    }
+
     private static bool InSleepWaitWindow(Chara chara)
     {
         if (chara.conSleep is not { pcSleep: <= 1 } || ui.GetLayer<LayerSleep>() is not null) {

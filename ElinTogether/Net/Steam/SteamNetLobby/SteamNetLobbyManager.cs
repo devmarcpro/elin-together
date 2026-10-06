@@ -15,6 +15,9 @@ public class SteamNetLobbyManager : EClass
 {
     private const string ConnectLobbyArg = "+connect_lobby";
 
+    // on the lobby of a session opened by itself, that Steam lists: the browser only shows it to friends of its owner
+    private const string HiddenKey = "emp_hidden";
+
     private readonly HashSet<UserData> _blocked = [];
     private readonly HashSet<UserData> _invited = [];
 
@@ -22,6 +25,14 @@ public class SteamNetLobbyManager : EClass
     private Action<LobbyData[]>? _deferOnComplete;
     private bool _shutdown;
     private bool _quiet;
+    private bool _invisible;
+
+    /// <summary>
+    ///     Asked by the host of a session opened by itself (ElinNetHost.StartServer sets it, and only then): is this
+    ///     Steam account one of this world (it has, or had, a character in it)? Such a player comes in without being a
+    ///     friend of the host. Null: only friends and invited players come in, as a "friends only" lobby does
+    /// </summary>
+    internal Func<ulong, bool>? KnownAccount;
 
     internal SteamNetLobbyManager()
     {
@@ -93,6 +104,15 @@ public class SteamNetLobbyManager : EClass
             SteamNetLobbyType.Invite => ELobbyType.k_ELobbyTypePrivateUnique,
             _ => throw new ArgumentOutOfRangeException(nameof(SteamNetLobbyType), type, null),
         };
+
+        // "friends only" cannot be joined by a player who is not a friend of the host, even with the lobby id (the
+        // Steam server refuses it): a session opened by itself that must let the players of its world in is Public,
+        // so that friends still join it from Steam, and marked hidden: the browser only shows it to friends of its
+        // owner. Who really comes in is decided here, in OnLobbyChatUpdate
+        _invisible = quiet && type == SteamNetLobbyType.Friend && KnownAccount is not null;
+        if (_invisible) {
+            lobbyType = ELobbyType.k_ELobbyTypePublic;
+        }
 
 #if DEBUG
         lobbyType = ELobbyType.k_ELobbyTypePrivateUnique;
@@ -269,6 +289,9 @@ public class SteamNetLobbyManager : EClass
         Current[EmpLobbyData.EmpVersion] = ModInfo.BuildVersion;
         Current[EmpLobbyData.GameBuild] = BuildVersionIntegrity.GameVersion;
         Current[EmpLobbyData.CurrentZone] = core.game?.activeZone?.NameWithLevel ?? "";
+        if (_invisible) {
+            Current[HiddenKey] = "1";
+        }
 
         NetSession.Instance.SessionId = Current;
 
@@ -380,13 +403,16 @@ public class SteamNetLobbyManager : EClass
         if (me.IsOwner) {
             if (state == SteamNetLobbyMemberState.Entered) {
                 var friend = SteamFriends.GetFriendRelationship(user);
-                if (friend == EFriendRelationship.k_EFriendRelationshipFriend || _invited.Contains(user)) {
+                var known = IsKnownAccount(user);
+                if (friend == EFriendRelationship.k_EFriendRelationshipFriend || _invited.Contains(user) || known) {
                     Current[$"connection_key_{user}"] =
                         SteamNetManager.ConnectionKeys[user] =
                             PlayerUidMaker.MakeConnectionKey(user);
-                    EmpLog.Information("Connection ready for {RemoteIdentity}",
-                        user);
+                    EmpLog.Information("Connection ready for {RemoteIdentity} ({Why})",
+                        user, known ? "account known to this world" : "friend or invited");
                 } else {
+                    EmpLog.Information("Refused {RemoteIdentity}: not a friend, not invited, not known to this world",
+                        user);
                     Current.KickMember(user);
                 }
             } else {
@@ -398,6 +424,24 @@ public class SteamNetLobbyManager : EClass
 
                 Current.RemoveFromKickList(user);
             }
+        }
+    }
+
+    /// <summary>
+    ///     A session opened by itself lets the accounts of its world in. A session opened by hand never does
+    /// </summary>
+    private bool IsKnownAccount(UserData user)
+    {
+        if (!_quiet || KnownAccount is null) {
+            return false;
+        }
+
+        try {
+            ulong id = user;
+            return KnownAccount(id);
+        } catch (Exception ex) {
+            EmpLog.Warning(ex, "Could not tell if {RemoteIdentity} is known to this world", user);
+            return false;
         }
     }
 
@@ -421,7 +465,10 @@ public class SteamNetLobbyManager : EClass
 
         for (var i = 0; i < fetched; ++i) {
             LobbyData lobby = SteamMatchmaking.GetLobbyByIndex(i);
-            if (!lobby.IsValid || lobby.MemberCount == 0) {
+            // (the lobby a world opens by itself is not for strangers)
+            if (!lobby.IsValid || lobby.MemberCount == 0 ||
+                (lobby[HiddenKey] == "1" && SteamFriends.GetFriendRelationship(lobby.Owner.user) !=
+                    EFriendRelationship.k_EFriendRelationshipFriend)) {
                 continue;
             }
 

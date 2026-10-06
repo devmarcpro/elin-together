@@ -36,6 +36,40 @@ internal static class ShippingHelper
         return card == cards.container_deliver ? BoxDelivery : card == cards.container_deposit ? BoxBank : 0;
     }
 
+    /// <summary>
+    ///     Alone away, an open box of the world shows what the host holds: every thing in it is only a picture,
+    ///     tagged with the host uid of the real one and with its box + 1. A picture never stacks with a real
+    ///     thing and never enters a bag: taking it asks the host for the real one, see CardAddThingEvent
+    /// </summary>
+    internal const string MirrorKey = "emp_box_uid";
+
+    internal const string MirrorBoxKey = "emp_box";
+
+    /// <summary>
+    ///     Set while the pictures are put in the box: nothing of it is a deposit
+    /// </summary>
+    internal static bool FillingMirror { get; set; }
+
+    /// <summary>
+    ///     Shipping box 0, delivery box 1, bank 2 (ShippingDeposit.Box), -1 for any other card
+    /// </summary>
+    internal static int WorldBoxIndex(Card? card)
+    {
+        if (IsShippingBox(card)) {
+            return 0;
+        }
+
+        var box = OtherWorldBox(card);
+        return box == 0 ? -1 : box;
+    }
+
+    internal static Thing? WorldBox(int box)
+    {
+        return EClass.game?.cards is not { } cards ? null :
+            box == BoxDelivery ? cards.container_deliver :
+            box == BoxBank ? cards.container_deposit : cards.container_shipping;
+    }
+
     internal static bool IsShippingBox(Card? card)
     {
         return card is not null && card == EClass.game?.cards?.container_shipping;

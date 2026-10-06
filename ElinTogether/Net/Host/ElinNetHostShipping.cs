@@ -42,9 +42,47 @@ internal partial class ElinNetHost
     /// <summary>
     ///     Zone session host: the shipping box here is a copy, the goods go to the real host
     /// </summary>
-    internal bool ForwardShippingDeposit(Thing thing, int shipperUid)
+    internal bool ForwardShippingDeposit(Thing thing, int shipperUid, int box = 0)
     {
-        return IsZoneSession && Session.Transport is ElinNetClient main && main.ForwardShippingDeposit(thing, shipperUid);
+        return IsZoneSession && Session.Transport is ElinNetClient main && main.ForwardShippingDeposit(thing, shipperUid, box);
+    }
+
+    /// <summary>
+    ///     Answer to a player away: what a box of the world holds now, and what it takes out of it. <br />
+    ///     The boxes are the host's, one for everyone: a stack is given once, never more than is left of it
+    /// </summary>
+    private void SendWorldBox(ISteamNetPeer peer, ShippingDeposit ask)
+    {
+        if (ShippingHelper.WorldBox(ask.Box) is not { } container) {
+            return;
+        }
+
+        LZ4Bytes? taken = null;
+        if (ask.Ask && ask.TakeNum > 0 &&
+            container.things.Flatten().FirstOrDefault(t => t.uid == ask.TakeUid) is { isDestroyed: false } stack) {
+            var part = stack.Split(Math.Min(ask.TakeNum, stack.Num));
+            part.SetInt(ShippingHelper.ShipperKey, 0);
+            taken = LZ4Bytes.Create(part);
+            // ponytail: gone from here once sent, like a shipping payout; a link lost before the player's next
+            // checkpoint (asked at once) loses it. Keep it until that checkpoint if it ever happens
+            part.Destroy();
+
+            EmpLog.Debug("Player {@Peer} took {CardId} x{CardNum} out of world box {Box}",
+                peer, part.id, part.Num, ask.Box);
+        }
+
+        peer.Send(new ShippingPayout {
+            Ints = [],
+            ItemStrs = [],
+            ShipNum = 0,
+            ShipMoney = 0,
+            BranchLv = 0,
+            BranchExp = 0,
+            Box = ask.Box,
+            BoxThings = LZ4Bytes.Create(container.things.ToList()),
+            Taken = taken,
+            Asked = ask.Ask ? ask.TakeNum : 0,
+        });
     }
 
     /// <summary>
@@ -53,6 +91,11 @@ internal partial class ElinNetHost
     private void OnShippingDeposit(ShippingDeposit deposit, ISteamNetPeer peer)
     {
         if (IsZoneSession || !SavedRemoteCharas.TryGetValue(peer.User, out var own)) {
+            return;
+        }
+
+        if (deposit.Ask) {
+            SendWorldBox(peer, deposit);
             return;
         }
 
@@ -91,6 +134,8 @@ internal partial class ElinNetHost
 
         EmpLog.Debug("Player {@Peer} shipped {CardId} x{CardNum} from afar for chara {Uid}",
             peer, thing.id, thing.Num, shipper);
+
+        // no answer: the player asks for the box once after its deposits, see ElinNetClient.AskWorldBoxSoon
     }
 
     /// <summary>

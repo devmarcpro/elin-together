@@ -14,6 +14,10 @@ public static class CardCache
 
     private static readonly List<Card> _invalidCards = [];
 
+    // dead weak entries are swept once a second, into a reused list: no per-frame copy of the table
+    private static readonly List<int> _deadUids = [];
+    private static float _nextSweep;
+
     internal static void Add(Card card)
     {
         var stored = Find(card.uid);
@@ -210,11 +214,26 @@ public static class CardCache
         _invalidCards.ForEach(card => card.Destroy());
         _invalidCards.Clear();
 
-        foreach (var (uid, reference) in _cards.ToArray()) {
+        var now = UnityEngine.Time.unscaledTime;
+        if (now < _nextSweep) {
+            return;
+        }
+
+        _nextSweep = now + 1f;
+
+        // a dead entry already reads as null in Find, so one second of delay changes nothing
+        _deadUids.Clear();
+        foreach (var (uid, reference) in _cards) {
             if (!reference.TryGetTarget(out _)) {
-                _cards.Remove(uid);
+                _deadUids.Add(uid);
             }
         }
+
+        foreach (var uid in _deadUids) {
+            _cards.Remove(uid);
+        }
+
+        _deadUids.Clear();
     }
 
     extension(Card? card)

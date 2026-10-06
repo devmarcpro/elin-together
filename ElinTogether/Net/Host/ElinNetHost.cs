@@ -32,7 +32,11 @@ internal partial class ElinNetHost : ElinNetBase
             return;
         }
 
-        // nobody asked for this session: never one a stranger can find
+        // nobody asked for this session: never one a stranger can find, but the players of this world come in
+        // without being Steam friends of whoever hosts it today
+        Session.Lobby.KnownAccount = quiet
+            ? user => SavedRemoteCharas.ContainsKey(user) || PlayerRosters.ContainsKey(user) || PcOwners.ContainsKey(user)
+            : null;
         Session.Lobby.CreateLobby(quiet ? SteamNetLobbyType.Friend : SteamNetLobbyType.Public, quiet: quiet);
 
         try {

@@ -28,6 +28,35 @@ Scenarios (dans l'ordre, chacun part de l'etat laisse par le precedent) :
       la case de la cave est donnee a EnterLocalZone sans marcher sur la carte du monde ; le retour a la Prairie
       a la fin est un MoveZone direct ; une seule machine, connexion locale. Pas joue : l'host dans la cave et
       l'invite qui arrive de dehors, deux invites, une coupure moins de 60 s apres la descente.
+  S19 donjon marque conquis alors que le boss n'est pas vaincu (dev/PLAN_donjon_conquis.md ; correctif :
+      Patches/BossFleePatch.cs + ZoneLeaseState.Imported ; python _tools/travel_suite.py --reuse --only s19,
+      ~15 a 20 minutes). Le jeu fait fuir le boss d'une Nefia et la marque conquise quand on entre une 2e fois dans
+      l'etage (Zone.Simulate : visitCount > 0 et Boss != null). Le visitCount et l'uidBoss voyagent avec l'etat de
+      la zone : le premier passage d'un joueur qui en rejoint un autre comptait comme une 2e visite. Quatre parcours,
+      chacun dans sa propre Nefia (l'host en cree une a chaque fois sur la carte du monde) :
+        s19a l'invite descend seul a l'etage, y pose le boss ; l'host le rejoint (rappel). Chez l'host ET chez
+             l'invite : le boss est vivant sur la carte et le sommet n'est pas conquis
+        s19b l'inverse : l'host descend seul, pose le boss ; l'invite le rejoint par l'escalier. Memes verifications
+        garde-fou host : l'host seul quitte l'etage du boss par l'escalier montant puis redescend : le boss part,
+             la Nefia est marquee conquise (la regle du jeu en solo est gardee)
+        garde-fou invite : meme chose pour l'invite seul (l'host reste a la Prairie). Jouable : a priori (lu dans
+             le code, pas vu tourner) en quittant l'etage l'invite rend son bail, en redescendant il en prend un
+             neuf, sans autre joueur sur place donc sans marque "Imported" (ni Guest ni Handoff dans
+             ZoneLeaseGrant) : la regle du jeu doit jouer comme pour l'host.
+             Si cette verification est rouge alors que celle de l'host est verte, la correction coupe aussi la
+             regle pour l'invite seul : c'est un bug du correctif, pas du test
+      Attendu sur la version publiee 0.26.510 (sans BossFleePatch) : s19a et/ou s19b ROUGES (boss parti, Nefia
+      conquise), garde-fous VERTS ; vert partout une fois le correctif compile.
+      Ce que le banc ne joue PAS comme un joueur : le boss n'est pas celui que le jeu fabrique a l'etage LvBoss
+      (Zone_RandomDungeon.OnGenerateMap, -2 a -5 selon la graine) : il est pose a la main (Zone.SpawnMob avec
+      SpawnSetting.Boss, puis zone.Boss = ...) sur le premier etage sous l'entree, rendu neutre pour qu'il ne tue
+      pas le joueur du banc, si l'etage n'en a pas deja un ; la Nefia n'est pas trouvee dans le monde mais creee
+      par Region.CreateRandomSite (la classe est tiree au hasard parmi celles qui sont des Zone_RandomDungeon, sans
+      la caverne a monstres, l'eau et l'usine : leurs escaliers ou leur boss d'entree genent le banc) ; entree sur la
+      carte du monde par EnterLocalZone sur la case du lieu, escaliers pris par TraitStairs.MoveZone (confirmation du
+      "boss encore la" passee par MoveZone(true)) sans marcher dessus ; pas de combat, la mort reelle du boss et
+      son coffre ne sont pas joues ; pas de deuxieme invite ; une seule machine, connexion locale. Les Nefias
+      ecartees pendant la creation (classe non retenue) restent sur la carte du monde de l'host, sans effet.
 Les logs (Unity host/client, ElinTogether) sont scannes a la fin.
 """
 import argparse
@@ -591,6 +620,181 @@ def s18(ctx):
         log("pas de Nefia dans ce monde : temoin Nefia non joue")
 
 
+# ---- s19 : le boss d'une Nefia ne s'enfuit pas parce qu'un autre joueur vient le rejoindre (PLAN_donjon_conquis.md)
+
+# l'host cree une Nefia a cote de la Prairie, comme le jeu en cree sur la carte du monde ; "uid|x,y|classe", "" si rien
+NEFIA_NEW = ('Zone found = null; for (var i = 0; i < 30 && found == null; i++) { '
+             'var z = EClass.world.region.CreateRandomSite(EClass._zone, 5, null, false); '
+             'if (z != null && z is Zone_RandomDungeon && !(z is Zone_CaveMonster) && !(z is Zone_RandomDungeonWater) '
+             '&& !(z is Zone_RandomDungeonFactory)) found = z; } '
+             'return found == null ? "" : found.uid + "|" + found.x + "," + found.y + "|" + found.GetType().Name;')
+UP = ('var s = EClass._map.FindThing<TraitStairsUp>(); if (s == null) return "no stairs"; s.MoveZone(true); return "ok";')
+# un boss sur l'etage ou se tient ce jeu, s'il n'en a pas (celui du jeu est garde s'il existe) : son uid
+BOSS_PUT = ('var z = EClass._zone; if (z.Boss == null) { var b = z.SpawnMob(null, SpawnSetting.Boss(z.DangerLv, z.DangerLv)); '
+            'if (b != null) { b.hostility = Hostility.Neutral; b.c_originalHostility = Hostility.Neutral; z.Boss = b; } } '
+            'return z.Boss == null ? "" : z.Boss.uid.ToString();')
+# vu de ce jeu : "alive|gone" | uidBoss de l'etage | sommet conquis (1/0) | visitCount de l'etage
+BOSS_STATE = ('var z = EClass._zone; var b = EClass._map.FindChara(__UID__); '
+              'return (b != null && b.ExistsOnMap ? "alive" : "gone") + "|" + z.uidBoss + "|" + '
+              '(z.GetTopZone().isConquered ? "1" : "0") + "|" + z.visitCount;')
+
+
+def make_nefia(ctx, tag):
+    """L'host cree une Nefia ; renvoie (uid, "x,y") une fois que l'invite la connait (zone annoncee par l'host)."""
+    found = ev(ctx["host"], NEFIA_NEW)
+    if not found:
+        check(f"{tag} : l'host a cree une Nefia (CreateRandomSite, 30 essais)", False)
+        return None
+    uid, spot, cls = found.split("|")
+    log(f"{tag} : Nefia {cls} uid {uid} en {spot}")
+    known = eventually(lambda: ev(ctx["client"], f'(EClass.game.spatials.Find({uid}) != null).ToString()') == "True", timeout=30)
+    check(f"{tag} : l'invite connait la Nefia {uid} ({cls}) creee par l'host", known)
+    return (int(uid), spot) if known else None
+
+
+def at_zone(ctx, port, uid):
+    """Attend ce joueur dans la zone `uid`, en jeu (l'invite y est seul : zone "absente", bail)."""
+    if port == ctx["host"]:
+        wait(lambda: zone_uid(port) == uid and state(port)["sceneMode"] == "Zone", f"host en zone {uid}", timeout=180)
+    else:
+        wait(client_settled(port, uid, True), f"invite seul en zone {uid}", timeout=180)
+    time.sleep(3)
+
+
+def walk_in(ctx, port, region, nefia, spot):
+    """Sortie par le bord vers la carte du monde, puis entree dans la Nefia sur sa case (comme cave_run)."""
+    ev(port, 'EClass.player.ExitBorder(); "ok"')
+    at_zone(ctx, port, region)
+    enter_at(port, spot)
+    at_zone(ctx, port, nefia)
+
+
+def go_down(ctx, port, nefia, region, tag, floor=None):
+    """Prend l'escalier descendant de l'entree ; renvoie l'uid de l'etage atteint (`floor` : celui qu'on attend)."""
+    top_lv = ev(port, 'EClass._zone.lv.ToString()')
+    check(f"{tag} : l'entree de la Nefia a un escalier qui descend", ev(port, DESCEND) == "ok")
+
+    def below():
+        dismiss_dialogs(port)
+        s = state(port)
+        uid = (s.get("zone") or {}).get("uid")
+        return (s.get("sceneMode") == "Zone" and uid not in (None, nefia, region) and (floor is None or uid == floor)
+                and ev(port, 'EClass._zone.lv.ToString()') != top_lv)
+
+    wait(below, f"etage sous la Nefia {nefia}" + (f" (attendu {floor})" if floor else ""), timeout=180)
+    time.sleep(3)
+    return zone_uid(port)
+
+
+def boss_state(port, boss):
+    alive, uid_boss, conquered, visits = ev(port, BOSS_STATE.replace("__UID__", str(boss))).split("|")
+    return alive == "alive", int(uid_boss), conquered == "1", int(visits)
+
+
+def boss_put(port, tag):
+    boss = ev(port, BOSS_PUT)
+    check(f"{tag} : un boss est pose sur l'etage (uid {boss or 'aucun'})", bool(boss))
+    return int(boss) if boss else 0
+
+
+def boss_kept(tag, boss, who):
+    """Chez chacun (nom, port) : le boss est la, vivant, et la Nefia n'est pas conquise."""
+    for name, port in who:
+        alive, uid_boss, conquered, visits = boss_state(port, boss)
+        check(f"{tag} : chez {name}, le boss {boss} est vivant sur la carte (uidBoss {uid_boss}, visitCount {visits})", alive)
+        check(f"{tag} : chez {name}, la Nefia n'est pas marquee conquise", not conquered)
+
+
+def s19_guest_first(ctx, region):
+    """s19a : l'invite tient l'etage du boss, l'host le rejoint"""
+    host, client = ctx["host"], ctx["client"]
+    tag = "s19a invite d'abord"
+    site = make_nefia(ctx, tag)
+    if not site:
+        return
+    nefia, spot = site
+    walk_in(ctx, client, region, nefia, spot)
+    floor = go_down(ctx, client, nefia, region, tag)
+    boss = boss_put(client, tag)
+    if not boss:
+        return
+    alive, _, conquered, visits = boss_state(client, boss)
+    check(f"{tag} : avant l'host, le boss vit chez l'invite, Nefia libre, etage deja visite (visitCount {visits})",
+          alive and not conquered and visits > 0)
+    walk_in(ctx, host, region, nefia, spot)
+    # l'etage est tenu par l'invite : rappel, puis l'host y entre et l'invite le rejoint sur place
+    check(f"{tag} : l'host descend dans l'etage de l'invite {floor}", go_down(ctx, host, nefia, region, tag, floor) == floor)
+    both_joined(host, client, floor)
+    boss_kept(tag, boss, (("l'host", host), ("l'invite", client)))
+    shot("s19a-host", host)
+    host_goto(host, client, HOME)
+
+
+def s19_host_first(ctx, region):
+    """s19b : l'host tient l'etage du boss, l'invite le rejoint"""
+    host, client = ctx["host"], ctx["client"]
+    tag = "s19b host d'abord"
+    site = make_nefia(ctx, tag)
+    if not site:
+        return
+    nefia, spot = site
+    walk_in(ctx, host, region, nefia, spot)
+    floor = go_down(ctx, host, nefia, region, tag)
+    boss = boss_put(host, tag)
+    if not boss:
+        return
+    alive, _, conquered, visits = boss_state(host, boss)
+    check(f"{tag} : avant l'invite, le boss vit chez l'host, Nefia libre, etage deja visite (visitCount {visits})",
+          alive and not conquered and visits > 0)
+    # l'host ne traine pas l'invite : il est reste a la Prairie, il en sort de lui-meme puis prend les escaliers
+    walk_in(ctx, client, region, nefia, spot)
+    check(f"{tag} : l'invite descend dans l'etage de l'host {floor}", go_down(ctx, client, nefia, region, tag, floor) == floor)
+    both_joined(host, client, floor)
+    boss_kept(tag, boss, (("l'host", host), ("l'invite", client)))
+    shot("s19b-client", client)
+    host_goto(host, client, HOME)
+
+
+def s19_solo(ctx, region, port, tag):
+    """Garde-fou : un joueur seul quitte l'etage du boss puis y revient seul : le boss part, la Nefia est conquise"""
+    host, client = ctx["host"], ctx["client"]
+    site = make_nefia(ctx, tag)
+    if not site:
+        return
+    nefia, spot = site
+    walk_in(ctx, port, region, nefia, spot)
+    floor = go_down(ctx, port, nefia, region, tag)
+    boss = boss_put(port, tag)
+    if not boss:
+        return
+    alive, _, conquered, visits = boss_state(port, boss)
+    check(f"{tag} : avant de partir, le boss vit, Nefia libre, etage deja visite (visitCount {visits})",
+          alive and not conquered and visits > 0)
+    check(f"{tag} : l'escalier montant est pris", ev(port, UP) == "ok")
+    at_zone(ctx, port, nefia)
+    ev(port, DESCEND)
+    at_zone(ctx, port, floor)
+    alive, uid_boss, conquered, visits = boss_state(port, boss)
+    check(f"{tag} : de retour seul, le boss est parti (uidBoss {uid_boss}, visitCount {visits})", not alive)
+    check(f"{tag} : ... et la Nefia est marquee conquise (la regle du jeu en solo est gardee)", conquered and visits > 0)
+    if port == host:
+        host_goto(host, client, HOME)
+    else:
+        move(client, HOME)
+        both_joined(host, client, HOME)
+
+
+def s19(ctx):
+    """donjon : le boss ne s'enfuit pas quand un autre joueur rejoint l'etage ; il s'enfuit encore quand on revient seul"""
+    host, client = ctx["host"], ctx["client"]
+    both_joined(host, client, HOME)
+    region = int(ev(client, 'EClass._zone.ParentZone.uid.ToString()'))
+    s19_guest_first(ctx, region)
+    s19_host_first(ctx, region)
+    s19_solo(ctx, region, host, "garde-fou host seul")
+    s19_solo(ctx, region, client, "garde-fou invite seul")
+
+
 def s9(ctx):
     emp_save = SAVES / "world_emp"
     written = [p.name for p in (emp_save.glob("*.txt") if emp_save.exists() else [])]
@@ -717,7 +921,7 @@ def main():
     ctx = {"host": next(h["port"] for h in live if h["role"] == "Host"),
            "client": next(h["port"] for h in live if h["role"] == "Client"), "t0": t0}
 
-    steps = [s1, s2, s3, s4, s5, s6, s7, s8, s12, s13, s14, s15, s16, s17, s18, s9, s10, s11]
+    steps = [s1, s2, s3, s4, s5, s6, s7, s8, s12, s13, s14, s15, s16, s17, s18, s19, s9, s10, s11]
     if a.only:
         steps = [s for s in steps if s.__name__ in a.only.split(",")]
     for step in steps:

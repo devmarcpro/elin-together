@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using ElinTogether.Common;
@@ -10,7 +11,12 @@ namespace ElinTogether.Net.Steam;
 
 public partial class SteamNetManager(ISteamNetSerializer? serializer = null) : IDisposable
 {
-    private readonly IntPtr[] _batchedMessages = new IntPtr[EmpConstants.MaxBatchedMessages];
+    // read by batches of this size until the queue is empty or PollBudgetMs is spent
+    // ponytail: local constant, EmpConstants.MaxBatchedMessages is no longer read here
+    private const int BatchSize = 32;
+    private const long PollBudgetMs = 4;
+
+    private readonly IntPtr[] _batchedMessages = new IntPtr[BatchSize];
     private readonly SteamNetPeerBroadcast _broadcast = new(serializer ?? new SteamNetSerializer());
     private readonly List<SteamNetPeer> _peers = [];
     private readonly ISteamNetSerializer _serializer = serializer ?? new SteamNetSerializer();
@@ -73,35 +79,42 @@ public partial class SteamNetManager(ISteamNetSerializer? serializer = null) : I
             return;
         }
 
-        var received = SteamNetworkingSockets.ReceiveMessagesOnPollGroup(_pollGroup, _batchedMessages, _batchedMessages.Length);
+        // drain the queue, bounded per frame: a fixed small batch never catches up after a freeze
+        var clock = Stopwatch.StartNew();
+        int received;
+        do {
+            received = SteamNetworkingSockets.ReceiveMessagesOnPollGroup(_pollGroup, _batchedMessages, _batchedMessages.Length);
 
-        for (var i = 0; i < received; ++i) {
-            var msg = SteamNetworkingMessage_t.FromIntPtr(_batchedMessages[i]);
-            try {
-                var peer = _peers.Find(p => p.Connection == msg.m_conn);
-                if (peer is null) {
-                    continue;
+            for (var i = 0; i < received; ++i) {
+                var msg = SteamNetworkingMessage_t.FromIntPtr(_batchedMessages[i]);
+                try {
+                    var peer = _peers.Find(p => p.Connection == msg.m_conn);
+                    if (peer is null) {
+                        continue;
+                    }
+
+                    var bytes = new byte[msg.m_cbSize];
+                    Marshal.Copy(msg.m_pData, bytes, 0, msg.m_cbSize);
+
+                    var (typeHash, payload) = SteamNetSerializer.ExtractTypeAndPayload(bytes);
+                    var type = SteamNetTypeRegistry.Resolve(typeHash);
+                    if (type == null) {
+                        EmpLog.Warning("Failed to parse type hash {TypeHash}",
+                            typeHash);
+                        continue;
+                    }
+
+                    var packet = _serializer.Deserialize(payload, type);
+                    _listener?.OnMessageReceived(packet, peer);
+
+                    peer.Stat.Received(msg.m_cbSize);
+                } finally {
+                    SteamNetworkingMessage_t.Release(_batchedMessages[i]);
                 }
-
-                var bytes = new byte[msg.m_cbSize];
-                Marshal.Copy(msg.m_pData, bytes, 0, msg.m_cbSize);
-
-                var (typeHash, payload) = SteamNetSerializer.ExtractTypeAndPayload(bytes);
-                var type = SteamNetTypeRegistry.Resolve(typeHash);
-                if (type == null) {
-                    EmpLog.Warning("Failed to parse type hash {TypeHash}",
-                        typeHash);
-                    continue;
-                }
-
-                var packet = _serializer.Deserialize(payload, type);
-                _listener?.OnMessageReceived(packet, peer);
-
-                peer.Stat.Received(msg.m_cbSize);
-            } finally {
-                SteamNetworkingMessage_t.Release(_batchedMessages[i]);
             }
-        }
+            // a handler may have shut the manager down
+        } while (received == _batchedMessages.Length && clock.ElapsedMilliseconds < PollBudgetMs
+                 && _pollGroup != HSteamNetPollGroup.Invalid && !NetShutdown.IsQuitting);
     }
 
 #region Connection Management

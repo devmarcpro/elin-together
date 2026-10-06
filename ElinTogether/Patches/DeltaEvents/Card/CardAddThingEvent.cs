@@ -63,6 +63,36 @@ internal static class CardAddThingEvent
     [HarmonyPrefix]
     internal static bool OnCardAddThing(Card __instance, Thing t, bool tryStack, int destInvX, int destInvY)
     {
+        if (ShippingHelper.FillingMirror) {
+            return true;
+        }
+
+        // alone away, an open box of the world shows what the host holds, see ShippingHelper.MirrorKey
+        var hostUid = t.GetInt(ShippingHelper.MirrorKey);
+        if (NetSession.Instance.Connection is null && NetSession.Instance.Transport is ElinNetClient mirror) {
+            var inBox = ShippingHelper.WorldBoxIndex(__instance.GetRootCard());
+            if (hostUid != 0) {
+                if (inBox >= 0) {
+                    // moved around in the picture
+                    return true;
+                }
+
+                // out of the box: the picture goes, the host gives the real one (or what is left of it)
+                mirror.AskWorldBox(t.GetInt(ShippingHelper.MirrorBoxKey) - 1, hostUid, t.Num);
+                t.Destroy();
+                return false;
+            }
+
+            // into a bag that lies in the box: that bag is a picture, the thing goes to the box itself
+            if (inBox >= 0 && ShippingHelper.WorldBoxIndex(__instance) < 0 && mirror.ForwardShippingDeposit(t, 0, inBox)) {
+                return false;
+            }
+        } else if (hostUid != 0) {
+            // a picture that outlived its window (a zone session started meanwhile): it is nothing
+            t.Destroy();
+            return false;
+        }
+
         // shipping box: tagged with the player shipping it; travelling, the goods go to the real host
         var shipper = 0;
         if (!ElinDelta.IsRemoteStateLanding && ShippingHelper.IsShippingBox(__instance)) {

@@ -264,5 +264,6 @@
     "LangGeneral.emp_ui_sv_cfg_auto_save.text": "有其他玩家时自动保存世界",
     "LangGeneral.emp_ui_sv_desc_auto_save.text": "开：有其他玩家在游戏中时每 2 分钟保存一次（保存较慢时每 5 分钟），最后一位玩家离开时也会保存。关：只在主机保存时保存。",
     "LangGeneral.emp_ui_depot_join_btn.text": "加入 {0}",
-    "LangGeneral.emp_ui_depot_join_fail.text": "{0} 持有这个世界，但对方的游戏还没有开放。请稍后再试。如果对方的游戏已中断，世界会在 3 分钟内重新空出。"
+    "LangGeneral.emp_ui_depot_join_fail.text": "{0} 持有这个世界，但对方的游戏还没有开放。请稍后再试。如果对方的游戏已中断，世界会在 3 分钟内重新空出。",
+    "LangGeneral.emp_ui_box_far.text": "这个箱子属于整个世界，由主机保管。与其他玩家一起远离主机时，放入的物品会送到主机，但要回到主机所在地图后才会显示。"
 }

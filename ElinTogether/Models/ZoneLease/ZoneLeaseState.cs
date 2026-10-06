@@ -53,6 +53,12 @@ internal static class ZoneLeaseState
         return state;
     }
 
+    /// <summary>
+    ///     Zones this game is about to enter while another player is in them, with the state that player's game
+    ///     sent. See BossFleePatch
+    /// </summary>
+    internal static readonly HashSet<int> Imported = [];
+
     internal static void ApplyState(Zone zone, int[] state, string? subset)
     {
         for (var i = 0; i < Math.Min(state.Length, zone._ints.Length); i++) {

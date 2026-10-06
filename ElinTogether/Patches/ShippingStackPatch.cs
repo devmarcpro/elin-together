@@ -15,5 +15,10 @@ internal static class ShippingStackPatch
         if (__result && ShippingHelper.IsShippingBox(to.parent as Card) && __instance.ShipperUid != to.ShipperUid) {
             __result = false;
         }
+
+        // the picture of a world box (alone away) is not the thing: it never merges into a real stack
+        if (__result && __instance.GetInt(ShippingHelper.MirrorKey) != to.GetInt(ShippingHelper.MirrorKey)) {
+            __result = false;
+        }
     }
 }

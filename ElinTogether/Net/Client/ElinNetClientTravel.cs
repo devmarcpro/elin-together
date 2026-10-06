@@ -293,7 +293,6 @@ internal partial class ElinNetClient
         }
 
         ZoneLeaseState.ApplyState(zone, grant.ZoneState, grant.IdCurrentSubset);
-
         // cards created here get uids the host does not use
         game.cards.uidNext = Math.Max(game.cards.uidNext, grant.UidRangeStart);
         AdoptQuestUidRange(grant);
@@ -674,8 +673,9 @@ internal partial class ElinNetClient
     /// </summary>
     internal void OnQuestFollowInvite(QuestFollowDelta invite)
     {
-        // only the player keeping the town, with nothing else going on: no quest zone of its own, no trade
-        if (!PersonalQuests.InstancesEnabled || !Session.IsZoneAuthority || IsInTransfer || _pendingTravel is not null ||
+        // only a player away in that town (keeping it or visiting it), with nothing else going on: no quest zone
+        // of its own, no trade
+        if (!PersonalQuests.InstancesEnabled || !Session.IsAway || IsInTransfer || _pendingTravel is not null ||
             _questInviteDeadline > 0 || invite.ZoneUid != _hostZoneUid ||
             game.quests.list.Any(q => q.UseInstanceZone && PersonalQuests.IsPersonal(q)) ||
             PlayerTrade.View is { Phase: PlayerTrade.Invited or PlayerTrade.Open }) {
@@ -697,7 +697,7 @@ internal partial class ElinNetClient
         }
 
         // we moved on meanwhile (recalled, travelling): the question is void
-        if (!Session.IsZoneAuthority || IsInTransfer || _pendingTravel is not null) {
+        if (!Session.IsAway || IsInTransfer || _pendingTravel is not null) {
             CloseQuestInvite();
             return;
         }
@@ -748,7 +748,8 @@ internal partial class ElinNetClient
         _questInviteDeadline = 0;
         _questInvite = null;
 
-        if (!Session.IsZoneAuthority || _pendingTravel is not null || IsInTransfer) {
+        // a visitor leaves the same way as when the host recalls it (OnZoneLeaseRecall)
+        if (!Session.IsAway || _pendingTravel is not null || IsInTransfer) {
             return;
         }
 

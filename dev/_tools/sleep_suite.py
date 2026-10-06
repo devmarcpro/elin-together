@@ -286,9 +286,22 @@ def b3(ctx):
 
 def said(port, key):
     """combien de fois le jeu de ce joueur a dit ce message dans son journal (son texte vient du jeu, dans la langue
-    de la fenetre : on cherche son plus long morceau fixe, sans les #1 des noms)"""
-    return int(ev(port, """var k = Msg.GetGameText("%s").ToLower().Split(new[] { '#', '$', '{' }).OrderByDescending(s => s.Length).First().Trim(); """
-                        """return EClass.game.log.dict.Values.Count(l => l.text != null && l.text.ToLower().Contains(k)).ToString();""" % key))
+    de la fenetre : on cherche son plus long morceau fixe, sans les #1 des noms ; un message peut avoir plusieurs
+    variantes, une par ligne, toutes sont cherchees). Le journal du jeu ne garde que ses 50 dernieres lignes"""
+    return int(ev(port, """var row = EClass.core.sources.langGame.map.TryGetValue("%s"); var all = row == null ? Msg.GetGameText("%s") : row.GetText("text");"""
+                        """var ks = all.ToLower().Split(new[] { '\\n', '\\r' }).Select(v => v.Split(new[] { '#', '$', '{' }).OrderByDescending(s => s.Length).First().Trim()).Where(k => k.Length > 3).ToList(); """
+                        """return EClass.game.log.dict.Values.Count(l => l.text != null && ks.Any(k => l.text.ToLower().Contains(k))).ToString();""" % (key, key)))
+
+
+def recipes(port):
+    """les recettes connues de ce jeu, avec leur niveau"""
+    out = ev(port, 'string.Join(";", EClass.player.recipes.knownRecipes.Select(r => r.Key + "=" + r.Value))')
+    return {k: int(v) for k, v in (x.rsplit("=", 1) for x in out.split(";") if "=" in x)}
+
+
+def gained(port, before):
+    now = recipes(port)
+    return {k: v - before.get(k, 0) for k, v in sorted(now.items()) if v != before.get(k, 0)}
 
 
 def k1(ctx):
@@ -323,7 +336,6 @@ def k1(ctx):
     bedding(ctx)
     domain = ev(A, 'var r = EClass.sources.elements.alias["eleFire"]; if (EClass.player.domains.Contains(r.id)) return "0"; '
                    'EClass.player.domains.Add(r.id); return r.id.ToString();')
-    rec = lambda p: int(ev(p, 'EClass.player.recipes.knownRecipes.Values.Sum().ToString()'))  # noqa: E731
     knows = lambda p, who: ev(p, f'{who}.HasElement({spell}).ToString()') == "True"  # noqa: E731
     san = lambda p: int(ev(p, 'EClass.pc.SAN.value.ToString()'))  # noqa: E731
     try:
@@ -333,7 +345,7 @@ def k1(ctx):
               'EClass.pc.things.Find<TraitBed>().elements.SetBase(750, 100); "ok"')
         ev(H, 'EClass.pc.sleepiness.Set(EClass.pc.sleepiness.max); "ok"')
         dismiss_dialogs(H)
-        before = {"rec": (rec(H), rec(A)), "recipe": said(A, "learnRecipeSleep"), "dream": said(A, "dream_spell"),
+        before = {"rec": (recipes(H), recipes(A)), "recipe": said(A, "learnRecipeSleep"), "dream": said(A, "dream_spell"),
                   "san": (san(H), san(A))}
         check("avant la nuit : l'invite ne connait pas le sort, l'host non plus",
               not knows(A, "EClass.pc") and not knows(H, "EClass.pc"))
@@ -350,9 +362,14 @@ def k1(ctx):
               eventually(lambda: in_book(A, "EClass.pc") in ("0", "disparu") and in_book(H, chars) in ("0", "disparu"), timeout=15))
         check(f"un seul tirage de recette pour l'invite, dans son jeu ({said(A, 'learnRecipeSleep') - before['recipe']} message)",
               said(A, "learnRecipeSleep") - before["recipe"] == 1)
-        check(f"recettes connues : +2 des deux cotes, celle de l'host et celle de l'invite, communes (host {rec(H) - before['rec'][0]}, "
-              f"invite {rec(A) - before['rec'][1]})",
-              eventually(lambda: rec(H) - before["rec"][0] == 2 and rec(A) - before["rec"][1] == 2, timeout=15))
+        # une recette de bloc ou de sol vient avec ses variantes (pilier, pont) : on compare recette par recette
+        same = eventually(lambda: sum(gained(H, before["rec"][0]).values()) >= 2
+                          and gained(H, before["rec"][0]) == gained(A, before["rec"][1]), timeout=15)
+        time.sleep(3)
+        got = gained(H, before["rec"][0]), gained(A, before["rec"][1])
+        check(f"recettes de la nuit : celle de l'host et celle de l'invite, les memes des deux cotes, une fois chacune, et rien "
+              f"ne revient en double apres coup (host {got[0]}, invite {got[1]})",
+              same and got[0] == got[1] and sum(got[0].values()) >= 2)
         check(f"un seul sort en reve pour l'invite ({said(A, 'dream_spell') - before['dream']} message)",
               said(A, "dream_spell") - before["dream"] == 1)
         check(f"son oreiller de Jure a joue : sa raison a baisse de 15 (de {before['san'][1]} a {san(A)}), pas celle de l'host ({before['san'][0]} -> {san(H)})",

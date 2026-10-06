@@ -11,8 +11,19 @@ namespace ElinTogether.Patches;
 [HarmonyPatch(typeof(Chara), nameof(Chara.Pick))]
 internal static class CharaPickThingEvent
 {
+    // what Chara.Pick checks before it stores the thing
+    private static bool WillStore(Chara chara, Thing t, bool tryStack)
+    {
+        if (t.parent == chara ||
+            (t.trait is TraitCard && t.isNew && EClass.game.config.autoCollectCard && !string.IsNullOrEmpty(t.c_idRefCard))) {
+            return true;
+        }
+
+        return chara.things.GetDest(t, tryStack).IsValid;
+    }
+
     [HarmonyPrefix]
-    internal static bool OnCharaPickThingy(Chara __instance, Thing t, ref Thing __result)
+    internal static bool OnCharaPickThingy(Chara __instance, Thing t, bool tryStack, ref Thing __result)
     {
         if (NetSession.Instance.Connection is not { } connection) {
             return true;
@@ -45,6 +56,13 @@ internal static class CharaPickThingEvent
         // we are host, propagate to everyone
         // we are client, only propagate ourselves
         if (connection.IsHost || __instance.IsPC) {
+            // full bag: the game of the player who picks is the one that knows, it keeps the thing on the ground
+            // (or drops it at the feet, which Zone.AddCard reports). Sent anyway, the other games stored it by
+            // force and gave it back to a bag with no cell left for it
+            if (__instance.IsPC && !WillStore(__instance, t, tryStack)) {
+                return true;
+            }
+
             connection.Delta.AddRemote(new CharaPickThingDelta {
                 Owner = __instance,
                 Thing = t,

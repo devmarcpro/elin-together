@@ -171,6 +171,9 @@ internal partial class ElinNetClient
             return;
         }
 
+        // a map sent by the game that runs it: someone is there, see BossFleePatch
+        ZoneLeaseState.Imported.Add(currentZone.uid);
+
         if (player.zone is null) {
             // first time joining, need to do scene init from title
             EmpLog.Debug("Starting initial scene init");

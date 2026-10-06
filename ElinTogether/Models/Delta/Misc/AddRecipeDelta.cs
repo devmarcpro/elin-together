@@ -16,8 +16,9 @@ public class AddRecipeDelta : ElinDelta
 
     protected override void OnApply(ElinNetBase net)
     {
-        if (net.IsHost) {
-            net.Delta.AddRemote(this);
+        // not back to the player it came from: learning a known recipe again counts it twice
+        if (net is ElinNetHost host) {
+            host.SendDeltaToAllExcept(OriginPeer, this);
         }
 
         IsLanding = true;

@@ -49,7 +49,9 @@ public class LZ4Bytes
     {
         using var input = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
         using var ms = new MemoryStream();
-        using var lz4 = new LZ4Stream(ms, CompressionMode.Compress, LZ4StreamFlags.HighCompression);
+        // fast mode: map files go out every checkpoint and to every joining player, high compression froze the game
+        // the flag is stored in the stream header, so Decompress reads either form
+        using var lz4 = new LZ4Stream(ms, CompressionMode.Compress);
 
         input.CopyTo(lz4);
         lz4.Flush();
