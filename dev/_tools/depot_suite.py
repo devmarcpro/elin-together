@@ -139,7 +139,9 @@ CLICK = ('var d = EClass.ui.layers.OfType<Dialog>().LastOrDefault(); if (d == nu
 YES = ('var d = EClass.ui.layers.OfType<Dialog>().LastOrDefault(); if (d == null) return "no dialog"; '
        'var b = d.GetComponentsInChildren<UnityEngine.UI.Button>(true).FirstOrDefault(x => x.GetComponentsInChildren<UnityEngine.UI.Text>(true).Any(t => t.text == Lang.Get("yes"))); '
        'if (b == null) return "no yes button"; b.onClick.Invoke(); return "clicked";')
-BUCKETS = 'EClass.pc.things.Flatten().Where(t => t.id == "bucket").Sum(t => t.Num).ToString()'
+# (tous les sacs des personnages du monde : celui qui reprend le monde joue SON personnage, pas celui qui a pose le seau)
+BUCKETS = ('EClass.game.cards.globalCharas.Values.Sum(c => c.things.Flatten().Where(t => t.id == "bucket").Sum(t => t.Num))'
+           '.ToString()')
 SAVE_BUCKET = 'EClass.pc.AddThing(ThingGen.Create("bucket")); EClass.game.Save(false, true).ToString()'
 # GitHub : l'adresse de test est donnee par l'environnement du processus ; GitHubDepot la lit a sa premiere utilisation
 SET_API = 'System.Environment.SetEnvironmentVariable("ELINTOGETHER_GITHUB_API", @"%s"); "ok"'
@@ -434,6 +436,16 @@ def p1():
     check(cond=eventually(lambda: want(info(H, uid_a)) and want(info(A, uid_a)), timeout=15),
           label=f"P1 les deux jeux voient le seau et l'or de A ({info(H, uid_a)['raw']})")
     log(f"A apres le seau et l'or : {info(A, uid_a)['raw']}")
+
+    # DEPOT_OLD=1 : un monde d'avant, qui ne sait pas a qui est son personnage local (et qui a pu recevoir de la 0.26.494 un
+    # proprietaire faux : DEPOT_OLD=2 l'ecrit, au nom de A). Le jeu doit s'en sortir seul, sans rien demander
+    old = os.environ.get("DEPOT_OLD", "")
+    if old:
+        T = 'var t = HarmonyLib.Traverse.Create(HarmonyLib.AccessTools.TypeByName("ElinTogether.Net.ElinNetHost")); '
+        wrong = (f'var who = t.Property("SavedRemoteCharas").GetValue<System.Collections.Generic.Dictionary<ulong, int>>().First(p => p.Value == {uid_a}).Key; '
+                 f'd[who] = {uid_h}; ' if old == "2" else '')
+        log("monde d'avant : " + ev(H, T + 'var d = t.Property("PcOwners").GetValue<System.Collections.Generic.Dictionary<ulong, int>>(); d.Clear(); d[0UL] = 0; '
+                                      + wrong + 'return "pc_owner = " + string.Join(",", d.Select(p => p.Key + ":" + p.Value));'))
 
     # (3) H sauvegarde et rend le monde ; A est deconnecte
     pre_h = info(H, uid_h)

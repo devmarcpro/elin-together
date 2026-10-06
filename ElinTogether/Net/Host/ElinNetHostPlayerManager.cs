@@ -72,6 +72,10 @@ internal partial class ElinNetHost
         EmpLog.Information("Preparing player {@Peer} for joining",
             peer);
 
+        if (!IsZoneSession) {
+            GiveOrphanTo(peer.User);
+        }
+
         var roster = RosterOf(peer.User);
         // not for the guests of a zone hosted by a player: they come with the character they are playing
         var choose = EmpConfig.Server.ChooseCharacter.Value;
@@ -329,14 +333,22 @@ internal partial class ElinNetHost
     [ElinPostLoad]
     private static void RemoveLeftOverCharas(GameIOContext? context)
     {
-        // a world taken over from another player: our own character first, then the game starts again from that save
-        if (Session.Transport is null && !EmpServer.Requested && TakeOverPc()) {
-            // not saved: played as it is, loading again would exchange again
-            var id = Game.id;
-            if (game.Save(false, true)) {
-                core.actionsNextFrame.Add(() => Game.Load(id, false));
-                return;
-            }
+        // a world taken over from another player: our own character first, then the game starts again from that save.
+        // One frame later: the tables of the save (who plays whom) are read after this hook, here they are still
+        // those of the game played before
+        if (Session.Transport is null && !EmpServer.Requested) {
+            var loaded = game;
+            core.actionsNextFrame.Add(() => {
+                if (core.game != loaded || Session.Transport is not null || !TakeOverPc()) {
+                    return;
+                }
+
+                // not saved: played as it is, loading again would exchange again
+                var id = Game.id;
+                if (game.Save(false, true)) {
+                    core.actionsNextFrame.Add(() => Game.Load(id, false));
+                }
+            });
         }
 
         IEnumerable<Chara> excluded = Session.Connection is ElinNetHost host
