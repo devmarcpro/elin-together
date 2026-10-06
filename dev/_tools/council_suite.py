@@ -35,7 +35,7 @@ def free_next_to(port, uid, dist=1):
     """Une case libre a cote de ce personnage, vue par ce jeu : "x,z"."""
     return ev(port, f'var c = {chara(port, uid)}; for (var dx = -{dist}; dx <= {dist}; dx++) for (var dz = -{dist}; dz <= {dist}; dz++) {{ '
                     f'if (System.Math.Max(System.Math.Abs(dx), System.Math.Abs(dz)) != {dist}) continue; var p = new Point(c.pos.x + dx, c.pos.z + dz); '
-                    'if (p.IsValid && p.IsInBounds && !p.IsBlocked && !p.HasChara && !p.HasThing && !p.cell.IsTopWaterAndNoSnow) return p.x + "," + p.z; } return "";')
+                    'if (p.IsValid && p.IsInBounds && !p.IsBlocked && !p.HasChara && !p.HasThing && !p.cell.IsTopWaterAndNoSnow' + (' && c.CanMoveTo(p, false)' if dist == 1 else '') + ') return p.x + "," + p.z; } return "";')
 
 
 def c1(ctx):

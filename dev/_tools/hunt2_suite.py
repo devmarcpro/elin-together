@@ -119,13 +119,15 @@ def e3(ctx):
         if not check(f"chaque joueur a une viande fraiche ({food}) dans son sac, qui peut vieillir",
                      all(age(H, k) == 0 for k in made) and ev(H, f'({chara(H, ctx["a"][1])}.things.Find(x => x.uid == {made["a"]}).trait.Decay != 0).ToString()') == "True"):
             return
-        ev(H, 'EClass.world.date.AdvanceMin(180); "ok"', timeout=300)
-        time.sleep(6)
+        # depuis le 6 octobre le temps passe par un AUTRE joueur ne vieillit plus rien (time_suite W6) : chacun passe
+        # ses trois heures dans son propre jeu
         for who, key in both(ctx):
             port = ctx[key][0]
-            check(cond=eventually(lambda: age(H, key) > 0, timeout=20), label=f"{who} : trois heures plus tard sa viande a vieilli, chez l'host ({age(H, key)})")
+            ev(port, 'EClass.world.date.AdvanceMin(180); "ok"', timeout=300)
+            time.sleep(6)
+            check(cond=eventually(lambda: age(H, key) > 0, timeout=20), label=f"{who} : ses trois heures plus tard sa viande a vieilli, chez l'host ({age(H, key)})")
             check(cond=eventually(lambda: age(port, key) > 0, timeout=20), label=f"{who} : et dans son jeu ({age(port, key)})")
-        check(f"elles ont vieilli pareil chez l'host (invite {age(H, 'a')}, host {age(H, 'h')})", age(H, "a") == age(H, "h"))
+        check(f"les deux ont vieilli, chez l'host (invite {age(H, 'a')}, host {age(H, 'h')})", age(H, "a") > 0 and age(H, "h") > 0)
     finally:
         for key in made:
             ev(H, f'var t = {chara(H, ctx[key][1])}.things.Find(x => x.uid == {made[key]}); if (t != null) t.Destroy(); "ok"')
