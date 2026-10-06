@@ -244,6 +244,21 @@ internal partial class ElinNetHost
             peer);
 
         var chara = response.Chara.Decompress<Chara>();
+        AdoptNewPlayerChara(chara);
+
+        SavedRemoteCharas[peer.User] = chara.uid;
+        // adds the character now played to the roster
+        RosterOf(peer.User);
+
+        SendSaveProbe(chara, peer);
+    }
+
+    /// <summary>
+    ///     A character just made on the creation screen of another game becomes a character of this world, with what
+    ///     a new game gives its player
+    /// </summary>
+    private static void AdoptNewPlayerChara(Chara chara)
+    {
         chara.SetBool(CINT.IsPC, false);
         chara.SetBool("emp_creating", true);
         game.cards.AssignUID(chara);
@@ -285,12 +300,6 @@ internal partial class ElinNetHost
             chara.SetBool("emp_creating", false);
             player.chara = host;
         }
-
-        SavedRemoteCharas[peer.User] = chara.uid;
-        // adds the character now played to the roster
-        RosterOf(peer.User);
-
-        SendSaveProbe(chara, peer);
     }
 
     /// <summary>
@@ -335,7 +344,7 @@ internal partial class ElinNetHost
     {
         // a world taken over from another player: our own character first, then the game starts again from that save.
         // One frame later: the tables of the save (who plays whom) are read after this hook, here they are still
-        // those of the game played before
+        // those of the game played before. Never on a server nobody plays at, never for a client
         if (Session.Transport is null && !EmpServer.Requested) {
             var loaded = game;
             core.actionsNextFrame.Add(() => {
@@ -344,9 +353,9 @@ internal partial class ElinNetHost
                 }
 
                 // not saved: played as it is, loading again would exchange again
-                var id = Game.id;
+                var (id, cloud) = (Game.id, game.isCloud);
                 if (game.Save(false, true)) {
-                    core.actionsNextFrame.Add(() => Game.Load(id, false));
+                    core.actionsNextFrame.Add(() => Game.Load(id, cloud));
                 }
             });
         }

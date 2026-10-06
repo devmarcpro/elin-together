@@ -168,3 +168,26 @@ Même test que B, sans le premier `Zone`. Coût élevé pour un gain visuel de q
    plus un drapeau « déjà demandé » : pas de boucle, pas de doublon ; échec ou annulation : message ou titre, jamais de silence.
 5. Test rouge d'abord dans `depot_suite.py` (D2 : A voit l'écran, valide par `EMBARK`, joue un autre uid que H), puis annulation
    et retour de H ; à dire à l'utilisateur : la création se fait à la première prise d'un monde déjà joué par un autre.
+
+## 7. Ce qui a été écrit (6 octobre 2026) : option B, NI COMPILÉ NI JOUÉ
+
+- `ElinNetHostPlayerManager.cs` : `AdoptNewPlayerChara(Chara)` (statique) = le corps de `OnSessionNewPlayerResponse` sorti tel
+  quel ; le chemin réseau l'appelle puis fait comme avant (`SavedRemoteCharas`, `RosterOf`, `SendSaveProbe`).
+- `ElinNetHostHandOver.cs` : champ `static _madeChara` (id du monde + personnage en octets) ; `TakeOverPc`, branche « pas de
+  personnage à moi » : entrée à mon nom -> rien ; propriétaire inconnu -> le local est à moi (inchangé) ; propriétaire
+  AUTRE connu -> `NewCharaOf(me)`. Celle-ci : rien en attente pour ce monde -> `MakeOwnChara()` (titre, puis `LayerEditBio`
+  une image après, clic remplacé comme pour le client : garde le personnage, tue le jeu temporaire, recharge) et rend nul ;
+  en attente -> vidé d'abord, `AdoptNewPlayerChara`, hache, `SetGlobal`, `SetFaction(Home)`, `PlayerStandings = [0, 30]`,
+  `SavedRemoteCharas[moi]`, roster, puis l'échange existant continue (copie de secours, sauvegarde, rechargement).
+- `SaveDepot.cs` : PAS touché. Le titre rend déjà le verrou (`ReleaseAtTitle`) ; le rechargement du monde du dépôt passe
+  par `SaveDepot.Take()` (même condition que `EmpServer` : `world_depot` et dépôt réglé), tout autre monde par
+  `Game.Load(id, cloud)`. Pas de drapeau « déjà demandé » : l'écran ne s'ouvre que s'il n'y a rien en attente, et ce qui
+  attend est vidé avant l'adoption ; un échec = message `emp_handover_failed` et on joue le personnage de la sauvegarde.
+- Écran fermé sans valider : aucun code ; le joueur est au titre comme après un « New Game » fermé, verrou déjà rendu.
+- Écarts avec B : pas de fichier `ElinNetHostLocalCreation.cs` (tout tient dans `HandOver`), fame/karma du jeu temporaire non
+  lus (toujours `[0, 30]`, comme un invité neuf), pas de nouveau texte.
+- Test : `depot_suite.py` `p2()` (`DEPOT_ONLY=p2`, et après P1 dans la passe dossier) ; `loaded()` valide l'écran s'il
+  s'ouvre et D2 attend le second chargement. Non joués : fermeture de l'écran, logiciel, GitHub, sauvegarde locale, Cloud.
+- Pas sûr : `world_depot` chargé par le menu du jeu (pas par « prendre ») est rechargé par `Take` (copie du dépôt) ;
+  si un autre prend le monde pendant l'écran, « X héberge » et le personnage fait attend la prochaine prise ; le
+  message d'échec réutilisé dit « (mort) » ; domaines de sorts = ceux du monde (remarque 1.5, comme pour un invité).

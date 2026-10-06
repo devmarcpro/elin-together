@@ -32,6 +32,11 @@ P1  (depot dossier seulement, a la fin ; seule : DEPOT_ONLY=p1 ou --only p1, sur
     tour que personne ne joue : si le personnage de H est celui que A controle, ce test est sans objet ; un seul
     depot dossier, un seul passage, deux fenetres.
     Commande seule : DEPOT_ONLY=p1 python _tools/depot_suite.py (PowerShell : $env:DEPOT_ONLY="p1")
+P2  (depot dossier seulement, apres P1 ; seule : DEPOT_ONLY=p2, sur les fenetres telles qu'une passe ou P1 les laisse :
+    un jeu heberge le monde du depot, l'autre l'a rejoint) un joueur SANS personnage dans le monde d'un autre le prend :
+    il passe par l'ecran de creation du jeu, joue un personnage neuf (sac de depart), le personnage de l'autre attend
+    hors de la carte avec son sac et son or, puis l'autre rejoint et retrouve le sien. Ce qui n'est pas joue comme un
+    joueur est ecrit en tete de p2() (le "sans personnage" est fabrique par le pont).
 
     DEPOT_SERVER=1 python _tools/depot_suite.py
 Le meme scenario avec Elin Together Server a la place du dossier : l'application (aucun jeu, aucun dossier partage)
@@ -95,7 +100,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 import emp  # noqa: E402
 from chara_suite import leave  # noqa: E402
-from mp_test import (CONTINUE, LAB_EXE, PRISTINE, SAVES, SHOTS, WINDOW, bridge_for, join_client, log, ok,  # noqa: E402
+from mp_test import (CONTINUE, EMBARK, LAB_EXE, PRISTINE, SAVES, SHOTS, WINDOW, bridge_for, join_client, log, ok,  # noqa: E402
                      shot, state, wait)
 from travel_suite import LOCALLOW, RESULTS, check, dismiss_dialogs, ev, eventually, scan_logs  # noqa: E402
 
@@ -179,6 +184,8 @@ def take(port):
 def loaded(port):
     def cond():
         emp.call(port, "eval", {"code": CONTINUE}, timeout=180)
+        # un joueur sans personnage dans le monde d'un autre : l'ecran de creation s'ouvre, valide tel quel (P2 le verifie)
+        emp.call(port, "eval", {"code": EMBARK}, timeout=180)
         return state(port).get("sceneMode") == "Zone" and game_id(port) == "world_depot"
     return cond
 
@@ -512,6 +519,115 @@ def p1():
           still["uid"] == uid_a and info(A, uid_h)["place"] == "carte")
 
 
+def p2():
+    """Un joueur sans personnage dans le monde d'un autre le prend : il cree le sien, celui de l'autre attend.
+    Pas joue comme un joueur :
+      - "sans personnage" est fabrique : le banc n'a que deux fenetres et l'invite a deja un personnage dans ce monde ;
+        son entree est retiree de la table remote_chara par le pont (Traverse) juste avant la sauvegarde de
+        l'hebergeur. Son ancien personnage reste donc dans le monde, a personne (un vrai nouveau n'en a jamais eu),
+        et une entree bidon (1:0) est ajoutee pour que la table ne soit jamais vide (piege du plan)
+      - l'ecran de creation est valide par l'appel du bouton (EMBARK), personnage tire au hasard tel quel : aucun
+        choix de race, de metier, de nom ; fermer l'ecran sans valider (rester au titre) n'est PAS joue
+      - sauvegarde, fin de session (ResetSession), "prendre le monde" et heberger sont les fonctions, pas les menus
+      - depot dossier seulement ; ni logiciel, ni GitHub, ni sauvegarde locale ordinaire (Game.Load), ni Steam Cloud
+      - un seul passage, deux fenetres : pas de troisieme joueur, pas de reprise du monde par un autre pendant l'ecran
+    Depart : l'un des deux jeux heberge le monde du depot, l'autre l'a rejoint (ce que laissent la passe ou P1)."""
+    log("--- P2")
+    hosts = [p for p in (H, A) if game_id(p) == "world_depot" and state(p)["role"] == "Host"
+             and len(state(p).get("players", [])) == 2]
+    if len(hosts) != 1 or not state(A if hosts[0] == H else H)["connected"]:
+        raise RuntimeError("P2 : un des deux jeux doit heberger le monde du depot avec l'autre connecte (deux joueurs) ; "
+                           "lancer d'abord la passe complete, qui finit dans cet etat")
+    O = hosts[0]              # celui a qui est le monde (son personnage est le personnage local)
+    N = A if O == H else H    # le nouveau
+    uid_o = int(ev(O, "EClass.pc.uid.ToString()"))
+    uid_n = int(state(N)["pc"]["uid"])
+    pre_o = info(O, uid_o)
+    log(f"avant : l'hebergeur (port {O}) : {pre_o['raw']}")
+    log(f"avant : l'ancien personnage du nouveau (port {N}) : {info(O, uid_n)['raw']}")
+
+    # (1) le nouveau n'a plus de personnage dans ce monde ; l'hebergeur sauvegarde aussitot (meme appel : rien ne
+    # reecrit la table entre les deux) et rend le monde
+    T = 'var t = HarmonyLib.Traverse.Create(HarmonyLib.AccessTools.TypeByName("ElinTogether.Net.ElinNetHost")); '
+    DICT = 'GetValue<System.Collections.Generic.Dictionary<ulong, int>>()'
+    TABLES = ('"remote_chara = " + string.Join(",", t.Property("SavedRemoteCharas").' + DICT + '.Select(p => p.Key + ":" + p.Value))'
+              ' + " | pc_owner = " + string.Join(",", t.Property("PcOwners").' + DICT + '.Select(p => p.Key + ":" + p.Value))'
+              ' + " | pc_orphan = " + string.Join(",", t.Property("PcOrphans").GetValue<System.Collections.Generic.Dictionary<int, int>>().Keys)')
+    stamp = WORLD.stat().st_mtime
+    log("table : " + ev(O, T + 'var d = t.Property("SavedRemoteCharas").' + DICT + '; '
+                        f'foreach (var k in d.Where(p => p.Value == {uid_n}).Select(p => p.Key).ToList()) d.Remove(k); d[1UL] = 0; '
+                        'var saved = EClass.game.Save(false, true); return ' + TABLES + ' + " | sauvegarde " + saved;'))
+    check("P2 l'hebergeur sauvegarde : le monde du depot change", eventually(lambda: WORLD.stat().st_mtime > stamp, timeout=20))
+    for port in (O, N):
+        if state(port).get("sceneMode") != "Title":
+            ev(port, 'ElinTogether.Net.NetSession.Instance.ResetSession(); "ok"')
+            time.sleep(3)
+        if state(port).get("sceneMode") != "Title":
+            to_title(port)
+    wait(lambda: state(N).get("sceneMode") == "Title" and not state(N)["connected"], "le nouveau a l'ecran titre", timeout=60)
+    check("P2 le monde est rendu (plus de verrou dans le depot)", eventually(lambda: holder(N) == "", timeout=10))
+
+    # (2) le nouveau prend le monde : le jeu le charge, voit qu'il est a un autre, revient au titre et ouvre l'ecran
+    # de creation, sans rien demander
+    take(N)
+
+    def creating():
+        emp.call(N, "eval", {"code": CONTINUE}, timeout=180)
+        return ev(N, '(EClass.ui.GetLayer<LayerEditBio>() != null).ToString()') == "True"
+    seen = eventually(creating, timeout=180)
+    check(f"P2 le nouveau passe par l'ecran de creation du jeu (scene {state(N).get('sceneMode')})", seen)
+    check("P2 pendant l'ecran, le monde du depot n'est tenu par personne", holder(O) == "")
+    clicked = emp.call(N, "eval", {"code": EMBARK}, timeout=180).get("result")
+    log(f"le nouveau valide la creation : {clicked}")
+
+    # (3) le meme monde est recharge, le personnage adopte, echange avec celui de l'hebergeur, sauvegarde, recharge
+    def playing():
+        emp.call(N, "eval", {"code": CONTINUE}, timeout=180)
+        return (state(N).get("sceneMode") == "Zone" and game_id(N) == "world_depot"
+                and ev(N, "EClass.pc.uid.ToString()") != str(uid_o))
+    eventually(playing, timeout=240)
+    time.sleep(5)
+    eventually(playing, timeout=120)
+    dismiss_dialogs(N)
+    time.sleep(3)
+
+    # (4) ce que le nouveau trouve
+    me = info(N, "EClass.pc.uid")
+    theirs = info(N, uid_o)
+    standing = ev(N, 'EClass.player.fame + "," + EClass.player.karma')
+    tables = ev(N, T + 'return ' + TABLES + ';')
+    log(f"apres : le personnage que le nouveau joue : {me['raw']}")
+    log(f"apres : le personnage de l'hebergeur (uid {uid_o}) : {theirs['raw']}")
+    log(f"apres : renommee,karma = {standing} ; {tables}")
+    check(f"P2 il a bien vu l'ecran ({clicked}) et joue un personnage NEUF : uid {me['uid']} (hebergeur {uid_o}, son ancien {uid_n})",
+          clicked == "embark clicked" and me["uid"] not in (None, uid_o, uid_n) and me["pc"] is True)
+    items = [x.rsplit("x", 1)[0] for x in me["bag"].split(",")]
+    check(f"P2 avec le sac de depart d'un nouveau joueur (hache comprise), renommee 0 et karma 30 : sac {me['bag']} ; {standing}",
+          "axe" in items and len(items) >= 2 and standing == "0,30")
+    same = (theirs["place"] != "carte" and theirs["uid"] == uid_o and theirs["dead"] is False and theirs["bag"] == pre_o["bag"]
+            and theirs["gold"] == pre_o["gold"] and theirs["pc"] is False)
+    check(f"P2 le personnage de l'hebergeur attend hors de la carte, meme sac, meme or : avant ({pre_o['place']}, or {pre_o['gold']}, "
+          f"sac {pre_o['bag']}) ; apres ({theirs['place']}, mort={theirs['dead']}, or {theirs['gold']}, sac {theirs['bag']}, "
+          f"joue par le nouveau : {theirs['pc']})", same)
+    check(f"P2 la sauvegarde sait qui est a qui : le personnage local est au nouveau, celui de l'hebergeur a son nom ({tables})",
+          f":{me['uid']} " in tables.split("pc_owner = ")[1]
+          and any(e.endswith(f":{uid_o}") for e in tables.split(" | ")[0].split(",")))
+    check("P2 le monde du depot est tenu par le nouveau", eventually(lambda: holder(O) != "", timeout=10))
+
+    # (5) le nouveau heberge, l'ancien hebergeur le rejoint : il retrouve SON personnage, sans ecran de creation
+    ok(emp.call(N, "command", {"cmd": "emp.add_local"}))
+    wait(lambda: state(N)["role"] == "Host", "le nouveau demarre le serveur")
+    join_client(N, O, "l'ancien hebergeur (invite a son tour)")
+    eventually(lambda: len(state(N).get("players", [])) == 2 and state(O)["connected"] and state(O).get("sceneMode") == "Zone", timeout=60)
+    back = info(O, "EClass.pc.uid")
+    check(f"P2 l'ancien hebergeur rejoint et retrouve son personnage : il joue {back['name']} (uid {back['uid']}, attendu {uid_o}), "
+          f"or {back['gold']} (avant {pre_o['gold']}), sac {back['bag']}",
+          back["uid"] == uid_o and back["gold"] == pre_o["gold"] and back["bag"] == pre_o["bag"])
+    still = info(N, "EClass.pc.uid")
+    check(f"P2 le nouveau joue toujours le sien (uid {still['uid']}), et voit l'autre sur sa carte ({info(N, uid_o)['place']})",
+          still["uid"] == me["uid"] and info(N, uid_o)["place"] == "carte")
+
+
 def main():
     global A
     sys.stdout.reconfigure(encoding="utf-8")
@@ -521,19 +637,19 @@ def main():
     only = os.environ.get("DEPOT_ONLY", "").lower()
     if "--only" in sys.argv:
         only = sys.argv[sys.argv.index("--only") + 1].lower()
-    if only not in ("", "p1"):
-        sys.exit("DEPOT_ONLY / --only : seulement p1")
-    if only == "p1" and (REMOTE or GITHUB):
-        sys.exit("P1 se joue avec le depot dossier (ni DEPOT_SERVER ni DEPOT_GITHUB)")
+    if only not in ("", "p1", "p2"):
+        sys.exit("DEPOT_ONLY / --only : seulement p1 ou p2")
+    if only and (REMOTE or GITHUB):
+        sys.exit("P1 et P2 se jouent avec le depot dossier (ni DEPOT_SERVER ni DEPOT_GITHUB)")
     server = fake = None
     fake_state = {}
     try:
-        if only == "p1":
-            # les fenetres sont la ou une passe complete les laisse (H heberge le monde du depot, A l'a rejoint)
+        if only:
+            # les fenetres sont la ou une passe les laisse (un jeu heberge le monde du depot, l'autre l'a rejoint)
             for port in (H, A):
                 dismiss_dialogs(port)
                 ev(port, SET % str(DEPOT))
-            if not (game_id(H) == "world_depot" and state(H)["role"] == "Host" and len(state(H).get("players", [])) == 2
+            if only == "p1" and not (game_id(H) == "world_depot" and state(H)["role"] == "Host" and len(state(H).get("players", [])) == 2
                     and state(A)["connected"]):
                 raise RuntimeError("DEPOT_ONLY=p1 : H doit heberger le monde du depot avec A connecte (deux joueurs) ; "
                                    "lancer d'abord la passe complete, qui finit dans cet etat")
@@ -600,6 +716,9 @@ def main():
             else:
                 take(A)
             wait(loaded(A), "l'autre joueur charge le monde du depot", timeout=180, every=3.0)
+            # s'il n'a pas de personnage dans ce monde, le jeu repasse par le titre et l'ecran de creation, puis recharge
+            time.sleep(5)
+            wait(loaded(A), "l'autre joueur joue dans le monde du depot", timeout=240, every=3.0)
             dismiss_dialogs(A)
             check("l'autre joueur prend le monde du depot et le charge", game_id(A) == "world_depot")
             check(f"le depot dit qui heberge ({holder(H)})", eventually(lambda: holder(H) != "", timeout=10))
@@ -702,10 +821,13 @@ def main():
             join_client(H, A, "client")
             check("il ouvre la session, l'autre le rejoint : les deux jouent dans le monde du depot",
                   eventually(lambda: len(state(H).get("players", [])) == 2 and state(A)["connected"], timeout=30))
-        if not (REMOTE or GITHUB):
-            p1()
+        if REMOTE or GITHUB:
+            log("--- P1 et P2 non jouees : seulement avec le depot dossier")
         else:
-            log("--- P1 non jouee : seulement avec le depot dossier")
+            if only != "p2":
+                p1()
+            if only != "p1":
+                p2()
     except Exception as ex:  # noqa: BLE001
         check(f"interrompu : {type(ex).__name__}: {str(ex)[:300]}", False)
         for name, port in (("host", H), ("A", A)):

@@ -5,6 +5,7 @@ using ElinTogether.LangMod;
 using ElinTogether.Models;
 using ElinTogether.Net.Steam;
 using HeathenEngineering.SteamworksIntegration;
+using UnityEngine.Events;
 
 namespace ElinTogether.Net;
 
@@ -114,6 +115,90 @@ internal partial class ElinNetHost
         SavedRemoteCharas[user] = orphan.uid;
     }
 
+    // the character a new player just made at the title and the world it is for: kept across the load in the
+    // game's memory, never in a table of the save (it would be written in the world before being anyone's)
+    private static (string World, LZ4Bytes Chara, float At)? _madeChara;
+
+    /// <summary>
+    ///     The character of a new player who loads a world that is another player's. Null while it is not made: the
+    ///     game then goes to the title and opens the creation screen, and loads this world again once it is made
+    /// </summary>
+    private static Chara? NewCharaOf(ulong me)
+    {
+        // made for the load that follows: one that never came (the depot's world taken by another meanwhile) is forgotten
+        if (_madeChara is not { } made || made.World != Game.id || UnityEngine.Time.realtimeSinceStartup - made.At > 180f) {
+            MakeOwnChara();
+            return null;
+        }
+
+        // forgotten before anything can fail: one screen, one load, never a loop of loads
+        _madeChara = null;
+        Chara? chara = null;
+        try {
+            chara = made.Chara.Decompress<Chara>();
+            AdoptNewPlayerChara(chara);
+            GiveAxeToRemotePlayer(chara);
+        } catch (System.Exception ex) {
+            // played as it is, with the character of the save: said, and the screen comes back at the next load only
+            EmpLog.Warning(ex, "The character made for this world could not be taken in");
+            Dialog.Ok("emp_handover_failed".Loc(chara?.Name ?? ""));
+            return null;
+        }
+
+        // what a player who joins gets from MakeAlly and from its first save probe
+        chara.SetGlobal();
+        chara.SetFaction(EClass.Home);
+        PlayerStandings[chara.uid] = [0, NewPlayerKarma];
+        SavedRemoteCharas[me] = chara.uid;
+        if (!PlayerRosters.TryGetValue(me, out var roster)) {
+            roster = PlayerRosters[me] = [];
+        }
+
+        roster.Add(chara.uid);
+        EmpLog.Information("New player {User} made its own character {Uid} for this world", me, chara.uid);
+        return chara;
+    }
+
+    /// <summary>
+    ///     The creation screen of the game, as ElinNetClient.OnSessionNewPlayerRequest opens it for a player who joins
+    /// </summary>
+    private static void MakeOwnChara()
+    {
+        var (world, cloud) = (Game.id, game.isCloud);
+        EmpLog.Information("The world {World} is another player's and we have no character in it: making one", world);
+
+        // the screen edits the character of a game of its own: none may be loaded. The title also gives the depot's
+        // world back, so a player who never validates holds nothing
+        scene.Init(Scene.Mode.Title);
+        core.actionsNextFrame.Add(() => {
+            ui.RemoveLayer<LayerEditBio>();
+            var embark = ui.AddLayer<LayerEditBio>();
+            var content = embark.GetComponentInChildren<Content>();
+            content.transform.Find("Mode").SetActive(false);
+
+            // closed without this click: the player stays at the title as after the game's own "New Game", nothing
+            // is kept and nothing is loaded
+            var button = content.transform.Find("ButtonEmbark")!.GetComponentInChildren<UIButton>();
+            button.onClick.SetPersistentListenerState(0, UnityEventCallState.Off);
+            button.onClick.AddListener(() => {
+                _madeChara = (world, LZ4Bytes.Create(pc), UnityEngine.Time.realtimeSinceStartup);
+                game.Kill();
+                ui.RemoveLayer(embark);
+                core.game = null;
+                core.actionsNextFrame.Add(() => {
+                    LayerTitle.KillActor();
+                    // loaded again the way it was loaded. The depot's world is taken again: its lock went back at
+                    // the title, so it is never held twice, and a player who took it meanwhile is said
+                    if (world == SaveDepot.WorldId && !cloud && SaveDepot.Enabled) {
+                        SaveDepot.Take();
+                    } else {
+                        Game.Load(world, cloud);
+                    }
+                });
+            });
+        });
+    }
+
     private static Chara? Giver(Quest quest)
     {
         return quest.person?.uidChara is { } uid and not 0 ? game.cards.globalCharas.Find(uid) : null;
@@ -134,12 +219,21 @@ internal partial class ElinNetHost
         // our own character in this world: the one we played as a guest, else a former local character nobody claims
         var mine = OwnCharaOf(me) ?? (SavedRemoteCharas.ContainsKey(me) ? null : Orphan());
         if (mine is null) {
-            // nobody's by the save and we have no other: it is ours (the host back on a world of before)
-            if (formerOwner == 0 && !SavedRemoteCharas.ContainsKey(me)) {
-                SetPcOwner(me);
+            if (SavedRemoteCharas.ContainsKey(me)) {
+                return false;
             }
 
-            return false;
+            // nobody's by the save and we have no other: it is ours (the host back on a world of before)
+            if (formerOwner == 0) {
+                SetPcOwner(me);
+                return false;
+            }
+
+            // another player's, and we never played here: a new player, who makes its own as one who joins does
+            mine = NewCharaOf(me);
+            if (mine is null) {
+                return false;
+            }
         }
 
         if (mine.isDead || pc.party is not { } party) {

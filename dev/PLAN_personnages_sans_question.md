@@ -56,5 +56,9 @@ connaît pas le propriétaire).
   donc un orphelin que si personne ne joue ce personnage, et le test écrit une entrée bidon au lieu de vider.
 - Relecture, laissé tel quel et à dire à l'utilisateur : un orphelin va au premier joueur sans personnage qui rejoint ;
   à trois joueurs ou plus sur un vieux monde, un nouveau venu arrivé avant l'ancien host recevrait son personnage.
-- Étape 2 PAS FAITE : un nouveau joueur sans personnage qui prend en premier le monde d'un autre joue encore le
-  personnage de l'autre (rien n'est supprimé, mais ce n'est pas le sien). À faire avant de proposer la 0.26.495.
+- Étape 2 FAITE : un nouveau joueur sans personnage qui prend le monde d'un autre passe par l'écran de création du jeu
+  (depuis l'écran titre), puis joue ce personnage ; celui de l'autre attend. `depot_suite` P2 : rouge vu d'abord (28/33),
+  puis 33/33 pour toute la passe dossier. Relu ; corrigé à la relecture : un monde du nuage est rechargé comme tel, un
+  personnage fait pour un chargement qui n'a pas eu lieu est oublié après 3 minutes.
+- Reste : passe large, `depot_suite` avec `DEPOT_GITHUB=1`, proposer la 0.26.495. Pas joué : deux PC et deux comptes
+  Steam ; le joueur qui ferme l'écran de création ; un monde du nuage ; le monde du dépôt pris par un autre pendant l'écran.

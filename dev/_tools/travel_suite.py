@@ -589,6 +589,14 @@ def scan_logs(t0):
             problems.append(f'{d["@t"][11:19]} {d["@l"]} {d["@mt"][:110]}')
     for p in problems:
         print("       ", p)
+    # la pile d'une exception attrapee par le mod n'est que dans ce journal (champ @x) : les trois premieres, differentes
+    stacks = []
+    for l in session_log_lines(t0):
+        d = json.loads(l)
+        if d.get("@x") and d["@x"][:400] not in [x[:400] for x in stacks]:
+            stacks.append(d["@x"])
+    for x in stacks[:3]:
+        print("        PILE :", " | ".join(x[:900].splitlines()))
     print(f"    (ElinTogether : {len(problems)} avertissement(s)/erreur(s), a lire ci-dessus)")
 
 

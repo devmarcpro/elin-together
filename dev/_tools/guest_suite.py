@@ -1046,6 +1046,8 @@ def g36(ctx):
                 check(f"{who} : le bit du jeu est a vrai chez l'host ({bit(H)}), pas de cle emp_leash ({lkey(H)})", bit(H) == "True" and lkey(H) == 0)
 
             moved = walk(port, avoid=(int(x), int(z)))
+            # ce qui empecherait la laisse de tirer (regle du jeu, Chara.cs : combat, hors d'etat, « garder ses distances »)
+            log(f"{who} : etat du chat apres la marche, chez l'host : " + ev(H, f'var c = {chara(H, m)}; return c == null ? "absent" : "combat=" + c.IsInCombat + " hors d etat=" + c.IsDisabled + " ennemi=" + (c.enemy == null ? "aucun" : c.enemy.Name) + " ia=" + c.ai + " conditions=" + string.Join(",", c.conditions.Select(k => k.GetType().Name)) + " distances=" + (EClass._zone.KeepAllyDistance && EClass.game.config.tactics.allyKeepDistance);'))
             check(f"{who} a marche d'au moins 5 cases ({moved})", moved >= 5)
             check(cond=eventually(lambda: gap(H, m, uid) <= 2, timeout=10), label=f"{who} a marche de {moved} cases : le chat le suit, vu par l'host (distance {gap(H, m, uid)})")
             check(cond=eventually(lambda: cell(H, m) == cell(A, m), timeout=10), label=f"{who} : le chat est a la meme case chez l'host ({cell(H, m)}) et chez l'invite ({cell(A, m)})")
@@ -1057,6 +1059,10 @@ def g36(ctx):
                 check(f"l'host marche : le chat de l'invite ne le suit pas (distance {before} -> {after})", after > 2)
 
             eventually(lambda: gap(H, m, uid) <= 1, timeout=5)
+            # detacher demande d'etre a cote (TraitLeash) : si le chat n'a pas suivi, le joueur y retourne
+            if gap(H, m, uid) > 1:
+                stand(port, uid, *(int(v) for v in free_next_to(H, m, 1).split(",")))
+                time.sleep(1)
             cx, cz = cell(port, m).split(",")
             awake(port)
             pick = 'i.act is DynamicAct d && d.id == "actUnleash" && i.tc != null && i.tc.uid == ' + str(m)
