@@ -35,9 +35,11 @@ Ce que le banc ne joue pas comme un joueur :
   rangement est lance par TaskDump.TryPerform, ce que fait la touche.
 - D3b : meme chose ; en plus, l'objet de la barre est place par invY = 1 (pas par le glisser-deposer de la fenetre), la
   ceinture est remplie par AddThing sur l'objet ceinture (pas par la fenetre de la ceinture), le luth est pris par
-  HoldCard (pas par un clic) ; le joueur n'a pas de ceinture sur le banc : elle est equipee par EQ_ID("toolbelt").
+  HoldCard (pas par un clic) ; si le joueur n'a pas de ceinture, elle est equipee par EQ_ID("toolbelt") (le test le dit).
+  Pas joue : ecrit sans avoir tourne ; la mise en place (barre, ceinture, main) est verifiee avant le rangement.
 """
 import argparse
+import json
 import sys
 import time
 from datetime import datetime, timezone
@@ -47,7 +49,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from guest_suite import awake, both, chara, clear_conditions, close_layers, count, first_id, give, give_made, stand, tame, use_held  # noqa: E402
 from equal2_suite import drop, seen, spawn  # noqa: E402
 from mp_test import log, shot, state  # noqa: E402
-from travel_suite import RESULTS, check, ev, eventually, scan_logs  # noqa: E402
+from travel_suite import RESULTS, check, ev, eventually, scan_logs, session_log_lines  # noqa: E402
 
 H, A = 27551, 27552
 
@@ -228,11 +230,17 @@ def d3b(ctx):
             awake(port)
             ev(port, 'EClass.pc.SetNoGoal(); "ok"')
             time.sleep(1)
+            t0 = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
             ev(port, 'TaskDump.TryPerform(); "ok"')
             time.sleep(2)
             eventually(lambda: ev(port, '(EClass.pc.ai is TaskDump).ToString()') == "False", timeout=40)
             eventually(lambda: where(H, uid, "log", chest)[4] == 2, timeout=10)  # le temoin est parti : le rangement a eu lieu
             time.sleep(3)
+            try:  # la trace « dumped: objet, coffre » du mod (niveau Debug : absente du journal si le mod ne l'ecrit pas)
+                dumped = [line for line in session_log_lines(t0) if json.loads(line).get("@mt", "").startswith("dumped:")]
+                log(f"{who} : {len(dumped)} ligne(s) « dumped: » dans le journal du mod" + (" : " + dumped[0][:200] if dumped else ""))
+            except OSError as ex:
+                log(f"journal du mod illisible ({ex})")
             for name, p in (("chez lui", port), ("chez l'autre", other)):
                 for item, source, want in items:
                     got = where(p, uid, item, chest)
