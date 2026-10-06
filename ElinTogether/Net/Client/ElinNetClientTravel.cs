@@ -448,12 +448,16 @@ internal partial class ElinNetClient
             .ToList();
         var leaving = Leaving();
 
+        // cards created here get uids the host does not use (before a map is loaded here on our own)
+        game.cards.uidNext = Math.Max(game.cards.uidNext, grant.UidRangeStart);
+        AdoptQuestUidRange(grant);
+
         if (withHost) {
             // the results of our last actions on the host map arrived right before this packet
             WorldStateDeltaProcess();
 
             // while still a client of the host: its map is loaded as any map it sends
-            if (AdoptHostCopy(zone, grant)) {
+            if (AdoptHostCopy(zone, grant, "the host")) {
                 leaving = Leaving();
             }
 
@@ -461,6 +465,12 @@ internal partial class ElinNetClient
         } else {
             // still open if the owner has not closed it yet
             Session.RemoveZoneSession();
+            Session.IsGuest = false;
+
+            // the copy the owner handed back to the host is the one everyone else gets: loaded as a leased map is
+            if (AdoptHostCopy(zone, grant, "its owner")) {
+                leaving = Leaving();
+            }
         }
 
         Session.IsGuest = false;
@@ -468,9 +478,7 @@ internal partial class ElinNetClient
         _handoffDeadline = 0;
         _nextCheckpoint = Time.realtimeSinceStartup + Session.Rules.TravelCheckpointSeconds;
 
-        // cards created here get uids the host does not use, those still waiting for one from the owner too
-        game.cards.uidNext = Math.Max(game.cards.uidNext, grant.UidRangeStart);
-        AdoptQuestUidRange(grant);
+        // those still waiting for a uid from the owner get one of ours
         foreach (var card in _map.things.Concat<Card>(_map.charas).ToList()) {
             if (PendingUid.IsPending(card.uid)) {
                 game.cards.AssignUID(card);
@@ -503,8 +511,10 @@ internal partial class ElinNetClient
     ///     message missed earlier would become true for everyone: the others load our copy, and so does the host
     ///     when it comes back). Same numbers: nothing to do. Otherwise its copy is loaded under our feet
     /// </summary>
+    /// <param name="from">who kept the map until now, for the journal: the host, or the player we were visiting
+    ///     (its copy went to the host, which sent it on, see ElinNetHost.HandOverZone)</param>
     /// <returns>true when the map was loaded again</returns>
-    private bool AdoptHostCopy(Zone zone, ZoneLeaseGrant grant)
+    private bool AdoptHostCopy(Zone zone, ZoneLeaseGrant grant, string from)
     {
         if (grant.Map is null || grant.MapSums is not { } theirs) {
             return false;
@@ -512,15 +522,16 @@ internal partial class ElinNetClient
 
         var ours = ZoneLeaseState.Sums(_map);
         if (ours.SequenceEqual(theirs)) {
-            EmpLog.Information("Taking over {ZoneFullName} from the host: our copy is the same, kept ({Sums})",
-                zone.ZoneFullName, ZoneLeaseState.TellSums(ours));
+            EmpLog.Information("Taking over {ZoneFullName} from {From}: our copy is the same, kept ({Sums})",
+                zone.ZoneFullName, from, ZoneLeaseState.TellSums(ours));
             return false;
         }
 
-        // ponytail: what we did in the last round trip and the host never saw is not in its copy. A thing put
-        // down then is lost, one picked up is there twice. Fix when seen: wait for an ack as a leaving player does
-        EmpLog.Warning("Taking over {ZoneFullName} from the host: our copy differs, replaced by the host's (here {Local} | host {Host})",
-            zone.ZoneFullName, ZoneLeaseState.TellSums(ours), ZoneLeaseState.TellSums(theirs));
+        // ponytail: what we did in the last round trip and the keeper never saw is not in its copy. A thing put
+        // down then is lost (one picked up is taken off the floor below). Fix when seen: wait for an ack as a
+        // leaving player does
+        EmpLog.Warning("Taking over {ZoneFullName} from {From}: our copy differs, replaced by theirs (here {Local} | there {Host})",
+            zone.ZoneFullName, from, ZoneLeaseState.TellSums(ours), ZoneLeaseState.TellSums(theirs));
 
         var stood = pc.pos.Copy();
         var carried = pc.things.Flatten().Select(t => t.uid).ToHashSet();
@@ -543,6 +554,21 @@ internal partial class ElinNetClient
 
         if (pc.isDead) {
             PutHimRightEr(stood);
+        }
+
+        // what we carry cannot lie on the floor too: picked up in the last round trip, that copy never saw it.
+        // Kept where a player alone would have it, in the bag
+        var doubled = _map.things.Where(t => carried.Contains(t.uid)).ToList();
+        foreach (var thing in doubled) {
+            zone.RemoveCard(thing);
+            if (pc.things.Flatten().FirstOrDefault(t => t.uid == thing.uid) is { } kept) {
+                CardCache.Set(kept);
+            }
+        }
+
+        if (doubled.Count > 0) {
+            EmpLog.Warning("Taking over {ZoneFullName}: {Count} thing(s) of that copy are in our bag already, taken off the floor: {Uids}",
+                zone.ZoneFullName, doubled.Count, doubled.Select(t => t.uid));
         }
 
         return true;
@@ -950,12 +976,16 @@ internal partial class ElinNetClient
             };
         }
 
+        // the world map is a local copy for everyone; the zone of a quest is gone once left
+        var map = zone.IsRegion || zone.IsInstance ? null : ZoneLeaseState.CollectMap(zone);
+
         return new() {
             ZoneUid = zone.uid,
             ZoneState = ZoneLeaseState.GetState(zone),
             IdCurrentSubset = zone.idCurrentSubset,
-            // the world map is a local copy for everyone; the zone of a quest is gone once left
-            Map = zone.IsRegion || zone.IsInstance ? null : ZoneLeaseState.CollectMap(zone),
+            Map = map,
+            // leaving for good: a visitor who takes the zone over compares its copy with this one
+            MapSums = map is null || checkpoint || zone.map is null ? null : ZoneLeaseState.Sums(zone.map),
             Chara = LZ4Bytes.Create(pc),
             Companions = CollectCompanions(),
             UidNext = game.cards.uidNext,
@@ -995,7 +1025,7 @@ internal partial class ElinNetClient
     {
         foreach (var delta in response.DeltaList) {
             // chat and the quest log are the world's, the rest is about the host map
-            if (delta is MsgSayDelta or QuestStartDelta or QuestCompleteDelta or QuestChangePhaseDelta or DialogFlagDelta or QuestFailDelta or QuestUpdateDelta or PersonalStateDelta or PlayerStandingDelta or WorldDateAdvanceDelta or WeatherDelta or DayDataDelta or QuestFollowDelta or SleepReadyDelta or SleepStartDelta or CharaSleepDelta) {
+            if (delta is MsgSayDelta or QuestStartDelta or QuestCompleteDelta or QuestChangePhaseDelta or DialogFlagDelta or QuestFailDelta or QuestUpdateDelta or PersonalStateDelta or PlayerStandingDelta or WorldDateAdvanceDelta or WeatherDelta or DayDataDelta or QuestFollowDelta or SleepReadyDelta or SleepStartDelta or CharaSleepDelta or BillPayDelta) {
                 // the regular delta loop does not run while away, see CoreSynchronizationContext
                 delta.Apply(this);
             }
@@ -1042,6 +1072,8 @@ internal partial class ElinNetClient
             ZoneDataResponse or
             SaveDataProbe or
             NetSessionRules or
+            WorldCopyManifest or
+            WorldCopyPiece or
             NetIntegrityRejected;
         // not SessionPlayersSnapshot: the players of a zone session are ours, the host list is about its map
     }

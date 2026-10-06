@@ -28,6 +28,22 @@ public enum BillAnswer : byte
     ///     The sender's gold no longer covers it
     /// </summary>
     Poor,
+
+    /// <summary>
+    ///     A request, client to host: a player alone on another map paid this bill with its own gold, in its own game
+    ///     (it keeps no tax chest of the host's). The host lowers its counter once and tells everyone
+    /// </summary>
+    Paid,
+
+    /// <summary>
+    ///     Told to everyone: Payer put Amount of gold in the bank
+    /// </summary>
+    BankIn,
+
+    /// <summary>
+    ///     Told to everyone: Payer took Amount of gold out of the bank
+    /// </summary>
+    BankOut,
 }
 
 /// <summary>
@@ -58,11 +74,55 @@ public class BillPayDelta : ElinDelta
     [Key(4)]
     public int Amount { get; init; }
 
+    /// <summary>
+    ///     With <see cref="BillAnswer.Paid" />: what the game gives back for the extra tax (the bill's int 35 / 1000)
+    /// </summary>
+    [Key(5)]
+    public int Gift { get; init; }
+
     internal static void Send(Thing bill)
     {
         if (NetSession.Instance.Connection is ElinNetClient client) {
             client.Delta.AddRemote(new BillPayDelta { Bill = bill });
         }
+    }
+
+    /// <summary>
+    ///     Alone on another map, the game paid the bill itself (its gold, its copy of the counters): the host's
+    ///     counter is told, the host reads nothing it could not know (the bill is in this player's hands)
+    /// </summary>
+    internal static void SendAway(Thing bill)
+    {
+        if (NetSession.Instance is { IsAway: true, Connection: null, Transport: ElinNetClient main }) {
+            main.SendWhileAway(new BillPayDelta {
+                Answer = BillAnswer.Paid,
+                Payer = EClass.pc.NameSimple,
+                Id = bill.id,
+                Amount = bill.c_bill,
+                Gift = bill.GetInt(35) / 1000,
+            });
+        }
+    }
+
+    /// <summary>
+    ///     Gold put in or taken out of the bank by a player: a line for everyone, the host's own included. Alone,
+    ///     nobody is told
+    /// </summary>
+    internal static void TellBank(ElinNetHost host, string who, int amount, bool deposit)
+    {
+        if (amount <= 0 || !NetCompany.HasCompany) {
+            return;
+        }
+
+        var answer = deposit ? BillAnswer.BankIn : BillAnswer.BankOut;
+        host.SendDeltaToAllExcept(-1, new BillPayDelta { Answer = answer, Payer = who, Amount = amount });
+        ShowBank(answer, who, amount);
+    }
+
+    private static void ShowBank(BillAnswer answer, string who, int amount)
+    {
+        var id = answer == BillAnswer.BankIn ? "emp_ui_bank_deposit" : "emp_ui_bank_withdraw";
+        Msg.Say(LastLine = id.Loc(who, Lang._currency(amount, "money")));
     }
 
     /// <summary>
@@ -83,6 +143,15 @@ public class BillPayDelta : ElinDelta
 
     protected override void OnApply(ElinNetBase net)
     {
+        if (Answer == BillAnswer.Paid) {
+            // only from a player away from this map: on it, the host does the paying (see Pay)
+            if (net is ElinNetHost { IsZoneSession: false } away && away.IsAwayPeer(OriginPeer)) {
+                SettleAway(away);
+            }
+
+            return;
+        }
+
         if (Answer != BillAnswer.None) {
             if (net.IsClient) {
                 OnAnswer();
@@ -123,24 +192,49 @@ public class BillPayDelta : ElinDelta
         }
 
         sender.ModCurrency(-amount);
-        if (tax) {
-            player.stats.taxBillsPaid += amount;
-            player.taxBills = Math.Max(0, player.taxBills - 1);
-            // what the game gives back for the extra tax (InvOwnerDeliver.PayBill)
-            if (bill.GetInt(35) / 1000 is > 0 and var gift) {
-                world.SendPackage(ThingGen.CreateParcel("parcel_mysiliaGift", ThingGen.Create("money2", "copper").SetNum(gift)));
-            }
-        } else {
-            player.unpaidBill -= amount;
-        }
+        LowerCounters(tax, amount, bill.GetInt(35) / 1000);
 
         bill.Destroy();
         Tell(host, sender.NameSimple, bill.id, amount);
         return BillAnswer.Done;
     }
 
+    // what the game does to the counters of the bills (InvOwnerDeliver.PayBill), once
+    private static void LowerCounters(bool tax, int amount, int gift)
+    {
+        if (tax) {
+            player.stats.taxBillsPaid += amount;
+            player.taxBills = Math.Max(0, player.taxBills - 1);
+            // what the game gives back for the extra tax
+            if (gift > 0) {
+                world.SendPackage(ThingGen.CreateParcel("parcel_mysiliaGift", ThingGen.Create("money2", "copper").SetNum(gift)));
+            }
+        } else {
+            player.unpaidBill -= amount;
+        }
+    }
+
+    // a player alone on another map paid with its own gold: only the counter is left to lower, and only while
+    // it says there is something to pay (a repeated word of the same player finds it at 0)
+    private void SettleAway(ElinNetHost host)
+    {
+        var tax = Id == "bill_tax";
+        if (Id is not ("bill_tax" or "bill") || Amount <= 0 || (tax && player.taxBills <= 0)) {
+            return;
+        }
+
+        LowerCounters(tax, Amount, Gift);
+        Tell(host, Payer ?? "", Id!, Amount);
+    }
+
     private void OnAnswer()
     {
+        if (Answer is BillAnswer.BankIn or BillAnswer.BankOut) {
+            SE.Pay();
+            ShowBank(Answer, Payer ?? "", Amount);
+            return;
+        }
+
         if (Answer == BillAnswer.Done) {
             SE.Pay();
             Show(Payer ?? "", Id ?? "", Amount);

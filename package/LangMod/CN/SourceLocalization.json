@@ -280,5 +280,11 @@
     "LangGeneral.emp_ui_sleep_all.text": "所有人都睡着了：夜晚过去了。",
     "LangGeneral.emp_ui_resync.text": "正在重新同步地图…",
     "LangGeneral.emp_ui_sv_cfg_auto_resync.text": "自动修复地图",
-    "LangGeneral.emp_ui_sv_desc_auto_resync.text": "开：玩家的地图与主机不一致（缺少物品或角色）时，会自动重新载入地图，最多每 30 秒一次。关：差异只写入日志。"
+    "LangGeneral.emp_ui_sv_desc_auto_resync.text": "开：玩家的地图与主机不一致（缺少物品或角色）时，会自动重新载入地图，最多每 30 秒一次。关：差异只写入日志。",
+    "LangGeneral.emp_ui_bank_deposit.text": "{0} 向银行存入了 {1}",
+    "LangGeneral.emp_ui_bank_withdraw.text": "{0} 从银行取出了 {1}",
+    "LangGeneral.emp_ui_sv_cfg_world_copy.text": "其他玩家保留一份世界副本",
+    "LangGeneral.emp_ui_sv_desc_world_copy.text": "开启：每次自动保存后，每位玩家的电脑都会在自己的存档之外保留一份世界副本。关闭：世界只存在于主机的电脑上。",
+    "LangGeneral.emp_ui_sv_cfg_shared_tax.text": "按名声最高的玩家计税",
+    "LangGeneral.emp_ui_sv_desc_shared_tax.text": "开：每月税金按在线玩家中最高的名声计算。关：按主机的名声计算（与原版相同）。"
 }

@@ -215,6 +215,11 @@ internal static class EmpAutoHost
         watch.Stop();
         EmpLog.Information("Autosave: {Result} in {Ms} ms", saved ? "saved" : "failed", watch.ElapsedMilliseconds);
 
+        if (saved) {
+            // every guest keeps a copy of the world as it was just saved
+            (NetSession.Instance.Transport as ElinNetHost)?.WorldSaved();
+        }
+
         // the save runs in the game and freezes it meanwhile: a heavy world is saved less often
         if (watch.ElapsedMilliseconds > SlowSaveMs && !_slow) {
             _slow = true;

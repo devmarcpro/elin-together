@@ -146,7 +146,23 @@ public class NetSessionRules
     [Key(20)]
     public bool AutoResync { get; set; } = true;
 
+    /// <summary>
+    ///     After each save the host makes by itself, every guest keeps a whole copy of the world on its own disk
+    ///     (see Net/Handover). Off: the world is on the host's disk only
+    /// </summary>
+    [Key(21)]
+    public bool KeepWorldCopy { get; set; } = true;
+
+    /// <summary>
+    ///     Council 10: the tax is computed on the highest fame among the connected players (see SharedTaxPatch).
+    ///     Off: on the host's fame
+    /// </summary>
+    [Key(22)]
+    public bool UseSharedTax { get; set; } = true;
+
     public static NetSessionRules Default => new() {
+        UseSharedTax = EmpConfig.Server.SharedTax.Value,
+        KeepWorldCopy = EmpConfig.Server.WorldCopy.Value,
         AutoResync = EmpConfig.Server.AutoResync.Value,
         UseOwnSleep = EmpConfig.Server.OwnSleep.Value,
         TimeJumpsTogether = EmpConfig.Server.TimeJumpsTogether.Value,

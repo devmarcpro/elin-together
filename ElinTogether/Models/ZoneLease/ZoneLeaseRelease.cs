@@ -79,4 +79,11 @@ public class ZoneLeaseRelease
     /// </summary>
     [Key(12)]
     public ZoneArrival? Arrival { get; init; }
+
+    /// <summary>
+    ///     The numbers of <see cref="Map" /> (<see cref="ZoneLeaseState.Sums" />): the host hands both to the visitor
+    ///     who takes the zone over, see ElinNetHost.HandOverZone
+    /// </summary>
+    [Key(13)]
+    public int[]? MapSums { get; set; } = null;
 }

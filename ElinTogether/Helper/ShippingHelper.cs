@@ -46,6 +46,13 @@ internal static class ShippingHelper
     internal const string MirrorBoxKey = "emp_box";
 
     /// <summary>
+    ///     On the character of a player alone away: number of the last thing it took out of a box of the world.
+    ///     It travels with the bag in every checkpoint, so the host reads there whether the player has what it was
+    ///     handed (an int key: Card.SetInt(string) of "the player" also writes the shared dialog flags)
+    /// </summary>
+    internal static readonly int TookKey = "emp_took".GetHashCode();
+
+    /// <summary>
     ///     Set while the pictures are put in the box: nothing of it is a deposit
     /// </summary>
     internal static bool FillingMirror { get; set; }

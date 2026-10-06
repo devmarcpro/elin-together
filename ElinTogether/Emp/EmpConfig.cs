@@ -265,6 +265,22 @@ internal partial class EmpConfig
             "Every 5 minutes when a save takes more than half a second. Otherwise only when the host saves\n" +
             "有其他玩家在游戏中时，世界每 2 分钟自动保存一次，最后一位玩家离开时也会保存；保存超过半秒时改为每 5 分钟。关闭时只在主机保存时保存");
 
+        Server.SharedTax = config.Bind(
+            "Server",
+            "SharedTax",
+            true,
+            "The monthly tax is computed on the highest fame among the connected players, not always on the host's\n" +
+            "Otherwise on the host's fame, as the game does\n" +
+            "每月税金按在线玩家中最高的名声计算，而不总是按主机的名声。关闭时按主机的名声计算（与原版相同）");
+
+        Server.WorldCopy = config.Bind(
+            "Server",
+            "WorldCopy",
+            true,
+            "After each save the game makes by itself, every other player's game keeps a copy of the world on its own disk, outside its saves\n" +
+            "Sent in the background, a little at a time, only what changed. Otherwise the world is on the host's PC only\n" +
+            "每次自动保存后，其他玩家的游戏会在自己的硬盘上保留一份世界副本（不在存档文件夹内）；在后台一点一点发送，只发送有变化的部分。关闭时世界只存在于主机的电脑上");
+
         Server.AutoHost = config.Bind(
             "Server",
             "AutoHost",
@@ -393,6 +409,8 @@ internal partial class EmpConfig
         internal static ConfigEntry<bool> AutoReconnect { get; set; } = null!;
         internal static ConfigEntry<bool> AutoResync { get; set; } = null!;
         internal static ConfigEntry<bool> AutoSave { get; set; } = null!;
+        internal static ConfigEntry<bool> WorldCopy { get; set; } = null!;
+        internal static ConfigEntry<bool> SharedTax { get; set; } = null!;
         internal static ConfigEntry<bool> AutoHost { get; set; } = null!;
         internal static ConfigEntry<bool> OwnSleep { get; set; } = null!;
         internal static ConfigEntry<bool> TimeJumpsTogether { get; set; } = null!;

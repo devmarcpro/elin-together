@@ -117,6 +117,32 @@ fichiers de textes, `dev/_tools/bank_suite.py`.
   (non vérifié).
 - L'or qui revient passe par `pc.Pick` (ce que fait le jeu pour une reprise) : supposé rejoindre la bourse (non vérifié).
 
+## 8b. Suite du 6 octobre 2026 (compilé, rien joué) : objet « en attente » et trace de l'or
+
+- **Objet repris gardé de côté** (`ElinNetHostShipping.cs`, `SendWorldBox`, `HoldTaken`, `SettleTaken`). L'host détruit toujours
+  l'objet repris (les autres le voient partir, personne d'autre ne peut le prendre) mais garde ses octets (`TakenPart`) et
+  un numéro (`ShippingPayout.TakenToken`). L'invité, en prenant l'objet, écrit ce numéro sur SON personnage
+  (`ShippingHelper.TookKey`, clé entière, `ElinNetClientShipping.OnWorldBox`) et demande un point de sauvegarde ;
+  l'objet et la marque partent dans le même personnage. Toutes les 0,5 s l'host regarde le sac qu'il garde pour ce joueur :
+  marque ≥ numéro, l'invité a l'objet, on lâche la copie ; sinon, si le lien est coupé, si le joueur est revenu sur la
+  carte de l'host, ou si trois intervalles de sauvegarde + 30 s ont passé sans nouvelle : l'objet est remis dans son
+  conteneur (même chemin qu'un dépôt, marque de l'expéditeur d'origine gardée pour la caisse). Pas d'accusé séparé : le
+  point de sauvegarde EST l'accusé, donc aucun message perdu entre l'objet et sa preuve.
+- **Ce qui reste possible** : (1) cette partie de jeu qui se ferme entre la reprise et le contrôle (≈ une demi-seconde)
+  perd l'objet ; (2) l'invité dont le lien tombe mais qui continue à jouer sa copie et la rapporte plus tard l'a en double
+  si l'host l'avait remis (non vérifié ce que devient sa partie à la coupure) ; (3) un invité qui ne peut pas sauvegarder
+  pendant plus de trois intervalles puis le fait, ou qui a coupé les points de sauvegarde (`TravelCheckpointSeconds` = 0)
+  et revient plus tard : double si l'objet a été remis entre-temps (avec 0, aucune remise avant coupure ou retour).
+  Un objet jamais confirmé n'est jamais montré comme une ligne.
+- **Trace de l'or** (`BillPayDelta.TellBank`, deux nouvelles réponses `BankIn` et `BankOut`, pas de nouveau delta) : hôte :
+  `Transaction.Process` (avant/après, `WorldBoxPatch.OnProcess`), seulement si la banque a changé ; invité sur la carte :
+  dépôt à l'arrivée dans la banque (`CardAddThingDelta`), retrait à la demande (`WorldBoxPatch.OnPlayerTake`, sur
+  `ThingRequest.OnApply`) ; invité seul ailleurs : dépôt à l'arrivée (`PutInWorldBox`), retrait à la confirmation
+  (`SettleTaken`). Seul : rien. Défauts connus : de l'or déplacé dans la fenêtre de la banque se lit retrait puis dépôt ;
+  un retrait que le joueur ne peut pas ranger (sac plein) est remis après 10 s avec sa ligne ; l'invité seul ailleurs ne
+  voit pas les lignes (la liste de ce qu'il laisse entrer en voyage ne contient pas `BillPayDelta`).
+- Test : `bank_suite.py` (lignes dans B1, B2, B3 ; étape `b6` à part).
+
 ## 9. Test : `dev/_tools/bank_suite.py` (jamais lancé)
 
 B1 invité sur la carte de l'host, B2 host, B3 invité seul ailleurs (le cas réel), B4 deux joueurs sur les mêmes pièces,

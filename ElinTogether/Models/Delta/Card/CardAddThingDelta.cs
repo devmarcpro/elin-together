@@ -74,6 +74,13 @@ public class CardAddThingDelta : ElinDelta
             return;
         }
 
+        // gold a player puts in the bank: a line for everyone (the withdrawals are told by WorldBoxPatch)
+        if (net is ElinNetHost { IsZoneSession: false } bank && OriginPeer != 0 && thing.id == "money" &&
+            ShippingHelper.OtherWorldBox(parent) == ShippingHelper.BoxBank &&
+            bank.ActiveRemoteCharas.GetValueOrDefault(OriginPeer) is { } depositor) {
+            BillPayDelta.TellBank(bank, depositor.NameSimple, thing.Num, true);
+        }
+
         if (net.IsHost) {
             net.Delta.AddRemote(this);
         }

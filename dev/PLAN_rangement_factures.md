@@ -122,6 +122,31 @@ n'est pas vérifié. Fichier neuf `Patches/` + une case host à ajouter (`EmpCon
 - `bill_debt` (dette d'un prêteur) n'est pas couvert.
 - Le nom du payeur est `NameSimple` du personnage vu par l'host.
 
+## Suite du 6 octobre 2026 : quatrième étape, banque, invité en voyage (compilé, rien joué)
+
+- **Renommée la plus haute** : `Patches/SharedTaxPatch.cs` (neuf). `Faction.GetFameTax` : l'host, en session avec
+  compagnie (`NetCompany.HasCompany`) et règle « quêtes personnelles » vraie (sinon personne ne tient la renommée des
+  autres), remplace le temps du calcul `player.fame` par `HighestFame()` (maximum de la sienne et de celles de
+  `PlayerStandings` pour les joueurs connectés, lecture seule), puis la remet (finaliseur). Seul ou hors session : le jeu.
+  Pas de case host (les fichiers de règles sont interdits ici) : à ajouter si voulu. L'estimation d'impôt affichée dans
+  le jeu d'un invité lit toujours sa propre renommée ; la facture, elle, vient de l'host. Fraîcheur : la renommée d'un
+  invité arrive à l'host par `PlayerStandingDelta` quand elle change (`PersonalQuests.Tick`) : pas mesurée.
+- **Paiement par la banque (politique 2705)** : lu, rien changé. `Faction.OnAdvanceMonth` ne tourne que chez le gardien du
+  monde (`WorldKeeperHooks`, règle `UseWorldKeeper`, l'host) ; `CreateBill` puis `PayBill(fromBank: true)` y prennent la
+  facture au vrai `container_deposit` de l'host, une fois ; la baisse de la pile passe par les événements ordinaires. Les
+  dépôts d'un invité (carte de l'host, ou seul ailleurs) arrivent dans ce même conteneur : le solde lu est le bon. Règle
+  `UseWorldKeeper` décochée : chaque jeu fait sa fin de mois dans sa copie (comportement d'origine, non traité). Pas de
+  ligne « X a payé » pour un paiement par la banque (le postfixe l'écarte, `fromBank`).
+- **Invité seul sur une autre carte qui paie une facture** : fait, plus petit que prévu mais non joué. L'invité seul
+  paie dans son propre jeu (le jeu prend son or, sa copie des compteurs ; `IsRequester` est faux sans connexion) ; le
+  postfixe de `GuestPaysBillPatch` envoie alors `BillPayDelta` en réponse `Paid` (identifiant, montant, cadeau d'impôt,
+  nom) par `SendWhileAway` ; la ligne de `ElinNetHostUpdate.cs` laisse passer `BillPayDelta` d'un joueur en voyage ;
+  l'host (`SettleAway`, seulement d'un joueur en voyage) baisse son compteur UNE fois si `taxBills > 0` (ou `unpaidBill`),
+  donne le cadeau, et le dit à tous. Il ne relit pas la facture (elle est dans les mains de l'invité). Ne couvre pas : un
+  invité dont la copie des compteurs dit 0 (le jeu répond « mauvaise idée », rien n'est envoyé) ; l'invité seul ne lit pas
+  la ligne (liste de réception en voyage, `ElinNetClientTravel.cs`, fichier interdit ici : y ajouter `BillPayDelta`).
+- Tests : `bills_suite.py` étapes `t1`, `b2705`, `p3`.
+
 ## Après relecture (6 octobre 2026, compilé, rien joué)
 
 - **Préfixe sur `Msg.Say` retiré** (`DumpSparesBeltPatch.cs`) : il ne servait qu'à un journal Debug et `Msg.Say` est

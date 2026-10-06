@@ -110,6 +110,44 @@
     (ils reviennent avec la carte de l'host). Le rechargement existant (`ElinNetClientZone.cs:187`, outil de
     resynchronisation) a le même piège et ne le traite pas : à voir à part.
 
+## D2 bis. D'un invité à un autre invité (2026-10-06, nuit, seconde passe)
+
+Écrit et compilé (`ReleaseNightly`, 0 erreur), **rien n'a tourné en jeu**. Test : `desync_suite.py --only d2g` (trois
+fenêtres). Ferme le point « non corrigé » de D2.
+
+- **Fait vérifié.** Un invité qui tient une carte et s'en va la rend à l'host avec sa carte entière
+  (`CreateLeaseRelease`, `ApplyLeasedZone`), puis l'host donne le bail à un de ses visiteurs (`HandOverZone`) **sans
+  carte** : l'héritier gardait sa copie, que les autres visiteurs rechargeaient ensuite, et qui remplaçait celle de
+  l'host à son prochain point de passage.
+- **Fait.** `ZoneLeaseRelease.MapSums` (clé 13) : les nombres de la carte du partant, calculés avec la carte, pas pour
+  un point de passage. `HandOverZone` joint au bail de l'héritier la carte du partant et ces nombres (les octets reçus,
+  pas recompressés), sous la case `AutoResync` comme pour le départ de l'host. L'héritier compare
+  (`TakeOverZone` -> `AdoptHostCopy`) : égaux, rien ne change ; différents, il charge la carte du partant sous ses
+  pieds et reste sur sa case.
+- **Pas quand le partant est tombé** (déconnexion) : l'host n'a alors qu'un vieux point de passage, la copie de
+  l'héritier est la plus récente : pas de carte jointe, comme avant. Ni quand l'host est déjà sur cette carte.
+- **Ordre des numéros** : la plage de numéros du bail est prise **avant** le chargement (l'héritier charge cette carte
+  en jouant seul, plus en client : ce que le chargement créerait doit prendre ses numéros dans sa plage).
+- **Objet ramassé dans le dernier aller-retour** (valait aussi pour D2) : après le chargement, ce que l'héritier
+  porte et qui se trouve aussi au sol de la carte reçue est retiré du sol : il le garde dans son sac, comme un joueur
+  seul, au lieu de l'avoir deux fois. L'inverse reste : un objet posé dans ce dernier aller-retour est perdu.
+- **Journal.** Host, Information :
+  `Zone {ZoneFullName} handed over to {@Peer}, uid range from {UidRangeStart}, owner copy sent along {HasMap}: {Sums}`
+  (même début qu'avant). Héritier : les lignes de D2 **ont changé de texte** pour servir aux deux cas :
+  `Taking over {ZoneFullName} from {From}: our copy is the same, kept ({Sums})` et
+  `Taking over {ZoneFullName} from {From}: our copy differs, replaced by theirs (here {Local} | there {Host})`,
+  `From` = `the host` ou `its owner`. Nouveau, Warning :
+  `Taking over {ZoneFullName}: {Count} thing(s) of that copy are in our bag already, taken off the floor: {Uids}`.
+- **Pas sûr.**
+  - L'héritier charge la carte hors de toute connexion (jeu « seul »), par le chemin d'une carte louée
+    (`Zone.Deactivate`, `UnloadMap`, `player.MoveZone`) mais sur la carte où il se tient : pas vu tourner.
+  - Entre un invité et celui qui tient la carte, la case d'un objet lancé ou éparpillé peut différer (dés de chaque
+    jeu) : les nombres du passage de main comptent la case, donc rechargement à chaque passage dans ce cas. Voulu
+    (la copie du partant est celle de tout le monde), mais visible : le journal le dira.
+  - Les autres visiteurs rechargent la copie de l'héritier pendant qu'il recharge peut-être la sienne : même ordre
+    que pour D2 (bail de l'héritier envoyé avant les autres), pas vu tourner à quatre.
+  - Carte de quête : toujours sans carte jointe (`Map` nul pour une carte de quête).
+
 ## Après relecture (2026-10-06, nuit)
 
 Compilé (`ReleaseNightly`, 0 erreur), **rien n'a tourné en jeu**. Ce qui suit remplace ce que D1 et D4 disent plus haut

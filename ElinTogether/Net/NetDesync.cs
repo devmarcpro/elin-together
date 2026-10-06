@@ -81,7 +81,7 @@ public class DesyncReportDelta : ElinDelta
 ///     (<see cref="SessionPlayersSnapshot" />), the others compare with theirs. A difference only counts when both
 ///     sides stood still on it for 3 comparisons in a row: what is on its way (a move, a pickup) changes the numbers
 ///     of one side between two comparisons. Then a warning in both journals, and with the host rule AutoResync the
-///     map is asked again <br />
+///     map is asked again, or the one character whose bag differs (<see cref="CharaBagDelta" />) <br />
 ///     Left out on purpose: where characters stand (the snapshot allows 2 tiles), where items lie (what is thrown
 ///     or scattered lands by the dice of each game), dead characters, cards waiting for their number
 ///     (<see cref="PendingUid" />), ability tokens, what chests hold, the world map
@@ -115,6 +115,20 @@ internal static class NetDesync
     private static int _repairs;
     private static int _fruitless;
     private static bool _gaveUp;
+
+    /// <summary>
+    ///     Sub-option, off: also bring the bag of OUR OWN character to the keeper's copy. The bags of the other
+    ///     players are copies nobody saves, ours is the one we play with: never played, see BagRepairRefused
+    /// </summary>
+    internal static bool RepairOwnBag;
+
+    // player chara uid -> next time its bag may be asked again, how often it was, what was compared then
+    private static readonly Dictionary<int, float> _nextBagAsk = [];
+    private static readonly Dictionary<int, int> _bagAsks = [];
+    private static readonly Dictionary<int, (int Ours, int Theirs, float At)> _askedBags = [];
+
+    // an answer older than that is about a bag that had time to change
+    private const float BagAnswerWait = 10f;
 
     private static MapSums? _lastLocal;
     private static MapSums? _lastHost;
@@ -249,11 +263,18 @@ internal static class NetDesync
         List<int>? bags = null;
         var bagKey = 0;
         foreach (var (uid, theirs) in host.Bags ?? []) {
-            if (local.Bags!.TryGetValue(uid, out var ours) && ours != theirs) {
-                (bags ??= []).Add(uid);
-                unchecked {
-                    bagKey += Mix(uid, ours, theirs, 0);
-                }
+            if (!local.Bags!.TryGetValue(uid, out var ours)) {
+                continue;
+            }
+
+            if (ours == theirs) {
+                _bagAsks.Remove(uid);
+                continue;
+            }
+
+            (bags ??= []).Add(uid);
+            unchecked {
+                bagKey += Mix(uid, ours, theirs, 0);
             }
         }
 
@@ -268,6 +289,12 @@ internal static class NetDesync
         var warn = _mapStrikes == Strikes || _bagStrikes == Strikes;
         var gaveUp = false;
         var repair = _mapStrikes >= Strikes && ShouldRepair(session, client, now, out gaveUp);
+
+        // not while the map is asked again: the answer would land in the middle of its load
+        if (!repair && bags is not null && _bagStrikes >= Strikes) {
+            AskBags(session, client, now, local, host, bags);
+        }
+
         if (!warn && !repair && !gaveUp) {
             return;
         }
@@ -341,6 +368,83 @@ internal static class NetDesync
         return true;
     }
 
+    /// <summary>
+    ///     A bag that stood different for <see cref="Strikes" /> comparisons: ask its keeper for that character in
+    ///     full (<see cref="CharaBagDelta" />), at most once per <see cref="Cooldown" /> and per character (doubled
+    ///     each time until that bag is the same again), under the rule and the stillness a map reload needs
+    /// </summary>
+    private static void AskBags(NetSession session, ElinNetClient client, float now, MapSums local, MapSums host, List<int> bags)
+    {
+        if (!session.Rules.AutoResync || !Quiet(session, client)) {
+            return;
+        }
+
+        foreach (var uid in bags) {
+            var own = EClass.pc.uid == uid;
+            if ((own && !RepairOwnBag) || (_nextBagAsk.TryGetValue(uid, out var next) && now < next)) {
+                continue;
+            }
+
+            var asks = _bagAsks.GetValueOrDefault(uid);
+            _bagAsks[uid] = asks + 1;
+            _nextBagAsk[uid] = now + Cooldown * (1 << Math.Min(asks, 4));
+            if (own) {
+                _askedBags[uid] = (local.Bags![uid], host.Bags![uid], now);
+            }
+
+            EmpLog.Information("Asking for the bag of {Uid} again, ours {Own}, attempt {Asks} (here {Local:X8} | host {Host:X8})",
+                uid, own, asks + 1, local.Bags![uid], host.Bags![uid]);
+
+            client.Host.Send(new WorldStateDeltaList {
+                DeltaList = [
+                    new CharaBagDelta {
+                        Uid = uid,
+                        Mix = host.Bags[uid],
+                    },
+                ],
+            });
+        }
+    }
+
+    /// <summary>
+    ///     The keeper's copy of a bag arrived (<paramref name="theirs" />) and ours differs (<paramref name="ours" />):
+    ///     why it must stay as it is, null to replace it. <br />
+    ///     Someone else's bag is a copy nobody saves: replaced whenever this player does nothing. Our own is the
+    ///     one we act on, and what we do to it shows here before the keeper hears of it: only behind
+    ///     <see cref="RepairOwnBag" />, only the answer to our own request, and only if neither side moved since
+    ///     the comparisons that led to it
+    /// </summary>
+    internal static string? BagRepairRefused(Chara chara, int ours, int theirs)
+    {
+        var session = NetSession.Instance;
+        if (session.Connection is not ElinNetClient client || !session.Rules.AutoResync) {
+            return "rule off";
+        }
+
+        if (!Quiet(session, client)) {
+            return "busy";
+        }
+
+        if (!chara.IsPC) {
+            return null;
+        }
+
+        if (!RepairOwnBag) {
+            return "our own bag, sub-option off";
+        }
+
+        if (!_askedBags.Remove(chara.uid, out var asked) || Time.unscaledTime - asked.At > BagAnswerWait) {
+            return "not asked by us";
+        }
+
+        return asked.Ours != ours || asked.Theirs != theirs ? "it moved since we asked" : null;
+    }
+
+    private static bool Quiet(NetSession session, ElinNetClient client)
+    {
+        return client.IsQuietForResync && (session.Transport as ElinNetClient)?.IsQuietForResync != false && !Busy();
+    }
+
     private static bool Busy()
     {
         var pc = EClass.pc;
@@ -378,12 +482,12 @@ internal static class NetDesync
         return string.Join(", ", parts);
     }
 
-    private static bool Skipped(Thing thing)
+    internal static bool Skipped(Thing thing)
     {
         return thing.isDestroyed || PendingUid.IsPending(thing.uid) || thing.trait is TraitAbility;
     }
 
-    private static int Bag(Chara chara)
+    internal static int Bag(Chara chara)
     {
         var mix = 0;
         foreach (var thing in chara.things.Flatten()) {
@@ -421,7 +525,8 @@ internal static class NetDesync
 
         return $"here: {Line(local)}, computed in {cost:F2} ms\n" +
                $"last compared: here {Line(_lastLocal)} | host {Line(_lastHost)}\n" +
-               $"strikes: map {_mapStrikes}, bags {_bagStrikes}; reloads {_repairs}, fruitless {_fruitless}, gave up {_gaveUp}\n" +
+               $"strikes: map {_mapStrikes}, bags {_bagStrikes}; reloads {_repairs}, fruitless {_fruitless}, gave up {_gaveUp}; " +
+               $"bags asked {string.Join(" ", _bagAsks)}, own bag repair {RepairOwnBag}\n" +
                $"last warning: {_lastWarning}";
     }
 

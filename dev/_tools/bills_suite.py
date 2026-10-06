@@ -18,6 +18,16 @@ P1  l'invite met la facture d'impot dans le coffre des impots : 500 de moins dan
 P1h meme chose par l'host (temoin : deja bon)
 P2  deux joueurs paient en meme temps, un seul impot a payer (deux factures, compteur a 1) : une seule est payee, l'autre
     joueur garde son or ; aucun or perdu ni cree
+T1  impot de renommee sur la renommee la plus haute des joueurs connectes : l'invite plus celebre que l'host fait monter
+    l'impot de l'host ; l'inverse ; la renommee du personnage de l'host n'est pas changee (prise le temps du calcul).
+    ROUGE avant SharedTaxPatch : la gloire de l'invite ne change rien. Lu par FACTION.GetFameTax, pas par un vrai
+    debut de mois ; l'host seul (rien ne change) n'est pas joue
+B2705 la politique « la banque paie les factures » est active : TryPayBill prend 500 une seule fois a la banque de l'host
+    (l'invite voit la meme baisse), le compteur ne bouge pas. Ne change pas la politique : dit s'il ne peut rien dire
+P3  l'invite seul sur une autre carte (Vernis) paie une facture dans son propre jeu (InvOwnerDeliver.PayBill) : 500 de
+    moins chez lui, compteur de l'host a moins un, la ligne chez l'host. ROUGE avant SendAway : compteur immobile.
+    La facture est fabriquee dans sa copie du monde et mise dans son sac, pas apportee d'un coffre de livraison ;
+    l'invite seul ne voit pas la ligne (la liste de ce qu'il recoit en voyage ne contient pas BillPayDelta)
 
 Ce que le banc ne joue pas comme un joueur :
 - la date est posee au 30 a 23 h 50 (jour, heure, minute) dans les DEUX jeux, puis le temps passe par GameDate.AdvanceMin
@@ -314,6 +324,86 @@ def p2(ctx):
         reset(base)
 
 
+def fame_tax(port=H):
+    """Ce que le jeu de ce port compte aujourd'hui pour l'impot de renommee (sans evasion)."""
+    return int(ev(port, 'EClass.pc.faction.GetFameTax(false).ToString()'))
+
+
+def t1(ctx):
+    """impot sur la renommee la plus haute des joueurs connectes : la gloire de l'invite compte, celle de l'host aussi"""
+    fame_h = int(ev(H, 'EClass.player.fame.ToString()'))
+    fame_a = int(ev(A, 'EClass.player.fame.ToString()'))
+    expect = lambda f: int(ev(H, f'var n = EClass.curve({f} * 2, 10000, 2000, 80); (n > 1000000 || n < 0 ? 1000000 : n).ToString()'))  # noqa: E731
+    big = max(fame_h, fame_a) + 20000
+    tax0 = fame_tax()
+    log(f"renommee host {fame_h}, invite {fame_a} ; impot de renommee de l'host aujourd'hui {tax0}")
+    try:
+        # the guest tells the host its fame by itself (PersonalQuests.Tick -> PlayerStandingDelta), a few seconds
+        ev(A, f'EClass.player.fame = {big}; "ok"')
+        check(f"l'invite (renommee {big}) est plus celebre que l'host : l'impot de l'host monte a {expect(big)}",
+              eventually(lambda: fame_tax() == expect(big), timeout=30))
+        check("la renommee du personnage de l'host n'a pas bouge (elle n'est prise que le temps du calcul)",
+              int(ev(H, 'EClass.player.fame.ToString()')) == fame_h)
+        # roles swapped: the host more famous than the guest
+        ev(A, f'EClass.player.fame = {fame_a}; "ok"')
+        ev(H, f'EClass.player.fame = {big}; "ok"')
+        check(f"l'host plus celebre : l'impot est celui de sa renommee ({expect(big)})", eventually(lambda: fame_tax() == expect(big), timeout=30))
+        ev(H, f'EClass.player.fame = {fame_h}; "ok"')
+        check(f"les deux revenus a leur renommee : l'impot revient a {expect(max(fame_h, fame_a))}",
+              eventually(lambda: fame_tax() == expect(max(fame_h, fame_a)), timeout=30))
+    finally:
+        ev(A, f'EClass.player.fame = {fame_a}; "ok"')
+        ev(H, f'EClass.player.fame = {fame_h}; "ok"')
+
+
+def b2705(ctx):
+    """la banque paie la facture d'impot (politique 2705) : une seule fois, dans la banque de l'host, vue par l'invite"""
+    from bank_suite import BANK, held  # noqa: PLC0415
+    if not check("la politique 2705 est active (le banc ne la change pas ; sinon cette etape ne peut rien dire)", bank_pays()):
+        return
+    base = counters()
+    reset(base)
+    orig = held(H, BANK, "money")
+    ev(H, f'{BANK}.ModCurrency(5000); "ok"')
+    b0 = held(H, BANK, "money")
+    try:
+        check("la banque de l'invite montre la meme pile (invite sur la carte de l'host)", eventually(lambda: held(A, BANK, "money") == b0, timeout=15))
+        # what the end of the month does for the bill (FACTION.TryPayBill), without the rest of the month
+        ev(H, 'var b = ThingGen.CreateBill(500, true); EClass.pc.faction.TryPayBill(b); "ok"')
+        time.sleep(3)
+        check(f"la banque de l'host a perdu 500 une fois ({b0} -> {held(H, BANK, 'money')})", held(H, BANK, "money") == b0 - 500)
+        check(f"la banque vue par l'invite aussi ({held(A, BANK, 'money')})", eventually(lambda: held(A, BANK, "money") == b0 - 500, timeout=15))
+        check(f"le compteur n'a pas bouge, la facture est payee a sa naissance ({base[0]} -> {counters()[0]})", counters()[0] == base[0])
+        check("aucune facture d'impot ne reste en route ni dans un sac", count(H, "bill_tax") == 0 and count(A, "bill_tax") == 0)
+    finally:
+        # the bank back to what it held before the step
+        ev(H, f'{BANK}.ModCurrency({orig - held(H, BANK, "money")}); "ok"')
+        reset(base)
+
+
+def p3(ctx):
+    """l'invite seul sur une autre carte paie une facture avec son or : le compteur de l'host baisse une fois, tous le lisent"""
+    port, uid = ctx["a"]
+    base = counters()
+    reset(base)
+    try:
+        ev(H, 'EClass.player.taxBills = 1; "ok"')
+        away()
+        fund(port, 1500)
+        g0 = gold(port, uid)
+        ev(H, f'{LINE}.SetValue(null, ""); "ok"')
+        # the guest's own copy of the world: its game counts the bill, as ThingGen.CreateBill does for it
+        ev(port, 'var b = ThingGen.CreateBill(500, true); EClass.pc.AddThing(b); InvOwnerDeliver.PayBill(b, false); "ok"')
+        check(f"sa bourse a 500 de moins ({g0} -> {gold(port, uid)})", eventually(lambda: gold(port, uid) == g0 - 500, timeout=15))
+        check(f"le compteur d'impots de l'host est a 0 (1 -> {counters()[0]})", eventually(lambda: counters()[0] == 0, timeout=15))
+        check(f"l'host lit la ligne « X a paye » : « {say(H)} »", eventually(lambda: "500" in say(H), timeout=10))
+        time.sleep(3)
+        check("rien en double ensuite (compteur a 0, bourse inchangee)", counters()[0] == 0 and gold(port, uid) == g0 - 500)
+    finally:
+        home()
+        reset(base)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--only")
@@ -321,7 +411,7 @@ def main():
     sys.stdout.reconfigure(encoding="utf-8")
     t0 = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
     ctx = {"a": (A, state(A)["pc"]["uid"]), "h": (H, state(H)["pc"]["uid"])}
-    steps = [c1, c2, c3, p1, p1h, p2]
+    steps = [c1, c2, c3, p1, p1h, p2, t1, b2705, p3]
     if a.only:
         steps = [s for s in steps if s.__name__ in a.only.split(",")]
     for step in steps:

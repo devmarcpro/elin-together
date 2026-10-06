@@ -1,4 +1,7 @@
+using System;
+using System.Collections.Generic;
 using ElinTogether.Helper;
+using ElinTogether.Models;
 using ElinTogether.Net;
 using HarmonyLib;
 
@@ -42,6 +45,52 @@ internal static class WorldBoxPatch
 
         // the pictures go with the window (its box only: the bank and the shipping box may be open together)
         ElinNetClient.EmptyWorldContainer(ShippingHelper.WorldBox(box));
+    }
+
+    private static int BankGold()
+    {
+        return EClass.game?.cards?.container_deposit?.GetCurrency() ?? 0;
+    }
+
+    /// <summary>
+    ///     The host's own gesture on the bank: the line is told for what the bank gained or lost (a gesture that
+    ///     changes nothing says nothing). A player's gesture replayed here is told where it lands, see
+    ///     CardAddThingDelta and <see cref="OnPlayerTake" />
+    /// </summary>
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(InvOwner.Transaction), nameof(InvOwner.Transaction.Process))]
+    internal static void OnProcess(out int __state)
+    {
+        __state = NetSession.Instance.Connection is ElinNetHost { IsZoneSession: false } && !ElinDelta.IsApplying
+            ? BankGold()
+            : -1;
+    }
+
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(InvOwner.Transaction), nameof(InvOwner.Transaction.Process))]
+    internal static void OnProcessed(int __state)
+    {
+        if (__state >= 0 && BankGold() - __state is var change and not 0 &&
+            NetSession.Instance.Connection is ElinNetHost host) {
+            BillPayDelta.TellBank(host, EClass.pc.NameSimple, Math.Abs(change), change > 0);
+        }
+    }
+
+    /// <summary>
+    ///     A player on this map asks for gold of the bank (every gesture starts with this request): told now, the
+    ///     deposit is told when the gold lands in the bank. ponytail: gold moved inside the bank window reads as a
+    ///     withdrawal then a deposit, and one the player cannot take (full bag) is put back after 10 s without a line
+    /// </summary>
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(ThingRequest), "OnApply")]
+    internal static void OnPlayerTake(ThingRequest __instance, ElinNetBase net)
+    {
+        if (net is ElinNetHost { IsZoneSession: false } host && __instance.Num > 0 &&
+            __instance.Thing?.Find() is Thing { id: "money", parent: Card box } stack &&
+            ShippingHelper.OtherWorldBox(box) == ShippingHelper.BoxBank &&
+            host.ActiveRemoteCharas.GetValueOrDefault(__instance.OriginPeer) is { } who) {
+            BillPayDelta.TellBank(host, who.NameSimple, Math.Min(__instance.Num, stack.Num), false);
+        }
     }
 
     /// <summary>

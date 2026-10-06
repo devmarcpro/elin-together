@@ -101,4 +101,11 @@ public class ShippingPayout
     /// </summary>
     [Key(11)]
     public int Asked { get; init; }
+
+    /// <summary>
+    ///     With Taken: the host keeps a copy aside until the player's checkpoint carries this number
+    ///     (the player writes it on its character as it takes the thing, see ShippingHelper.TookKey)
+    /// </summary>
+    [Key(12)]
+    public int TakenToken { get; init; }
 }

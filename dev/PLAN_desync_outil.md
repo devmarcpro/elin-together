@@ -74,6 +74,81 @@ Compilé (`ReleaseNightly`, 0 erreur), **jamais lancé**.
   mod, `ElinNetHostIntegrity.cs`, non relu en détail), sinon l'écart serait permanent sur toute carte avec des objets
   au sol, jusqu'à l'arrêt des rechargements (3 sans effet).
 
+## Sacs : un personnage renvoyé en entier (2026-10-06, nuit, seconde passe)
+
+Écrit, compilé (`ReleaseNightly`, 0 erreur), **jamais lancé**. Remplace la section « Les sacs : avertis, pas réparés ».
+Test : `resync_suite.py` R4 et R5.
+
+- **Où vit la vérité d'un sac (lu).** Chez le jeu qui tient la carte où le personnage se trouve.
+  - Sur la carte de l'host : chez l'host. Le personnage d'un invité est un personnage du monde de l'host
+    (`SavedRemoteCharas`, enregistré dans sa sauvegarde) ; à la connexion l'invité reçoit le monde entier de l'host et
+    joue le personnage qui s'y trouve (`SendSaveProbe`, `OnSaveDataProbe`). Rien ne remonte le sac de l'invité vers
+    l'host tant qu'il est sur sa carte : s'il se déconnecte, c'est la copie de l'host qui reste.
+  - Invité chez un autre invité : chez celui qui tient la carte (`CollectGuestCharas`, envoyé à l'host avec ses points
+    de passage).
+  - Invité parti seul : chez lui. Il part avec **son** sac tel qu'il est à l'écran (`TravelTo`), et son premier point
+    de passage remplace la copie de l'host (`ReplaceRemoteChara`). **Un écart de sac devient donc vrai sans bruit le
+    jour où ce joueur voyage seul** : l'objet en trop devient réel, l'objet en moins est perdu.
+- **Le message** : `CharaBagDelta`, numéro 841 (`Models/Delta/Chara/CharaBagDelta.cs`). Sans contenu : la demande, du
+  jeu qui constate l'écart vers celui qui tient la carte. Avec contenu : la réponse, **envoyée à tous dans le fil des
+  messages ordinaires** et remplie au moment où la liste part : tout ce qui a été envoyé avant y est, rien de ce qui
+  suit n'y est. Contenu : tout ce que porte le personnage (sac, équipement, sacs dans le sac), le mélange du
+  détecteur, le numéro de l'objet tenu en main.
+- **La demande** (`NetDesync.AskBags`) : écart de sac immobile (3 comparaisons), règle `AutoResync`, mêmes garde-fous
+  que le rechargement de carte (pas de tâche, pas d'ennemi visé ni à 8 cases, pas de fenêtre, pas de glisser, pas de
+  voyage en cours), pas dans la passe où la carte est redemandée ; au plus une fois par 30 s et par personnage, puis
+  60, 120, 240, 480 s tant que ce sac ne redevient pas égal. L'host répond au plus une fois par 5 s et par personnage.
+- **L'application** (`CharaBagDelta.Repair`) : carte par carte, sans remplacer les objets que les deux jeux
+  connaissent (fenêtres, barre d'outils et tâches pointent dessus) : seuls changent la place, la quantité,
+  l'emplacement d'équipement. Un objet connu ailleurs dans ce jeu (au sol, dans un autre sac) est déplacé, pas copié.
+  Un objet que l'host n'a pas dans ce sac en sort (gardé en mémoire, comme `CardRemoveThingDelta`). Les objets « en
+  attente de numéro » et les cartes d'aptitude ne sont jamais touchés.
+- **Sac d'un AUTRE joueur** (la copie que j'en ai) : réparé dès que le mien diffère de la réponse, même si un autre
+  joueur l'a demandée. Cette copie n'est enregistrée par personne.
+- **MON PROPRE sac** : derrière une **sous-option éteinte**, `NetDesync.RepairOwnBag` (champ statique ; pas de case :
+  `EmpConfig` et `NetSessionRules` ne sont pas dans les fichiers de ce lot). Éteinte : ni demande ni remplacement,
+  l'avertissement reste. Allumée : seulement la réponse à ma propre demande, moins de 10 s après, et seulement si mon
+  sac **et** celui de l'host ont encore exactement les nombres des 3 comparaisons.
+
+### Ce qui peut être perdu ou doublé
+| Sens | Perdu | Doublé |
+|---|---|---|
+| Sac d'un autre, copie locale <- host | rien de réel | rien de réel |
+| Mon sac <- host (sous-option) | un objet que j'ai et que l'host n'a pas **dans mon sac** : il sort de mon jeu. Si l'host l'a au sol, il y revient au prochain rechargement de carte (à ramasser de nouveau) ; si l'host ne l'a nulle part, c'était un fantôme (perdu de toute façon à la reconnexion). Vraie perte : seulement si ce que j'avais fait était juste et n'a jamais atteint l'host (message perdu) | rien : dans le monde de l'host un objet n'est qu'à un endroit, et un objet rendu à mon sac que mon jeu voyait ailleurs (au sol) est déplacé, pas copié |
+| Mon sac -> host (pas écrit) | ce que l'host m'a donné et que je n'ai pas reçu (butin, récompense) | ce que j'ai « ramassé » chez moi et qu'un autre joueur a vraiment pris : deux exemplaires |
+| Ne rien faire (aujourd'hui) | l'objet en moins, pour de bon, si je pars voyager seul | l'objet en trop, pour de bon, si je pars voyager seul et que l'host l'a encore au sol |
+
+Le sens « mon sac -> host » n'est pas sûr : l'host simule, c'est lui qui décide qui a ramassé quoi. Le sens « host ->
+mon sac » ramène toujours vers un monde cohérent (celui de l'host, où un objet n'est qu'à un endroit).
+**Message en route** : un geste fait après la demande change mes nombres, la réponse est alors refusée
+(`it moved since we asked`). Un geste que l'host applique entre-temps change les siens : refusée aussi. Reste le geste
+que je fais dans la même image que la réponse : il part après, l'host le rejoue sur son sac, son écho me revient.
+Rien n'est joué : c'est pourquoi la sous-option est éteinte.
+
+### Journal
+- Invité, Information : `Asking for the bag of {Uid} again, ours {Own}, attempt {Asks} (here {Local:X8} | host {Host:X8})`
+- Host, Information : `Player {PeerIndex} asks for the bag of {Uid} again, its copy differs: sent to everyone`
+- Invité, Warning : `Bag of {Uid} brought to its keeper's copy (ours {Own}): {Added} added, {Removed} removed, {Moved} moved, {Counted} amounts, {Worn} worn or taken off, same now {Same}`
+  (`Same` faux = le sac diffère encore après coup : à lire en premier).
+- Invité, Information : `Bag of {Uid} differs from its keeper's and stays as it is: {Why}`
+  (`rule off`, `busy`, `our own bag, sub-option off`, `not asked by us`, `it moved since we asked`).
+- Host, Warning : `Refusing CharaBagDelta from peer {PeerIndex}, uid {Uid}` (un invité envoie un sac : jamais accepté).
+- `emp.desync` : `bags asked …, own bag repair …`.
+
+### Pas sûr
+- Jamais lancé. Le plus fragile : `body.Equip` / `Unequip` rejoués sur un personnage (emplacements décalés entre deux
+  jeux : alors rien n'est équipé et `Same` reste faux), et le remplacement du sac du joueur pendant qu'une fenêtre de
+  sac flottante est ouverte (supposé : les fenêtres flottantes ne comptent pas comme « menu ouvert »).
+- La réponse part à tous les invités, pas au seul demandeur : un gros sac (plusieurs centaines d'objets) pèse
+  plusieurs dizaines de Ko, au plus une fois par 5 s et par personnage. Prix de l'ordre exact dans le fil.
+- Un message déjà fait chez l'host mais placé après la réponse dans la même liste est rejoué sur un sac qui le
+  contient : sans effet pour les types lus (`CardAddThingDelta`, `CardModNumDelta`, `CharaEquipDelta`,
+  `CardRemoveThingDelta`, `CardGenDelta`), pas lu pour tous.
+- Un objet que je porte moi-même et que l'host met dans le sac d'un autre : laissé (mon sac n'est pas touché sans la
+  sous-option), le sac de l'autre reste en écart, redemandé de plus en plus rarement.
+- Pas couvert : les sacs des compagnons et des habitants (pas dans les nombres), la case d'un objet dans la grille.
+- Session de zone (invité chez un invité) : même code, pas dans la suite.
+
 ## Coût
 Un passage sur `_map.charas` et `_map.things`, 4 multiplications par carte, plus le sac des joueurs présents ; une fois
 toutes les 2 s chez l'host et chez chaque invité. Estimé sous 0,2 ms pour 5 000 objets ; **non mesuré** : `emp.desync`

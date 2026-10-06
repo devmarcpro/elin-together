@@ -162,6 +162,9 @@ internal partial class ElinNetClient : ElinNetBase
         Router.RegisterHandler<ZoneGuestRequest>(OnZoneGuestRequest);
         Router.RegisterHandler<ZoneGuestLeft>(OnZoneGuestLeft);
         Router.RegisterHandler<ShippingPayout>(OnShippingPayout);
+
+        // copy of the host's world, see Net/Handover
+        RegisterWorldCopy();
     }
 
     internal override void Stop()

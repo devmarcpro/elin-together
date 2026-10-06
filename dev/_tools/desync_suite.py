@@ -35,8 +35,22 @@ D2  TROIS FENETRES. L'host part a Vernis, A garde la carte, B y reste, l'host re
     le seau est au sol chez A, chez B et chez l'host revenu, les objets au sol des trois sont ceux que l'host avait
     en partant, A et B sont restes sur leur case. Sur la 0.26.510 : le seau a disparu partout. La case « AutoResync »
     est decochee le temps du test (sinon l'outil de reparation comble l'ecart avant le depart de l'host).
+    (2026-10-06, nuit : la ligne du journal de A a change, « Taking over … from {From}: our copy differs, replaced
+    by theirs », avec From = « the host ».)
+D2g TROIS FENETRES, JAMAIS LANCE. A part a Vernis et tient la carte, B l'y rejoint (invite de A), A rentre chez
+    l'host : B herite de la carte. Deux passes. Sans ecart : le journal de B dit « our copy is the same, kept »,
+    From = « its owner », B ne bouge pas. Avec ecart (un seau pose par A, retire du sol chez B seulement) : le
+    journal de B dit « our copy differs, replaced by theirs », le seau est au sol chez B a sa case, B est reste
+    sur la sienne ; puis A revient comme invite de B et le voit, puis tout le monde rentre et l'host va a Vernis :
+    il y trouve ce que A avait en partant. Avant la correction : le seau manquait chez B, donc chez A revenu, et
+    chez l'host des que B rendait la carte. La case « AutoResync » reste COCHEE (la carte du partant ne suit le
+    bail que si elle l'est) : si l'outil de reparation comble l'ecart de B avant le depart de A (il lui faut 4 a
+    6 s d'ecart immobile, le test en laisse moins de 2), la mise en place le dit et le test ne prouve rien.
 
 Ce que le banc ne joue pas comme un joueur :
+- D2g : memes limites que D2 (ecart par eval, un seul seau, depart par `pc.MoveZone`, B ne fait rien pendant le
+  passage) ; pas joue : le partant qui TOMBE (deconnexion : pas de carte jointe, voulu), un troisieme invite qui
+  recharge la copie de l'heritier, une carte de quete ;
 - D2 : l'ecart est fabrique par eval dans un DynamicDelta (un vrai ecart vient d'un message perdu) ; un seul objet
   au sol, pas un coffre ni un monstre ; l'host part par `pc.MoveZone`, pas a pied ; A ne fait rien pendant le
   passage de main (un geste de A dans le dernier aller-retour n'est pas joue) ; pas de carte de quete, pas de carte
@@ -421,8 +435,9 @@ def hand_over(ctx, gap):
         return
     time.sleep(SETTLE)
 
-    line = "our copy differs, replaced by the host's" if gap else "our copy is the same, kept"
-    check(f"{what} : le journal de A dit « {line} »", logged(t_log, "Taking over {ZoneFullName} from the host", line))
+    line = "our copy differs, replaced by theirs" if gap else "our copy is the same, kept"
+    check(f"{what} : le journal de A dit « {line} »",
+          logged(t_log, "Taking over {ZoneFullName} from {From}", '"From": "the host"', line))
     check(f"{what} : le journal de l'host dit que sa copie est partie avec le bail",
           logged(t_log, "keeps it, uid range from {UidRangeStart}, host copy sent along"))
     for p in (A, B):
@@ -464,6 +479,81 @@ def d2(ctx):
         set_option("AutoResync", True)
 
 
+def guest_hand_over(ctx, gap):
+    """A tient Vernis, B y est son invite, A rentre chez l'host : B herite de la carte. `gap` : la copie de B a un ecart."""
+    what = "D2g avec ecart" if gap else "D2g sans ecart"
+    b = pc_uid(B)
+    move(A, VERNIS)
+    wait(settled(A, VERNIS, away=True, guest=False), "A seul a Vernis", timeout=240)
+    move(B, VERNIS)
+    wait(settled(B, VERNIS, away=True, guest=True, zone_session="Client"), "B invite de A a Vernis", timeout=240)
+    time.sleep(5)
+    made = put(A, b, stack=False)
+    if not check(f"{what} : mise en place, un seau pose par A a cote de B, au sol chez les deux ({made})",
+                 made and eventually(lambda: all(where(p, b, made[0]).startswith("sol") for p in (A, B)), timeout=15)):
+        return
+    thing, x, z = made
+    time.sleep(3)
+    t_log = now_utc()
+    if gap:
+        ev(B, LOCAL.format(f'EClass._zone.RemoveCard(EClass._map.things.Find(x => x.uid == {thing}));'))
+        seen = {NAMES[p]: where(p, b, thing) for p in (A, B)}
+        if not check(f"{what} : mise en place, le seau manque chez B seulement ({seen})",
+                     seen["B"] == "nulle part" and seen["A"].startswith("sol")):
+            return
+    reference = snapshot(A)["things"]
+    stood = cell_of(B)
+
+    move(A, HOME)
+    wait(settled(A, HOME, away=False), "A chez l'host", timeout=240)
+    if not check(f"{what} : B a herite de Vernis et la tient seul",
+                 eventually(settled(B, VERNIS, away=True, guest=False), timeout=120)):
+        return
+    time.sleep(SETTLE)
+
+    line = "our copy differs, replaced by theirs" if gap else "our copy is the same, kept"
+    check(f"{what} : le journal de B dit « {line} », de la part de celui qui tenait la carte",
+          logged(t_log, "Taking over {ZoneFullName} from {From}", '"From": "its owner"', line))
+    check(f"{what} : le journal de l'host dit que la copie de A est partie avec le bail",
+          logged(t_log, "handed over to {@Peer}, uid range from {UidRangeStart}, owner copy sent along", '"HasMap": true'))
+    gaps = floor_gaps(B, reference)
+    check(f"{what} : les objets au sol de B sont ceux que A avait en partant ({len(gaps)} ecart(s))", not gaps)
+    for g in gaps[:10]:
+        print("        ", g)
+    check(f"{what} : B voit le seau a sa case ({where(B, b, thing)})", where(B, b, thing) == f"sol@{x},{z}")
+    check(f"{what} : B est reste sur sa case ({stood} -> {cell_of(B)})", cell_of(B) == stood)
+
+    # the copy B keeps is the one everyone gets from now on: A comes back as its guest, then the host goes and looks
+    move(A, VERNIS)
+    wait(settled(A, VERNIS, away=True, guest=True, zone_session="Client"), "A invite de B a Vernis", timeout=240)
+    time.sleep(SETTLE)
+    gaps = diff([A, B], NAMES)
+    check(f"{what} : aucun ecart entre A et B sur la carte tenue par B ({len(gaps)})", not gaps)
+    for g in gaps[:10]:
+        print("        ", g)
+    with_host(A, B)
+    move(H, VERNIS)
+    wait(settled(H, VERNIS, away=False), "l'host a Vernis", timeout=240)
+    time.sleep(SETTLE)
+    gaps = floor_gaps(H, reference)
+    check(f"{what} : l'host trouve au sol de Vernis ce que A avait en partant ({len(gaps)} ecart(s))", not gaps)
+    for g in gaps[:10]:
+        print("        ", g)
+    ev(H, f'var t = EClass._map.things.Find(m => m.uid == {thing}); if (t != null) t.Destroy(); return "ok";')
+    move(H, HOME)
+    wait(settled(H, HOME, away=False), "l'host chez lui", timeout=240)
+    with_host(A, B)
+
+
+def d2g(ctx):
+    """un invite qui tient une carte la laisse a un autre invite : c'est la copie du partant qui fait foi (trois fenetres)"""
+    if B not in ctx["ports"]:
+        check("D2g demande trois fenetres (pas --two)", False)
+        return
+    guest_hand_over(ctx, gap=False)
+    guest_hand_over(ctx, gap=True)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--reuse", action="store_true")
@@ -483,7 +573,7 @@ def main():
         sys.exit(1)
     compare(ctx, "au depart")
 
-    steps = [d1a, d1b, d4, d5a, d5b, d2]
+    steps = [d1a, d1b, d4, d5a, d5b, d2, d2g]
     if a.only:
         steps = [s for s in steps if s.__name__ in a.only.split(",")]
     for step in steps:

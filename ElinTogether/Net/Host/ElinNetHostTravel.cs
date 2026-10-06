@@ -926,7 +926,8 @@ internal partial class ElinNetHost
     ///     from now on and the others join its zone session. Unless the host is on its way in, then they come back
     /// </summary>
     /// <param name="dropped">the owner dropped: what is known of its guests is its last checkpoint</param>
-    private void HandOverZone(int zoneUid, int holderId, bool dropped = false)
+    /// <param name="left">what the owner handed back when it left on purpose</param>
+    private void HandOverZone(int zoneUid, int holderId, bool dropped = false, ZoneLeaseRelease? left = null)
     {
         var guests = new List<ISteamNetPeer>();
         foreach (var (guestId, at) in _guests.ToList()) {
@@ -965,10 +966,16 @@ internal partial class ElinNetHost
         var heir = guests[0];
         var rangeStart = ReserveLease(heir, zone);
 
-        EmpLog.Information("Zone {ZoneFullName} handed over to {@Peer}, uid range from {UidRangeStart}",
-            zone.ZoneFullName, heir, rangeStart);
+        // the copy its owner just handed back is the reference (we hold it now, and so will everyone who loads
+        // this zone later), not what stands on the screen of the heir: it goes along with its numbers, loaded
+        // there only when they differ, see ElinNetClient.AdoptHostCopy. Not after a drop: what we hold then is
+        // an old checkpoint, the copy of the heir is the newer one
+        var map = Session.Rules.AutoResync && zone != _zone && left is { MapSums: not null } ? left.Map : null;
+        var sums = map is null ? null : left!.MapSums;
 
-        // its copy of the zone is live, no map
+        EmpLog.Information("Zone {ZoneFullName} handed over to {@Peer}, uid range from {UidRangeStart}, owner copy sent along {HasMap}: {Sums}",
+            zone.ZoneFullName, heir, rangeStart, map is not null, ZoneLeaseState.TellSums(sums ?? []));
+
         heir.Send(new ZoneLeaseGrant {
             ZoneUid = zoneUid,
             RequestedUid = zoneUid,
@@ -977,6 +984,8 @@ internal partial class ElinNetHost
             ZoneState = ZoneLeaseState.GetState(zone),
             IdCurrentSubset = zone.idCurrentSubset,
             Handoff = true,
+            Map = map,
+            MapSums = sums,
         });
 
         foreach (var guest in guests.Skip(1)) {
@@ -1140,7 +1149,7 @@ internal partial class ElinNetHost
         if (handedBack) {
             // before looking for someone to take it over: there is nothing to take over
             DestroyQuestZone(release.ZoneUid);
-            HandOverZone(release.ZoneUid, peer.Id);
+            HandOverZone(release.ZoneUid, peer.Id, left: release);
         }
 
         if (release.Rejoin) {

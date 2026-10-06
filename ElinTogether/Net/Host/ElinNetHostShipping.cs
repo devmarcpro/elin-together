@@ -58,20 +58,23 @@ internal partial class ElinNetHost
         }
 
         LZ4Bytes? taken = null;
+        TakenPart? held = null;
         if (ask.Ask && ask.TakeNum > 0 &&
             container.things.Flatten().FirstOrDefault(t => t.uid == ask.TakeUid) is { isDestroyed: false } stack) {
             var part = stack.Split(Math.Min(ask.TakeNum, stack.Num));
+            var shipper = part.ShipperUid;
             part.SetInt(ShippingHelper.ShipperKey, 0);
             taken = LZ4Bytes.Create(part);
-            // ponytail: gone from here once sent, like a shipping payout; a link lost before the player's next
-            // checkpoint (asked at once) loses it. Keep it until that checkpoint if it ever happens
+            _takeSeq = Math.Max(_takeSeq + 1, (int)DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+            held = new(taken, ask.Box, shipper, _takeSeq, part.id == "money", part.Num, peer, Time.unscaledTime);
+            // out of the box now (nobody else can take it); the bytes are the way back, see SettleTaken
             part.Destroy();
 
             EmpLog.Debug("Player {@Peer} took {CardId} x{CardNum} out of world box {Box}",
                 peer, part.id, part.Num, ask.Box);
         }
 
-        peer.Send(new ShippingPayout {
+        var sent = peer.Send(new ShippingPayout {
             Ints = [],
             ItemStrs = [],
             ShipNum = 0,
@@ -82,7 +85,70 @@ internal partial class ElinNetHost
             BoxThings = LZ4Bytes.Create(container.things.ToList()),
             Taken = taken,
             Asked = ask.Ask ? ask.TakeNum : 0,
+            TakenToken = held?.Token ?? 0,
         });
+
+        if (held is not null) {
+            if (sent) {
+                HoldTaken(held);
+            } else {
+                PutInWorldBox(held.Bytes, held.Box, held.Shipper);
+            }
+        }
+    }
+
+    /// <summary>
+    ///     A thing a player took out of a box of the world, kept as bytes until we know the player has it
+    /// </summary>
+    private sealed record TakenPart(LZ4Bytes Bytes, int Box, int Shipper, int Token, bool Money, int Num,
+        ISteamNetPeer Peer, float Since);
+
+    private readonly List<TakenPart> _taken = [];
+    private int _takeSeq;
+
+    private void HoldTaken(TakenPart held)
+    {
+        if (_taken.Count == 0) {
+            Scheduler.Subscribe(SettleTaken, 2f);
+        }
+
+        _taken.Add(held);
+    }
+
+    /// <summary>
+    ///     The player has what it took when the bag the host keeps for it (replaced by each checkpoint, and by its
+    ///     return) carries the number sent with it: the mark and the thing are saved in the same character, so no
+    ///     message can be lost between them. Nothing there and the link gone, the player back on this map, or no
+    ///     word for a long time: the thing goes back into its box. <br />
+    ///     Left possible: this game ending in the instant between the take and this check loses the thing; a
+    ///     player that lost the link but keeps playing its own copy and brings it back later holds it too; a player
+    ///     that cannot checkpoint for three intervals and then does (or has checkpoints off and returns later)
+    ///     holds it twice. A bank line is told only for a confirmed take
+    /// </summary>
+    private void SettleTaken()
+    {
+        var every = Session.Rules.TravelCheckpointSeconds;
+        foreach (var held in _taken.ToArray()) {
+            var kept = SavedRemoteCharas.TryGetValue(held.Peer.User, out var uid) ? game.cards.globalCharas.Find(uid) : null;
+            if (kept?.GetInt(ShippingHelper.TookKey) >= held.Token) {
+                if (held.Money && held.Box == ShippingHelper.BoxBank) {
+                    BillPayDelta.TellBank(this, kept.NameSimple, held.Num, false);
+                }
+            } else if (IsAway(held.Peer) && held.Peer.IsConnected && Socket.Peers.Any(p => ReferenceEquals(p, held.Peer)) &&
+                       !(every > 0 && Time.unscaledTime - held.Since > every * 3 + 30)) {
+                continue;
+            } else {
+                PutInWorldBox(held.Bytes, held.Box, held.Shipper);
+                EmpLog.Information("Player {@Peer} never confirmed taking a thing out of world box {Box}, put back",
+                    held.Peer, held.Box);
+            }
+
+            _taken.Remove(held);
+        }
+
+        if (_taken.Count == 0) {
+            Scheduler.Unsubscribe(SettleTaken);
+        }
     }
 
     /// <summary>
@@ -105,7 +171,22 @@ internal partial class ElinNetHost
                                          SavedRemoteCharas.GetValueOrDefault(guest.User) == deposit.Shipper);
         var shipper = forGuest ? deposit.Shipper : own;
 
-        var thing = deposit.Thing.Decompress<Thing>();
+        var depositor = game.cards.globalCharas.Find(own)?.NameSimple;
+        var thing = PutInWorldBox(deposit.Thing, deposit.Box, shipper, depositor);
+
+        EmpLog.Debug("Player {@Peer} shipped {CardId} x{CardNum} from afar for chara {Uid}",
+            peer, thing.id, thing.Num, shipper);
+
+        // no answer: the player asks for the box once after its deposits, see ElinNetClient.AskWorldBoxSoon
+    }
+
+    /// <summary>
+    ///     Put a thing (as bytes, from another world) in a box of this world
+    /// </summary>
+    /// <param name="depositor">name of the player depositing: gold in the bank is told to everyone</param>
+    private Thing PutInWorldBox(LZ4Bytes bytes, int box, int shipper, string? depositor = null)
+    {
+        var thing = bytes.Decompress<Thing>();
         // its uid comes from another world
         foreach (var card in thing.things.Flatten().Prepend(thing)) {
             game.cards.AssignUID(card);
@@ -114,7 +195,11 @@ internal partial class ElinNetHost
         CardCache.Add(thing);
         Delta.AddRemote(CardGenDelta.Create(thing));
 
-        switch (deposit.Box) {
+        if (depositor is not null && box == ShippingHelper.BoxBank && thing.id == "money") {
+            BillPayDelta.TellBank(this, depositor, thing.Num, true);
+        }
+
+        switch (box) {
             case ShippingHelper.BoxDelivery:
                 game.cards.container_deliver.AddThing(thing);
                 break;
@@ -132,10 +217,7 @@ internal partial class ElinNetHost
                 break;
         }
 
-        EmpLog.Debug("Player {@Peer} shipped {CardId} x{CardNum} from afar for chara {Uid}",
-            peer, thing.id, thing.Num, shipper);
-
-        // no answer: the player asks for the box once after its deposits, see ElinNetClient.AskWorldBoxSoon
+        return thing;
     }
 
     /// <summary>

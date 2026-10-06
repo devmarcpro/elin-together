@@ -123,6 +123,7 @@ namespace ElinTogether.Models;
 [Union(838, typeof(DuelStateDelta))]
 [Union(840, typeof(SleepStateDelta))]
 [Union(839, typeof(BillPayDelta))]
+[Union(841, typeof(CharaBagDelta))]
 [Union(842, typeof(DesyncReportDelta))]
 // Act
 [Union(900, typeof(ActThrowDelta))]

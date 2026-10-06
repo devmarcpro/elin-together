@@ -120,12 +120,7 @@ internal partial class ElinNetClient
 
         if (content.Taken is { } taken) {
             if (!mirrors) {
-                // we moved on since asking: back into the box it came from
-                Host.Send(new ShippingDeposit {
-                    Thing = taken,
-                    Shipper = 0,
-                    Box = content.Box,
-                });
+                // we moved on since asking: nothing was taken here, the host puts it back by itself
                 return;
             }
 
@@ -137,7 +132,9 @@ internal partial class ElinNetClient
 
             EClass.pc.Pick(thing, false);
 
-            // it left the box of the host: it has to be in the bag the host keeps for us
+            // the host keeps its copy aside until the bag it keeps for us carries this mark: it goes up
+            // with the checkpoint asked for now, in the same character as the thing
+            EClass.pc.SetInt(ShippingHelper.TookKey, content.TakenToken);
             _nextCheckpoint = 0;
 
             EmpLog.Debug("Took {CardId} x{CardNum} out of world box {Box}", thing.id, thing.Num, content.Box);

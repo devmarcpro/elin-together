@@ -18,6 +18,13 @@ B5 invite seul ailleurs, banque et caisse ouvertes ensemble : il ferme la caisse
    ses pieces (fermer une fenetre ne vide que son conteneur).
 S1 caisse d'expedition, invite seul ailleurs : il y met une planche, ferme, rouvre : elle y est ; il la reprend : elle
    est dans son sac, plus dans la caisse de l'host, un seul exemplaire.
+B6 (seulement avec --only b6, laisse l'invite deconnecte) invite seul ailleurs : une reprise normale ne revient pas en banque
+   (l'host la garde de cote jusqu'au point de sauvegarde de l'invite, puis la lache) ; puis demande de reprise et lien
+   coupe par l'host aussitot : banque + sac garde de l'invite inchange, rien de perdu ni de double. Le moment de la
+   coupure est une course : si la demande n'est pas arrivee, la verification est verte sans avoir rien prouve.
+
+Les lignes « X a depose / retire N pieces » (BillPayDelta.LastLine) sont lues dans B1, B2, B3 pour chaque depot et chaque
+retrait : chez l'host, et chez l'invite quand il est sur la carte de l'host (pas quand il est seul ailleurs).
 
 ROUGE sur la 0.26.506 (attendu, pas encore joue) : B3 « la fenetre montre », « rouverte », « avec le depot de l'host »,
 « reprise » et « bourse revenue » ; B4 « la fenetre montre la pile » ; S1 « rouverte » et « reprise ». B1 et B2 sont
@@ -125,24 +132,55 @@ def fund(port, least):
     return purse(port)
 
 
+LINE = 'HarmonyLib.AccessTools.Field(HarmonyLib.AccessTools.TypeByName("ElinTogether.Models.BillPayDelta"), "LastLine")'
+
+
+def line(port):
+    """La derniere ligne de facture ou de banque montree dans ce jeu (BillPayDelta.LastLine)."""
+    return ev(port, f'(string){LINE}.GetValue(null)')
+
+
+def clear_lines():
+    for p in (H, A):
+        ev(p, f'{LINE}.SetValue(null, ""); "ok"')
+
+
+def told(who, port, away, deposit):
+    """La ligne « X a depose / retire N pieces » est montree a tous ceux qui sont sur la carte de l'host (l'invite seul
+    ailleurs ne recoit pas les lignes en voyage : la liste de ce qu'il laisse entrer ne contient pas BillPayDelta)."""
+    name = ev(port, 'EClass.pc.NameSimple')
+    ids, words = ("emp_ui_bank_deposit", "in the bank") if deposit else ("emp_ui_bank_withdraw", "out of the bank")
+    for label, p in (("chez l'host", H), ("chez l'invite", A)):
+        if p == A and away:
+            continue
+        ok = eventually(lambda p=p: name in line(p) and "500" in line(p) and (ids in line(p) or words in line(p)), timeout=10)
+        check(f"{who} : la ligne {'de depot' if deposit else 'de retrait'} est montree {label} : « {line(p)} »", ok)
+
+
 def round_trip(who, port, other, away=False):
     """Depot, fermeture, reouverture, reprise par `port` ; `other` est l'autre jeu (ce qu'il voit de la banque)."""
     p0 = fund(port, SUM + 500)
     b0 = held(H, BANK, "money")
     open_box(port, BANK)
+    clear_lines()
     check(f"{who} : le depot part ({SUM} pieces lachees dans la fenetre)", deposit(port, BANK, "money", SUM) == "ok")
     check(f"{who} : sa bourse a {SUM} pieces de moins", eventually(lambda: purse(port) == p0 - SUM, timeout=15))
     check(f"{who} : la banque de l'host a {SUM} pieces de plus", eventually(lambda: held(H, BANK, "money") == b0 + SUM, timeout=15))
+    told(who, port, away, True)
     check(f"{who} : sa fenetre montre les pieces deposees", eventually(lambda: shown(port, BANK, "money") == b0 + SUM, timeout=15))
     reopen(port, BANK)
     check(f"{who} : fenetre fermee puis rouverte, les pieces y sont", eventually(lambda: shown(port, BANK, "money") == b0 + SUM, timeout=15))
     if not away:
         check(f"{who} : l'autre joueur les voit dans sa banque", eventually(lambda: held(other, BANK, "money") == b0 + SUM, timeout=15))
     check(f"{who} : bourse + banque inchange", purse(port) + held(H, BANK, "money") == p0 + b0)
+    clear_lines()
     check(f"{who} : la reprise part (clic sur la pile)", take(port, BANK, "money", SUM) == "ok")
     check(f"{who} : sa bourse est revenue au montant de depart", eventually(lambda: purse(port) == p0, timeout=15))
     check(f"{who} : la banque de l'host est revenue au montant de depart", eventually(lambda: held(H, BANK, "money") == b0, timeout=15))
-    time.sleep(3)
+    told(who, port, away, False)
+    # the host keeps a copy of what an away player took until its checkpoint carries it (ElinNetHost.SettleTaken):
+    # long enough for that settling, which must not put it back
+    time.sleep(8 if away else 3)
     check(f"{who} : rien en double (bourse + banque inchange apres la reprise)", purse(port) + held(H, BANK, "money") == p0 + b0)
     close_box(port, BANK)
     return p0, b0
@@ -227,6 +265,44 @@ def b5(ctx):
         ev(H, f'var p = {SHIP}.things.Find(t => t.id == "plank"); if (p != null) p.ModNum(-1); "ok"')
 
 
+def kept_purse(uid):
+    """La bourse du sac que l'host garde pour ce joueur (remplace par chaque point de sauvegarde de l'invite seul)."""
+    return int(ev(H, f'EClass.game.cards.globalCharas.Find({uid}).GetCurrency("money").ToString()'))
+
+
+def b6(ctx):
+    """objet repris par un invite seul, lien coupe entre la demande et la reponse : l'or n'est ni perdu ni double.
+    Laisse l'invite DECONNECTE (relancer mp_test.py apres) : a ne jouer qu'avec --only b6, en dernier."""
+    away(ctx)
+    p0 = purse(A)
+    # a normal take first: the host holds the gold aside, then lets go of it once the checkpoint carries the mark
+    b0 = held(H, BANK, "money")
+    ev(H, f'{BANK}.ModCurrency(900); "ok"')
+    open_box(A, BANK)
+    reopen(A, BANK)
+    check("sa fenetre montre la banque (900 de plus)", eventually(lambda: shown(A, BANK, "money") == b0 + 900, timeout=15))
+    check("la reprise part", take(A, BANK, "money", 900) == "ok")
+    check("l'or est dans sa bourse", eventually(lambda: purse(A) == p0 + 900, timeout=15))
+    time.sleep(10)
+    check(f"dix secondes apres, l'or n'est pas revenu dans la banque (bourse {purse(A)}, banque {held(H, BANK, 'money')})",
+          purse(A) == p0 + 900 and held(H, BANK, "money") == b0)
+    check("et le sac que l'host garde pour lui le sait (pas de remise en banque a tort)",
+          eventually(lambda: kept_purse(ctx["a"]) == p0 + 900, timeout=30))
+    close_box(A, BANK)
+    # then the cut: the guest asks for 400 and the host drops its link at once
+    total = held(H, BANK, "money") + kept_purse(ctx["a"])
+    open_box(A, BANK)
+    reopen(A, BANK)
+    check("la fenetre montre la pile", eventually(lambda: shown(A, BANK, "money") == b0, timeout=15))
+    ev(A, f'var b = NetSession.Instance.Transport as ElinNetClient; var m = EClass.game.cards.container_deposit.things.Find(t => t.id == "money"); '
+          'b.AskWorldBox(2, m.GetInt("emp_box_uid"), 400); "ok"')
+    ev(H, 'var h = NetSession.Instance.Transport as ElinNetHost; h.DisconnectPeer(h.States.Keys.First(i => i != 0), "bank_suite"); "ok"')
+    time.sleep(15)
+    after = held(H, BANK, "money") + kept_purse(ctx["a"])
+    log(f"or banque + sac garde de l'invite : {total} -> {after}")
+    check(f"rien de perdu ni de double apres la coupure (banque + sac garde : {total} -> {after})", after == total)
+
+
 def s1(ctx):
     """caisse d'expedition, invite seul ailleurs : il revoit sa planche et peut la reprendre"""
     if not state(A).get("awayZone") and bag(A, "plank") == 0:
@@ -261,6 +337,9 @@ def main():
 
     ctx = {"a": state(A)["pc"]["uid"], "h": state(H)["pc"]["uid"]}
     steps = [b1, b2, b3, b4, b5, s1]
+    # b6 leaves the guest disconnected: only asked for by name
+    if a.only and "b6" in a.only.split(","):
+        steps.append(b6)
     if a.only:
         steps = [s for s in steps if s.__name__ in a.only.split(",")]
     for step in steps:

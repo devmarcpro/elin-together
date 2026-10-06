@@ -40,9 +40,15 @@ internal static class GuestPaysBillPatch
     internal static void OnPaid(Thing t, bool fromBank)
     {
         // a bill is destroyed only when paid: "bad idea" and "not enough gold" leave it
-        if (!fromBank && IsBill(t) && t.isDestroyed && !ElinDelta.IsApplying &&
-            NetSession.Instance.Connection is ElinNetHost { IsZoneSession: false } host) {
+        if (fromBank || !IsBill(t) || !t.isDestroyed || ElinDelta.IsApplying) {
+            return;
+        }
+
+        if (NetSession.Instance.Connection is ElinNetHost { IsZoneSession: false } host) {
             BillPayDelta.Tell(host, EClass.pc.NameSimple, t.id, t.c_bill);
+        } else {
+            // alone on another map the game paid by itself: the host's counter is still to lower
+            BillPayDelta.SendAway(t);
         }
     }
 }

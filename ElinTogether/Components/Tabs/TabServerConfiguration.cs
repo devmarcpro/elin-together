@@ -25,6 +25,7 @@ internal class TabServerConfiguration : TabEmpBase
         Option(players, "auto_resync", EmpConfig.Server.AutoResync);
         Option(players, "auto_host", EmpConfig.Server.AutoHost);
         Option(players, "auto_save", EmpConfig.Server.AutoSave);
+        Option(players, "world_copy", EmpConfig.Server.WorldCopy);
         Option(players, "same_game_version", EmpConfig.Server.SameGameVersion);
 
         var own = Section("own");
@@ -36,6 +37,7 @@ internal class TabServerConfiguration : TabEmpBase
         Option(own, "own_sleep", EmpConfig.Server.OwnSleep);
         Option(own, "time_jumps_together", EmpConfig.Server.TimeJumpsTogether);
         Option(own, "dump_spares_belt", EmpConfig.Server.DumpSparesBelt);
+        Option(own, "shared_tax", EmpConfig.Server.SharedTax);
         Option(own, "host_manages_base", EmpConfig.Server.HostManagesBase);
         Option(own, "duels", EmpConfig.Server.Duels);
 
