@@ -26,6 +26,10 @@ public class CharaPickThingDelta : ElinDelta
     [Key(3)]
     public required PickType Type { get; init; }
 
+    // as the game that picked it did (Chara.HoldCard picks without stacking)
+    [Key(4)]
+    public bool TryStack { get; set; } = true;
+
     protected override void OnApply(ElinNetBase net)
     {
         // we do not apply to ourselves
@@ -62,7 +66,7 @@ public class CharaPickThingDelta : ElinDelta
 
         switch (Type) {
             case PickType.Pick:
-                chara.Pick(thing);
+                chara.Pick(thing, tryStack: TryStack);
                 // force add
                 if (net.IsHost && !thing.isDestroyed && thing.parent == _zone) {
                     EmpLog.Warning("Mirror pick of {Uid} failed to store, forcing into chara {OwnerUid}",

@@ -57,10 +57,14 @@ internal partial class ElinNetClient
     private void RetryZoneSync()
     {
         if (++_zoneSyncFailures >= MaxZoneSyncRetries) {
-            EmpLog.Warning("Zone sync failed after {RetryCount} attempts, disconnecting",
+            // nobody is thrown out for that: it comes back as a player who just arrives, the world then its map.
+            // The link is closed as a lost one, not with InvalidZone: that reason reads as "turned away" and
+            // stops the automatic return (OnPeerDisconnected, NetReconnect)
+            EmpLog.Warning("Zone sync failed after {RetryCount} attempts, joining the game again for its world and map",
                 _zoneSyncFailures);
 
-            Socket.Disconnect(Host, EmpDisconnectInfo.InvalidZone);
+            _zoneSyncFailures = 0;
+            Socket.Disconnect(Host, EmpDisconnectInfo.RemoteClosed);
             return;
         }
 
@@ -141,6 +145,9 @@ internal partial class ElinNetClient
                     region.elomap.SetZone(probeZone.x, probeZone.y, remoteZone, true);
                 }
             } catch (Exception ex) {
+                // was silent in a release build: all that showed was "Zone state mismatch" below
+                EmpLog.Warning(ex, "Zone {ZoneFullName} is unknown here and could not be built from its state",
+                    response.ZoneFullName);
                 DebugThrow.Void(ex);
             }
         }

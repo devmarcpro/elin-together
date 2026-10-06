@@ -61,8 +61,24 @@ public class CardGenDelta : ElinDelta
             subtree.Select(node => node.uid).Prepend(card.uid).Max() + 1);
 
         CardCache.Add(card);
-        CardCache.CacheContainer(card.things);
+        foreach (var thing in subtree) {
+            // told one by one before their carrier (the first belongings of a new player): those copies are in
+            // no bag, the ones this carrier holds are the cards from now on
+            if (CardCache.Find(thing.uid) is { parent: null } loose && loose != thing) {
+                CardCache.Set(thing);
+            } else {
+                CardCache.Add(thing);
+            }
+        }
+
         CardCache.KeepAlive(card);
+
+        // a character of the world (a player, a companion, a resident) is listed as the host lists it: a map
+        // loaded again only places the listed ones (Zone.AddGlobalCharasOnActivate), and once on a map nothing
+        // else keeps this copy
+        if (card is Chara { IsGlobal: true } global) {
+            game.cards.globalCharas.Add(global);
+        }
     }
 
     internal static CardGenDelta Create(Card card)

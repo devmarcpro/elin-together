@@ -31,7 +31,14 @@ public class CardAddThingDelta : ElinDelta
 
     protected override void OnApply(ElinNetBase net)
     {
-        if (Thing.Find() is not Thing { isDestroyed: false } thing) {
+        var found = Thing.Find();
+        if (found is { isDestroyed: true } && Thing.Data is not null && net.IsClient) {
+            // destroyed here only (a copy stacked what its player did not): the host sent it whole, made again
+            CardCache.Remove(Thing.Uid);
+            found = Thing.Find();
+        }
+
+        if (found is not Thing { isDestroyed: false } thing) {
             EmpLog.Warning("Dropping {DeltaType} from peer {PeerIndex}, uid {Uid} cannot be resolved here",
                 nameof(CardAddThingDelta), OriginPeer, Thing.Uid);
             return;

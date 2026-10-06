@@ -121,7 +121,10 @@ internal partial class ElinNetHost
     {
         // another version of Elin: let in and told, unless the host wants the same one for everyone
         var otherGame = !BuildVersionIntegrity.SameGame(response.ClientGameVersion);
-        if (otherGame && !EmpConfig.Server.SameGameVersion.Value &&
+        // a zone session decides nothing of its own: the host of the game let this player in with its rules, the
+        // settings of the player keeping this map are not those of the game
+        var sameGameOnly = EmpConfig.Server.SameGameVersion.Value && !IsZoneSession;
+        if (otherGame && !sameGameOnly && !IsZoneSession &&
             BuildVersionIntegrity.Ok(response.ClientModVersion, response.ClientGameVersion, response.APIVersion)) {
             EmpLog.Warning("Player {@Peer} runs game {ClientGameVersion}, host {HostGameVersion}: allowed",
                 peer, response.ClientGameVersion, BuildVersionIntegrity.GameVersion);
@@ -129,7 +132,7 @@ internal partial class ElinNetHost
                 BuildVersionIntegrity.GameVersion));
         }
 
-        if ((otherGame && EmpConfig.Server.SameGameVersion.Value) ||
+        if ((otherGame && sameGameOnly) ||
             !BuildVersionIntegrity.Ok(response.ClientModVersion, response.ClientGameVersion, response.APIVersion)) {
             EmpLog.Warning(
                 "Version mismatch from {@Peer}: mod {ClientModVersion} -> {HostModVersion}, " +
@@ -165,6 +168,14 @@ internal partial class ElinNetHost
             peer.Send(new SteamLobbyRequest {
                 LobbyId = Session.Lobby.Current,
             });
+        } else {
+            // no source check of its own either: with the check of the player keeping this map (its own boxes,
+            // its own mods) a guest the host accepted was asked "continue?" while walking into a map, and was
+            // out of it on a no. Its acts were matched against the host's, as ours were
+            EmpLog.Information("Guest {@Peer} was let in by the host of the game, no source validation here",
+                peer);
+            AcceptHandshake(peer);
+            return;
         }
 
         EmpLog.Debug("Requesting source validation from {@Peer} (flags={Flags})",

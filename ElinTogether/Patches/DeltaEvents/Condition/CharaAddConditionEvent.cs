@@ -26,6 +26,8 @@ internal static class CharaAddConditionEvent
             ConditionId = __result.id,
             Power = __result.power,
             Force = force,
+            RefVal = __result.refVal,
+            RefVal2 = __result.refVal2,
         });
     }
 

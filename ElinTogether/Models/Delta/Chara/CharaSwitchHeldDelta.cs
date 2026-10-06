@@ -43,7 +43,7 @@ public class CharaSwitchHeldDelta : ElinDelta
 
         // empty hand
         if (HeldMainHand is null && HeldOffHand is null) {
-            chara.PickHeld();
+            PutAway(chara);
             return;
         }
 
@@ -52,8 +52,27 @@ public class CharaSwitchHeldDelta : ElinDelta
             HeldOffHand?.Find() is { } offHand &&
             mainHand == offHand &&
             mainHand.GetRootCard() == chara) {
+            if (chara.held != mainHand) {
+                PutAway(chara);
+            }
+
             chara.HoldCard(mainHand);
         }
+    }
+
+    /// <summary>
+    ///     A copy lets go of what it holds as its player did: the item stays where it is in the bag. Chara.PickHeld
+    ///     stacks it for anyone but the local player, and the pile here would differ from the one its game has
+    ///     (what that game did with it comes by its own deltas)
+    /// </summary>
+    private static void PutAway(Chara chara)
+    {
+        if (chara.held is Thing held && held.GetRootCard() == chara) {
+            chara.held = null;
+            return;
+        }
+
+        chara.PickHeld();
     }
 
     public static CharaSwitchHeldDelta Create()

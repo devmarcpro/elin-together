@@ -24,6 +24,13 @@ public class CharaAddConditionDelta : ElinDelta
     [Key(4)]
     public bool Remove { get; set; }
 
+    // what some conditions are made of (the element of an enchanted weapon, of a resistance): BaseCondition.refVal
+    [Key(5)]
+    public int RefVal { get; set; }
+
+    [Key(6)]
+    public int RefVal2 { get; set; }
+
     internal static bool IsTrapCondition(string alias)
     {
         // and the breath lost under deep water, which only the diver's own game notices
@@ -72,7 +79,7 @@ public class CharaAddConditionDelta : ElinDelta
             });
         } else {
             var row = sources.stats.map[ConditionId];
-            chara.Stub_AddCondition(Condition.Create(row.alias, Power), Force);
+            chara.Stub_AddCondition(Condition.Create(row.alias, Power, c => c.SetRefVal(RefVal, RefVal2)), Force);
         }
     }
 }

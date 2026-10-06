@@ -154,14 +154,18 @@ public class ElinDeltaManager
                     continue;
                 }
 
-                if (keep && delta.RequiresGameStarted) {
+                // a zone the host just made is never kept back: its map may be the very next thing to arrive, and
+                // a map whose zone is unknown here cannot be loaded (it only needs the world, not a running game)
+                var zoneNews = delta is SpatialGenDelta && hold && EClass.game is not null;
+
+                if (keep && delta.RequiresGameStarted && !zoneNews) {
                     // happened after the copy being loaded right now was taken: applied once it is there
                     if (_held.Count < MaxHeld) {
                         _held.Add(delta);
                     } else {
                         _heldLost++;
                     }
-                } else if (gameStarted || !delta.RequiresGameStarted) {
+                } else if (gameStarted || !delta.RequiresGameStarted || zoneNews) {
                     delta.Apply(net);
                 }
             } catch (Exception ex) {

@@ -146,6 +146,11 @@ public class CharaStateSnapshot : EClass
                 } else {
                     chara.pos.Set(Pos.X, Pos.Z);
                     zone.AddCard(chara, Pos);
+
+                    // a character of the world known by the cache alone is gone with the next load of this map
+                    if (remoteChara is null && chara.IsGlobal && game.cards.globalCharas.Find(chara.uid) is null) {
+                        game.cards.globalCharas.Add(chara);
+                    }
                 }
             }
 

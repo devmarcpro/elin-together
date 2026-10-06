@@ -41,6 +41,7 @@ internal static class CharaPickThingEvent
                 Thing = t,
                 Pos = null,
                 Type = CharaPickThingDelta.PickType.Pick,
+                TryStack = tryStack,
             });
 
             CardCache.KeepAlive(t);
@@ -68,6 +69,7 @@ internal static class CharaPickThingEvent
                 Thing = t,
                 Pos = null,
                 Type = CharaPickThingDelta.PickType.Pick,
+                TryStack = tryStack,
             });
         }
 

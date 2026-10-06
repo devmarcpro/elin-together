@@ -81,7 +81,13 @@ public abstract partial class ElinNetBase : EMono
         Socket.Dispose();
 
 #if !DEBUG
-        EmpMod.SharedHarmony.UnpatchSelf();
+        // only when the last one goes: a zone session that closes leaves the link with the host, which went on
+        // without a single patch (nothing sent, nothing applied, map changes not seen) until the next component
+        var transport = Session.Transport;
+        var zoneSession = Session.ZoneSession;
+        if ((transport == null || transport == this) && (zoneSession == null || zoneSession == this)) {
+            EmpMod.SharedHarmony.UnpatchSelf();
+        }
 #endif
     }
 

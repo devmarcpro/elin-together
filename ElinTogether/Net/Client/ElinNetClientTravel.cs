@@ -755,7 +755,14 @@ internal partial class ElinNetClient
     private void OnZoneLeaseRecall(ZoneLeaseRecall recall)
     {
         if (Session.AwayZone?.uid != recall.ZoneUid) {
-            // already handed back
+            // already handed back, or never held here: say so, the host would wait at the door of that map for good
+            // (a release already on its way made the host forget the lease, this answer then does nothing)
+            if (_pendingTravel is null && _pendingGrant is null) {
+                Host.Send(new ZoneLeaseDecline {
+                    ZoneUid = recall.ZoneUid,
+                });
+            }
+
             return;
         }
 
