@@ -34,6 +34,12 @@ internal static class CharaTaskProgressEvents
             return;
         }
 
+        // a task sent as FakeTask has no act on the host to match: not announced, and not held for a completion that
+        // would never come
+        if (connection.IsClient && owner.IsPC && FakeTask.IsMarked(__instance)) {
+            return;
+        }
+
         if (__instance.parent?.GetType() is not { } actType ||
             !ActMappingValidator.Default.ActToIdMapping.TryGetValue(actType, out var actId)) {
             return;

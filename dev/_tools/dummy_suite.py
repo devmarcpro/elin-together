@@ -12,6 +12,11 @@ M1  l'invite, sur la carte de l'host : un mannequin est pose a cote de lui, il s
     endurance.
 M2  l'host (temoin) : la meme chose, la copie est lue chez l'invite.
 M3  l'invite seul sur une autre carte (Vernis) : la meme chose dans son seul jeu, puis il revient.
+M4  tache INCONNUE de la table (AI_Paint, peindre sur un chevalet : pas de ligne dans CharaTaskRemoteEvent, elle part
+    comme FakeTask). Correction generale (PLAN_mannequin_invite.md, « Correction generale ») : l'invite ne l'annonce pas
+    a l'host et l'arrete seul. Deux temps : (a) il peint jusqu'au bout (avant : l'host repondait « no matching act »
+    et la peinture s'arretait) ; (b) un arret demande en pleine peinture prend tout de suite, sans attendre l'host
+    (avant : l'arret etait retenu). La toile peinte est lue chez l'host a titre d'information seulement.
 
 Ce que le banc appelle : le clic gauche sur la case du mannequin (ActPlan._Update, la liste que le jeu propose),
 l'entree AI_PracticeDummy, puis Item.Perform() : ce que fait le clic. L'arret : AIAct.Cancel() apres
@@ -20,6 +25,9 @@ CanManualCancel(), ce que fait une touche pendant une tache (AM_Adv).
 Ce que le banc ne joue pas comme un joueur :
 - le mannequin est cree et installe par le banc (ZoneAddCard + Install), a cote du joueur : pas de marche jusqu'a lui ;
 - l'endurance est remise au maximum avant de commencer (dans le jeu du joueur) ;
+- M4 : la tache est lancee par SetAI (le dernier appel d'AM_Paint), sans passer par le mode de peinture et le clic ;
+  l'arret de M4 est un appel direct a AIAct.Cancel() apres quelques Tick() (le joueur ne peut pas arreter une
+  peinture a la main : CanManualCancel est faux) ;
 - pas de tir ni de lancer sur le mannequin (ActRanged / ActThrow lancent la meme tache, pas joue) ;
 - pas de prisonnier attache (meme tache, pas joue) ; pas de fin par epuisement (endurance sous zero) ;
 - « pas de coup en double » compare les coups qui touchent au nombre de tours et d'armes : un enchantement de coups
@@ -35,7 +43,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 from guest_suite import awake, chara, clear_conditions, first_id, free_next_to, use_menu  # noqa: E402
 from mp_test import log, shot, state  # noqa: E402
-from travel_suite import HOME, RESULTS, VERNIS, both_joined, check, client_settled, ev, eventually, move, scan_logs, wait  # noqa: E402
+from guest_suite import give  # noqa: E402
+from travel_suite import (HOME, RESULTS, VERNIS, both_joined, check, client_settled, ev, eventually, move, scan_logs,  # noqa: E402
+                          session_log_lines, wait)
 
 H, A = 27551, 27552
 BLOWS = 20
@@ -137,6 +147,62 @@ def m3(ctx):
         both_joined(H, A, HOME)
 
 
+def m4(ctx):
+    """l'invite peint sur un chevalet : une tache inconnue de la table va au bout et s'arrete sans l'host"""
+    port, uid = ctx["a"]
+    clear_conditions(uid)
+    easel_id, canvas_id = first_id("Painter"), first_id("Canvas")
+    spot = free_next_to(port, uid, 1)
+    if not check(f"un chevalet ({easel_id}), une toile ({canvas_id}) et une case libre a cote de l'invite ({spot})",
+                 easel_id and canvas_id and spot):
+        return
+    t0 = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+    x, z = spot.split(",")
+    easel = int(ev(H, f'var t = ThingGen.Create("{easel_id}"); EClass._zone.AddCard(t, new Point({x}, {z})).Install(); return t.uid.ToString();'))
+    canvas = give(ctx, "a", canvas_id)
+    painted = lambda p: ev(p, 'var t = EClass.pc.things.Find(m => m.uid == %d) ?? (EClass.pc.held as Thing); '  # noqa: E731
+                              'return t != null && t.c_textureData != null ? "peint" : "vierge";' % canvas)
+    running = lambda: ev(port, 'var p = EClass.pc.ai as AI_Paint; return (p != null && p.IsRunning).ToString();') == "True"  # noqa: E731
+    # ce que fait AM_Paint une fois la toile choisie
+    start = ('var e = EClass._map.things.Find(m => m.uid == %d); var c = EClass.pc.things.Find(m => m.uid == %d); '
+             'var p = new AI_Paint { painter = (TraitPainter)e.trait, canvas = (TraitCanvas)c.trait, data = new byte[] { 1, 2, 3, 4 } }; '
+             'EClass.pc.SetAI(p); ' % (easel, canvas))
+    try:
+        if not check("le chevalet est pose chez l'invite",
+                     eventually(lambda: ev(port, 'EClass._map.things.Find(m => m.uid == %d) != null ? "oui" : "non"' % easel) == "oui", timeout=15)):
+            return
+        ev(port, 'EClass.pc.SetNoGoal(); "ok"')
+        time.sleep(2)
+        awake(port)
+
+        # (b) un arret en pleine peinture : pris tout de suite par le jeu de l'invite
+        res = ev(port, start + 'var n = 0; while (!(EClass.pc.ai.Current is AIProgress) && ++n < 30) EClass.pc.ai.Tick(); '
+                              'var inProgress = EClass.pc.ai.Current is AIProgress; EClass.pc.ai.Cancel(); '
+                              'return inProgress + "|" + p.IsRunning;')
+        in_progress, still = res.split("|")
+        check(f"l'invite est entre dans la progression de la peinture ({in_progress})", in_progress == "True")
+        check(f"son arret prend tout de suite, sans reponse de l'host (la tache tourne encore : {still})", still == "False")
+        ev(port, 'EClass.pc.SetNoGoal(); "ok"')
+        time.sleep(2)
+        check(f"arretee, la peinture n'a rien produit ({painted(port)})", painted(port) == "vierge")
+
+        # (a) puis jusqu'au bout : l'host ne l'arrete pas
+        awake(port)
+        ev(port, start + '"ok"')
+        check("la peinture est lancee", eventually(running, timeout=10))
+        check("elle va au bout (avant : arretee par l'host apres un instant)",
+              eventually(lambda: not running() and painted(port) == "peint", timeout=60))
+        host_copy = ev(H, 'var c = %s; var t = c == null ? null : c.things.Find(m => m.uid == %d); '
+                          'return t == null ? "absente" : (t.c_textureData != null ? "peinte" : "vierge");' % (chara(H, uid), canvas))
+        log(f"(information, pas une regle) la toile de l'invite chez l'host : {host_copy}")
+        refused = [line for line in session_log_lines(t0) if "no matching act" in line and "AI_Paint" in line]
+        check(f"l'host n'a pas refuse la peinture (« no matching act » : {len(refused)} fois)", not refused)
+    finally:
+        ev(port, 'if (EClass.pc.ai is AI_Paint) EClass.pc.SetNoGoal(); "ok"')
+        ev(H, 'var c = %s; var t = c == null ? null : c.things.Find(m => m.uid == %d); if (t != null) t.Destroy(); '
+              'var e = EClass._map.things.Find(m => m.uid == %d); if (e != null) e.Destroy(); "ok"' % (chara(H, uid), canvas, easel))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--only")
@@ -145,7 +211,7 @@ def main():
     t0 = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
 
     ctx = {"a": (A, state(A)["pc"]["uid"]), "h": (H, state(H)["pc"]["uid"])}
-    steps = [m1, m2, m3]
+    steps = [m1, m2, m3, m4]
     if a.only:
         steps = [s for s in steps if s.__name__ in a.only.split(",")]
     for step in steps:

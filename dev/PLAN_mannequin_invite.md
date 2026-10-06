@@ -86,6 +86,83 @@ la même façon pour un invité :
 Déjà dans la table (donc pas concernés) : pêche, lecture, musique, artisanat à l'établi, cuisine, crochetage, tonte,
 abattage, vol.
 
-Correction générale possible (pas faite, fichiers hors de ce lot) : pour une tâche partie comme `FakeTask`, ne pas
-annoncer la progression (`CharaProgressBeginEvent.cs:42-58`) et laisser l'invité arrêter seul
-(`CharaTaskCancelEvent.cs:25-28`).
+Correction générale : faite, voir la section suivante.
+
+## Correction générale (faite, compile, jamais jouée)
+
+Pour une tâche du joueur d'un invité partie comme `FakeTask` (inconnue de la table) : (1) l'invité ne l'annonce pas à
+l'host, (2) il l'arrête seul. Les tâches de la table ne changent pas : la règle ne s'applique qu'aux actes marqués.
+
+### Ce qui a été lu avant d'écrire
+
+- Pour une tâche inconnue, `CharaProgressBeginEvent` ne faisait pas qu'annoncer : chez un invité il posait aussi
+  `progress = HeldProgress.Held` (`CharaProgressBeginEvent.cs`, ancien `:42-45`). Une progression « retenue » n'avance
+  jamais d'elle-même, elle attend la fin envoyée par l'host. Pour une tâche inconnue cette fin ne vient jamais :
+  même sans l'ordre d'arrêt de l'host, la tâche d'un invité n'aurait pas fini.
+- `AIAct.Cancel` (`CharaTaskCancelEvent`) lit l'acte COURANT du joueur (`owner.ai.Current`), pas l'acte qu'on annule,
+  et pour un invité il retient l'arrêt (`prevent`) dès que le type de la progression est dans la table des actes
+  (`ActMappingValidator`, qui contient tous les `Act` de tous les mods, pas seulement la table des tâches). L'host ne
+  relaie que s'il trouve l'acte (`CharaTaskCancelDelta.cs:43-56`) : pour une copie `FakeTask` (un `NoGoal`,
+  `FakeTask.cs`) il ne le trouve pas.
+- `SetAI` annule l'ancienne tâche APRÈS notre préfixe (`Chara.SetAI`, `ai.Cancel()` puis `ai = g`) : un simple drapeau
+  « la tâche en cours est inconnue » posé dans le préfixe serait déjà celui de la tâche suivante quand l'ancienne
+  s'arrête (un arrêt de tâche connue serait pris pour un arrêt local, ou l'inverse). D'où un marquage par acte.
+- Fin de progression : `CharaProgressCompleteEvent.OnProgressCompleteEnd` n'émet `CharaProgressCompleteDelta` que
+  chez l'host (`:121`), à la fin d'une progression qui tourne chez lui. Une copie `FakeTask` ne tourne pas : l'host
+  n'émet rien. L'invité qui finit seul n'émet rien non plus (`:121`, il n'est pas l'host) : l'host ne rejoue pas la
+  fin et ne la refuse pas. Rien à changer dans cet événement. (Côté invité, `IsHappening` passe à vrai pendant la fin
+  locale ; les lecteurs de ce drapeau — karma, abattage, semis, ajout de carte — ne s'en servent que chez l'host ou pour
+  des joueurs distants.)
+- `AI_Sleep` n'est pas touchée : `AI_TargetCard.HasProgress` est faux, pas de `AIProgress`, donc ni l'annonce ni l'arrêt
+  retenu ne la concernent (le sommeil a son propre chemin, `Chara.Sleep`).
+
+### Ce qui a changé
+
+| Fichier | Changement |
+|---|---|
+| `ElinTogether/Models/Delta/Task/FakeTask.cs` | `Mark(act)` / `IsMarked(act)` : table faible des actes partis comme `FakeTask`, `IsMarked` remonte les `parent` (la progression d'une tâche, ou d'une sous-tâche, d'un acte marqué) |
+| `ElinTogether/Patches/DeltaEvents/Chara/CharaTaskRemoteEvent.cs:181-184` | chez un invité, pour son propre personnage, un acte qui sort en `FakeTask` est marqué (la ligne `AI_PracticeDummy` du `:127` est gardée) |
+| `ElinTogether/Patches/DeltaEvents/Chara/CharaProgressBeginEvent.cs:37-41` | chez un invité, une progression sous un acte marqué ne fait rien : ni annonce à l'host, ni `Held` (elle avance et finit seule) |
+| `ElinTogether/Patches/DeltaEvents/Chara/CharaTaskCancelEvent.cs:25-30` | chez un invité, l'arrêt d'une progression sous un acte marqué est exécuté tout de suite, sans delta ni attente |
+| `dev/_tools/dummy_suite.py` | étape M4 : peinture (`AI_Paint`) |
+
+Le marquage est par objet (`ConditionalWeakTable`) : pas de remise à zéro à faire, rien ne reste accroché quand l'acte
+disparaît, et l'arrêt de l'ancienne tâche pendant `SetAI` voit encore son propre marquage.
+
+### Tâche par tâche : ce qui arrive chez l'host (lu dans le jeu et le mod, rien joué)
+
+| Tâche | Qui la lance (jeu) | Avant | Maintenant chez l'invité | Ce qui passe chez l'host | Ce qui ne passe pas |
+|---|---|---|---|---|---|
+| `AI_Paint` | `AM_Paint.cs:78`, `pc.SetAI` | annoncée, retenue, arrêtée par l'host | va au bout (10 pas ; 2 pour l'appareil photo) | l'expérience et l'endurance : aucune dans cette tâche | la toile peinte : `Split(1)` + `c_textureData` + `isModified` + `TryHoldCard` (`AI_Paint.cs`) restent dans le jeu de l'invité. Le mod n'a aucun delta pour `c_textureData` (recherche : aucune occurrence). Si la pile compte plus d'une toile, `Split` d'une carte de l'host est « en attente » (`CardSplitEvent`) et l'original n'est pas touché (`CardModNumEvent.cs:13-16`) : l'host ne voit rien |
+| `AI_Torture` | `ActRestrain.cs:48` : la cible reçoit la tâche. Un invité la reçoit seulement s'il s'attache lui-même (si la cible est un allié, c'est une tâche d'un personnage non joueur, `CharaTaskRemoteEvent.cs:40-42`, pas concernée) | annoncée, arrêtée | tourne (10 000 pas, `CanManualCancel` vrai : arrêt seul) | l'état de l'invité par les chemins ordinaires (endurance : `CharaSynchronizationContext.cs:65-73`) ; `ConInvulnerable` à la fin (`AI_Torture.cs`, condition : chemin ordinaire, pas suivi jusqu'au bout) | l'effet de la tâche : la progression envoie les alliés attaquer (`item.SetEnemy(owner)`), dans le jeu de l'invité seulement. Les alliés sont joués par l'host, dont la copie de la tâche est vide : personne ne vient. L'invité « s'entraîne » sans rien subir |
+| `TaskCraft` | `LayerCraftFloat.cs:105`, `pc.SetAI(taskCraft)` : seul chemin | annoncée, arrêtée (rien ne se passait) | **tourne et finit** (5 pas) | l'expérience : 3 x 20 à la progression et 200 à la fin (`TaskCraft.OnProgress/OnProgressComplete`, `ElementChangeDelta` comme au mannequin) ; l'endurance (`costSP`, même chemin) ; les ingrédients d'une pile ENTIÈRE : `Split(n == Num)` rend la carte même, `Destroy()` part en `CardModNumDelta` Num = 0 (`CardDestroyEvent`) | **le produit** : `recipe.Craft` crée l'objet avec `ThingGen` chez l'invité, hors contexte « en attente » : `CardGenEvent` le met en `DelayDestroy`, `CardCache.Update` le détruit à l'image suivante, l'host ne le voit jamais. Les ingrédients d'une pile PARTIELLE : `Split` crée une copie en attente, la pile de l'host n'est pas diminuée (`CardModNumEvent`) |
+| `TaskDesignation` (tâches de désignation du mode construction) | je n'ai trouvé aucun `SetAI` du joueur sur elles dans le jeu (`ActPlan` ne lance que les actes proposés, les connus de la table pour la coupe, la mine…) | — | pas concernée | — | — |
+| `TaskMoveInstalled` | aucun `new TaskMoveInstalled` dans le jeu. `AM_Designation.cs:94-100` : le mode construction la fait finir par l'agent (`owner = Agent`, `OnProgressComplete()` appelé directement), ou la laisse en désignation pour des travailleurs | — | pas concernée par ce correctif (ce n'est pas la tâche du joueur) | — | le déplacement fait par l'agent d'un invité : `AgentTaskDelta.TrySend` ne connaît que `TaskBuild/Mine/Dig/Cut` (`AgentTaskDelta.cs:50-56`) et `CharaProgressCompleteEvent` ne rattrape que ces cas : le meuble bouge dans le jeu de l'invité seul. Hors table et hors de ce lot ; pas vérifié que le mode soit ouvert à un invité |
+
+Tâches d'un autre mod : si elles passent par `SetAI` du joueur et sont absentes de la table, elles tournent maintenant
+chez l'invité sans que l'host le sache (même règle : ce que leurs effets font et qu'aucun delta ne porte reste chez
+l'invité).
+
+Autre tâche inconnue vue en passant : `TaskDump` (`TaskDump.cs:15`, `pc.SetAIImmediate`) : `TaskDumpArgs` existe mais
+n'est pas dans la table (`CharaTaskRemoteEvent.cs`). Non regardée. `DynamicAIAct` (le déplacement puis l'acte de
+`ActPlan.cs:104`) est aussi inconnue de la table : sa tâche enveloppe n'a pas de progression, mais une progression lancée
+dessous est maintenant locale.
+
+### Pas sûr, à ne pas oublier
+
+- **Rien n'a tourné.** Compile seulement (`ReleaseNightly`, 0 erreur, 0 avertissement).
+- **`TaskCraft` : avant, l'invité n'obtenait rien ; maintenant il peut perdre ses ingrédients (piles entières) sans produit.**
+  À régler avant publication : soit une vraie prise en charge (voir `AI_UseCrafter` / `RemoteCraft`), soit garder
+  `TaskCraft` hors de la règle (une ligne : ne pas marquer `TaskCraft` dans `CharaTaskRemoteEvent`, elle retombe dans
+  l'ancien comportement, arrêtée par l'host).
+- Plus généralement : une tâche inconnue qui ne finissait jamais finit maintenant, et ce qu'elle change sans delta
+  reste dans le jeu de l'invité (une divergence possible, au lieu d'un arrêt). C'est le prix du « seul » ; seule la
+  liste ci-dessus dit lesquelles sont connues.
+- Un invité seul sur une autre carte : `NetSession.Instance.Connection` est nul (`CharaTaskRemoteEvent.cs:18`,
+  `CharaProgressBeginEvent.cs:24`, tous les événements rendent la main), le jeu tourne comme en solo : inchangé. Un
+  invité qui tient une carte avec d'autres joueurs : sa session de zone est un host (`NetSession.InitializeZoneSession`),
+  `connection.IsClient` est faux. Les deux cas lus dans le code, jamais joués.
+- M4 de `dummy_suite.py` : `first_id("Painter")` / `first_id("Canvas")` supposent que les lignes d'objet du chevalet et
+  de la toile ont ces traits (nom de classe sans `Trait`) ; sinon la première vérification échoue en le disant. L'arrêt
+  de (b) est un `Cancel()` direct après quelques `Tick()` (pas un arrêt de joueur). Rouge attendu avant la correction :
+  (b) « la tâche tourne encore : True », (a) « no matching act ».

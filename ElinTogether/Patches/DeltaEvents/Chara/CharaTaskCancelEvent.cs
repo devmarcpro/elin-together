@@ -23,6 +23,11 @@ internal static class CharaTaskCancelEvent
             case ElinNetHost when owner.ai is GoalRemote:
                 break;
             case ElinNetClient when owner.IsPC:
+                // sent as FakeTask: the host cannot relay a stop of a task it does not know, stop it here
+                if (FakeTask.IsMarked(current)) {
+                    return true;
+                }
+
                 // client can only cancel progress with delta
                 prevent = true;
                 break;

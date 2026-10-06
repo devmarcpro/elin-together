@@ -178,6 +178,13 @@ internal static class CharaTaskRemoteEvent
             _ => FakeTask.Default,
         };
 
+        // our own player's task the host cannot stand for: it runs and stops here (CharaTaskProgressEvents, CharaTaskCancelEvent)
+        // (not crafting: it would use the ingredients up here and its product is not one the host knows, so it is
+        // stopped by the host as before, nothing spent, until it is handled for real)
+        if (connection.IsClient && __instance.IsPC && args is FakeTask && g is not TaskCraft) {
+            FakeTask.Mark(g);
+        }
+
         // the tool in hand must reach the others before the task that uses it (Card.Tool there is chara.held)
         if (__instance.IsPC) {
             NetProfileSynchronizationContext.Update();
