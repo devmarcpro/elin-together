@@ -773,6 +773,9 @@ def main():
             if GITHUB:
                 # G1 : GitHub met 3 s a repondre a chaque demande ; l'envoi (verrou, monde...) dure bien plus de 10 s
                 ctl("/__fault", slow=3)
+                # (raccourci du banc : quand celui qui prend le monde y joue son propre personnage, l'echange sauvegarde et
+                # envoie deja une fois ; l'envoi suivant attendrait 5 minutes, on remet le delai a zero)
+                ev(A, 'HarmonyLib.Traverse.Create(' + DEP + ').Field("_nextSend").SetValue(0f); "ok"')
                 ev(A, SAVE_BUCKET)
                 n, worst = probe(A, lambda: version() > stamp)
                 ctl("/__fault")
