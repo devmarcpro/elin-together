@@ -277,5 +277,8 @@
     "LangGeneral.emp_ui_bill_already_paid.text": "这张账单已经付过了，没有扣你的钱。",
     "LangGeneral.emp_ui_sleep_alone.text": "你睡了一觉。世界的时间没有前进：{0} 还醒着。",
     "LangGeneral.emp_ui_sleep_count.text": "{0} 睡着了（{1}/{2}）",
-    "LangGeneral.emp_ui_sleep_all.text": "所有人都睡着了：夜晚过去了。"
+    "LangGeneral.emp_ui_sleep_all.text": "所有人都睡着了：夜晚过去了。",
+    "LangGeneral.emp_ui_resync.text": "正在重新同步地图…",
+    "LangGeneral.emp_ui_sv_cfg_auto_resync.text": "自动修复地图",
+    "LangGeneral.emp_ui_sv_desc_auto_resync.text": "开：玩家的地图与主机不一致（缺少物品或角色）时，会自动重新载入地图，最多每 30 秒一次。关：差异只写入日志。"
 }

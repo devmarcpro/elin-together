@@ -139,7 +139,15 @@ public class NetSessionRules
     [Key(19)]
     public bool DumpSparesBelt { get; set; } = true;
 
+    /// <summary>
+    ///     A game whose copy of the map differs from the one of the game that keeps it loads the map again by
+    ///     itself (see NetDesync). Off: the difference is only written to the journals
+    /// </summary>
+    [Key(20)]
+    public bool AutoResync { get; set; } = true;
+
     public static NetSessionRules Default => new() {
+        AutoResync = EmpConfig.Server.AutoResync.Value,
         UseOwnSleep = EmpConfig.Server.OwnSleep.Value,
         TimeJumpsTogether = EmpConfig.Server.TimeJumpsTogether.Value,
         DumpSparesBelt = EmpConfig.Server.DumpSparesBelt.Value,

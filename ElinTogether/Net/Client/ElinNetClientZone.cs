@@ -207,6 +207,9 @@ internal partial class ElinNetClient
             player.MoveZone(currentZone);
         }
 
+        // the map is loaded: what the host did on it since it took the copy is replayed now
+        Delta.MapPlaced();
+
         // reassign zone pos
         this.StartDeferredCoroutine(() => {
             // zone state may be stale

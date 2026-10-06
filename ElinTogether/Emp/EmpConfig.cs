@@ -249,6 +249,14 @@ internal partial class EmpConfig
             "Not after leaving, being kicked or being refused. Otherwise it is left on the title screen\n" +
             "掉线的玩家会自动重新加入同一个游戏（每 5 秒一次，持续 3 分钟）；主动离开、被踢出或被拒绝时不会。关闭时回到标题画面");
 
+        Server.AutoResync = config.Bind(
+            "Server",
+            "AutoResync",
+            true,
+            "A player whose copy of the map no longer matches the host's (a missing item or character) loads the map again by itself\n" +
+            "At most once every 30 seconds, never during a fight, a task or with a menu open. Otherwise the difference is only written to the log\n" +
+            "玩家的地图与主机不一致（缺少物品或角色）时，会自动重新载入地图；最多每 30 秒一次，战斗中、行动中或打开菜单时不会。关闭时只写入日志");
+
         Server.AutoSave = config.Bind(
             "Server",
             "AutoSave",
@@ -383,6 +391,7 @@ internal partial class EmpConfig
         internal static ConfigEntry<bool> PersonalQuests { get; set; } = null!;
         internal static ConfigEntry<bool> ChooseCharacter { get; set; } = null!;
         internal static ConfigEntry<bool> AutoReconnect { get; set; } = null!;
+        internal static ConfigEntry<bool> AutoResync { get; set; } = null!;
         internal static ConfigEntry<bool> AutoSave { get; set; } = null!;
         internal static ConfigEntry<bool> AutoHost { get; set; } = null!;
         internal static ConfigEntry<bool> OwnSleep { get; set; } = null!;

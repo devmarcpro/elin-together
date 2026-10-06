@@ -29,11 +29,28 @@ internal static class TaskCache
             return;
         }
 
-        EmpLog.Warning("Refusing stale {DeltaType} from peer {PeerIndex}, uid {Uid} is gone here",
-            delta.GetType().Name, delta.OriginPeer, target.Uid);
+        // not in the card cache is not gone: the card may be on this map or in the container the player
+        // names, only never registered. It is the one the player means: registered, and the act is done next frame
+        if (CardCache.Find(target.Uid) is null && FindUncached(target) is { isDestroyed: false } real) {
+            CardCache.Set(real);
+            _adopted++;
+            EmpLog.Warning(
+                "Uid {Uid} of {DeltaType} from peer {PeerIndex} is here but was not in the card cache, " +
+                "adopted and replayed ({Adopted} adopted, {Refused} refused so far)",
+                target.Uid, delta.GetType().Name, delta.OriginPeer, _adopted, _refused);
+            net.Delta.DeferLocal(delta);
+            return;
+        }
 
-        // host cannot continue client act here
-        net.Delta.AddRemote(new CardModNumDelta {
+        _refused++;
+        EmpLog.Warning(
+            "Refusing stale {DeltaType} from peer {PeerIndex}, uid {Uid} is gone here: only that player is told " +
+            "to drop it ({Refused} refused, {Adopted} adopted so far)",
+            delta.GetType().Name, delta.OriginPeer, target.Uid, _refused, _adopted);
+
+        // host cannot continue client act here. Only the player who is wrong is told: sent to everyone, a number
+        // this game does not know took the card away from every player who had it
+        host.SendDeltaTo(delta.OriginPeer, new CardModNumDelta {
             Card = target,
             Num = 0,
         });
@@ -42,6 +59,21 @@ internal static class TaskCache
             (chara.ai as GoalRemote)?.child is { } act) {
             RequestCancel(net, chara, act);
         }
+    }
+
+    private static int _adopted;
+    private static int _refused;
+
+    /// <summary>
+    ///     The card as it really is in this game: in the container the sender names, else on this map
+    /// </summary>
+    private static Card? FindUncached(RemoteCard target)
+    {
+        if (target.Type == RemoteCard.CardType.Chara) {
+            return EClass._map?.FindChara(target.Uid);
+        }
+
+        return target.Parent?.Find()?.things.Find(target.Uid) ?? EClass._map?.FindThing(target.Uid);
     }
 
     internal static void RequestCancel(ElinNetBase net, RemoteCard owner, AIAct act)

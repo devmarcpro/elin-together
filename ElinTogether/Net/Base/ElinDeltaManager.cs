@@ -37,7 +37,8 @@ public class ElinDeltaManager
     private readonly List<BatchSnapshot> _snapshots = [];
 
     public bool HasPendingOut => _outBuffer.Count > 0 || _outBufferDeferred.Count > 0;
-    public bool HasPendingIn => _inBuffer.Count > 0 || _inBufferDeferred.Count > 0;
+    // what is held counts: it is replayed even when nothing else comes in
+    public bool HasPendingIn => _inBuffer.Count > 0 || _inBufferDeferred.Count > 0 || _held.Count > 0;
     public bool IsIdle => !HasPendingOut && !HasPendingIn;
 
     public int BatchCount { get; private set; }
@@ -108,11 +109,35 @@ public class ElinDeltaManager
 #endif
 
         var gameStarted = EClass.core.IsGameStarted;
-        if (gameStarted && _held.Count > 0) {
-            // what the host did to the map while it was loading here, in order, before anything newer
+        var hold = _holding && (!gameStarted || _untilPlaced);
+        if (hold && gameStarted && UnityEngine.Time.unscaledTime > _holdDeadline) {
+            // the host never said where we stand on that map: this game goes on with what it has
+            EmpLog.Warning("No placement on the incoming map after {Seconds:F1}s, giving up the hold",
+                UnityEngine.Time.unscaledTime - _holdStart);
+            hold = false;
+        }
+
+        if (_holding && !hold) {
+            if (_held.Count > 0 || _heldLost > 0) {
+                EmpLog.Information(
+                    "Replaying {Held} held deltas ({Acts} besides game time) after {Seconds:F1}s of loading, " +
+                    "hold started by {HoldStart}, {Lost} lost over the limit: {Types}",
+                    _held.Count, _held.Count(d => d is not GameDelta), UnityEngine.Time.unscaledTime - _holdStart,
+                    _holdKind, _heldLost,
+                    string.Join(", ", _held
+                        .Where(d => d is not GameDelta)
+                        .GroupBy(d => d.GetType().Name)
+                        .OrderByDescending(g => g.Count())
+                        .Take(6)
+                        .Select(g => $"{g.Key} {g.Count()}")));
+            }
+
+            // what the others did while the world or the map was loading here, in order, before anything newer
             batch.InsertRange(0, _held);
             _held.Clear();
+            _heldLost = 0;
             _holding = false;
+            _untilPlaced = false;
         }
 
         foreach (var delta in batch) {
@@ -121,11 +146,15 @@ public class ElinDeltaManager
                     continue;
                 }
 
-                if (gameStarted || !delta.RequiresGameStarted) {
+                if (hold && delta.RequiresGameStarted) {
+                    // happened after the copy being loaded right now was taken: applied once it is there
+                    if (_held.Count < MaxHeld) {
+                        _held.Add(delta);
+                    } else {
+                        _heldLost++;
+                    }
+                } else if (gameStarted || !delta.RequiresGameStarted) {
                     delta.Apply(net);
-                } else if (_holding && _held.Count < MaxHeld) {
-                    // about the map being loaded right now: applied once it is there
-                    _held.Add(delta);
                 }
             } catch (Exception ex) {
                 var deltaType = delta.GetType().Name;
@@ -206,30 +235,64 @@ public class ElinDeltaManager
         _inBuffer.Clear();
         _inBufferDeferred.Clear();
         _held.Clear();
+        _heldLost = 0;
         _holding = false;
+        _untilPlaced = false;
     }
 
     private const int MaxHeld = 20_000;
+    // as long as the client waits for its placement, see ElinNetClient.ActivationWait
+    private const float MaxHoldSeconds = 10f;
 
     private readonly List<ElinDelta> _held = [];
     private bool _holding;
+    // the game was running when the map arrived: only the placement on that map tells it is loaded
+    private bool _untilPlaced;
+    private int _heldLost;
+    private float _holdStart;
+    private float _holdDeadline;
+    private string _holdKind = "";
 
     /// <summary>
-    ///     A copy of a map just arrived and is about to be loaded. What came before is in that copy; what comes
-    ///     from now on happened after it was taken and is kept until the map is loaded, instead of being thrown
-    ///     away with the game not started (an item dropped by someone meanwhile would never show here)
+    ///     A copy of a map just arrived and is about to be loaded, or (<paramref name="world" />) a copy of the
+    ///     whole world, whose map follows. What came before is in that copy; what comes from now on happened after
+    ///     it was taken and is kept until the map is loaded, instead of being thrown away with the game not started
+    ///     or applied to the map this game is about to leave (an item dropped by someone meanwhile would never
+    ///     show here, what a player picked up or put on meanwhile would never reach its character here)
     /// </summary>
-    public void HoldForIncomingMap()
+    public void HoldForIncomingMap(bool world = false)
     {
-        // the host only changed map and this game is running: nothing is thrown away, nothing to hold
-        if (EClass.core.IsGameStarted) {
+        var now = UnityEngine.Time.unscaledTime;
+        _holdDeadline = now + MaxHoldSeconds;
+
+        var running = EClass.core.IsGameStarted;
+        // a map on top of what is already kept (the world it comes with, or an earlier map): the characters of
+        // the players are in no map, what is kept about them and what they carry is still to be applied
+        if (!world && _holding && (!running || _untilPlaced)) {
             return;
         }
 
-        _inBuffer.Clear();
-        _inBufferDeferred.Clear();
+        // a world replaces the game that runs; a map alone leaves it running until the placement
+        running &= !world;
+        if (!running) {
+            _inBuffer.Clear();
+            _inBufferDeferred.Clear();
+        }
+
         _held.Clear();
+        _heldLost = 0;
         _holding = true;
+        _untilPlaced = running;
+        _holdStart = now;
+        _holdKind = world ? "world copy" : running ? "map copy, game running" : "map copy";
+    }
+
+    /// <summary>
+    ///     The map that arrived while the game was running is loaded and we stand on it
+    /// </summary>
+    public void MapPlaced()
+    {
+        _untilPlaced = false;
     }
 
     public void UpdateAverages()

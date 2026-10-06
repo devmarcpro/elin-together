@@ -72,6 +72,15 @@ internal class EmpConsole
         return "Manual reconnect initiated";
     }
 
+    /// <summary>
+    ///     The map checksum of this game, the last one compared with the game that keeps the map, the last warning
+    /// </summary>
+    [ConsoleCommand("desync")]
+    internal static string Desync()
+    {
+        return NetDesync.Describe();
+    }
+
     [ConsoleCommand("connect_steam")]
     internal static void AddClientToSteamId(ulong steamId64)
     {

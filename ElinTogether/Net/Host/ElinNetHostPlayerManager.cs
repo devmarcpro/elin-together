@@ -259,8 +259,25 @@ internal partial class ElinNetHost
 
         Session.CurrentPlayers.Add(state);
 
+        // what is already done is in the copies below: told to everyone before them, this player would
+        // otherwise replay it on top of a world that has it
+        Delta.RefreshBuffer();
+        WorldStateDeltaUpdate();
+
         peer.Send(NetSession.Instance.Rules);
         peer.Send(SaveDataProbe.Create(chara.uid));
+
+        // the map in the same frame as the world, not when the player asks for it once the world is loaded:
+        // nothing happens between the two copies, and what happens after both is kept there until the map is
+        // loaded (ElinDeltaManager.HoldForIncomingMap). The characters of the players are in the world only:
+        // what they picked up or put on between the two copies never reached this player
+        if (_zone is { } zone) {
+            EmpLog.Information("World and map {ZoneFullName} sent together to player {@Peer}",
+                zone.ZoneFullName, peer);
+            PropagateZoneChangeState(zone, peer);
+        } else {
+            EmpLog.Warning("No active map to send with the world to player {@Peer}", peer);
+        }
     }
 
     /// <summary>

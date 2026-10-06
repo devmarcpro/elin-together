@@ -186,6 +186,12 @@ internal partial class ElinNetClient
         core.game = probeGame;
         Game.id = ResourceFetch.EmpSaveId;
 
+        // what the others do from now on is not in this copy: kept until the map is loaded. The characters of
+        // the players and what they carry are in the world, not in the map: nothing else brings them up to date
+        Delta.HoldForIncomingMap(true);
+        // a map received for the game that just went away is no reason to refuse the one of this world
+        _awaitingActivation = 0;
+
         // the away zone of a guest now lives in the world of the zone owner
         if (IsZoneSession && Session.AwayZone is { } away) {
             Session.AwayZone = game.spatials.Find(away.uid) ?? away;
@@ -242,8 +248,8 @@ internal partial class ElinNetClient
         player.zone = null;
         core.actionsNextFrame.Add(LayerTitle.KillActor);
 
-        // do an initial zone request to load in
-        RequestZoneState(MapDataRequest.CurrentRemoteZone);
+        // no zone request: the host sent its map right behind the world, taken at the same moment, so that
+        // nothing happens between the two copies (see ElinNetHost.SendSaveProbe)
 
         EmpPop.Debug("emp_wait_zone".lang());
 
