@@ -71,3 +71,12 @@ sur la nouvelle version. Rien n'est « fait » avant d'être vert ET commité. �
   (`CharaPickThingEvent.WillStore`), demande d'objet refusée (`Rejecting ThingRequest … unresolved or parentless`, vu
   une fois dans le journal de LemiWinks du 6 octobre), objet à numéro provisoire, glisser en attente de l'host.
   Chercher dans les journaux : `Rejecting ThingRequest`, `Refusing stale`, `cannot be resolved here`, `failed to store`.
+- (7 octobre, version 0.26.532) « dans character, strategy, le jeu oublie le type d'auto combat du joueur invité ».
+  Même famille que le retour 20 (fenêtres fermées à chaque changement de carte) : un réglage du joueur qui vit dans la
+  sauvegarde de l'host est remplacé par celui de l'host à chaque copie du monde reçue (ou n'est jamais enregistré pour
+  l'invité). À chercher : où le jeu garde le type de combat automatique (fenêtre du personnage, onglet stratégie /
+  tactiques : `Chara.tactics`, `c_tactics`, `player.autoCombat…`, `CoreConfig.game.autoCombat` ?) : sur le personnage
+  (alors il devrait suivre l'invité : vérifier que le changement de l'invité arrive chez l'host, sinon sa copie de
+  l'host l'écrase au prochain monde reçu) ou dans `Player` (partagé, donc celui de l'host). Précédent dans le mod :
+  « consignes des compagnons par joueur » (les deux cases de tactique, déjà rendues propres à chaque joueur).
+  À demander : oublié à chaque changement de carte, ou seulement à la reconnexion ?
