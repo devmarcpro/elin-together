@@ -2463,3 +2463,125 @@ Les cinq : duel sur place d'abord ; « aucune perte », pas de renommée perdue 
   le « Continue » sur une vieille sauvegarde ; (5) dépôt en bonus, verrou de 45 s. Tout allumé par défaut. Écarté : la copie
   en mémoire de l'invité (doublons), la migration à chaud (trop gros), le serveur à port ouvert. Rien de Steam n'est
   prouvable sans deux PC.
+
+## 2026-10-06, de 18h à 22h30 : la 0.26.510, puis la 0.26.524 publiée SANS avoir été jouée
+
+**En une phrase.** Après une vraie soirée à trois joueurs ou plus (quatorze retours, puis quatre de plus), deux versions
+sont sorties : la 0.26.510 (19h50, corrections testées au banc) et la **0.26.524** (vers 22h, commit `2c98607`,
+`feat/independent-travel` poussée au même commit). **La 0.26.524 est écrite, relue par l'agent relecteur, compilée en
+Release et en Debug, et JAMAIS JOUÉE**, pas même par les suites : l'utilisateur jouait et a demandé de publier sans test
+(« je veux que tu fasses le plus de fix possible et moi je jouerai au jeu, tu pourras faire une release sans avoir testé
+toi-même »). Chaque ligne ci-dessous dit son état de preuve avec les mêmes mots : **écrit, relu, compilé, PAS JOUÉ**.
+Une entrée du journal manquait pour l'après-midi et la soirée du 6 octobre (0.26.506 à 0.26.510) : elle est résumée ici.
+
+### Chronologie (heures du commit)
+- 18h02 `20dbb1a` : tout le travail de la soirée mis à l'abri dans un commit « wip » (pas poussé).
+- 19h46 à 19h51 `b1f83c3`, `6763874`, `e0fb3ee`, `696b141` : **0.26.510 publiée** (Elin EA 23.352 Patch 1). Preuves au banc : trio_place 17/17 et trio_time
+  25/25 (trois fenêtres) ; deux fenêtres : together 132/132, death 12/12, parity 16/16, quest 60/60, trade 123/123, base 179/179,
+  hunt 136/136, guest 317/318 (G36 connu). Trois retouches non rejouées, exigées par le build Release.
+- 20h16 `dfa476d` : boss de donjon, dépôt qui ouvre la partie, banque de l'invité, joueurs connus, réveil de l'invité, lenteurs.
+- 20h21 `bb4d38d`, `ab06d93` : les trois cases du conseil 10 déclarées ; ramassage sac plein.
+- 20h35 `9a25491` : plus aucun message fiable perdu (file locale, morceaux).
+- 20h36 à 20h50 `c52cadd`, `074cf29`, `50758bb` : conseil 10 : la date, le rangement et les factures, la nuit ; un host seul vit le jeu solo.
+- 21h02 à 21h14 `cbd2260`, `a04d3c7`, `f26b47c`, `05498a5` : détecteur de désynchronisation, causes D1, D4, D5, D2, corrections de relecture.
+- 21h27 `2c98607` : **0.26.524** (note de version `NOTE_version.md`, README, CLAUDE.md). L'utilisateur avait rapporté : boss de donjon invisible pour
+  les invités et donjon « conquis » à tort, objets qui disparaissent sac plein, « énormément de desync entre les joueurs » ;
+  il avait demandé que prendre le monde du dépôt ouvre la partie tout seul.
+
+### Conseil 10 (ce qui est « au monde », ce qui est « au joueur »)
+- **Question** : `dev/_shots/conseil10_question.md` (hors dépôt). Cinq points liés : (i) rangement automatique, (ii) banque et caisse d'expédition,
+  (iii) nuit, (iv) date, (v) factures. Critères : un invité obtient ce qu'un solo obtiendrait ; ni perte ni doublon ; le plus petit
+  changement ; rien de risqué pour les sauvegardes. Règle de l'utilisateur au-dessus de tout : aucune question posée au joueur.
+- **Verdict** (`PLAN_conseil10_verdict.md`). Règle : **ce qui est posé est au monde** (coffre, banque, caisse, base, facture, date) ;
+  **ce qui est porté ou vécu est au joueur** (sac, main, ceinture, faim, sommeil, renommée, délais de quêtes). **Le temps ne saute pour personne qui joue ; il ne
+  saute que quand tous sautent ensemble.** Toutes les décisions : une case host, cochée, aucune donnée de plus dans la sauvegarde.
+  (i) le rangement épargne la main et la ceinture (le jeu protège déjà la rangée du bas), le réglage « ranger ici » reste au coffre donc au monde ; test d'abord (`d3b`).
+  (ii) banque commune, caisse commune (l'or va à celui dont la marque est sur l'objet). (iii) chacun dort tout de suite pour soi, la date ne bouge que quand TOUS dorment.
+  (iv) une seule date ; elle avance minute par minute, d'une nuit quand tous dorment, de trois heures par pas de carte du monde seulement si tous voyagent ensemble ;
+  le chronomètre d'une quête est au joueur qui la fait. (v) un seul impôt, une seule facture de livraison, n'importe qui paie avec son or ; l'impôt sur la renommée la plus haute (dernière étape).
+- **Écarté** : ne rien changer au rangement (le fait de départ n'a jamais été joué) ; rangement « seulement à plusieurs » (l'host seul et l'host à trois vivraient deux jeux) ;
+  réglage de coffre par joueur (deux copies qui divergent) ; un compte de banque par joueur ; « déposé par X » sur chaque objet ; verrouiller l'objet d'un autre dans la caisse ;
+  attendre les autres pour dormir (le défaut actuel), voter ou majorité (un vote caché, un saut imposé à ceux qui jouent), « la nuit d'un seul avance la date de tous » ;
+  une date par joueur (unanime), la date du plus avancé telle quelle, la date au rythme du plus lent, le quart d'heure par pas, un compteur de minutes vécues ;
+  un impôt par joueur ; couper la facture en parts ; facturer la livraison au déposant ; annoncer « pas de doublon » sans test.
+- **Angles morts trouvés à la relecture** : le chronomètre des quêtes (180 minutes pour un pas d'un ami) ; la cause du rangement non prouvée ; le sommeil se paie déjà par la fatigue
+  (le mod avait levé la règle « seulement fatigué ») ; deux pièges quand un seul dort (le jeu endort, soigne et affame tout le « groupe », et tous les joueurs sont dans le groupe de l'host) ;
+  `taxBills` absent du mod et l'invité lit « mauvaise idée » ; le monde va trop vite à plusieurs.
+- Désaccord tranché contre la majorité : l'impôt sur la renommée la plus haute (D) et non celle de l'host, car c'est une différence host/invité. **Pas fait** (quatrième étape).
+
+### Les sujets, avec leurs fichiers et leur état de preuve
+Tout ce qui suit est dans la 0.26.524. Les plans de `dev/` gardent les faits et les « pas sûr ».
+
+1. **Désynchronisation entre les joueurs** (retour 18 ; `PLAN_desync.md`, `PLAN_desync_corrections.md`, `PLAN_desync_outil.md`, `PLAN_gros_messages.md`). Écrit, relu, compilé, **PAS JOUÉ**.
+   Pas de journaux de leur partie : causes trouvées par lecture du code de la 0.26.510.
+   - D3 plus aucun message fiable perdu : `Net/NetFragments.cs`, `Net/Steam/SteamNetPeer/SteamNetPeer.cs`, `SteamNetPeerBroadcast.cs`, `SteamNetManager.Poll`. File locale par joueur, morceaux de 128 Ko, message de 64 Mo au plus,
+     un joueur dont la file dépasse 64 Mo est coupé (`RemoteClosed`) et revient seul. Seule partie vue **hors jeu** : `dev/_tools/chunk_check` (`dotnet run -c Release`), ALL OK, 20 vérifications.
+   - D8 une exception en lisant un message ne perd plus le lot (ligne `Message dropped`) ; D7 lecture du réseau par 32 messages, 4 ms au plus par image.
+   - D1 le monde et la carte partent dans la même image (`ElinNetHostPlayerManager.cs` `SendSaveProbe`), l'invité retient les messages dès le monde reçu et les rejoue (`ElinNetClientPlayer.cs`, `Net/Base/ElinDeltaManager.cs`).
+   - D4 retenue aussi quand le jeu tourne, jusqu'au placement de la carte (garde-fou 10 s, plafond 20 000 messages) ; carte qui n'arrive pas : redemandée une fois après 15 s.
+   - D5 `Models/Pending/TaskCache.cs` : un objet que l'host a mais pas dans son registre est trouvé, inscrit et rejoué ; un objet vraiment absent : « quantité 0 » seulement à l'invité qui s'est trompé.
+   - D2 `ElinNetHostTravel.cs`, `ElinNetClientTravel.cs`, `Models/ZoneLease/ZoneLeaseState.cs` : au départ de l'host, sa carte et ses nombres (`MapSums`, clé 9) partent avec le bail ; le repreneur ne recharge que si ses nombres diffèrent. Le joueur déjà sur sa case y reste (`ElinNetHostZone.cs`).
+   - Détecteur et remise à niveau (`Net/NetDesync.cs`, `SessionPlayersSnapshot` toutes les 2 s) : nombres par carte (personnages, objets au sol, sac de chaque joueur), écart retenu s'il est **immobile 3 comparaisons de suite**, ligne Warning chez l'invité et chez l'host (`DesyncReportDelta`, numéro 842),
+     rechargement de la carte sur place (case AutoResync, règle 20, cochée), jamais pendant un combat, une tâche, un menu ; au plus un par 30 s puis 60, 120, 240, 480 s. Console `emp.desync`. **Les sacs sont signalés, pas réparés.**
+   - Réparer à la main, à dire au joueur : `emp.reconnect_self` (invité), `emp.reconnect <numéro>` (host).
+2. **Boss de donjon invisible, donjon « conquis » à tort** (retours 15 et 16 ; `PLAN_donjon_conquis.md`). `Patches/BossFleePatch.cs`, `ZoneLeaseState.Imported`, `ElinNetClientZone.cs`. Écrit, relu, compilé, **PAS JOUÉ** ; `travel_suite` s19a et s19b écrites. Cause lue, jamais vue en jeu.
+3. **Objets qui disparaissent sac plein** (retour 17 ; `PLAN_ramassage_sac_plein.md`). `Patches/DeltaEvents/Chara/CharaPickThingEvent.cs` (`WillStore`). Écrit, relu, compilé, **PAS JOUÉ** (`pickup_suite`). Un invité resté en 0.26.510 chez un host corrigé garde le défaut.
+4. **Banque et caisse d'expédition d'un invité** (retour 13 ; `PLAN_banque_invite.md`). `Helper/ShippingHelper.cs`, `Models/Shipping/ShippingPackets.cs`, `ElinNetHostShipping.cs`, `ElinNetClientShipping.cs`, `CardAddThingEvent.cs`, `CardAddThingDelta.cs`, `ShippingStackPatch.cs`, `Patches/WorldBoxPatch.cs`. Écrit, relu, compilé, **PAS JOUÉ** (`bank_suite`).
+5. **Conseil 10 : la nuit** (`PLAN_nuit_chacun_pour_soi.md`) : case OwnSleep (règle 17). `Patches/Synchronization/SleepSynchronizationContext.cs` (presque tout), `CharaSleepDelta`, `SleepRequestDelta`, `SleepReadyDelta`, `SleepStartDelta`, `SleepCancelDelta`, `SleepStateDelta` (840, neuf). Écrit, relu, compilé, **PAS JOUÉ** (`sleep_suite` n1 à n6, `trio_sleep_suite`).
+   Le réveil propre de l'invité (retour 10 : grimoire, oreiller, recette ; `PLAN_reveil_invite.md`) est dans le même lot. Une recette apprise par un invité n'est plus comptée deux fois chez lui.
+6. **Conseil 10 : la date** (`PLAN_date_ensemble.md`) : case TimeJumpsTogether (règle 18). `WorldDateAdvanceEvent.cs`, `WorldDateAdvanceDelta.cs`, `Patches/Remote/RemoteTravelRegionPatch.cs`, `Net/Host/ElinNetHostTogether.cs` (neuf), `CharaTickConditionDelta` (champ `Count`). Le chronomètre des quêtes, le pas sur la carte du monde, le pas de l'invité, le voyage express.
+   Écrit, relu, compilé, **PAS JOUÉ** (`time_suite` W7, W8, W8b, W9).
+7. **Conseil 10 : rangement et factures** (`PLAN_rangement_factures.md`) : case DumpSparesBelt (règle 19). `Patches/DumpSparesBeltPatch.cs`, `Patches/GuestPaysBillPatch.cs`, `Models/Delta/Zone/BillPayDelta.cs` (839). Écrit, relu, compilé, **PAS JOUÉ** (`hunt_suite` d3b, `bills_suite`).
+8. **Un host seul vit le jeu solo** (`PLAN_joueur_seul.md`) : `Net/NetCompany.cs` (`HasCompany`), une douzaine de patchs. Écrit, relu, compilé, **PAS JOUÉ** (`solo_suite`). Pas fait : S8 (pile d'expédition), S10 (`AreaWatch`), C1 à C8 ; S13 retiré exprès.
+9. **Le dépôt ouvre la partie** et **les joueurs connus du monde entrent sans être amis Steam** (`PLAN_salon_joueurs_connus.md`) : salon « Invisible » filtré par l'host (`SteamNetLobbyManager.cs`, `ElinNetHost.cs`). Écrit, compilé, **PAS JOUÉ** ; Steam à deux comptes seulement.
+10. **Lenteurs à plusieurs invités** (retour 12 ; `PLAN_lenteurs_corrections.md`). Fait : lecture réseau (A3), ménage des cartes une fois par seconde (A2), une sauvegarde différée pour tous les retours (A1a, `EmpAutoHost.RequestSave`), invitation à la quête pour un visiteur (B4), un message au lieu de 120 par pas. Écrit, relu, compilé, **PAS JOUÉ**, **rien mesuré** (`perf_probe.py`).
+    Pas fait : compression rapide des cartes (A4a : la forte est gardée), A5, B5, B2, B1, l'objet `perf` du pont de test.
+11. **Autres** : texte de la fenêtre d'erreur du chargement rapide, textes des nouvelles cases en trois langues (outil `add_texts.py`).
+
+### Pièges trouvés
+- **Le build Release refuse ce que Debug accepte** : un `init` avec initialiseur sur un message MessagePack, une référence nulle. Retouches déjà faites pour la 0.26.510 (`ZoneArrival.RatePos` et `ZoneLeaseRelease.StoodZoneUid` : `init` devient `set` ; un test de null dans `WorldDateAdvanceDelta.cs`). Compiler en Release avant toute passe de tests.
+- Un script Python passé à bash par un « heredoc » transforme `\\n` en vrai saut de ligne : écrire le fichier d'abord.
+- **Steam refuse un message de plus de 512 Ko** (`k_cbMaxSteamNetworkingSocketsMessageSizeSend = 524288`) et **sa file d'envoi par lien fait 512 Ko** : le refus rendait `false` sans une ligne au journal (pour l'envoi à tous dès deux invités). D'où la file locale et les morceaux. Un type de message dont le hash vaut la marque des morceaux fait lever une exception au démarrage.
+- **Un préfixe Harmony qui rend `false` n'empêche pas les autres préfixes** (ils voient `__runOriginal == false`) : `CharaTickConditionEvent` envoyait un second message pour chaque compagnon. Il prend maintenant `bool __runOriginal`.
+- **`Zone.Simulate` fait fuir le boss à toute entrée avec `visitCount > 0`**, et marque la Nefia conquise sans coffre ni renommée ; `visitCount` et `uidBoss` voyagent avec la carte (`ZoneLeaseState`). Charger une sauvegarde ne le déclenche pas.
+- `CardGenDelta` ne remplace pas une carte déjà connue ; `KickMember` du salon n'expulse personne (le mod du joueur se retire de lui-même) ; un salon Invisible est renvoyé par une recherche Steam (la liste en jeu le cache).
+- En Release les patchs n'existent que pendant une session ; en Debug tout est patché dès le lancement (une fenêtre de banc n'est jamais du jeu pur). `HasActiveConnection` ne veut pas dire « un autre joueur est là » ; `NetSession.IsHost` est vrai sans session.
+- Le jeu endort, soigne et affame tout le « groupe » de celui qui dort (`ConSleep.cs:131-137`, `LayerSleep.cs:76-79`), et tous les joueurs sont dans le groupe de l'host : l'host qui dort seul touchait ses amis debout (`NarrowParty` / `RestoreParty`).
+- Les nombres de contrôle ne comptent pas la case : un objet lancé tombe selon les dés de chaque jeu, une case d'écart aurait fait des rechargements pour rien. Host et invités doivent avoir la même version du mod (le calcul a changé).
+- `ListThingsToPut` sert aussi à choisir un coffre à visiter : y écrire une trace dirait « rangé » pour des objets jamais rangés (préfixe `Msg.Say` retiré, trop appelé).
+- `Zone.Deactivate` met dans le sac les artefacts divins au sol : retirés après coup dans l'adoption de la carte de l'host. Le décompilé relu est le 23.351, le jeu publié est le 23.352.
+- Messages « différés » de l'host (`DeferRemote`) : partent encore après les copies et sont rejoués une fois de trop chez l'arrivant.
+
+### Suites de test ÉCRITES ET JAMAIS LANCÉES (d'après `git log` sur `dev/_tools`)
+Elles ont été écrites à l'aveugle : un rouge peut venir de la suite, pas du mod. Chaque rouge se lit avant de conclure.
+
+| Suite | Étapes | Ce qu'elle doit montrer | Fenêtres |
+|---|---|---|---|
+| `desync_suite.py` (neuve) | d1a, d1b, d4, d5a, d5b, d2 | le trou monde/carte, la retenue, l'objet inconnu, le passage de main | 2 ; d2 : 3 |
+| `resync_suite.py` (neuve) | r1, r2, r3 | écart vu en moins de 8 s, carte rechargée en moins de 70 s, zéro ligne sans écart | 2 |
+| `travel_suite.py` (modifiée) | s18 (cave), s19a, s19b (boss) | le boss ne fuit pas, la cave n'est pas refaite | 2 |
+| `bank_suite.py` (neuve) | B1 à B5, S1 | banque et caisse de l'invité, or compté une seule fois | 2 |
+| `pickup_suite.py` (neuve) | P1 à P3 | le seau reste par terre sac plein | 2 |
+| `sleep_suite.py` (modifiée) | n1 à n6, k1 ; B2, B3, Y1, Z1, P2 adaptées | la nuit à soi, le réveil de l'invité | 2 |
+| `trio_sleep_suite.py` (neuve) | Q1, Q2, Q3 | deux couchés un debout, trois couchés, un joueur ailleurs | 3 |
+| `time_suite.py` (modifiée) | W7, W7e, W8, W8b, W9 ; `TOGETHER_OFF=1` | chronomètre, pas sur la carte du monde | 2 |
+| `trio_place_suite.py` (modifiée) | Q1, Q2 | cases des invités (17/17 vu en 0.26.510 ; à relire après les changements d'arrivée) | 3 |
+| `trio_time_suite.py` | (25/25 vu en 0.26.510) | à rejouer sur la 0.26.524 | 3 |
+| `bills_suite.py` (neuve) | c1, c2, c3, p1, p1h, p2 | une facture d'impôt en tout, l'invité paie | 2 |
+| `hunt_suite.py` (modifiée) | d3b | la barre, la ceinture et la main résistent au rangement | 2 |
+| `solo_suite.py` (neuve) | Z0 à Z10 | le host seul vit le jeu solo | 1 à 2 |
+| `depot_suite.py` (modifiée) | D8 (et D5b, D7 refaits pour la redirection) | la partie s'ouvre toute seule | 2 |
+| `council_suite.py`, `guest_suite.py`, `hunt2_suite.py` | council C5 (case atteignable), hunt2 E3 (chacun passe ses trois heures), guest touchée (`696b141`) | à relire après la correction du temps | 2 |
+| `world_diff.py` (neuf) | outil | compare deux mondes (sacs, objets) | - |
+| `perf_probe.py` (neuf) | outil | gel et trou entre deux réponses, par fenêtre de temps | - |
+| `chunk_check/` | `dotnet run -c Release` | ALL OK, 20 vérifications : **la seule chose jouée hors jeu** | - |
+| `add_texts.py` (neuf) | outil | ajoute des textes dans les deux fichiers de langue | - |
+
+### Ce qui reste (détail dans les plans)
+Reprise automatique quand l'host part (conseil 9, étapes 3 à 5) ; réparation des sacs en écart (message neuf « voici ce personnage en entier », environ 40 lignes) ; impôt sur la renommée la plus haute ; banque, deuxième étape (objet « en attente ») ;
+l'host qui vide sa file avant de copier la carte demandée ; passage de main d'un invité à un autre (même défaut que D2) ; D6 (aléatoire rejoué) et D9 (plages de numéros) seulement si les journaux les montrent ;
+date : un invité ne fait jamais avancer la date (inégalité host/invité qui reste), l'avance rapide d'un joueur accélère encore le monde de tous ; rangement : ligne « Alice a changé le rangement du coffre X » ;
+solo : S8, S10, C1 à C8 ; lignes 38 à 52 de `PLAN_chasse_differences_3.md` ; G36 et l'exception de T8.
+
+### La première chose à faire
+Quand Elin est libre : refaire `dev\build.ps1` (le jeu de ce PC contient le build Release 0.26.524), puis jouer les suites dans l'ordre de `HANDOFF.md` (« État au 6 octobre, 22h30 »). Rien de la 0.26.524 n'est « fait » avant un vert lu.

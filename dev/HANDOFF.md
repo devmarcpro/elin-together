@@ -1,31 +1,72 @@
-# Passation — ElinTogether « indépendance », état au 2026-10-05, 19h30 (haut du fichier ; le reste date de 14h15 à 17h)
+# Passation — ElinTogether « indépendance », état au 2026-10-06, 22h30 (haut du fichier ; le reste est plus ancien)
 
-## État au 6 octobre, 20h30 (à lire en premier)
+## État au 6 octobre, 22h30 (à lire en premier)
 
-- **Publiée : 0.26.510** (commit `b1f83c3`, Elin EA 23.352 Patch 1), `feat/independent-travel` poussée au même commit.
-  Elle contient les corrections de la soirée (table : `PLAN_retours_soiree_6_octobre.md`) sauf les points 4, 10, 11, 12, 13.
-- Preuves : trio_place 17/17, trio_time 25/25 (trois fenêtres) ; passe à deux fenêtres `*-rel.log` : together 132/132,
-  death 12/12, parity 16/16, quest 60/60, trade 123/123, base 179/179, hunt 136/136, guest 317/318 (G36 connu).
-- Rouges de cette passe, à traiter : `hunt2_suite` E3 (3 rouges ATTENDUS : le test veut que la viande de l'invité vieillisse
-  avec le saut de l'host ; à réécrire) ; `council_suite` C5 (le test pose le piège sur une case en hauteur : depuis la
-  correction des places, l'invité mort revient près de l'entrée de la mine, case 33,60 ; choisir une case atteignable) ;
-  `equal2_suite` E1 (fanatique qui n'appelle pas) et `recruit_suite` R7 (boule à monstre) : vus UNE fois, relance
-  `*-rel2.log` à lire.
-- La version publiée a trois retouches non rejouées en jeu (exigées par le build Release : un test de null dans
-  `WorldDateAdvanceDelta.cs`, `init` -> `set` sur `ZoneArrival.RatePos` et `ZoneLeaseRelease.StoodZoneUid`).
-  PIÈGE : le build Release refuse ce que Debug accepte : lancer `devuild.ps1 Release` AVANT la passe de tests.
-- Non commité dans l'arbre : la correction de la banque / caisse d'expédition de l'invité (`PLAN_banque_invite.md`,
-  `bank_suite.py` jamais lancé ; relecture : trois défauts en cours de correction par un agent).
-- Retour n° 15 : donjon marqué conquis sans boss vaincu : enquête `PLAN_donjon_conquis.md` (agent).
-- Captures du README pas refaites ; `showcase.py reconnect` est écrit, jamais lancé.
-- Ensuite, dans l'ordre convenu avec l'utilisateur : banque ; n° 15 ; réveil de l'invité (`_shots/reveil_invite.patch`) ;
-  conseil pour barre d'outils / factures / nuit bloquée ; lenteurs à plusieurs invités ; PUIS la reprise automatique
-  quand l'host part (conseil 9, étapes 3 à 5 : « on pourra commencer une fois que tout le reste est bon »).
+- **Publiée : 0.26.524** (commit `2c98607`, Elin EA 23.352 Patch 1, `feat/independent-travel` poussée au même commit, branche de travail `fix/points-restants`).
+  **Écrite, relue par l'agent relecteur, compilée en Release et en Debug, JAMAIS JOUÉE**, pas même par les suites :
+  l'utilisateur jouait et a demandé de publier sans test. La 0.26.510 (19h50, testée au banc : trio_place 17/17, trio_time 25/25, passe à
+  deux fenêtres presque verte) reste en ligne : si la 0.26.524 se passe mal, c'est le retour arrière. La 0.26.493 et la 0.26.494 sont encore en ligne aussi.
+- **Le jeu de ce PC contient le build Release 0.26.524** (l'utilisateur peut l'essayer). **Refaire `powershell -ExecutionPolicy Bypass -File dev\build.ps1` (Debug) avant tout test au banc**, jeu fermé,
+  et attendre quelques secondes après la fermeture (DLL tenue). Steam doit tourner sur ce PC, et le jeu ne démarre pas tant que le compte joue ailleurs.
+- **Non commité dans l'arbre (autre session, vu à la fin de la rédaction de cette passation, rien de ma part)** : `Models/ZoneLease/ZoneLeaseGrant.cs`, `ZoneLeaseRelease.cs`, `Net/Client/ElinNetClientTravel.cs`, `Net/Host/ElinNetHostTravel.cs`, et un dossier neuf `Net/Handover/` (`WorldCopyPackets.cs`) : sans doute le début du conseil 9, étape 3 (l'host envoie son monde aux invités). Pas lu ici : lire `git diff` avant de décider, ne pas l'écraser. La 0.26.524 publiée ne l'a pas.
+- Tout est dans `MODLOG.md` (entrée « de 18h à 22h30 »), avec fichiers, pièges et liste des suites. Mode d'emploi : `DOCUMENTATION.md`. Règles : `../CLAUDE.md`. Message de départ : `PROMPT_reprise.md`.
+  Table des retours : `PLAN_retours_soiree_6_octobre.md` (lignes 1 à 18, colonne « État » à jour).
 
-À lire en premier par la session suivante. Détail daté : fin de `MODLOG.md` (« Étape D suite, Elin 23.352 »).
-Mode d'emploi : `DOCUMENTATION.md`. Règles : `../CLAUDE.md`. Message de départ : `PROMPT_reprise.md`.
+### La PREMIÈRE chose à faire quand Elin est libre : jouer les suites écrites à l'aveugle
+Rien de la 0.26.524 n'est « fait » avant un vert lu. **Chaque rouge se lit avant de conclure : la suite peut être fausse** (elles ont été écrites sans jamais tourner).
+Depuis `dev/`, `set PYTHONPATH=_tools/pylib`, `python _tools/mp_test.py` (host + 1 client) puis la suite (souvent avec `--reuse`, voir l'en-tête de chacune) ; les suites à trois fenêtres (`trio_*`) lancent
+elles-mêmes `mp_test.py --clients 2` : les jouer SEULES, jeu fermé. Trois fenêtres : accord donné le 6 octobre, à reconfirmer si le PC est partagé. Ordre :
+1. `desync_suite.py` (d1a, d1b, d4, d5a, d5b, puis d2 à trois fenêtres) : le cœur de « énormément de desync ». Journaux : `Replaying … held deltas`, `World and map … sent together`, `Refusing stale … only that player is told`.
+2. `resync_suite.py` (r1 à r3) : détecteur et rechargement. **Premier doute : le faux positif sur une carte habitée** ; jouer r1, puis une vraie soirée avec la case AutoResync **décochée**, lire les lignes `Map checksum differs`, et seulement après la laisser cochée.
+3. `travel_suite.py` (s18 la cave, s19a et s19b le boss).
+4. `bank_suite.py` (B1 à B5, S1) : or perdu, priorité haute. B1 et B2 doivent être verts avant comme après ; sinon la cause n'est pas la seule.
+5. `pickup_suite.py` (P1 à P3).
+6. `sleep_suite.py` (n1 à n6, k1, puis la suite entière) ; 7. `trio_sleep_suite.py` (Q1 à Q3).
+8. `time_suite.py` (W7, W7e, W8, W8b, W9 ; `TOGETHER_OFF=1` : W8, W8b, W9 doivent échouer comme avant ; W1 à W4 décrivent l'ancienne règle, à relire).
+9. `trio_place_suite.py` ; 10. `trio_time_suite.py`.
+11. `bills_suite.py` (c1 à c3, p1, p1h, p2) ; 12. `hunt_suite.py` d3b (ceinture et main : rouges attendus sans le correctif ; barre : verte, sinon défaut du mod).
+13. `solo_suite.py` (Z0 à Z10) ; 14. `depot_suite.py` D8 (et D5b, D7 refaits pour la redirection).
+Puis la passe large habituelle (`run_all.sh`, PC libre : `dev/_tools/idle.ps1`). Mesure : `perf_probe.py` autour de trio_place Q1 et Q2 ; `emp.desync` donne le coût du calcul des nombres.
+Rouges connus d'avant, à ne pas confondre : `hunt2_suite` E3 (le test voulait l'ancienne règle du temps ; adapté, à rejouer), `council_suite` C5 (case atteignable, adaptée), `equal2_suite` E1 et `recruit_suite` R7 (vus une fois),
+`guest_suite` G36 (laisse), `together_suite` T8 (exception de `CharaDieDelta`, intermittente), duel : PV du perdant pas toujours au maximum.
 
-## État au 6 octobre, 18h (le plus récent : lire ceci d'abord)
+### Ce qui reste à faire (sections « pas fait » des plans)
+- **Conseil 9, étapes 3 à 5** : l'host envoie son monde aux invités après chaque sauvegarde, reprise automatique quand l'host part ou plante, dépôt en bonus (`PLAN_conseil9_verdict.md`). « On pourra commencer une fois que tout le reste est bon. »
+- **Désynchronisation** (`PLAN_desync*.md`) : réparer les sacs en écart (message neuf « voici ce personnage en entier », ~40 lignes) ; l'host doit vider sa file avant de copier la carte demandée (`ElinNetHostZone.cs`, `OnMapDataRequest`) ; passage de main d'un invité à un autre (même défaut que D2) ;
+  D6 (aléatoire rejoué) et D9 (plages de numéros de 50 000) seulement si les journaux les montrent ; mesurer la taille réelle des messages et le gel de chaque copie de carte.
+- **Date** : un invité ne fait jamais avancer la date (inégalité host/invité) ; quand tous marchent ensemble, seuls le sac et les délais de l'host vivent les heures ; l'avance rapide d'un joueur accélère encore le monde de tous ; la mer sur la carte du monde pour l'invité à côté de l'host.
+- **Factures** : l'impôt sur la renommée la plus haute (`FACTION.GetFameTax`) ; `bill_debt` non couvert. **Banque** : deuxième étape (objet repris gardé « en attente » jusqu'à l'accusé de l'invité). **Rangement** : ligne « Alice a changé le rangement du coffre X ».
+- **Solo** (`PLAN_joueur_seul.md`) : S8 (pile d'expédition, avec `CardAddThingEvent.cs`), S10 (`AreaWatch`), C1 à C8 ; M9 (copie de chaque carte créée sans destinataire).
+- **Lenteurs** (`PLAN_lenteurs_corrections.md`) : compression rapide des cartes (A4a, la forte est gardée), A5, B5, B2, B1/B6, objet `perf` dans le pont de test.
+- **Réveil de l'invité** : saignement, poison, miasme retirés au coucher pour l'host seulement ; livre ancien déchiffré non envoyé aux autres ; recette de bloc comptée deux fois (`AddRecipeEvent`) ; recette d'un invité parti seul n'arrive pas chez l'host.
+- **Salon** : preuve du dépôt (HMAC) pour un joueur qui a la clé mais n'a jamais joué le monde ; deux comptes Steam pour essayer.
+- Anciens restes : lignes 38 à 52 de `PLAN_chasse_differences_3.md`, G36 et T8 (`PLAN_enquete_t8_g36.md`), `PLAN_plusieurs_invites.md`, captures du README pas refaites, `showcase.py reconnect` jamais lancé, la copie `_lab` est restée en 23.352 (refaire `make_lab.py Elin2 2` avant une passe large).
+
+### Questions ouvertes pour l'utilisateur
+1. **Ses journaux de la soirée** : `Session_AAAAMMJJ.log` de l'host et d'au moins un invité (`%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin\ElinMP\Logs\`), `Player.log`, taille du dossier de sauvegarde de l'host. Les cinq questions de `PLAN_desync.md` §5 (quoi était différent, quand ça commençait, toujours le même joueur, `emp.reconnect_self` répare-t-il).
+2. **Quel donjon** était « conquis » à tort ; qui était à l'étage du boss en premier (host ou invité) ; **a-t-il vu « le boss s'enfuit »** ou un message de victoire avec coffre (`PLAN_donjon_conquis.md` §7).
+3. **Les objets « disparus » sac plein sont-ils revenus en libérant des cases** et en rouvrant le sac ? (oui : la cause est la bonne ; il était sur la carte de l'host ou seul ailleurs ?)
+4. **Retirer la 0.26.493 et la 0.26.494 de GitHub ?** (la 0.26.494 pouvait se tromper de personnage).
+5. **Refaire une clé GitHub** (droit « Contents : Read and write ») et ressaisir le dépôt et la clé : ses réglages de dépôt ont été effacés par un test le 6 octobre.
+6. Quelle cave (retour 9) ; dans quelle rangée de la barre étaient les objets du rangement (retour 4) ; un invité avait-il réglé un coffre ; les 1 500 orens déposés sont-ils dans la banque de l'host (sinon l'host les rend à la main).
+
+### Cases host nouvelles et valeurs par défaut (`Emp/EmpConfig.cs`, `Net/NetSessionRules.cs`)
+Toutes cochées (« true ») par défaut ; les décocher ramène l'ancien comportement tout de suite :
+- **OwnSleep** (règle de session 17) : chacun dort pour soi, la nuit ne passe que si tous dorment.
+- **TimeJumpsTogether** (règle 18) : la date ne saute que si tous voyagent ensemble sur la carte du monde.
+- **DumpSparesBelt** (règle 19) : le rangement automatique épargne la main et la ceinture à outils.
+- **AutoResync** (règle 20) : rechargement automatique de la carte en écart (au plus un par 30 s).
+- Déjà là : AutoReconnect (règle 16, vraie), AutoSave (vraie), AutoHost (vraie), AskCharacter (**fausse**, réglage et non règle). **Prochaine clé de règle libre : 21.**
+- Sans case : le host seul vit le jeu solo ; les joueurs connus du monde entrent sans être amis ; le dépôt ouvre la partie.
+
+### Numéros de delta
+Pris : **839** `BillPayDelta`, **840** `SleepStateDelta`, **842** `DesyncReportDelta`. **841 est libre.** (837 et 838 : duels.) Clé 9 du bail de zone : `MapSums`. Prochains à prendre : 841, puis 843.
+
+### Pièges de ce soir (détail dans `MODLOG.md`)
+Le build Release refuse ce que Debug accepte (`init` avec initialiseur sur un message MessagePack, référence nulle) ; un script Python passé à bash par un heredoc transforme `\\n` en vrai saut de ligne ;
+Steam refuse un message de plus de 512 Ko et sa file d'envoi fait 512 Ko ; un préfixe Harmony qui rend `false` n'empêche pas les autres préfixes ; `Zone.Simulate` fait fuir le boss à toute entrée avec `visitCount > 0`.
+
+## État au 6 octobre, 18h (dépassé par 22h30)
 
 - **Publiée : 0.26.506.** L'utilisateur a joué le soir à trois joueurs ou plus et a rendu douze retours : ils sont dans
   `PLAN_retours_soiree_6_octobre.md` (ses mots, la cause, l'état). **Lire ce fichier en premier.** Il veut une nouvelle

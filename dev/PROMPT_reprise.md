@@ -1,12 +1,15 @@
-> **Mise à jour du 6 octobre, 18h.** Avant tout : lis `dev/HANDOFF.md`, section « État au 6 octobre, 18h » et `dev/PLAN_retours_soiree_6_octobre.md` : elle remplace
-> les points « Le travail » ci-dessous (la 0.26.506 est publiée, un travail NON COMMITÉ est dans l'arbre : l'étape 1 du conseil 9, ne l'écrase pas). Effort faible : réponses courtes, peu
-> d'agents. Le reste de ce message (but, façon de travailler, interdits, résumés) vaut toujours.
+> **Mise à jour du 6 octobre, 22h30.** Avant tout : lis `dev/HANDOFF.md`, section « État au 6 octobre, 22h30 », la fin de `dev/MODLOG.md` (entrée « de 18h à 22h30 ») et
+> `dev/PLAN_retours_soiree_6_octobre.md` (lignes 1 à 18) : elles remplacent les points « Le travail » ci-dessous. **La 0.26.524 est publiée (commit `2c98607`, branche `feat/independent-travel` poussée au même commit), écrite, relue et compilée, mais JAMAIS JOUÉE**
+> (j'ai demandé de publier sans test pendant que je jouais). Au moment d'écrire, `git status` montre du travail d'une autre session NON COMMITÉ dans l'arbre (fichiers de `Models/ZoneLease`, `ElinNetHostTravel.cs`, `ElinNetClientTravel.cs`, dossier `Net/Handover/`) : regarde `git status` et ne l'écrase pas. **La première chose à faire quand Elin est libre : refaire `dev\build.ps1`, puis jouer les suites écrites à l'aveugle,
+> dans l'ordre de `HANDOFF.md` (`desync_suite`, `resync_suite`, `travel_suite` s18 et s19, `bank_suite`, `pickup_suite`, `sleep_suite`, `trio_sleep_suite`, `time_suite`, `trio_place_suite`, `trio_time_suite`, `bills_suite`, `hunt_suite` d3b, `solo_suite`, `depot_suite` D8), puis la passe large.
+> Chaque rouge se lit avant de conclure : la suite peut être fausse.** Effort faible : réponses courtes, peu d'agents. Le reste de ce message (but, façon de travailler, interdits, résumés) vaut toujours ;
+> les points qui parlent de la 0.26.442, de l'étape E ou d'un travail non commité sont dépassés.
 
 # Message de départ pour une nouvelle session
 
 Pour un travail **sans arrêt**, tape `/loop` puis colle le texte ci-dessous juste après, dans une nouvelle session
 ouverte dans **`G:\ElinMods`** (le dossier a été déplacé le 2026-10-04 ;
-`C:\Users\steamdeckwin\Documents\ElinMods` n'est plus qu'un raccourci vers lui). État décrit : 2026-10-05, 14h45 (session arrêtée à ma demande pour compacter ; rien en cours, un travail NON COMMITÉ est dans l'arbre : l'étape 1 du conseil 9, ne l'écrase pas).
+`C:\Users\steamdeckwin\Documents\ElinMods` n'est plus qu'un raccourci vers lui). État décrit : 2026-10-06, 22h30 (0.26.524 publiée, non jouée ; du travail non commité d'une autre session dans l'arbre ; les sections plus bas, écrites le 5 octobre, sont plus anciennes que cette ligne).
 
 ---
 
@@ -133,7 +136,7 @@ machine contient un build de TEST (Debug) : avant de jouer avec quelqu'un, insta
 ## Ce qu'il ne faut pas faire
 
 - Ne publie pas d'autre version que celle du point 2 (déjà accordée) et ne retire aucune ancienne version sans mon
-  accord : propose-le dans ton résumé, je dirai oui. (La dernière publiée : 0.26.442.) Ne pousse jamais sur `upstream`.
+  accord : propose-le dans ton résumé, je dirai oui. (La dernière publiée : 0.26.524, non jouée ; la 0.26.510 reste en ligne comme retour arrière.) Ne pousse jamais sur `upstream`.
 - Ne touche jamais à mes vraies sauvegardes (les tests utilisent `world_lab`) ni à mon dossier
   `Documents\ElinTogetherServer`.
 - Ne déplace pas `_lab` : les copies de test du jeu sont des liens vers le jeu Steam, elles doivent rester sur C:.

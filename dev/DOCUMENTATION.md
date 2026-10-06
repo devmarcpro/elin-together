@@ -10,8 +10,11 @@ joueurs**. Chacun va où il veut, avec ses compagnons, et le monde (quêtes, bas
 - Journal détaillé (pièges, essais, dates) : `MODLOG.md`. Ce document-ci dit ce qui existe et comment s'en servir.
 - Les chemins `_tools/`, `_lab/`, `_shots/`, `_release/` de ce document sont relatifs à `dev/`. Le journal parle
   encore de `Documents\ElinMods\` : c'était leur place avant le 2026-10-02.
-- État : 2026-10-05, soir. Dernière version publiée : **0.26.506** (compilée pour Elin EA 23.352 ; elle remplace la 0.26.463,
-  commit `895d5b0`). Voir `HANDOFF.md` pour le détail à jour. Dossier de travail : `G:\ElinMods`.
+- État : 2026-10-06, 22h30. Dernière version publiée : **0.26.524** (commit `2c98607`, compilée pour Elin EA 23.352 Patch 1 ; elle remplace la
+  0.26.510, qui reste en ligne). **La 0.26.524 est écrite, relue et compilée, mais JAMAIS JOUÉE, pas même par les suites** : voir `HANDOFF.md`
+  (« État au 6 octobre, 22h30 »). Dossier de travail : `G:\ElinMods`.
+- Complété le 6 octobre à 22h30 pour la 0.26.510 et la 0.26.524 : lignes « Depuis la 0.26.506 » du tableau de la section 1, cases de la
+  section 2, bloc « Mise à jour du 2026-10-06, 22h30 » au début de la section 7. Ce qui est marqué « pas joué » n'a jamais tourné en jeu.
 - Ce document a été complété à 19h30 pour tout ce qui est nouveau depuis la 0.26.463 : les lignes ajoutées sont dans
   les tableaux de la section 1, les options (section 2), le dépôt GitHub (sections 3 et 4), les suites (section 5), les
   limites (section 6) et le reste à faire (section 7). Les paragraphes plus anciens gardent leur date.
@@ -67,6 +70,22 @@ joueurs**. Chacun va où il veut, avec ses compagnons, et le monde (quêtes, bas
 | Petits correctifs de la chasse 2, **pas joués** | Prix d'expédition lu avec le dieu du joueur et non celui de l'host (`445fa5e`) ; carte à gratter gratuite du casino qui arrive à l'invité (`3459019`). Joués avant (E1 à E3) : rondin taillé à la hache, prière qui soigne aussi les compagnons de l'invité, nourriture du sac de l'invité qui vieillit. | — / `hunt2_suite.py` E1 à E3 |
 | Un joueur ne peut plus tuer un autre joueur (case `PlayerKill`, décochée, `ca8d009`, `RemotePlayerKillPatch.cs`) | Un coup d'un joueur, ou de ce qui se bat pour lui, qui tuerait le personnage d'un autre joueur le laisse à 0 point de vie, dans tous les jeux. Avant : un Maj + clic tuait pour de vrai (tombe, or au sol, écran de mort). Le coup arrivait par deux chemins : celui de l'host, et les dégâts que le jeu de la victime annonce après avoir rejoué l'attaque. Case cochée : le jeu d'origine. Première étape du conseil 7 (duels). Pas couvert : saignement, poison, feu, condamnation à mort ; sorts et projectiles : pas joués. | `duel_suite.py` P1, 10/10, deux sens |
 | Dépôt GitHub (troisième sorte de dépôt, `1d698a5`) | Un dépôt GitHub **privé** garde le monde : aucun PC à laisser allumé, aucun port à ouvrir, chaque sauvegarde est gardée dans l'historique. Comment le régler : section 3 ; comment ça marche : section 4 ; preuves et limites : section 6. | `depot_github_test.py` 66/66 ; `depot_github_real.py` 13/13 ; `DEPOT_GITHUB=1 depot_suite.py` 31/33 |
+| **Depuis la 0.26.506 (6 octobre, 14h → 22h30)** : | | |
+| Le jeu sait quel personnage est à qui, sans question (0.26.506, `45acadd`, `29c4fa5`) | Celui qui reprend un monde joue SON personnage ; celui de l'ancien host l'attend. Un nouveau venu sans personnage passe par l'écran de création du jeu. Copie de secours avant tout échange. Plus d'écran « Who do you want to play? » à chaque connexion (clé `AskCharacter`, fausse par défaut). | `depot_suite.py` 33/33 |
+| Retour automatique après une coupure (0.26.510, `c34732d`, règle 16 `AutoReconnect`) | L'invité dont le lien tombe revient seul dans la même partie (toutes les 5 s pendant 3 minutes). | `reconnect_suite.py` 46/46 |
+| Sauvegarde toutes les 2 minutes, partie ouverte toute seule, redirection du dépôt (0.26.510) | Quand un autre joueur est là, le monde se sauve seul ; un monde déjà partagé ouvre sa partie au chargement ; si quelqu'un héberge déjà le monde du dépôt, le deuxième joueur est envoyé chez lui (bouton « Join X »). | `autosave_suite.py` 18/18 ; `depot_suite.py` D5b, D7 (pas relus après la dernière correction du test) |
+| Corrections de la soirée à trois joueurs (0.26.510, `PLAN_retours_soiree_6_octobre.md`) | Les invités gardent leur case et arrivent par l'entrée, jamais dans l'eau ; le temps d'un autre ne coûte ni faim, ni nourriture pourrie, ni délais de quête ; sommeil : seuls les familiers du dormeur le rejoignent ; musique : un autre joueur ne jette plus de pièces ; ancien personnage jamais remis sur une carte ; cave gardée tant qu'un joueur y est ; chargement rapide arrêté à plusieurs. | `trio_place_suite.py` 17/17, `trio_time_suite.py` 25/25, `witness_suite.py`, `place_suite.py`, `travel_suite.py` 83/83 |
+| **Depuis la 0.26.510, dans la 0.26.524 : TOUT CE QUI SUIT EST ÉCRIT, RELU, COMPILÉ, PAS JOUÉ** : | | |
+| Désynchronisation entre les joueurs (`PLAN_desync.md`, `PLAN_desync_corrections.md`, `PLAN_desync_outil.md`, `PLAN_gros_messages.md`) | Plus aucun message jeté quand Steam est saturé (file locale par joueur, gros messages en morceaux de 128 Ko) ; le monde et la carte partent ensemble et ce que les autres font pendant le chargement est rejoué ; l'objet inconnu de l'host ne disparaît plus chez tous ; au départ de l'host, sa copie de la carte fait foi ; toutes les 2 s les jeux comparent quelques nombres par carte, un écart immobile est écrit dans les journaux (delta 842) et la carte est rechargée sur place (case `AutoResync`, règle 20). Les sacs en écart sont signalés, pas réparés. Réparer à la main : `emp.reconnect_self`. | `desync_suite.py`, `resync_suite.py` (jamais lancées) ; `chunk_check` ALL OK hors jeu |
+| Boss de donjon (`PLAN_donjon_conquis.md`, `BossFleePatch.cs`) | Rejoindre un joueur à l'étage du boss ne le fait plus fuir et ne marque plus le donjon conquis. | `travel_suite.py` s19a, s19b (jamais lancées) |
+| Ramassage sac plein (`PLAN_ramassage_sac_plein.md`) | Sac plein, l'objet reste par terre, comme en solo, au lieu d'entrer dans le sac sans case. | `pickup_suite.py` (jamais lancée) |
+| Banque et caisse d'expédition d'un invité (`PLAN_banque_invite.md`) | Un invité seul sur une autre carte voit le vrai contenu, dépose et reprend (l'host sert la reprise) ; la banque et la boîte de livraison de la zone d'un autre invité vont à l'host. Banque commune. | `bank_suite.py` (jamais lancée) |
+| Chacun dort pour soi (`PLAN_nuit_chacun_pour_soi.md`, `PLAN_reveil_invite.md`, case `OwnSleep`, règle 17) | On dort tout de suite sans attendre ; la nuit ne passe pour le monde que si tous dorment en même temps ; l'invité lit son grimoire, profite de son lit et de son oreiller, tire sa propre recette ; delta 840. | `sleep_suite.py` n1 à n6, k1 ; `trio_sleep_suite.py` (jamais lancées) |
+| Le temps ne saute que quand tous sautent (`PLAN_date_ensemble.md`, case `TimeJumpsTogether`, règle 18) | Un pas sur la carte du monde ne fait avancer la date que si tous voyagent ensemble ; sinon le voyageur paie ses propres tours (l'invité aussi) ; le chronomètre des quêtes de récolte, concert, mariage n'avance plus par le temps d'un autre ; un message au lieu de 120 par pas. | `time_suite.py` W7 à W9 (jamais lancée) |
+| Rangement et factures (`PLAN_rangement_factures.md`, case `DumpSparesBelt`, règle 19) | Le rangement automatique épargne la main et la ceinture à outils ; un invité paie une facture (impôt ou livraison) avec son or, une seule fois, tout le monde lit qui a payé (delta 839). | `hunt_suite.py` d3b ; `bills_suite.py` (jamais lancées) |
+| Host seul = jeu solo (`PLAN_joueur_seul.md`, `NetCompany.HasCompany`) | Seul dans sa session, l'host retrouve les règles du jeu (dressage, pause des menus, tours de combat, réserve des alliés, perf). | `solo_suite.py` (jamais lancée) |
+| Le dépôt ouvre la partie ; les joueurs connus entrent sans être amis Steam (`PLAN_salon_joueurs_connus.md`) | Prendre le monde du dépôt ouvre la session tout seul ; le salon ouvert tout seul est « Invisible » et filtré par l'host : ami, invité ou compte connu du monde. | `depot_suite.py` D8 ; deux comptes Steam pour le reste (jamais lancés) |
+| Moins de lenteurs à plusieurs (`PLAN_lenteurs_corrections.md`) | Réseau lu jusqu'au bout (4 ms au plus par image), ménage des cartes une fois par seconde, une seule sauvegarde pour tous les retours, la quête de l'host est proposée aussi aux visiteurs. Rien n'a été mesuré. | `perf_probe.py` (jamais lancé) |
 
 Limite de quêtes aléatoires : **5 par joueur** avec l'option « par joueur » (décisions du 2026-10-01 : quêtes
 aléatoires, renommée et karma personnels ; histoire commune), 5 pour tout le groupe sans elle.
@@ -90,10 +109,16 @@ aléatoires, renommée et karma personnels ; histoire commune), 5 pour tout le g
 | Les joueurs peuvent se tuer (`PlayerKill`, règle n° 13, **décochée**) | un coup d'un joueur peut tuer le personnage d'un autre | le coup mortel laisse l'autre à 0 point de vie |
 | Seul l'host gère la base (`HostManagesBase`, règle n° 14, décochée, `23041ef`) | ce que les autres joueurs demandent à la base (recherche, compétences du foyer, politiques, noms, réglages d'objets, résidents, mode construction) est refusé avec un message ; l'host leur renvoie l'état qu'il tient ; quitter la base pour de bon reste à l'host dans tous les cas | chaque joueur gère la base comme l'host |
 | Duels entre joueurs (`AllowDuels`, règle n° 15, cochée) | « Challenge to a duel » dans le menu sur le personnage d'un autre joueur, boîte oui/non, compte à rebours, duel sur place ; personne ne meurt, les deux sont soignés, rien n'est perdu | pas de menu de duel |
+| Retour automatique (`AutoReconnect`, règle n° 16, cochée) | un joueur dont le lien tombe revient seul | laissé à l'écran titre |
+| **0.26.524, pas joué** : Chacun dort pour soi (`OwnSleep`, règle n° 17, cochée) | on dort tout de suite, la nuit ne passe que si tous dorment | tout le monde attend tout le monde |
+| **0.26.524, pas joué** : Le temps ne saute que quand tous sautent (`TimeJumpsTogether`, règle n° 18, cochée) | un pas sur la carte du monde ne fait avancer la date que si tous voyagent ensemble ; le voyageur paie ses tours | chaque pas de n'importe qui ajoute 3 heures pour tous |
+| **0.26.524, pas joué** : Le rangement épargne la main et la ceinture (`DumpSparesBelt`, règle n° 19, cochée) | le rangement automatique ne prend ni l'objet tenu ni la ceinture à outils | comme le jeu |
+| **0.26.524, pas joué** : Réparer la carte tout seul (`AutoResync`, règle n° 20, cochée) | une carte en écart durable est rechargée (au plus une fois par 30 s, jamais en combat ni menu ouvert) | l'écart n'est qu'écrit dans le journal |
 
 Les options sont envoyées aux clients à la connexion (`NetSessionRules`). Toute nouvelle fonction doit avoir sa case.
-Règles de session prises jusqu'à la clé 15 (12 `AllowGuestBuild`, 13 `AllowPlayerKill`, 14 `HostManagesBase`, 15
-`AllowDuels`, `e77ea83`) : la prochaine est la clé 16. Le dépôt GitHub n'a pas de case de l'host : c'est un réglage de chaque joueur (onglet « Client
+Règles de session prises jusqu'à la clé 20 (12 `AllowGuestBuild`, 13 `AllowPlayerKill`, 14 `HostManagesBase`, 15
+`AllowDuels`, 16 `AllowReconnect`, 17 `UseOwnSleep`, 18 `TimeJumpsTogether`, 19 `DumpSparesBelt`, 20 `AutoResync`) : la prochaine est la clé 21.
+Deltas pris jusqu'à 842 (839 `BillPayDelta`, 840 `SleepStateDelta`, 842 `DesyncReportDelta` ; 841 libre). Le dépôt GitHub n'a pas de case de l'host : c'est un réglage de chaque joueur (onglet « Client
 Settings », comme les autres dépôts), voir section 3.
 
 ## 3. Installer
@@ -101,7 +126,9 @@ Settings », comme les autres dépôts), voir section 3.
 **Pour jouer (toi et ton ami, même zip des deux côtés)** : `_release/ElinTogether-independance.zip`, puis
 `Installer.bat`. `Desinstaller.bat` remet le mod du Workshop. Refaire le zip : `make_release.ps1`. Le zip n'est
 pas dans le dépôt : il se fabrique sur chaque machine.
-La dernière version publiée est la **0.26.506** (2026-10-05, au soir, compilée pour Elin EA 23.352,
+**Mise à jour du 6 octobre, 22h30 : la dernière version publiée est la 0.26.524** (voir l'état en tête de ce document ; la note est `NOTE_version.md`).
+Le texte qui suit date de la 0.26.506 et reste valable pour l'installation.
+La version publiée avant elle était la **0.26.506** (2026-10-05, au soir, compilée pour Elin EA 23.352,
 https://github.com/devmarcpro/elin-together/releases/tag/independance-0.26.506). Elle remplace la 0.26.463 (15h35, commit
 `895d5b0`) et la 0.26.442 (commit `f096255`, compilée pour 23.351). **Tout ce qui est décrit dans ce document comme « depuis
 la 0.26.463 » est dans la 0.26.506** (mode construction d'un invité complet, terrain, zones, base gérée par un invité,
@@ -578,6 +605,26 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
     `DOTNET_ROLL_FORWARD=LatestMajor` et `DOTNET_ROLL_FORWARD_TO_PRERELEASE=1`.
 
 ## 7. Reste à faire
+
+### Mise à jour du 2026-10-06, 22h30 (la 0.26.524 n'a JAMAIS été jouée)
+
+Ce bloc passe avant tout ce qui suit. La liste à jour et l'ordre des suites à jouer sont dans `HANDOFF.md`, « État au 6 octobre, 22h30 ».
+
+**Limites de la 0.26.524 : elle est écrite, relue, compilée en Release et en Debug, et rien n'a tourné en jeu, pas même les suites écrites ce soir.**
+Seule la partie réseau en morceaux a été vérifiée, hors jeu (`chunk_check`, 20 vérifications). Chaque sujet ci-dessous a son plan avec les « pas sûr ».
+- **Désynchronisation** (`PLAN_desync.md` et les trois plans liés) : le détecteur peut donner un faux positif sur une vraie carte habitée (à lire d'abord avec la case décochée) ; les sacs en écart ne sont pas réparés ;
+  l'host ne vide pas sa file avant de copier la carte demandée ; le passage de main d'un invité à un autre invité garde l'ancien défaut ; D6 (aléatoire rejoué) et D9 (plages de numéros) seulement si les journaux les montrent ;
+  le rechargement d'une carte pendant une fenêtre ouverte ou un combat n'a jamais été vu ; la taille réelle des messages n'est pas mesurée. Host et invités doivent avoir la même version du mod.
+- **Boss de donjon** : cause lue, jamais vue ; la victoire d'un invité n'est pas transmise à l'host ; chez un invité sur la carte de l'host le boss n'est pas reconnu comme boss à sa mort (pas de fanfare).
+- **Nuit** : la fenêtre pour « dormir ensemble » est celle de l'écran de nuit du premier couché (quelques secondes, non mesurée) ; un joueur parti ailleurs et ses messages de sommeil n'ont jamais été joués ; saignement, poison et miasme retirés au coucher : host seulement.
+- **Date** : un invité ne fait jamais avancer la date (inégalité host/invité) ; l'avance rapide d'un joueur accélère encore tous les autres ; les transpileurs du pas sur la carte du monde se replient avec un avertissement si le jeu change.
+- **Rangement, factures, banque** : le test d3b dira si la ceinture et la main étaient vraiment la cause ; l'impôt sur la renommée la plus haute n'est pas fait ; la banque garde une fenêtre de perte (lien coupé avant l'accusé) ; une facture payée par un invité compte sur l'or « gardé » par l'host, en retard possible.
+- **Solo et salon** : S8, S10, C1 à C8 de `PLAN_joueur_seul.md` ne sont pas faits ; le salon Invisible ne se prouve qu'avec deux comptes Steam ; la preuve du dépôt (HMAC) pour un joueur qui n'a jamais joué le monde n'est pas écrite.
+- **Lenteurs** : compression rapide des cartes, A5, B5, B2, B1/B6 et l'objet `perf` du pont de test restent à faire ; rien n'est chiffré.
+- **Reprise automatique quand l'host part ou plante** (conseil 9, étapes 3 à 5) : pas commencée. C'est la suite prévue « une fois que tout le reste est bon ».
+- Suites **écrites et jamais lancées** : `desync_suite`, `resync_suite`, `travel_suite` (s18, s19), `bank_suite`, `pickup_suite`, `sleep_suite` (n1 à n6, k1), `trio_sleep_suite`, `time_suite` (W7 à W9), `trio_place_suite`,
+  `bills_suite`, `hunt_suite` d3b, `solo_suite`, `depot_suite` D8 ; outils `world_diff.py`, `perf_probe.py`. Détail et rouges connus : `MODLOG.md`, entrée du 6 octobre « de 18h à 22h30 ».
+
 
 ### Mise à jour du 2026-10-05, 19h30 (ce qui est décidé et pas fait)
 
