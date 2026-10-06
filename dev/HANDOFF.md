@@ -1,6 +1,47 @@
 # Passation — ElinTogether « indépendance », état au 2026-10-06, 22h30 (haut du fichier ; le reste est plus ancien)
 
-## État au 6 octobre, 22h30 (à lire en premier)
+## EN PAUSE le 7 octobre 2026, 0h30 (à lire en premier ; l'utilisateur a demandé de tout mettre en attente)
+
+- **Publiée : 0.26.532** (commit `b2b1490`, `feat/independent-travel` au même commit). Elle corrige la cause principale
+  des désynchronisations, trouvée dans les journaux d'une vraie partie à quatre : en build Release, le mod retirait TOUS
+  ses patchs dès qu'un composant réseau était détruit (`Net/Base/ElinNetBase.cs`, `OnDestroy`), donc à chaque fermeture
+  d'une session de zone, alors que le lien avec l'host continuait. Le banc (Debug) ne peut pas le voir.
+- **Retours de la 0.26.532** : deux journaux (un invité, l'host) propres : dix avertissements bénins au lieu de centaines.
+- **Le jeu de ce PC contient la 0.26.532 publiée** (remise à la pause). Refaire `dev/build.ps1` avant tout test au banc.
+- **Steam doit tourner sur ce PC pour le banc** (sinon `state` rend NullReferenceException). Ne PAS le relancer sans
+  l'accord de l'utilisateur s'il joue ailleurs avec le même compte : cela peut couper sa partie.
+- **Piège du banc** : `TaskStop` sur un `run_short.sh` ne tue pas ses enfants : tuer `bash.exe` et `python.exe` par PID,
+  sinon l'ancienne série pilote les fenêtres de la suivante.
+- **Commité APRÈS la release, pas publié, pas joué** (branche `fix/points-restants`, pas poussé) :
+  - bouton « Join » sous chaque partie de la liste (`Components/Tabs/TabLobbyBrowser.cs`) ;
+  - commit `ee7c1ee` « wip PARTIAL » : agents arrêtés en plein travail, à relire avant de s'y fier :
+    1. fenêtres d'inventaire et d'aptitudes fermées à chaque changement de carte chez un invité (retour 20) :
+       `Helper/OpenWindows.cs`, `Net/Client/ElinNetClientPlayer.cs`, `ElinNetClientZone.cs`,
+       `dev/PLAN_fenetres_invite.md`, `dev/_tools/windows_suite.py` ;
+    2. invité bloqué en lisant un livre quand l'host quitte la carte (retour 21 ; hypothèse : progression « retenue »
+       en attente de l'host, jamais libérée au passage de main) : `Helper/PendingOnHost.cs`,
+       `Patches/DeltaEvents/Chara/CharaProgressBeginEvent.cs`, `CharaTaskCancelEvent.cs` ; pas de notes écrites.
+  - **Rien d'écrit** pour le retour 22 : coffre d'expédition de l'host « ne fonctionne pas » (LemiWinks). Hypothèse :
+    l'host joue un personnage échangé par `TakeOverPc` (uid 582), traité comme un invité par l'expédition : ses ventes
+    sont comptées « pour le joueur 582 » et le paiement cherche un pair. Journal de l'host : `Shipped 3 goods of player
+    chara 582 for 95`, `Paid shipping of player Nardole: 1500` (d'où viennent ces 1500 ?), `Shipped 10 goods … 171`.
+- **Journaux de vraies parties** (hors dépôt) : dossier `uploads` de la session Claude, fichiers `*Session_2026100*.log`.
+  Analyses : `PLAN_journal_reel_6_octobre.md`, `PLAN_journal_desync_6_octobre.md`, `PLAN_journal_reel_placement.md`,
+  `PLAN_journal_invite_6_octobre.md`, `PLAN_joueurs_invisibles.md`.
+- **Tests joués le 6 au soir** : connexion à deux fenêtres ; `dummy_suite` 47/50 (3 rouges : endurance d'une copie) ;
+  `place_suite` 24/27 (P4 défaut du test, P2 case d'arrivée de l'host). **Jamais lancées** : `pickup`, `resync`,
+  `bank`, `bills`, `sleep` (n1-n6), `trio_sleep`, `time` (W7-W9), `desync`, `worldcopy`, `craft`, `windows`, `solo`,
+  `travel` s19, `depot` D8, `hunt` d3b, `guest` G40/G41, `trio_place` q4/q5.
+- **Reste à faire, dans l'ordre** : finir les trois retours ci-dessus ; jouer les suites ; un joueur refusé par le teneur
+  d'une carte reçoit encore le monde entier (`PLAN_journal_invite_6_octobre.md`, défaut 3) ; invités qui avancent par
+  à-coups de 3 cases chez l'host (`Reconcile force move`) ; GitHub qui répond 500 au dépôt (message vide, vérifier le
+  nouvel essai) ; `CardGenDelta` d'un joueur dès `SendSaveProbe` (`PLAN_joueurs_invisibles.md` 3.1) ; contenu des
+  coffres ; demande notée : niveau des monstres de la base sur le joueur connecté de plus bas niveau ; puis la reprise
+  automatique quand l'host part (conseil 9, étapes 4 et 5).
+- **À dire aux joueurs** : même liste de mods pour tous (`Visible Equipment` et `Somewhat Enhanced Display` manquaient
+  chez deux joueurs ; `SourceThing` différent).
+
+## État au 6 octobre, 22h30
 
 - **Publiée : 0.26.524** (commit `2c98607`, Elin EA 23.352 Patch 1, `feat/independent-travel` poussée au même commit, branche de travail `fix/points-restants`).
   **Écrite, relue par l'agent relecteur, compilée en Release et en Debug, JAMAIS JOUÉE**, pas même par les suites :
