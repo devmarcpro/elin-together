@@ -42,7 +42,7 @@ internal static class GuestPaysBillPatch
     internal static void OnPaid(Thing t, bool fromBank)
     {
         // a bill is destroyed only when paid: "bad idea" and "not enough gold" leave it
-        if (fromBank || !IsBill(t) || !t.isDestroyed || ElinDelta.IsApplying) {
+        if (fromBank || !IsBill(t) || !t.isDestroyed || ElinDelta.IsRemoteStateLanding) {
             return;
         }
 

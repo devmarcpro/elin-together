@@ -2585,3 +2585,12 @@ solo : S8, S10, C1 à C8 ; lignes 38 à 52 de `PLAN_chasse_differences_3.md` ; G
 
 ### La première chose à faire
 Quand Elin est libre : refaire `dev\build.ps1` (le jeu de ce PC contient le build Release 0.26.524), puis jouer les suites dans l'ordre de `HANDOFF.md` (« État au 6 octobre, 22h30 »). Rien de la 0.26.524 n'est « fait » avant un vert lu.
+
+
+## 2026-10-07, 4h — série n7 lue, un invité paie enfin sa facture
+
+Détail dans `HANDOFF.md` (« État au 7 octobre 2026, 4h »). Corrigé et joué : facture d'un invité (`bills_suite` p1
+rouge puis vert). Corrigé par relecture, compilé, pas joué : rune/prise et carburant joués deux fois chez l'invité,
+facture en session de zone. Piège : le geste d'un invité finit DANS la réponse à sa demande d'objet, `IsApplying` y est
+vrai ; tester `IsRemoteStateLanding`. Réveil trop tôt d'un invité vu deux fois dans n7, pas reproduit : une ligne de
+journal chez l'host dit maintenant ce qui met fin au sommeil d'un invité. `bank_suite` : le banc ne trouve pas l'or.

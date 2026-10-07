@@ -1,5 +1,37 @@
 # Passation — ElinTogether « indépendance », état au 2026-10-06, 22h30 (haut du fichier ; le reste est plus ancien)
 
+## État au 7 octobre 2026, 4h (à lire en premier)
+
+- **Publiée : 0.26.540** (`887405a`). **Corrigé depuis, pas publié** (`ecd5d47` et le commit suivant) :
+  - **un invité ne payait jamais une facture** déposée dans le coffre des impôts : son geste reprend à l'intérieur de la
+    réponse à sa demande d'objet (`InvTransactionEvent` -> `ThingRequest.OnApply`, `IsApplying` vrai,
+    `IsReplayingIntent` vrai) et `GuestPaysBillPatch` le prenait pour un écho. Test : `bills_suite` p1 rouge puis vert
+    (51/53, les deux rouges restants sont du banc : politique 2705 non posée, `ElinNetClient` inaccessible à l'eval).
+    Règle à retenir : dans un patch atteint par le geste d'un invité, tester `ElinDelta.IsRemoteStateLanding`, pas
+    `IsApplying`.
+  - même famille, trouvée par relecture, **compilée, pas jouée** : rune ou prise posée deux fois chez l'invité, plein
+    de carburant joué deux fois (`InvOwnerModEvent`, `InvOwnerRefuelEvent`), facture payée en session de zone jamais
+    annoncée à l'host (`GuestPaysBillPatch.OnPaid`). **Restent, non corrigés** : philtre d'amour ou insecte à rêves
+    lâché dans le sac d'un PNJ (affinité perdue, l'objet revient : `CharaAffinityPatch` 30/37, `CardDestroyEvent` 42) ;
+    vente d'un objet non identifié (reste non identifié chez l'host, `CardIdentifyEvent` 29).
+  - ligne de journal « Guest sleep ended here by ... » chez l'host (`SleepSynchronizationContext.OnPcWake`).
+- **Série n7 lue** (`dev/_shots/*-n7.log`) :
+  - `time_suite` 64/65 : la règle « le temps ne saute que quand tous sautent » tient en jeu ; rouge = l'invité ne lit
+    pas le message « votre voyage ne fait pas avancer la date » (W8b), à regarder.
+  - `sleep_suite` 69/86 puis rejouée 5 fois : nuit à soi et nuit commune vertes. Dans la série n7 l'invité a été
+    réveillé avant la fin de sa nuit deux fois (n1 après 3,5 s, n3 après 1,1 s), sans repos : **pas reproduit** en
+    10 nuits ; la ligne de journal ci-dessus dira par quoi. Les « interrompu : NullReference » de n5 à k1 et les
+    délais y1/y2 ne sont pas lus. Rouge constant : n2, la date avance de 34 à 46 min pendant la nuit à soi de l'host
+    (son jeu tourne vite tant qu'il dort), le test en veut moins de 30. Petite limite, pas corrigée.
+  - `bank_suite` 56/86 : **faute du banc** (« bouton de la pile du sac absent » : l'or du personnage de test n'est
+    pas une pile visible du sac). Le dépôt en banque d'un invité n'est donc toujours pas prouvé.
+  - `resync_suite` : R2 rouge = le seau « disparu » est dans le sac de l'invité, pareil des deux côtés (pas de perte) ;
+    R3 plante (trace Python). `place_suite` 32/34 (P4 : l'host n'a pas bougé, mise en place) ; `pickup_suite` 46/47
+    (P3 : pas de case pour poser le caillou, mise en place).
+- **Le jeu de ce PC** : voir la dernière ligne du journal (`MODLOG.md`) pour savoir si la 0.26.540 y a été remise.
+- **Ensuite** : publier ces corrections (accord de l'utilisateur à demander) ; corriger le banc (`bank_suite` dépôt,
+  `windows_suite` W5, `resync_suite` R2/R3) ; les deux gestes non corrigés ci-dessus ; puis la liste du bloc de 2h25.
+
 ## État au 7 octobre 2026, 2h25 (à lire en premier ; juste avant un compactage de la session)
 
 - **Publiée : 0.26.540** (commit `887405a`, `feat/independent-travel` au même commit), non jouée à la publication :

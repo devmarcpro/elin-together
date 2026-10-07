@@ -185,7 +185,8 @@ internal static class InvOwnerModEvent
     [HarmonyPrefix]
     internal static bool OnMod()
     {
-        return NetSession.Instance.Connection is not { IsClient: true } || ElinDelta.IsApplying;
+        // the player's own drop, resumed inside the answer to its item request, is not a replay
+        return NetSession.Instance.Connection is not { IsClient: true } || ElinDelta.IsRemoteStateLanding;
     }
 }
 
@@ -196,7 +197,8 @@ internal static class InvOwnerRefuelEvent
     internal static bool OnRefuel()
     {
         // client refuel is simulated by CardChargeDelta
-        return NetSession.Instance.Connection is not { IsClient: true } || ElinDelta.IsApplying;
+        // the player's own drop, resumed inside the answer to its item request, is not a replay
+        return NetSession.Instance.Connection is not { IsClient: true } || ElinDelta.IsRemoteStateLanding;
     }
 }
 
