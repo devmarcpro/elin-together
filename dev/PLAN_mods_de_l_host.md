@@ -39,3 +39,35 @@ l'host + quitter, relancer et rejoindre tout seul + remettre la liste du joueur 
 temporaire sans abonnement. Question pour le conseil : la relance et l'installation de programmes contre « le joueur
 n'a pas à réfléchir, aucune question » ; que faire des abonnements ajoutés (ils restent sur le compte) ; mods locaux
 de l'host ; mods en trop chez l'invité ; mods d'affichage seul.
+
+## Conseil 12 (2026-10-07, soir) — verdict
+
+Cinq avis, deux relectures croisées, synthèse par la session.
+
+- **Accord (4 avis sur 5, les deux relectures)** : le vrai besoin est « rejoindre sans être refusé et sans aligner
+  les listes à la main ». Tout de suite, ce qui se joue au banc : l'host **publie sa liste** (données du salon Steam,
+  lisibles avant de se connecter, et poignée de main), l'invité **compare** ; seul ce qui change la simulation bloque
+  (la comparaison des actes, déjà là) ; le reste est seulement listé ; un refus **nomme les mods** (« l'host a X, il
+  vous manque Y »). Le téléchargement et la relance automatiques : pas avant un essai sur de vrais PC.
+- **« Aucune question » contre l'installation de programmes** : la règle vise les ambiguïtés, pas les autorisations.
+  Installer du code sur le compte Steam d'un autre et relancer son jeu ne peut pas être décidé par une case de l'host.
+  Un seul avis voulait tout automatique, coché par défaut ; il est jugé l'angle mort par les deux relectures.
+- **Angles morts relevés** : l'utilisateur a demandé le TÉLÉCHARGEMENT, pas un message : lui donner un chemin réel
+  tout de suite, le moins risqué = **un bouton « s'abonner aux mods manquants »** dans le message (le clic du joueur
+  est l'autorisation, aucun réglage à trouver), puis le joueur relance lui-même ; la liste de l'host est une donnée
+  non fiable (vérifier les identifiants, montrer titre et taille) ; protection contre la boucle de relances ; version
+  du format de la liste ; un abonnement vaut pour tous les PC du compte ; délai de 15 s de la poignée de main.
+- **Abonnements** : les garder, les noter dans un fichier ; pas de désabonnement automatique (autre changement
+  silencieux du compte, impossible à tester). Ne pas réécrire `loadorder.txt` dans la première version.
+- **Ce qui ne peut pas être récupéré** (mods locaux de l'host, le fork lui-même) : listé « à installer à la main ».
+  Le fork est comparé par sa version de build, jamais récupéré (il partage l'identifiant du mod d'origine du Workshop).
+
+### Découpage retenu
+| Tranche | Contenu | Banc |
+|---|---|---|
+| M1 | Liste de l'host (id, id Workshop, titre) dans le salon et la poignée de main ; comparaison chez l'invité ; refus qui nomme les mods ; la liste des parties montre « n mods, il vous en manque k » | jouable (liste, comparaison, message) |
+| M2 | Bouton « S'abonner aux mods manquants » (Steam), progression, puis « relancez Elin » ; fichier des abonnements ajoutés | l'appel Steam ne se joue pas au banc (aucun mod vraiment manquant) |
+| M3 | Relance et retour automatiques, profil temporaire, remise de la liste du joueur | après essai sur de vrais PC ; réglage côté invité |
+
+**À trancher par l'utilisateur** : M2 par un bouton (un clic) ou sans aucun clic (application stricte de « aucune
+question ») ; M3 un jour ou jamais.
