@@ -1,20 +1,24 @@
-# Elin Together « indépendance » 0.26.560
+# Elin Together « indépendance » 0.26.566
 
 (English below / version anglaise plus bas)
 
-Suite de la 0.26.557, d'après le journal d'une vraie partie jouée avec elle. **Écrit et compilé, pas joué.** Si cette
-version se passe mal, la 0.26.557 reste en ligne. Compilé pour Elin **EA 23.352 Patch 1** (canal Nightly). **Tous les
-joueurs doivent installer ce même zip, et avoir la même liste de mods.** Faites une copie de vos sauvegardes avant :
-`%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
+Suite de la 0.26.560. **Écrit et compilé, pas joué**, et le changement sur le codex est plus large que les
+précédents : si cette version se passe mal, la 0.26.560 reste en ligne. Compilé pour Elin **EA 23.352 Patch 1** (canal
+Nightly). **Tous les joueurs doivent installer ce même zip, et avoir la même liste de mods.** Faites une copie de vos
+sauvegardes avant : `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
 
 ## Corrigé
 
-- **Jeu cassé (une erreur à chaque instant) en rejoignant l'hébergeur** : un invité mort gardait la position de la
-  carte où il était mort ; replacé sur une carte plus petite (un autre étage de donjon), il se retrouvait hors de la
-  carte. Le personnage est maintenant posé à la place donnée par l'hébergeur avant l'affichage de la carte, et si
-  l'affichage échoue quand même, le jeu replace le personnage et redemande la carte.
+- **Le codex est maintenant commun à tous les joueurs**, comme les recettes : cartes collectées ou retirées, monstres
+  tués, points faibles appris, apparitions. Avant, ce qu'un invité collectait n'était compté que chez lui et
+  disparaissait au rechargement suivant ; ses cartes n'arrivaient chez l'hébergeur que si celui-ci avait coché
+  « collecter les cartes ». C'est maintenant le réglage de celui qui ramasse qui décide.
+- **Une carte reçue était parfois refusée une première fois** puis redemandée : elle passe du premier coup.
 
-Confirmé par ce même journal : plus aucune erreur de la Guilde des guerriers depuis la 0.26.557.
+## Pour les prochaines versions
+
+- Le journal note, à chaque retour d'un invité auprès de l'hébergeur, la durée de son absence et la taille du monde
+  reçu. Rien ne change en jeu : ces chiffres serviront à supprimer les rechargements d'écran.
 
 ## Limites connues
 
@@ -25,6 +29,7 @@ Confirmé par ce même journal : plus aucune erreur de la Guilde des guerriers d
 - Chez l'hébergeur, les invités qui marchent avancent par à-coups de trois cases.
 - Quand l'hébergeur rejoint un invité sur sa carte, l'écran de l'invité recharge (le monde entier est renvoyé).
 - Quand l'hébergeur part ou plante, aucun invité ne reprend le monde tout seul.
+- Ce qui a été collecté dans le codex avant cette version par un invité ne revient pas.
 
 ## En cas de problème pendant une partie
 
@@ -40,20 +45,24 @@ Il faut [YK Framework](https://steamcommunity.com/sharedfiles/filedetails/?id=34
 
 ---
 
-# Elin Together "independence" 0.26.560
+# Elin Together "independence" 0.26.566
 
-Follows 0.26.557, from the log of a real game played with it. **Written and compiled, not played.** If this version
-goes wrong, 0.26.557 stays online. Built for Elin **EA 23.352 Patch 1** (Nightly branch). **Every player must install
-this same zip and have the same list of mods.** Back up your saves first: `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
+Follows 0.26.560. **Written and compiled, not played**, and the codex change is wider than the previous ones: if this
+version goes wrong, 0.26.560 stays online. Built for Elin **EA 23.352 Patch 1** (Nightly branch). **Every player must
+install this same zip and have the same list of mods.** Back up your saves first: `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
 
 ## Fixed
 
-- **Game broken (an error at every moment) when joining the host**: a dead guest kept the position of the map it died
-  on; put on a smaller map (another dungeon floor), it stood outside the map. The character is now placed where the
-  host says before the map is shown, and if showing it still fails, the game places the character and asks for the map
-  again.
+- **The codex is now shared by all players**, like the recipes: cards collected or taken out, monsters killed, weak
+  spots learnt, appearances. Before, what a guest collected only counted in its own game and was gone at the next
+  reload; its cards reached the host only if the host had "collect cards" ticked. The setting of the player who picks
+  the card up now decides.
+- **A map received was sometimes refused once** and asked for again: it now goes through the first time.
 
-Confirmed by that same log: no Fighters Guild error since 0.26.557.
+## For the next versions
+
+- The log notes, each time a guest comes back to the host, how long it was away and how big the world it received
+  was. Nothing changes in game: these figures will be used to remove the screen reloads.
 
 ## Known limits
 
@@ -64,6 +73,7 @@ Confirmed by that same log: no Fighters Guild error since 0.26.557.
 - On the host, walking guests move in jumps of three tiles.
 - When the host joins a guest on its map, the guest's screen reloads (the whole world is sent again).
 - When the host leaves or crashes, no guest takes the world over by itself.
+- What a guest collected in the codex before this version does not come back.
 
 ## If something goes wrong during a game
 
