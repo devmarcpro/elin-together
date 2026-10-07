@@ -13,7 +13,7 @@ goes to them (see [Credits](#credits)).
 
 > **Status: experimental.** Everything below is tested on one PC with two game windows (automated in-game test
 > suites, over 900 checks, see `dev/`). It has been **barely played between two PCs over Steam**: one evening, which
-> found a bug the tests had missed, and almost nothing new in this version (0.26.532) has been tried on two real PCs yet. Back up
+> found a bug the tests had missed, and almost nothing new in this version (0.26.540) has been tried on two real PCs yet. Back up
 > your saves first: `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
 
 ## What the fork adds
