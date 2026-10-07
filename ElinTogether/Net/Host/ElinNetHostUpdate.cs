@@ -113,13 +113,29 @@ internal partial class ElinNetHost
         foreach (var delta in response.DeltaList) {
             // an away player is not on the host map, only what it shares with the world is relevant here:
             // its chat and the quest log
-            if (away && delta is not (MsgSayDelta or QuestStartDelta or QuestCompleteDelta or QuestChangePhaseDelta or DialogFlagDelta or StoryOutcomeDelta or QuestFailDelta or QuestUpdateDelta or PersonalQuestDelta or PlayerStandingDelta or BillPayDelta or WorldTimeReportDelta or QuestFollowDelta or CharaSleepDelta or SleepStateDelta)) {
+            if (away && !OwnGrowth(delta, peer) && delta is not (MsgSayDelta or QuestStartDelta or QuestCompleteDelta or QuestChangePhaseDelta or DialogFlagDelta or StoryOutcomeDelta or QuestFailDelta or QuestUpdateDelta or PersonalQuestDelta or PlayerStandingDelta or BillPayDelta or WorldTimeReportDelta or QuestFollowDelta or CharaSleepDelta or SleepStateDelta)) {
                 continue;
             }
 
             delta.OriginPeer = peer.Id;
             Delta.AddLocal(delta);
         }
+    }
+
+    /// <summary>
+    ///     What a player's own character learnt (a skill, an attribute, its level) is its own game's to say,
+    ///     wherever it is: skipped while it was away or arriving, this copy kept the old value until the same
+    ///     skill moved again, and gave it back at the next world copy (attributes that "do not go up")
+    /// </summary>
+    private bool OwnGrowth(ElinDelta delta, ISteamNetPeer peer)
+    {
+        var owner = delta switch {
+            ElementChangeDelta element => element.Owner,
+            CharaLevelDelta level => level.Owner,
+            _ => null,
+        };
+        return owner is not null && (ActiveRemoteCharas.GetValueOrDefault(peer.Id) ?? KeptChara(peer)) is { } own &&
+               owner.Uid == own.uid;
     }
 
     /// <summary>

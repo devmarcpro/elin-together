@@ -20,6 +20,15 @@
   d'un invité redemandée si elle reste sans réponse 10 s ou si la carte change de teneur (`CharaReviveEvent.WatchRevive`,
   compilé, pas joué) ; `five_suite` f6 (combat), f7 (l'host part), f8 (un invité coupe) écrits, **jamais joués
   jusqu'au bout** (arrêtés : l'utilisateur joue) ; `windows_suite` W5 corrigé (plus d'écran de choix), pas rejoué.
+- **« Mes attributs ne montent pas »** (utilisateur, 2026-10-07, rôle et activité demandés, pas de journal) : audit
+  du code, aucune cause permanente. Le jeu cache la barre d'expérience des attributs (`Element.ShowXP`). Pertes
+  possibles trouvées : (1) l'host jetait les `ElementChangeDelta`/`CharaLevelDelta` d'un joueur en arrivée ou parti
+  (corrigé : `ElinNetHostUpdate.OwnGrowth`, compilé, pas joué) ; (2) un invité chez un autre joueur n'envoie son
+  personnage qu'à la sortie (plantage = gains perdus) ; (3) `CharaProgressCompleteDelta` 44-55 : tâche arrêtée avant
+  la réponse de l'host = l'expérience de fin (repas, minage, artisanat) n'est pas jouée ; (4) pénalité de mort décidée
+  avec les jours de l'host (`CharaReviveDelta` 64) : -500 d'expérience, une chance sur cinq par attribut, à chaque
+  mort dans un monde de plus de 90 jours. Lignes à lire dans un journal : `Element 70..77 changed on chara` (invité),
+  `Applying element 7x` (host).
 - **À-coups de trois cases** : les journaux réels d'après la 0.26.532 n'en ont presque plus (2 et 0 « Reconcile force
   move » contre 57 à 239 avant) : c'était surtout les patchs retirés. Classé, à rouvrir si un journal le remontre.
 - **Joueur refusé qui reçoit le monde entier** : plan écrit (`PLAN_journal_invite_6_octobre.md` §3 c), non fait : le
