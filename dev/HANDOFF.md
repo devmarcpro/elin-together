@@ -16,8 +16,16 @@
   cette demande pour ces essais.
 - Faux rouges connus du banc : `pickup_suite` « pas de place nulle part » (la bourse a une fenêtre mémorisée dans
   `ElinMP/OwnSettings` depuis `bank_suite`, elle compte comme une place) ; `economy_suite` veut trois fenêtres.
-- **Le jeu de ce PC** : dernière ligne de `MODLOG.md`.
-- **Ensuite** : publier ; suites à cinq plus dures (combat, donjon, échanges, départ de l'host) ; puis le bloc de 4h.
+- **Publiée ensuite : 0.26.548** (commit `fab31de`), avec tout ce qui précède. Depuis, non publié : réanimation
+  d'un invité redemandée si elle reste sans réponse 10 s ou si la carte change de teneur (`CharaReviveEvent.WatchRevive`,
+  compilé, pas joué) ; `five_suite` f6 (combat), f7 (l'host part), f8 (un invité coupe) écrits, **jamais joués
+  jusqu'au bout** (arrêtés : l'utilisateur joue) ; `windows_suite` W5 corrigé (plus d'écran de choix), pas rejoué.
+- **À-coups de trois cases** : les journaux réels d'après la 0.26.532 n'en ont presque plus (2 et 0 « Reconcile force
+  move » contre 57 à 239 avant) : c'était surtout les patchs retirés. Classé, à rouvrir si un journal le remontre.
+- **Joueur refusé qui reçoit le monde entier** : plan écrit (`PLAN_journal_invite_6_octobre.md` §3 c), non fait : le
+  teneur fantôme qui causait les refus est corrigé, le reste demande le jeu pour être prouvé.
+- **Le jeu de ce PC** : dernière ligne de `MODLOG.md`. L'utilisateur joue : ni Elin ni `build.ps1` sans son accord.
+- **Ensuite** : jouer `five_suite --only f6,f7,f8` ; suites à cinq plus dures (combat, donjon, échanges, départ de l'host) ; puis le bloc de 4h.
 
 ## État au 7 octobre 2026, 4h (à lire en premier)
 

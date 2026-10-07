@@ -196,12 +196,12 @@ def w4(ctx):
 
 
 def w5(ctx):
-    from chara_suite import click, connect, in_game, leave
+    from chara_suite import connect_unasked, in_game, leave
     leave()
     # quitter la partie a ecrit le fichier ; sans ceci A reprendrait ce qu'il garde en memoire
     ev(A, FORGET)
-    connect()
-    click(0)
+    # le jeu sait a qui est le personnage : plus d'ecran de choix a la reconnexion
+    check("W5 : A revient sans qu'on lui demande quel personnage", connect_unasked())
     check("W5 : A rejoint la partie avec le meme personnage", str(in_game()) == ctx["uid"])
     still_open("A", A, ctx[A], "W5 A rejoint la partie")
     check("W5 : le memo de A est le sien", ev(A, 'EClass.player.memo') == MEMO)
