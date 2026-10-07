@@ -76,6 +76,8 @@ internal partial class EmpConfig
             "When the game joined (or the world taken from the depot) has Workshop mods that are not loaded here, download them without subscribing,\n" +
             "restart Elin with exactly the mods of that game for one session, and come back to the game by itself\n" +
             "Your own mod list is back at the next start. New, off until it has been tried between two PCs\n" +
+            "These mods are chosen by the host (or by the modlist.txt of the depot) and their code runs on this PC: only with people you trust\n" +
+            "这些模组由主机（或仓库的 modlist.txt）决定，其代码会在本机运行：仅与你信任的人一起使用\n" +
             "加入的游戏（或从仓库取得的世界）有本机未加载的创意工坊模组时：不订阅直接下载，以该游戏的模组重启 Elin 一次并自动回到游戏；下次启动恢复你自己的模组列表。新功能，默认关闭");
 
         Client.PingKeybind = config.Bind(

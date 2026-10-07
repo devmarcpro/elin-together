@@ -203,10 +203,10 @@ internal static class ModFetch
         yield return null;
 
         var failure = "error";
-        var line = "emp_ui_mods_fetching".Loc(0, diff.Missing.Count, "", 0);
+        var line = "";
+        Action kill = () => { };
         var folders = new Dictionary<string, string>();
         var results = new Dictionary<ulong, EResult>();
-        var popup = EGui.CreatePopup(() => new(line), _ => !_busy);
         Action<DownloadItemResult_t> onResult = result => {
             if (result.m_unAppID.m_AppId.ToString() == App) {
                 results[result.m_nPublishedFileId.m_PublishedFileId] = result.m_eResult;
@@ -214,6 +214,8 @@ internal static class ModFetch
         };
 
         try {
+            line = "emp_ui_mods_fetching".Loc(0, diff.Missing.Count, "", 0);
+            kill = EGui.CreatePopup(() => new(line), _ => !_busy).Kill;
             var links = NeedsLinks;
             var root = WorkshopRoot();
             var packages = EClass.core.mods.packages;
@@ -297,7 +299,7 @@ internal static class ModFetch
                 GiveUp(failure, returnTo);
             }
 
-            popup.Kill();
+            kill();
         }
 
         if (!_applied) {
@@ -308,6 +310,20 @@ internal static class ModFetch
         var restarts = Relaunch();
         EmpPop.Information((restarts ? "emp_ui_mods_restart" : "emp_ui_mods_restart_manual").lang());
         yield return new WaitForSecondsRealtime(restarts ? 3f : 8f);
+        if (EClass.core.IsGameStarted) {
+            // the player started a game meanwhile: it goes on, and its own list is back
+            _applied = false;
+            try {
+                File.Delete(_ticket);
+                Restore();
+                RemoveLinks();
+            } catch (Exception ex) {
+                EmpLog.Warning(ex, "Could not undo the mod list of the session");
+            }
+
+            yield break;
+        }
+
         Application.Quit();
     }
 
@@ -335,11 +351,10 @@ internal static class ModFetch
             // (where Steam really put them, should it not be where it was expected)
             Hide(folders.Values);
 
-            Directory.CreateDirectory(Path.GetDirectoryName(_ticket)!);
-            File.WriteAllText(_ticket, $"{DateTime.UtcNow.Ticks}\n{returnTo}\n{reference}");
-
             if (!File.Exists(LoadOrder)) {
                 File.WriteAllText(LoadOrder, "");
+            } else if (File.ReadAllLines(LoadOrder).FirstOrDefault() == Marker) {
+                throw new IOException("the list of an earlier session is still in place");
             }
 
             File.Copy(LoadOrder, PlayerList, true);
@@ -353,6 +368,9 @@ internal static class ModFetch
             }
 
             Write(LoadOrder, SessionList(ModListFile.Parse(reference)));
+            // last: a ticket without the list of the session would bring the player back without its mods
+            Directory.CreateDirectory(Path.GetDirectoryName(_ticket)!);
+            File.WriteAllText(_ticket, $"{DateTime.UtcNow.Ticks}\n{returnTo}\n{reference}");
             _applied = true;
             return null;
         } catch (Exception ex) {
@@ -461,8 +479,11 @@ internal static class ModFetch
     private static void Write(string file, List<string> lines)
     {
         File.WriteAllLines(file + ".tmp", lines);
-        File.Copy(file + ".tmp", file, true);
-        File.Delete(file + ".tmp");
+        if (File.Exists(file)) {
+            File.Replace(file + ".tmp", file, null);
+        } else {
+            File.Move(file + ".tmp", file);
+        }
     }
 
     private static string WorkshopRoot()

@@ -1,6 +1,6 @@
 """La liste des mods de la partie (tranche M1 de PLAN_mods_de_l_host.md) : l'host la publie, l'invite la compare aux
 siens avant de recevoir le monde, et un refus nomme les mods. Test court, sur des instances deja lancees (host + 1
-client, build Debug). ECRIT LE 2026-10-07, PAS ENCORE JOUE.
+client, build Debug). 
 
     python _tools/mp_test.py
     python _tools/modlist_suite.py
@@ -19,7 +19,8 @@ Ce que le banc ne joue pas comme un joueur :
   par le banc (`ModList.Bench`, build Debug), pas par de vrais mods ;
 - l'invite rejoint par le port local, pas par le salon Steam : la liste des parties (onglet Lobby) ne se joue pas ; on
   verifie seulement ce que l'host a ecrit dans son salon et ce que l'invite en lirait (`ModList.Summary`) ;
-- le refus de L4 est provoque en ajoutant un faux acte chez l'invite (ce que ferait un mod a DLL en trop) ;
+- le refus de L4 est provoque en ajoutant un faux acte chez l'host (ce que ferait un mod a DLL que l'invite n'a pas ;
+  chez l'invite il serait efface : sa liste d'actes est refaite a chaque connexion) ;
 - la prise du monde dans un depot dont la liste differe (le message « n mods de ce monde ne sont pas charges ») n'est
   pas jouee ici : il faut un depot (a ajouter a depot_suite.py, avec un modlist.txt ecrit a la main dans le dossier) ;
 - rien de la tranche M2 (telechargement, relance) : ce banc s'arrete si « FetchMods » est coche chez l'invite.
@@ -155,13 +156,14 @@ def main():
 
         log("--- L4 : refuse pour ses actes : la fenetre nomme les mods")
         chara_suite.leave()
-        ev(A, f'{FAKE_ACT}[typeof(System.Text.StringBuilder)] = 987654; "ok"')
+        ev(H, f'{FAKE_ACT}[typeof(System.Text.StringBuilder)] = 987654; "ok"')
         refused = not joined(timeout=40)
         said = dialog(A)
         check("l'invite n'entre pas", refused and len(state(H).get("players", [])) == 1)
         check(f"la fenetre du refus nomme le mod manquant et le mod a installer a la main ({said[-200:]!r})",
               FAKE_TITLE in said and HAND_TITLE in said)
-        ev(A, f'{FAKE_ACT}.Remove(typeof(System.Text.StringBuilder)); foreach (var l in EClass.ui.layers.ToList()) l.Close(); '
+        ev(H, f'{FAKE_ACT}.Remove(typeof(System.Text.StringBuilder)); "ok"')
+        ev(A, 'foreach (var l in EClass.ui.layers.ToList()) l.Close(); '
               'ElinTogether.Net.NetSession.Instance.ResetSession(); "ok"')
         time.sleep(4)
 
@@ -171,7 +173,7 @@ def main():
         check("l'invite entre", joined())
         check("aucune comparaison dans son journal", compared(t0) is None)
     finally:
-        ev(A, f'{FAKE_ACT}.Remove(typeof(System.Text.StringBuilder)); "ok"')
+        ev(H, f'{FAKE_ACT}.Remove(typeof(System.Text.StringBuilder)); "ok"')
         bench(None)
         set_option("PublishMods", True)
         if not state(A).get("connected"):
