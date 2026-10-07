@@ -39,6 +39,15 @@
   phase sans ligne est remise sur la dernière qu'elle a (`QuestPhaseRepair`, préfixe de `Quest.source`). À jouer :
   essai de la guilde des guerriers fait par l'host, l'invité tue ensuite des monstres. Les erreurs du mod sont au
   niveau Debug avec `@x` : chercher `"@x"` dans un journal, pas seulement Warning/Error.
+- **Publiée : 0.26.557** (commit `e5db1f1`, non jouée) : guilde, lancer, réanimation, apprentissages à l'arrivée.
+- **Jeu cassé en rejoignant l'host** (journal réel 0.26.557, 14:01:42, invité) : l'host descend à l'étage du boss puis
+  remonte en 7 s ; l'invité, qui tenait l'étage, reçoit le monde, deux états de carte (boss puis étage), l'activation
+  de l'étage : `Scene.Init` lève `IndexOutOfRange` dans `Point.cell` (personnage hors de la carte), puis une erreur
+  par message reçu jusqu'à ce que le joueur quitte. Corrigé (compilé, **pas joué, pas publié**) dans
+  `ElinNetClientZone.OnZoneActivateResponse` : le personnage est posé à la place donnée par l'host avant `Scene.Init`,
+  et un `Scene.Init` qui lève replace le personnage et redemande la carte. Cause exacte de la mauvaise position non
+  établie (copie du monde prise pendant le va-et-vient de l'host). Vus aussi, anciens : `Handed zone … while not in
+  it`, `Zone … unknown here and could not be built` (`Region._OnDeserialized`, clé nulle), rattrapés tout seuls.
 - **À-coups de trois cases** : les journaux réels d'après la 0.26.532 n'en ont presque plus (2 et 0 « Reconcile force
   move » contre 57 à 239 avant) : c'était surtout les patchs retirés. Classé, à rouvrir si un journal le remontre.
 - **Joueur refusé qui reçoit le monde entier** : plan écrit (`PLAN_journal_invite_6_octobre.md` §3 c), non fait : le

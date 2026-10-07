@@ -217,7 +217,27 @@ internal partial class ElinNetClient
             EmpLog.Debug("Starting initial scene init");
 
             player.zone = pc.currentZone = currentZone;
-            scene.Init(Scene.Mode.Zone);
+
+            // the place the host gives on this map, before the map is shown: the character of the world copy can
+            // still stand where it was on another map (the host went down a floor and came back while the copy
+            // was on its way), outside this one: every read of its cell then threw, the game was left half started
+            if (response.Pos is { X: >= 0, Z: >= 0 } given) {
+                pc.pos.Set(given.X, given.Z);
+            }
+
+            try {
+                scene.Init(Scene.Mode.Zone);
+            } catch (Exception ex) {
+                EmpLog.Warning(ex, "Scene init failed on {ZoneUid} with the character at {@Pos}, placing it and asking for the map again",
+                    response.ZoneUid, (Position)pc.pos);
+                if (_map is { } loaded && (pc.pos.x < 0 || pc.pos.z < 0 || pc.pos.x >= loaded.Size || pc.pos.z >= loaded.Size)) {
+                    var center = loaded.GetCenterPos();
+                    pc.pos.Set(center.x, center.z);
+                }
+
+                RetryZoneSync();
+                return;
+            }
 
             // as Game.Load does after its own Scene.Init: the windows that were open before the world was replaced
             Helper.OwnSettings.Reopen();
