@@ -98,6 +98,15 @@
 - **Liste des mods dans le dépôt** : `modlist.txt` (GitHub), fait, `depot_github_test` 77/77 ; suite demandée :
   charger les mods du dépôt quand on héberge ou rejoint, téléchargement sans abonnement « comme Civ 6 »
   (`PLAN_mods_de_l_host.md`, conseil 12 tenu).
+- **Mods essayés à deux fenêtres le 7 octobre au soir** (tous chargés des deux côtés, jeu en anglais) : Quest Board
+  Plus (3811305522 : textes anglais, s'affiche chez l'host et l'invité, 0 exception ; **l'utilisateur n'en veut pas**,
+  c'est à lui de se désabonner) ; TpStackableSpellbook (3358087231 : deux livres de 3 et 5 charges ramassés par
+  l'invité = un livre de 8 charges dans les deux jeux) ; KK Grid Status (3705093639 : affichage seul, 0 exception).
+  Une fenêtre lancée avant la fin du téléchargement d'un mod avait 7 mods contre 8 : la connexion est passée.
+- **Trouvé en passant, PAS corrigé** : après `Zone.UpdateQuests(true)` chez l'host (relance des quêtes d'une ville :
+  expiration du jour, bouton « Reroll Quests »), l'invité garde les anciennes offres sur les habitants (26 contre 8 à
+  Mysilia, dont 11 quêtes `main#0`) : `QuestCreateDelta` annonce les créations, rien n'annonce les retraits
+  (`item.quest = null` dans `UpdateQuests`). À regarder avec les quêtes par joueur (`PersonalQuests`) avant de toucher.
 - **Demande en cours** : que l'invité récupère tout seul les mods de l'host en rejoignant (`PLAN_profil_mods.md`,
   rien d'écrit) : recherche des faits lancée, conseil à réunir (question : redémarrage et consentement contre « le
   joueur n'a pas à réfléchir »).
