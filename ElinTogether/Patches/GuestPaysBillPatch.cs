@@ -24,11 +24,13 @@ internal static class GuestPaysBillPatch
             return true;
         }
 
-        if (ElinDelta.IsApplying) {
+        // a player's own drop ends inside the answer to its item request (InvTransactionEvent): that one is its
+        // gesture, not a replay, or a guest's bill was never paid
+        if (ElinDelta.IsRemoteStateLanding) {
             return false;
         }
 
-        if (!RemoteBasePaidPatch.IsRequester) {
+        if (NetSession.Instance.Connection is not ElinNetClient { IsZoneSession: false }) {
             return true;
         }
 

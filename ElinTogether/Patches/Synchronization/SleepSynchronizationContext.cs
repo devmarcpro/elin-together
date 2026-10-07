@@ -452,6 +452,14 @@ internal class SleepSynchronizationContext : SynchronizationContext
         __state = default;
 
         if (__instance.owner is not { IsPC: true }) {
+            // what woke a guest here, before its own night ended there, is only known from this
+            if (__instance.owner is { IsRemotePlayer: true } && NetSession.Instance.Connection is ElinNetHost &&
+                !ElinDelta.IsApplying) {
+                EmpLog.Debug("Guest sleep ended here by {SleepEnd}",
+                    string.Join(" < ", new System.Diagnostics.StackTrace(2, false).GetFrames()?.Take(6)
+                        .Select(f => $"{f.GetMethod()?.DeclaringType?.Name}.{f.GetMethod()?.Name}") ?? []));
+            }
+
             return;
         }
 
