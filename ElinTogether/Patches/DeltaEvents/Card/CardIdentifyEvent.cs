@@ -26,7 +26,7 @@ internal static class CardIdentifyEvent
 
         if (connection.IsClient) {
             // client waits for host delta
-            if (ElinDelta.IsRemoteStateLanding || PendingUid.IsPending(__instance.uid)) {
+            if (ElinDelta.IsApplying || PendingUid.IsPending(__instance.uid)) {
                 return;
             }
         }

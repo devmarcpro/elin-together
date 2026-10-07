@@ -12,6 +12,13 @@ internal static class CharaReviveEvent
 {
     private static string? _pendingLastWords;
 
+    // of the request being watched: the grave is made here if this game ends up keeping the map
+    private static string? _askedLastWords;
+
+    // requests sent for this death: a keeper that never answers is not asked for ever
+    private static int _asks;
+    private const int MaxAsks = 3;
+
     [HarmonyPrefix]
     [HarmonyPatch(typeof(Chara), nameof(Chara.MakeGrave))]
     internal static bool OnCharaMakeGrave(Chara __instance, string lastword)
@@ -21,6 +28,7 @@ internal static class CharaReviveEvent
         }
 
         _pendingLastWords = lastword;
+        _asks = 0;
         return false;
     }
 
@@ -51,8 +59,11 @@ internal static class CharaReviveEvent
             LastWords = _pendingLastWords,
             Pos = pos,
         });
+        _askedLastWords = _pendingLastWords ?? _askedLastWords;
         _pendingLastWords = null;
-        EmpMod.Instance.StartCoroutine(WatchRevive(__instance, client));
+        if (++_asks < MaxAsks) {
+            EmpMod.Instance.StartCoroutine(WatchRevive(__instance, client));
+        }
 
         // scene
         EClass.player.deathDialog = true;
@@ -86,6 +97,10 @@ internal static class CharaReviveEvent
                     moved ? "the map changed hands" : "no answer");
                 chara.Revive();
                 if (!chara.isDead) {
+                    // this game keeps the map now: its own revive was played, the grave asked with the request
+                    // was never made (OnCharaMakeGrave)
+                    chara.MakeGrave(_askedLastWords);
+                    _askedLastWords = null;
                     EClass.player.deathDialog = false;
                 }
 

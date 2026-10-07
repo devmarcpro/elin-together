@@ -19,9 +19,16 @@ internal static class InvOwnerOnProcessEvent
         ];
     }
 
+    /// <summary>
+    ///     The last drop was told to the host, which plays it for everyone: a client's game does not play a rune, a
+    ///     plug or a refuel itself then. Not told (card unknown to the host yet): played here, as before
+    /// </summary>
+    internal static bool Sent { get; private set; }
+
     [HarmonyPrefix]
     internal static void OnProcess(InvOwner __instance, Thing t)
     {
+        Sent = false;
         if (NetSession.Instance.Connection is not { } connection) {
             return;
         }
@@ -84,6 +91,7 @@ internal static class InvOwnerOnProcessEvent
             // this game plays the offering right after (InvOwnerOffering._OnProcess), with the same dice
             Seed = __instance is InvOwnerOffering ? AltarDice.Roll() : 0,
         });
+        Sent = true;
     }
 
     private static void OnProcessEffect(ElinNetBase connection, InvOwnerEffect effect, Thing t)
@@ -186,7 +194,8 @@ internal static class InvOwnerModEvent
     internal static bool OnMod()
     {
         // the player's own drop, resumed inside the answer to its item request, is not a replay
-        return NetSession.Instance.Connection is not { IsClient: true } || ElinDelta.IsRemoteStateLanding;
+        return NetSession.Instance.Connection is not { IsClient: true } || ElinDelta.IsRemoteStateLanding ||
+               !InvOwnerOnProcessEvent.Sent;
     }
 }
 
@@ -198,7 +207,8 @@ internal static class InvOwnerRefuelEvent
     {
         // client refuel is simulated by CardChargeDelta
         // the player's own drop, resumed inside the answer to its item request, is not a replay
-        return NetSession.Instance.Connection is not { IsClient: true } || ElinDelta.IsRemoteStateLanding;
+        return NetSession.Instance.Connection is not { IsClient: true } || ElinDelta.IsRemoteStateLanding ||
+               !InvOwnerOnProcessEvent.Sent;
     }
 }
 
