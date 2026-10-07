@@ -24,8 +24,10 @@ GAME_EXE = GAME / "Elin.exe"
 LAB_EXE = ROOT / "_lab" / "Elin2" / "Elin.exe"
 LAB3_EXE = ROOT / "_lab" / "Elin3" / "Elin.exe"
 LAB4_EXE = ROOT / "_lab" / "Elin4" / "Elin.exe"
+LAB5_EXE = ROOT / "_lab" / "Elin5" / "Elin.exe"
 # instances clientes : lanceur, fichier Player.log (identites de test 2, 3 et 4, voir make_lab.py)
-CLIENTS = [(LAB_EXE, "elin2-player.log"), (LAB3_EXE, "elin3-player.log"), (LAB4_EXE, "elin4-player.log")]
+CLIENTS = [(LAB_EXE, "elin2-player.log"), (LAB3_EXE, "elin3-player.log"), (LAB4_EXE, "elin4-player.log"),
+           (LAB5_EXE, "elin5-player.log")]
 SAVES = Path.home() / "AppData" / "LocalLow" / "Lafrontier" / "Elin" / "Save"
 PRISTINE = ROOT / "_lab" / "saves" / "world_lab.pristine"
 SHOTS = ROOT / "_shots"
@@ -148,7 +150,7 @@ def _join_client(client_port, name):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--reuse", action="store_true")
-    ap.add_argument("--clients", type=int, default=1, choices=[0, 1, 2, 3])
+    ap.add_argument("--clients", type=int, default=1, choices=[0, 1, 2, 3, 4])
     a = ap.parse_args()
     sys.stdout.reconfigure(encoding="utf-8")
     SHOTS.mkdir(exist_ok=True)

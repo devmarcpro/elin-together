@@ -40,6 +40,10 @@ internal class SleepSynchronizationContext : SynchronizationContext
     // a request the host ignored must not turn a sleep from elsewhere (a spell) into a night screen later
     private const float RequestLife = 5f;
 
+    // a guest whose night screen reached its end waits that long for the host to end the night of the world
+    private const float WakeWait = 60f;
+    private static float _waitSince;
+
     // own sleep, the host: the players away from its map (by peer, with their name), those of them who said
     // they sleep, those who said they are dead, and the hours of the night each sleeper asked for
     private static readonly Dictionary<int, string> _away = [];
@@ -87,6 +91,7 @@ internal class SleepSynchronizationContext : SynchronizationContext
 
         if (ui.GetLayer<LayerSleep>() is null) {
             _ownNight = false;
+            _waitSince = 0f;
         }
 
         if (pc is null or { isDead: true }) {
@@ -944,11 +949,19 @@ internal class SleepSynchronizationContext : SynchronizationContext
                 CloseSleepLayer(__instance);
                 SayAlone();
             }
-        } else if (_minRef(__instance) > _maxMinRef(__instance) + 600) {
-            EmpLog.Warning("Sleep layer timed out waiting for host wake");
-            CloseSleepLayer(__instance);
         } else {
-            _minRef(__instance) += 10;
+            // the host ends the night of the world: counted in seconds, not in steps of this screen (a host
+            // slower than this game, five players on one machine, was given up on after four seconds)
+            if (_waitSince <= 0f) {
+                _waitSince = UnityEngine.Time.unscaledTime;
+            }
+
+            if (UnityEngine.Time.unscaledTime - _waitSince > WakeWait) {
+                EmpLog.Warning("Sleep layer timed out waiting for host wake");
+                CloseSleepLayer(__instance);
+            } else {
+                _minRef(__instance) += 10;
+            }
         }
 
         return false;
@@ -991,6 +1004,7 @@ internal class SleepSynchronizationContext : SynchronizationContext
     private static void CloseSleepLayer(LayerSleep layer)
     {
         _ownNight = false;
+        _waitSince = 0f;
         if (_maxMinRef(layer) == int.MaxValue) {
             return;
         }

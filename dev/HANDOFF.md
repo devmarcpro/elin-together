@@ -1,5 +1,24 @@
 # Passation — ElinTogether « indépendance », état au 2026-10-06, 22h30 (haut du fichier ; le reste est plus ancien)
 
+## État au 7 octobre 2026, 11h30 (à lire en premier)
+
+- **Publiée : 0.26.540.** Corrigé depuis, poussé, **pas publié** (accord à demander) :
+  - facture d'un invité (joué, `bills_suite` 51/53) ; rune/prise, carburant, philtre, vente non identifiée (compilés) ;
+  - **ce qu'un invité prend dans un coffre, une boutique ou la banque et qui s'empile dans sa bourse ou un sous-sac
+    manquait dans son jeu** (`CardTryStackToEvent` : `IsRemoteStateLanding`) : `bank_suite` b1 rouge puis **86/86**,
+    `trade_suite` 122/122, `guest_suite` 333/334 (une baguette qui rate, hasard) ;
+  - l'écran de nuit d'un invité attend la fin de la nuit du monde 60 s réelles au lieu de 60 pas (4 s) ;
+  - le réveil trop tôt de n7 était un bernard-l'ermite du monde de test (pas un défaut).
+- **Cinq joueurs** (demande de l'utilisateur, 2026-10-07 : « des essais avec 5 clients ») : `_lab/Elin5` créé
+  (`make_lab.py Elin5 5`), `mp_test.py --clients 4`, **`five_suite.py` 61/61** (connexion, objets, une minute de jeu,
+  mêmes nombres de carte dans les cinq jeux, nuit commune, deux joueurs à Vernis puis retour). Six fenêtres ne
+  tiennent pas (2,4 Go chacune, 14,8 Go) ; à cinq il reste 1,6 Go. La règle « deux fenêtres au plus » est levée par
+  cette demande pour ces essais.
+- Faux rouges connus du banc : `pickup_suite` « pas de place nulle part » (la bourse a une fenêtre mémorisée dans
+  `ElinMP/OwnSettings` depuis `bank_suite`, elle compte comme une place) ; `economy_suite` veut trois fenêtres.
+- **Le jeu de ce PC** : dernière ligne de `MODLOG.md`.
+- **Ensuite** : publier ; suites à cinq plus dures (combat, donjon, échanges, départ de l'host) ; puis le bloc de 4h.
+
 ## État au 7 octobre 2026, 4h (à lire en premier)
 
 - **Publiée : 0.26.540** (`887405a`). **Corrigé depuis, pas publié** (`ecd5d47` et le commit suivant) :

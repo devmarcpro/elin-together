@@ -2596,3 +2596,11 @@ vrai ; tester `IsRemoteStateLanding`. Réveil trop tôt d'un invité vu deux foi
 journal chez l'host dit maintenant ce qui met fin au sommeil d'un invité. `bank_suite` : le banc ne trouve pas l'or.
 
 Le jeu de ce PC contient de nouveau la 0.26.540 publiee (remise a 4h10 le 7 octobre) : refaire devuild.ps1 avant tout test.
+
+## 2026-10-07, 11h30 — banque d'un invité prouvée, premier essai à cinq joueurs
+
+Détail dans `HANDOFF.md` (« État au 7 octobre 2026, 11h30 »). `bank_suite` 86/86 après correction de l'empilement
+dans la bourse ; `five_suite.py` (neuf) 61/61 à host + 4 clients. Piège du banc : `ElinMP/OwnSettings` garde les
+fenêtres d'un monde de test à l'autre (même graine, même uid).
+
+Le jeu de ce PC contient la 0.26.540 publiee (remise a 11h30 le 7 octobre) : refaire devuild.ps1 avant tout test.
