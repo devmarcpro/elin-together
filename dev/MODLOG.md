@@ -2604,3 +2604,5 @@ dans la bourse ; `five_suite.py` (neuf) 61/61 à host + 4 clients. Piège du ban
 fenêtres d'un monde de test à l'autre (même graine, même uid).
 
 Le jeu de ce PC contient la 0.26.540 publiee (remise a 11h30 le 7 octobre) : refaire devuild.ps1 avant tout test.
+
+Publie : 0.26.548 (commit fab31de). Le jeu de ce PC contient ce build Release (make_release) : refaire devuild.ps1 avant tout test.
