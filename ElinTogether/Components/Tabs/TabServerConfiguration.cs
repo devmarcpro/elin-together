@@ -28,6 +28,7 @@ internal class TabServerConfiguration : TabEmpBase
         Option(players, "auto_save", EmpConfig.Server.AutoSave);
         Option(players, "world_copy", EmpConfig.Server.WorldCopy);
         Option(players, "same_game_version", EmpConfig.Server.SameGameVersion);
+        Option(players, "publish_mods", EmpConfig.Server.PublishMods);
 
         var own = Section("own");
         Option(own, "personal_quests", EmpConfig.Server.PersonalQuests);

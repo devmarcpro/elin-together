@@ -100,11 +100,26 @@ internal partial class ElinNetClient : ElinNetBase
 
     private Action? _rejoin;
 
+    /// <summary>
+    ///     Where this game is joined, in words a restarted Elin can read (ModFetch): "lobby id", "address host:port",
+    ///     "port n" on the bench. Empty: nothing says where
+    /// </summary>
+    internal string ReturnTo
+    {
+        get {
+            ulong lobby = Session.Lobby.Current;
+            return _returnTo ?? (lobby != 0 ? $"lobby {lobby}" : "");
+        }
+    }
+
+    private string? _returnTo;
+
     public void ConnectLocalPort(ushort port = EmpConstants.LocalPort)
     {
         Stop();
         IsLocalConnection = true;
         _rejoin = () => Session.InitializeComponent<ElinNetClient>().ConnectLocalPort(port);
+        _returnTo = $"port {port}";
         Socket.Connect(port);
     }
 
@@ -118,6 +133,7 @@ internal partial class ElinNetClient : ElinNetBase
         IsLocalConnection = false;
         IsDirectConnection = true;
         _rejoin = () => Session.InitializeComponent<ElinNetClient>().ConnectAddress(address);
+        _returnTo = $"address {address}";
         Socket.Connect(address);
     }
 

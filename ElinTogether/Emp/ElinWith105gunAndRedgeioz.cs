@@ -35,6 +35,9 @@ internal sealed class EmpMod : BaseUnityPlugin
         EmpPop.InitLogger();
         EmpConfig.Bind();
 
+        // the game has read its mod list: the player's own goes back on the disk if this run is a session's
+        ModFetch.Boot();
+
         NetShutdown.SetupApplicationHook();
 
         CommandRegistry.assemblies.Add(Assembly);
@@ -67,6 +70,12 @@ internal sealed class EmpMod : BaseUnityPlugin
         NetSession.Instance.Lobby.TryParseLobbyCommand();
 
         TitleButtonPatch.RegisterTitleButton(Scene.Mode.Title);
+    }
+
+    // (the patches of a release build are only there while a session is: this runs on the title screen too)
+    private void Update()
+    {
+        ModFetch.Update();
     }
 
     private void OnDestroy()

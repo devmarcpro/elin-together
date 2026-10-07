@@ -51,6 +51,12 @@ internal class TabClientConfiguration : TabEmpBase
 
         // how a private GitHub repository becomes the depot, where it is set
         Text("emp_ui_depot_gh_help".lang());
+
+        // the mods of the game joined, fetched without subscribing (ModFetch): this player's own choice
+        var fetch = EmpConfig.Client.FetchMods;
+        Toggle("emp_ui_cl_fetch_mods", fetch.Value, value => fetch.Value = value)
+            .SetTooltipLang(fetch.Description.Description);
+        TextSmall("        " + "emp_ui_cl_desc_fetch_mods".lang());
     }
 
     private YKHorizontal Row()

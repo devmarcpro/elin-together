@@ -69,6 +69,15 @@ internal partial class EmpConfig
             "Address of the server joined last with \"Join by address\", as host:port (the port is 55556)\n" +
             "上次通过“按地址加入”连接的服务器地址，格式为 主机:端口（端口为 55556）");
 
+        Client.FetchMods = config.Bind(
+            "Client",
+            "FetchMods",
+            false,
+            "When the game joined (or the world taken from the depot) has Workshop mods that are not loaded here, download them without subscribing,\n" +
+            "restart Elin with exactly the mods of that game for one session, and come back to the game by itself\n" +
+            "Your own mod list is back at the next start. New, off until it has been tried between two PCs\n" +
+            "加入的游戏（或从仓库取得的世界）有本机未加载的创意工坊模组时：不订阅直接下载，以该游戏的模组重启 Elin 一次并自动回到游戏；下次启动恢复你自己的模组列表。新功能，默认关闭");
+
         Client.PingKeybind = config.Bind(
             "Client",
             "PingKeybind",
@@ -132,6 +141,15 @@ internal partial class EmpConfig
             "Refuse players whose version of Elin is not the host's\n" +
             "Off: they are let in and both are told; the same version of the mod is always required\n" +
             "拒绝游戏版本与主机不同的玩家");
+
+        Server.PublishMods = config.Bind(
+            "Server",
+            "PublishMods",
+            true,
+            "The list of the mods of the game is shown to the players before they join (Steam lobby) and sent when they do\n" +
+            "It is the list of the world when it came from a depot (modlist.txt), else the mods of the host\n" +
+            "A player who is refused, or who takes the world, is told which mods differ. Otherwise nothing is said\n" +
+            "游戏的模组列表会在玩家加入前显示（Steam 大厅）并在加入时发送；世界来自仓库时使用仓库的列表（modlist.txt），否则使用主机的模组。被拒绝或取得世界的玩家会被告知哪些模组不同");
 
         Server.PlayerCombatTime = config.Bind(
             "Server",
@@ -397,6 +415,7 @@ internal partial class EmpConfig
         internal static ConfigEntry<string> DepotPath { get; set; } = null!;
         internal static ConfigEntry<string> DepotPassword { get; set; } = null!;
         internal static ConfigEntry<string> ServerAddress { get; set; } = null!;
+        internal static ConfigEntry<bool> FetchMods { get; set; } = null!;
     }
 
     internal static class Server
@@ -407,6 +426,7 @@ internal partial class EmpConfig
         internal static ConfigEntry<bool> TurnBasedCombat { get; set; } = null!;
         internal static ConfigEntry<bool> IndependentTravel { get; set; } = null!;
         internal static ConfigEntry<bool> SameGameVersion { get; set; } = null!;
+        internal static ConfigEntry<bool> PublishMods { get; set; } = null!;
         internal static ConfigEntry<bool> PlayerShipping { get; set; } = null!;
         internal static ConfigEntry<bool> GuestBuild { get; set; } = null!;
         internal static ConfigEntry<bool> PlayerKill { get; set; } = null!;

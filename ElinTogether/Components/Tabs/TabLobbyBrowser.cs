@@ -134,6 +134,13 @@ internal class TabLobbyBrowser : TabEmpBase
 
                 HeaderCard("emp_ui_lobby_desc".Loc(lobby.Name, lobby.GameVersion, count, lobby[EmpLobbyData.CurrentZone]));
 
+                // what that game runs with, when its host says so: known before joining
+                if (ModList.Summary(lobby[EmpLobbyData.Mods]) is { } mods) {
+                    TextSmall(mods.Missing > 0
+                        ? "emp_ui_mods_lobby_missing".Loc(mods.Count, mods.Missing)
+                        : "emp_ui_mods_lobby".Loc(mods.Count));
+                }
+
                 // from the title screen: one click joins that game (in a game, the player leaves it first)
                 if (!EClass.core.IsGameStarted) {
                     var target = lobby;

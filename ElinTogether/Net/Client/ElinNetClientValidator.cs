@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Text;
 using ElinTogether.API.SourceValidation;
 using ElinTogether.Common;
+using ElinTogether.Helper;
 using ElinTogether.LangMod;
 using ElinTogether.Models;
 using UnityEngine;
@@ -15,6 +16,10 @@ internal partial class ElinNetClient
     private static readonly Color _colorChanged = new(0.45f, 0.05f, 0.40f);
 
     public SourceValidationFailed? PendingMismatch { get; private set; }
+
+    // the mods the host published at this join, and how they differ from ours
+    private ModList.Diff? _mods;
+    private string _modsText = "";
 
     private void ContinueJoin()
     {
@@ -89,6 +94,20 @@ internal partial class ElinNetClient
 
             AppendDetails(sb, rejected.Details);
 
+            // which mods differ, by name (the log has their Workshop pages)
+            if (_mods is { } mods) {
+                // nothing to download, mods of ours the host does not have: Elin restarts without them, once
+                if (mods.Missing.Count == 0 && mods.Extra.Count > 0 &&
+                    rejected.Reason == NetIntegrityRejected.NetIntegrityRejectReason.ActMappingMismatch &&
+                    ModFetch.Begin(_modsText, mods, ReturnTo)) {
+                    Socket.Disconnect(Host, EmpDisconnectInfo.ActMappingMismatch);
+                    return;
+                }
+
+                sb.AppendLine();
+                sb.Append(ModList.Lines(mods));
+            }
+
             detail = sb.ToString();
         }
         Dialog.Ok(detail);
@@ -137,6 +156,18 @@ internal partial class ElinNetClient
     {
         EmpLog.Debug("Received source validation request: {SourceCount} sources, {FileCount} files, flags={Flags}",
             request.SourceNames.Count, request.FilePaths.Count, (ValidationFlags)request.ValidationFlags);
+
+        // the mods of the game against ours, before anything of the world is sent: a refusal can then name them
+        _mods = null;
+        _modsText = request.Mods ?? "";
+        if (_modsText.Length > 0) {
+            _mods = ModList.Compare(ModListFile.Parse(_modsText), "the host");
+            if (_mods.Missing.Count > 0 && ModFetch.Begin(_modsText, _mods, ReturnTo)) {
+                // they are fetched, Elin restarts with them and joins again by itself: nothing more is asked here
+                Socket.Disconnect(Host, EmpDisconnectInfo.ClientCancel);
+                return;
+            }
+        }
 
         Host.Send(SourceValidationResponse.Create(request));
     }

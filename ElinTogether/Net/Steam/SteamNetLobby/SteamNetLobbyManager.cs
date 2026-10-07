@@ -295,6 +295,11 @@ public class SteamNetLobbyManager : EClass
         Current[EmpLobbyData.GameBuild] = BuildVersionIntegrity.GameVersion;
         Current[EmpLobbyData.CurrentZone] = core.game?.activeZone?.NameWithLevel ?? "";
 
+        // the mods of the game, for who looks at the list of games before joining
+        if (EmpConfig.Server.PublishMods.Value) {
+            Current[EmpLobbyData.Mods] = ModList.Compact;
+        }
+
         NetSession.Instance.SessionId = Current;
 
         UpdateRichPresence();

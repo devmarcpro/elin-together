@@ -14,4 +14,10 @@ public class SourceValidationRequest
 
     [Key(2)]
     public int ValidationFlags { get; init; }
+
+    /// <summary>
+    ///     The mods of the game, as modlist.txt (ModList.Reference). Null: the host does not publish them
+    /// </summary>
+    [Key(3)]
+    public string? Mods { get; init; }
 }

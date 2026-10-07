@@ -22,6 +22,9 @@ G12 une sauvegarde gardee d'une session precedente ne remplace jamais un monde d
 G13 noms de depot refuses, depot renomme (301), monde trop gros au telechargement
 G14 le verrou dit ou rejoindre celui qui tient le monde (champ "join" ajoute) : ecrit a la prise, relu par les
     autres, mis a jour au battement, efface quand il rend le monde ; un ancien verrou sans ce champ est lu sans erreur
+G15 modlist.txt : la liste des mods du monde, ecrite une fois a cote de lui, jamais remplacee par le jeu
+G16 cette liste est relue par qui prend le monde (MODS), telle qu'elle est dans le depot, changee a la main ou non,
+    et lue par le mod (ModListFile.Parse) ; un depot sans liste ne donne rien
 G9  la cle n'est nulle part ailleurs que dans l'en-tete Authorization ; aucune ecriture forcee
 """
 import base64
@@ -124,6 +127,18 @@ class Player:
         """(reponse, marque du monde recu)"""
         answer = self.ask(f"TAKE {self.file}")
         return answer, zipfile.ZipFile(self.file).read("game.txt").decode() if answer.startswith("OK") else None
+
+    def mods(self):
+        """(reponse, texte de modlist.txt du depot tel que le mod le recoit)"""
+        path = TMP / f"{self.name}.modlist.txt"
+        answer = self.ask(f"MODS {path}")
+        return answer, path.read_bytes().decode("utf-8") if answer.startswith("OK") else None
+
+    def parse(self, text):
+        """Ce que le mod lit dans ce texte (ModListFile.Parse) : "numero Workshop;id;titre" par mod."""
+        path = TMP / f"{self.name}.parse.txt"
+        path.write_bytes(text.encode("utf-8"))
+        return self.ask(f"PARSE {path}")
 
     def close(self):
         self.process.stdin.close()
@@ -407,6 +422,44 @@ def main():
               and "id=111" in ctl("/__state")["repos"]["test/mods"]["files"]["modlist.txt"]["text"]
               and "id=222" not in ctl("/__state")["repos"]["test/mods"]["files"]["modlist.txt"]["text"])
         m2.ask("RELEASE")
+
+        print("--- G16")
+        # la liste du monde est relue (MODS) par qui prend le monde : le texte du depot, tel quel, sans rien y tenir
+        written = ctl("/__state")["repos"]["test/mods"]["files"]["modlist.txt"]["text"]
+        before = requests()
+        answer, text = m2.mods()
+        check(f"un joueur relit la liste du depot : le texte ecrit par le premier revient ({answer})",
+              answer == f"OK {len(written)}" and text == written)
+        check("une seule demande, aucune ecriture, le monde reste libre",
+              requests() == before + 1 and ctl("/__state")["log"][-1]["method"] == "GET"
+              and not json.loads(ctl("/__state")["repos"]["test/mods"]["files"]["lock.json"]["text"]).get("id"))
+        check(f"lue par le mod : un mod du Workshop, avec son titre ({m2.parse(text)})", m2.parse(text) == "OK 111;;Mod A")
+        hand = ("﻿# liste changee a la main\r\n\r\nMod A\r\n    https://steamcommunity.com/sharedfiles/filedetails/?id=111\r\n"
+                "https://steamcommunity.com/sharedfiles/filedetails/?id=333&searchtext=abc\r\n"
+                "- Mod D : steamcommunity.com/workshop/filedetails/?id=444\r\n"
+                "# https://steamcommunity.com/sharedfiles/filedetails/?id=555 (en commentaire : pas un mod)\r\n"
+                "Mod A encore\r\nhttps://steamcommunity.com/sharedfiles/filedetails/?id=111\r\n"
+                "Elin Together (Beta)\r\n    https://github.com/devmarcpro/elin-together/releases (not the Workshop version: same version for every player)\r\n"
+                "L'original du Workshop\r\n    https://steamcommunity.com/sharedfiles/filedetails/?id=3773298709\r\n"
+                "Mod <b>local</b>\r\n    (installed by hand, not on the Workshop: ask the player who hosts) id mon.mod.local\r\n"
+                "une ligne sans lien\r\n")
+        ctl("/__write", repo="test/mods", path="modlist.txt", content=base64.b64encode(hand.encode()).decode())
+        answer, text = m1.mods()
+        check("la liste changee a la main dans le depot revient telle quelle (BOM, fins de ligne Windows, commentaires)",
+              answer == f"OK {len(hand)}" and text == hand)
+        parsed = m1.parse(text)
+        check(f"lue par le mod : toute ligne avec une page du Workshop est un mod, une fois ; le fork et son original "
+              f"n'y sont pas ; le mod installe a la main est garde sans numero, son titre sans balise ({parsed})",
+              parsed == "OK 111;;Mod A | 333;; | 444;;Mod D | ;mon.mod.local;Mod blocal/b")
+        check("et le jeu ne la remplace toujours pas en sauvegardant",
+              m1.take()[0] == "OK " and m1.put("monde de M1, liste a la main") == "OK " and m1.mods()[1] == hand
+              and m1.ask("RELEASE") == "OK ")
+        ctl("/__repo", name="test/sansliste", private=True)
+        n = player("N", depot="test/sansliste")
+        check("un depot sans liste : pas de texte, pas d'erreur, rien d'ecrit",
+              n.mods() == ("OK 0", "") and not ctl("/__state")["repos"]["test/sansliste"]["files"]
+              and n.parse("") == "OK ")
+        check("cle refusee : la liste n'est pas lue", player("X", token="ghp_fausse", depot="test/mods").mods()[0] == "NO password")
 
         print("--- G9")
         log = ctl("/__state")["log"]

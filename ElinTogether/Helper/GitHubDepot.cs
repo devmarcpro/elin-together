@@ -14,9 +14,10 @@ namespace ElinTogether.Helper;
 /// <summary>
 ///     The save depot kept in a private GitHub repository: it answers the same five requests as Elin Together
 ///     Server (WHO, TAKE, PUT, BEAT, RELEASE) with two files of the default branch, `lock.json` (who hosts) and
-///     `world.zip`. Every write names the version it replaces (`sha`), so of two players writing at once GitHub
+///     `world.zip`, and one more (MODS) for `modlist.txt`, the mods of the world, written beside them. Every
+///     write names the version it replaces (`sha`), so of two players writing at once GitHub
 ///     accepts one: that refusal is the lock. Nothing is ever forced, and the history keeps every world. <br />
-///     Nothing of the game in here (dev/_tools/github_depot_cli compiles this file alone). The access key only
+///     Nothing of the game in here (dev/_tools/github_depot_cli compiles this file and ModListFile.cs alone). The access key only
 ///     ever travels in the Authorization header: never in an address, a message or a log
 /// </summary>
 internal static class GitHubDepot
@@ -227,6 +228,11 @@ internal static class GitHubDepot
 
                 Hold(me, name);
                 return (true, "", null);
+            case "MODS":
+                // modlist.txt, the list of the world, as it is in the repository (it may have been changed by
+                // hand). No such file: no text. Nothing is held or written
+                var mods = Send("GET", "/contents/modlist.txt", raw: true);
+                return (true, mods.Status == 200 ? Encoding.UTF8.GetString(mods.Body) : "", null);
             case "RELEASE":
                 _changed = false;
                 _worldSha = _triedSha = null;

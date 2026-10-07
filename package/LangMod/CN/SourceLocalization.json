@@ -288,5 +288,21 @@
     "LangGeneral.emp_ui_sv_cfg_shared_tax.text": "按名声最高的玩家计税",
     "LangGeneral.emp_ui_sv_desc_shared_tax.text": "开：每月税金按在线玩家中最高的名声计算。关：按主机的名声计算（与原版相同）。",
     "LangGeneral.emp_ui_sv_cfg_soft_recall.text": "与主机会合时不重新载入世界（新功能）",
-    "LangGeneral.emp_ui_sv_desc_soft_recall.text": "开启：主机走进某位玩家独自所在的地图，或该玩家走进主机所在的地图时，不再重新载入整个世界（留在原地，或只载入那一张地图）；如有任何不一致，仍会像以前一样载入世界。关闭：每次都会重新载入世界。"
+    "LangGeneral.emp_ui_sv_desc_soft_recall.text": "开启：主机走进某位玩家独自所在的地图，或该玩家走进主机所在的地图时，不再重新载入整个世界（留在原地，或只载入那一张地图）；如有任何不一致，仍会像以前一样载入世界。关闭：每次都会重新载入世界。",
+    "LangGeneral.emp_ui_sv_cfg_publish_mods.text": "向玩家公开游戏的模组列表",
+    "LangGeneral.emp_ui_sv_desc_publish_mods.text": "开启：加入前（游戏列表）和加入时都会告知模组列表，被拒绝的玩家会看到具体是哪些模组不同。从仓库取得的世界使用仓库的列表（modlist.txt）。关闭：不告知。",
+    "LangGeneral.emp_ui_cl_fetch_mods.text": "自动获取游戏的模组（新功能）",
+    "LangGeneral.emp_ui_cl_desc_fetch_mods.text": "开启：加入的游戏中本机缺少的创意工坊模组会在不订阅的情况下下载，Elin 仅以该游戏的模组重启一次并自动回到游戏；下次启动时恢复你自己的模组列表。关闭：只告知哪些模组不同。",
+    "LangGeneral.emp_ui_mods_lobby.text": "{0} 个模组",
+    "LangGeneral.emp_ui_mods_lobby_missing.text": "{0} 个模组，本机缺少 {1} 个",
+    "LangGeneral.emp_ui_mods_world.text": "这个世界的模组中有 {0} 个未在本机加载：{1}。完整列表见日志。",
+    "LangGeneral.emp_ui_mods_missing.text": "本机缺少的主机模组（{0}）：{1}",
+    "LangGeneral.emp_ui_mods_hand.text": "需要手动安装的模组（{0}）：{1}",
+    "LangGeneral.emp_ui_mods_extra.text": "主机没有的本机模组（{0}）：{1}",
+    "LangGeneral.emp_ui_mods_fetching.text": "正在下载游戏的模组 {0}/{1}：{2} {3}%（按 Esc 取消）",
+    "LangGeneral.emp_ui_mods_fetch_failed.text": "无法下载游戏的模组，未做任何更改。",
+    "LangGeneral.emp_ui_mods_restart.text": "Elin 将以游戏的模组重启并自动回到游戏。如果没有自动启动，请再次启动 Elin。",
+    "LangGeneral.emp_ui_mods_restart_manual.text": "Elin 即将关闭。请再次启动：它会带着游戏的模组自动回到游戏。",
+    "LangGeneral.emp_ui_mods_session.text": "本次 Elin 使用的是多人游戏的模组。下次启动时恢复你自己的模组列表。",
+    "LangGeneral.emp_ui_mods_session_locked.text": "本次会话期间不会保存模组列表：下次启动 Elin 时恢复你自己的列表。"
 }

@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-    <!-- The mod's GitHubDepot.cs, alone, behind a command line: dev/_tools/depot_github_test.py drives it
+    <!-- The mod's GitHubDepot.cs (and ModListFile.cs, which reads modlist.txt), alone, behind a command line: dev/_tools/depot_github_test.py drives it
          against dev/_tools/fake_github.py. Nothing of the game is needed to build or run it. -->
     <PropertyGroup>
         <OutputType>Exe</OutputType>
@@ -11,6 +11,7 @@
     </PropertyGroup>
     <ItemGroup>
         <Compile Include="..\..\..\ElinTogether\Helper\GitHubDepot.cs"/>
+        <Compile Include="..\..\..\ElinTogether\Helper\ModListFile.cs"/>
         <PackageReference Include="Newtonsoft.Json" Version="13.0.1"/>
     </ItemGroup>
 </Project>

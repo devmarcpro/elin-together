@@ -75,6 +75,7 @@ internal static class SaveDepot
     private static string Root => EmpConfig.Client.DepotPath.Value.Trim();
     private static string World => Path.Combine(Root, "world");
     private static string LockFile => Path.Combine(Root, "host.txt");
+    private static string ModsFile => Path.Combine(Root, "modlist.txt");
     private static string Local => CorePath.RootSave + WorldId;
 
     /// <summary>
@@ -267,6 +268,15 @@ internal static class SaveDepot
             return;
         }
 
+        // the list of the world (modlist.txt): whoever hosts it plays with these mods. With FetchMods it is read
+        // before the world is held: what is missing is fetched, Elin restarts and takes the world by itself
+        var fetch = EmpConfig.Client.FetchMods.Value;
+        var mods = fetch ? WorldMods() : null;
+        var differs = mods is null ? null : ModList.Compare(ModListFile.Parse(mods), "the depot");
+        if (differs is { Missing.Count: > 0 } && ModFetch.Begin(mods!, differs, "depot")) {
+            return;
+        }
+
         try {
             if (Asked) {
                 var reply = Ask("TAKE");
@@ -306,7 +316,34 @@ internal static class SaveDepot
         _openTold = default;
         EmpLog.Information("Took the world from the depot {Root}", Root);
         Taken = true;
+        // its list is what this game publishes while it hosts it; what is not loaded here is said, by name
+        if (!fetch && EmpConfig.Server.PublishMods.Value) {
+            mods = WorldMods();
+            differs = mods is null ? null : ModList.Compare(ModListFile.Parse(mods), "the depot");
+        }
+
+        ModList.World = mods;
+        if (differs is not null) {
+            ModList.Tell(differs);
+        }
+
         Game.Load(WorldId, false);
+    }
+
+    /// <summary>
+    ///     modlist.txt of the depot: the mods of the world. Null: the depot has none (the server application
+    ///     keeps none), or it could not be read
+    /// </summary>
+    private static string? WorldMods()
+    {
+        try {
+            var text = GitHub ? Ask("MODS") is { Ok: true } reply ? reply.Text : "" :
+                !Remote && File.Exists(ModsFile) ? File.ReadAllText(ModsFile) : "";
+            return text.Trim().Length > 0 ? text : null;
+        } catch (Exception ex) {
+            EmpLog.Warning("Could not read the mods of the world in the depot {Root}: {Why}", Root, ex.GetBaseException().Message);
+            return null;
+        }
     }
 
     /// <summary>
@@ -518,6 +555,15 @@ internal static class SaveDepot
             Directory.Move(incoming, World);
             IO.DeleteDirectory(old);
             EmpLog.Information("World sent to the depot {Root}", Root);
+            try {
+                // the list of the world, as GitHubDepot.WriteModList: written when there is none, never replaced
+                if (!File.Exists(ModsFile)) {
+                    File.WriteAllText(ModsFile, ModList.Text);
+                }
+            } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) {
+                // the world is sent already
+            }
+
             return true;
         } catch (Exception ex) {
             EmpLog.Warning("Could not send the world to the depot {Root}: {Why}", Root, ex.GetBaseException().Message);

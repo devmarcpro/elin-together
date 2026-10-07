@@ -22,6 +22,7 @@ internal static class NetShutdown
         IsQuitting = true;
 
         Helper.SaveDepot.OnQuit();
+        Helper.ModFetch.OnQuit();
 
         try {
             NetSession.Instance.Transport?.Shutdown();

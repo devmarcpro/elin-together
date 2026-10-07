@@ -186,6 +186,8 @@ internal partial class ElinNetHost
             SourceNames = GetValidationSourceNames(),
             FilePaths = GetValidationFilePaths(),
             ValidationFlags = (int)ValidFlags,
+            // what differs is named to the guest, before the world is sent; the acts still decide who comes in
+            Mods = EmpConfig.Server.PublishMods.Value ? Helper.ModList.Reference : null,
         });
     }
 
