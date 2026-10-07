@@ -595,6 +595,7 @@ internal static class SaveDepot
             // ponytail: here too the game waits (Take, Put, "Join by address": the player just clicked), a few
             // seconds with GitHub, seven for the first request, and up to a minute behind a save still going
             Settle();
+            GitHubDepot.ModListText ??= () => ModList.Text;
             return GitHubDepot.Ask(Root.Substring(7), EmpConfig.Client.DepotPassword.Value, command, Me, MyName, body,
                 descends, MyJoin);
         }
@@ -658,6 +659,7 @@ internal static class SaveDepot
         _asking = _asking.ContinueWith(_ => {
             (bool Ok, string Text, byte[]? Body) reply;
             try {
+                GitHubDepot.ModListText ??= () => ModList.Text;
                 reply = GitHubDepot.Ask(root.Substring(7), key, command, Me, name, body, join: join);
                 if (reply.Ok) {
                     sent?.Invoke();

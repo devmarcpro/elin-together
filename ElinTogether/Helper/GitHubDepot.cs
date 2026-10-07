@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Globalization;
 using System.IO;
 using System.Net;
@@ -201,6 +202,7 @@ internal static class GitHubDepot
                     // replaced, as the server does; the history keeps it
                     if (Write("world.zip", body, there, "world saved by " + name) is { } sha) {
                         _worldSha = sha;
+                        WriteModList(name);
                         return (true, "", null);
                     }
                 }
@@ -411,6 +413,38 @@ internal static class GitHubDepot
             throw new IOException("GitHub does not answer: " + ex.Status);
         }
     }
+
+    /// <summary>
+    ///     modlist.txt next to the world: the mods of the game that first saved it, with their Workshop pages. It is
+    ///     the list of the WORLD from then on (who hosts or joins plays with these mods): written when there is
+    ///     none, never replaced by the game, changed by hand in the repository (one link a line). Never a reason
+    ///     to fail: the world is saved already
+    /// </summary>
+    private static void WriteModList(string name)
+    {
+        if (ModListText is not { } text) {
+            return;
+        }
+
+        try {
+            var content = Encoding.UTF8.GetBytes(text());
+            var reply = Send("GET", "/contents/");
+            if (reply.Status != 200 ||
+                JArray.Parse(Encoding.UTF8.GetString(reply.Body)).Any(file => (string?)file["name"] == "modlist.txt")) {
+                return;
+            }
+
+            Thread.Sleep(_api.StartsWith("https") ? 1000 : 0);
+            Write("modlist.txt", content, null, "mods of the world, from " + name);
+        } catch (Exception) {
+            // the next save tries again
+        }
+    }
+
+    /// <summary>
+    ///     The text of modlist.txt, given by the game (this file knows nothing of it). Null: no such file
+    /// </summary>
+    internal static Func<string>? ModListText { get; set; }
 
     /// <summary>
     ///     The name git, and so GitHub, gives to a file of these bytes

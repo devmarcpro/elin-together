@@ -85,3 +85,16 @@ Elle lève l'objection principale du conseil (abonnement permanent, valable sur 
   désactiver dans `loadorder.txt` à la fin et le retirer au lancement suivant. À concevoir et à essayer sur un vrai PC.
 - Conséquence sur le découpage : M2 devient « télécharger sans abonnement » ; le compte Steam et le jeu solo de
   l'invité ne sont plus touchés, ce qui rouvre la question « un clic ou aucun ».
+
+## Demandes de l'utilisateur du 7 octobre au soir : la liste des mods vit dans le dépôt du monde
+
+1. « Dans le repo, une modlist, un fichier txt avec les liens des mods » : **fait** pour le dépôt GitHub
+   (`Helper/ModList.cs`, `GitHubDepot.WriteModList`) : `modlist.txt` à côté de `world.zip`, un mod par ligne (titre,
+   puis la page du Workshop ; « installé à la main » sinon ; le fork renvoie à ses versions GitHub). Écrit quand le
+   dépôt n'en a pas, **jamais remplacé par le jeu** : c'est la liste du MONDE, on la change à la main dans le dépôt
+   (un lien par ligne). `depot_github_test.py` G15, 77/77. Pas fait : dépôt en dossier et serveur de dépôt.
+2. « Quand un joueur héberge ou rejoint la partie, qu'il charge les mods du repo » : la liste du dépôt devient la
+   référence. À écrire (tranches M2/M3 revues) : lire `modlist.txt` à la prise du monde (héberger) et la liste
+   publiée par l'host (rejoindre), comparer aux mods chargés, télécharger ce qui manque **sans abonnement** (comme
+   Civ 6), relancer Elin, revenir tout seul ; mods en trop coupés le temps de la session. La lecture doit accepter
+   un fichier modifié à la main (toute ligne contenant `filedetails/?id=<nombre>`).

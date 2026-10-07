@@ -97,10 +97,12 @@ def blob_sha(data):
 class Player:
     """Un jeu : un processus qui garde en memoire ce qu'il a pris, comme le mod."""
 
-    def __init__(self, name, token=TOKEN, depot=REPO, join=None):
+    def __init__(self, name, token=TOKEN, depot=REPO, join=None, mods=None):
         self.name = name
         self.file = TMP / f"{name}.zip"
         env = dict(os.environ, DEPOT_TOKEN=token, ELINTOGETHER_GITHUB_API=API)
+        if mods:
+            env["DEPOT_MODLIST"] = mods
         self.process = subprocess.Popen(
             ["dotnet", str(CLI / "bin" / "Release" / "net6.0" / "github_depot_cli.dll"), depot, f"PC-{name}:1", name]
             + ([join] if join else []),
@@ -387,6 +389,24 @@ def main():
         ctl("/__clock", offset=offset)
         check("perime, il se reprend comme avant ; un joueur qui ne dit pas ou le rejoindre ecrit un verrou sans ce champ", c.ask("WHO") == "OK " and c.take()[0] == "OK "
               and "join" not in lock() and c.ask("RELEASE") == "OK ")
+
+        print("--- G15")
+        # modlist.txt : la liste des mods du MONDE, ecrite une fois a cote de lui, jamais remplacee par le jeu
+        ctl("/__repo", name="test/mods", private=True)
+        m1 = Player("M1", depot="test/mods", mods="Mod A\n    https://steamcommunity.com/sharedfiles/filedetails/?id=111\n")
+        m2 = Player("M2", depot="test/mods", mods="Mod B\n    https://steamcommunity.com/sharedfiles/filedetails/?id=222\n")
+        players += [m1, m2]
+        check("un joueur met un monde dans un depot sans liste : la liste de ses mods est ecrite a cote",
+              m1.put("monde de M1") == "OK " and "id=111" in ctl("/__state")["repos"]["test/mods"]["files"].get("modlist.txt", {}).get("text", ""))
+        check("il sauvegarde encore : la liste n'est pas reecrite",
+              m1.put("monde de M1, plus tard") == "OK "
+              and len([h for h in ctl("/__state")["repos"]["test/mods"]["history"] if h["path"] == "modlist.txt"]) == 1)
+        check("il quitte", m1.ask("RELEASE") == "OK ")
+        check("un autre joueur, avec d'autres mods, prend le monde et le sauvegarde : la liste du monde reste celle du depot",
+              m2.take()[0] == "OK " and m2.put("monde de M1, joue par M2") == "OK "
+              and "id=111" in ctl("/__state")["repos"]["test/mods"]["files"]["modlist.txt"]["text"]
+              and "id=222" not in ctl("/__state")["repos"]["test/mods"]["files"]["modlist.txt"]["text"])
+        m2.ask("RELEASE")
 
         print("--- G9")
         log = ctl("/__state")["log"]

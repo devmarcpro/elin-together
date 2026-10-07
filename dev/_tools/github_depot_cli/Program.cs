@@ -10,6 +10,10 @@ using ElinTogether.Helper;
 
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 var token = Environment.GetEnvironmentVariable("DEPOT_TOKEN") ?? "";
+// the game gives the text of modlist.txt; here the test does
+if (Environment.GetEnvironmentVariable("DEPOT_MODLIST") is { Length: > 0 } mods) {
+    GitHubDepot.ModListText = () => mods;
+}
 for (var line = Console.ReadLine(); line is not null; line = Console.ReadLine()) {
     var words = line.Split(' ');
     try {
