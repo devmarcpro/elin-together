@@ -2614,3 +2614,5 @@ Publie : 0.26.557 (commit e5db1f1), non jouee. Le jeu de ce PC contient ce build
 Publie : 0.26.560 (non jouee). Le jeu de ce PC contient ce build Release.
 
 Publie : 0.26.566 (non jouee). Le jeu de ce PC contient ce build Release.
+
+Publie : 0.26.584 (commit 4b34696, construite depuis une copie propre). Avant : floors_suite 43/43, guest_suite 323/325 sur monde frais (baguette de l host : connu ; g36 laisse : instable au banc, NRE ou valeur vide dans un eval, a regarder) ; enchainee apres floors_suite dans le meme monde elle donnait 325/334 (seringue sur soi, laisse, taille des rondins : « action absente, proposees : TaskHarvest »), les memes parties passent 40/40 seules sur monde frais : cause non trouvee. Le jeu de ce PC contient ce build Release. Le commit suivant (mods du monde, wip) n en fait pas partie ; sa relecture a donne 6 points a corriger (ModFetch : try autour du popup, retester avant Quit, ticket apres la liste, File.Replace, texte du reglage, ModList.Reference a trancher).
