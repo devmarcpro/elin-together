@@ -78,6 +78,12 @@
   ouvert, compagnons, troisième joueur, tâche en cours, ville, les 18 points de `PLAN_retour_sur_place.md`.
 - **AutoAct** (Workshop 3370686923, demande du 7 octobre) : compatible pour un invité (`CharaTaskRemoteEvent.
   OnStartUnderFake`, `FakeTask.MarkReal`, `CharaProgressCompleteDelta`), `autoact_suite` 11/11, `guest_suite` 332/334.
+- **Dynamic Riding** (Workshop 3548942723, demande du 7 octobre) : mod d'affichage seul, il marchait déjà (chaque
+  jeu dessine la vraie monture de l'autre joueur, cheval, poulet, dragon, y compris après un aller-retour de carte :
+  captures `dev/_shots/zoom-mp-dynride*.png`). Seul défaut trouvé : une exception par cavalier à chaque rechargement
+  (`SpriteProvider.SetSpriteIdle`, table d'une seule image posée par le mod) ; garde `Patches/Compat/
+  RideSpriteGuardPatch.cs`, 0 exception après deux allers-retours. Le décalage du dragon sous le cavalier vu de dos
+  est celui du mod lui-même (pareil en solo, pas touché).
 - **Demande en cours** : que l'invité récupère tout seul les mods de l'host en rejoignant (`PLAN_profil_mods.md`,
   rien d'écrit) : recherche des faits lancée, conseil à réunir (question : redémarrage et consentement contre « le
   joueur n'a pas à réfléchir »).
