@@ -1,33 +1,37 @@
-# Elin Together « indépendance » 0.26.540
+# Elin Together « indépendance » 0.26.548
 
 (English below / version anglaise plus bas)
 
-Suite de la 0.26.532, d'après les retours d'une partie jouée avec elle. **Écrit, relu en partie et compilé, pas joué.**
-Si cette version se passe mal, la 0.26.532 reste en ligne. Compilé pour Elin **EA 23.352 Patch 1** (canal Nightly).
-**Tous les joueurs doivent installer ce même zip, et avoir la même liste de mods.** Faites une copie de vos sauvegardes
-avant : `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
+Suite de la 0.26.540. Cette fois une bonne partie est **jouée au banc de test**, à deux joueurs et à **cinq joueurs**
+(un hébergeur et quatre invités sur un même PC), pas encore dans une vraie partie. Si cette version se passe mal, la
+0.26.540 reste en ligne. Compilé pour Elin **EA 23.352 Patch 1** (canal Nightly). **Tous les joueurs doivent installer
+ce même zip, et avoir la même liste de mods.** Faites une copie de vos sauvegardes avant :
+`%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
 
 ## Corrigé
 
-- **Un invité garde ses réglages à chaque changement de carte et à la reconnexion** : fenêtres d'inventaire, de sacs
-  et d'aptitudes rouvertes au même endroit ; type de combat automatique ; consignes des compagnons ; tris ; disposition
-  de l'écran (mini-carte, widgets, zoom) ; filtre de ramassage automatique ; aptitudes favorites ; suivi de quête.
-  Avant, ceux de l'hébergeur les remplaçaient à chaque carte.
-- **Bloqué en lisant un livre** : quand l'hébergeur quittait la carte pendant la lecture d'un invité, elle restait figée
-  sans pouvoir être annulée. Elle reprend maintenant chez l'invité. Plus aucune activité ne peut rester figée sans
-  réponse.
-- **Coffre d'expédition de l'hébergeur** quand il joue son propre personnage dans un monde pris sur un dépôt : ses
-  objets étaient vendus sans qu'il reçoive l'or ni le rapport. Corrigé, et **l'or qui lui était dû est versé tout seul
-  à la première vente du matin**.
+- **L'or et les objets qu'un invité prend dans un coffre, une boutique ou la banque** et qui vont dans sa bourse ou
+  dans un sac de son sac n'apparaissaient pas dans son jeu (l'hébergeur, lui, les voyait) : une source des « sacs
+  différents ». Vérifié : banque, coffre d'expédition, échanges entre joueurs.
+- **Un invité paie sa facture** (impôt ou livraison) en la déposant dans le coffre des impôts : avant, rien ne se
+  passait. Vérifié.
+- **Nuit commune avec un hébergeur lent** : l'écran de nuit des invités se fermait après quelques secondes sans
+  attendre la fin de la nuit. Il attend maintenant. Vérifié à cinq joueurs.
+- Écrit et compilé, pas joué : une rune ou une prise posée par un invité ne compte plus deux fois dans son jeu, le
+  plein de carburant non plus ; un philtre d'amour donné par un invité garde son effet ; un objet non identifié vendu
+  par un invité est identifié chez l'hébergeur aussi.
 
-## Nouveau
+## Vérifié à cinq joueurs
 
-- **Bouton « Join »** sous chaque partie de la liste, depuis l'écran titre.
+Connexion, objets posés vus par tous à la même case, une minute de jeu ensemble (les cinq jeux gardent exactement la
+même carte), nuit commune (une seule nuit, même date partout, tout le monde reposé), deux joueurs qui partent sur une
+autre carte puis reviennent. Pas encore essayé à cinq : combat, donjon, départ de l'hébergeur.
 
 ## Limites connues
 
-- La toute première fois qu'un joueur rejoint un monde, il part des réglages de l'hébergeur ; les siens sont retenus
-  ensuite. Le contenu des barres de raccourcis tient d'une carte à l'autre, pas après avoir fermé le jeu.
+- Pendant les quelques secondes de sa nuit « à soi », un joueur peut être attaqué : le monde continue pour les autres.
+- Quand l'hébergeur dort seul, la date avance d'environ 40 minutes.
+- Sur la carte du monde, quand tous voyagent ensemble, seuls les pas de l'hébergeur font avancer la date.
 - Un invité mort qui attend sa réanimation au moment où l'hébergeur quitte la carte pourrait rester mort.
 - Un joueur refusé par celui qui tient une carte reçoit encore le monde entier.
 - Chez l'hébergeur, les invités qui marchent avancent par à-coups de trois cases.
@@ -47,31 +51,36 @@ Il faut [YK Framework](https://steamcommunity.com/sharedfiles/filedetails/?id=34
 
 ---
 
-# Elin Together "independence" 0.26.540
+# Elin Together "independence" 0.26.548
 
-Follows 0.26.532, from the reports of a game played with it. **Written, partly reviewed and compiled, not played.** If
-this version goes wrong, 0.26.532 stays online. Built for Elin **EA 23.352 Patch 1** (Nightly branch). **Every player
-must install this same zip and have the same list of mods.** Back up your saves first:
-`%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
+Follows 0.26.540. This time a good part was **played on the test bench**, with two players and with **five players**
+(a host and four guests on one PC), not yet in a real game. If this version goes wrong, 0.26.540 stays online. Built
+for Elin **EA 23.352 Patch 1** (Nightly branch). **Every player must install this same zip and have the same list of
+mods.** Back up your saves first: `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
 
 ## Fixed
 
-- **A guest keeps its own settings at every map change and on reconnection**: inventory, bag and ability windows
-  reopened at the same place; auto combat type; companion orders; sorting; screen layout (minimap, widgets, zoom);
-  auto-pickup filter; favourite abilities; quest tracker. Before, the host's replaced them at every map.
-- **Stuck while reading a book**: when the host left the map while a guest was reading, the reading stayed frozen and
-  could not be cancelled. It now resumes in the guest's game. No task can stay frozen without an answer any more.
-- **The host's shipping chest** when it plays its own character in a world taken from a depot: its goods were sold
-  without gold or report. Fixed, and **the gold it was owed is paid by itself at the next morning sale**.
+- **Gold and items a guest takes out of a chest, a shop or the bank** that go into its purse or a bag inside its bag
+  did not show up in its own game (the host saw them): one source of "bags differ". Checked: bank, shipping chest,
+  trades between players.
+- **A guest pays its bill** (tax or delivery) by dropping it in the tax chest: nothing happened before. Checked.
+- **Shared night with a slow host**: the guests' night screen closed after a few seconds without waiting for the end
+  of the night. It now waits. Checked with five players.
+- Written and compiled, not played: a rune or a plug applied by a guest no longer counts twice in its game, nor does a
+  refuel; a love potion given by a guest keeps its effect; an unidentified item sold by a guest is identified on the
+  host too.
 
-## New
+## Checked with five players
 
-- **"Join" button** under each game of the lobby list, from the title screen.
+Connection, dropped items seen by everyone on the same tile, a minute of play together (the five games keep exactly
+the same map), shared night (one night, same date everywhere, everyone rested), two players leaving for another map
+and coming back. Not tried with five yet: combat, dungeon, the host leaving.
 
 ## Known limits
 
-- The very first time a player joins a world, it starts from the host's settings; its own are kept afterwards. Hotbar
-  content holds from one map to the next, not after closing the game.
+- During the few seconds of a night "of its own", a player can be attacked: the world goes on for the others.
+- When the host sleeps alone, the date moves by about 40 minutes.
+- On the world map, when everyone travels together, only the host's steps move the date.
 - A dead guest waiting to be revived when the host leaves the map might stay dead.
 - A player refused by the holder of a map still receives the whole world.
 - On the host, walking guests move in jumps of three tiles.
