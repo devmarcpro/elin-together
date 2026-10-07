@@ -2594,3 +2594,5 @@ rouge puis vert). Corrigé par relecture, compilé, pas joué : rune/prise et ca
 facture en session de zone. Piège : le geste d'un invité finit DANS la réponse à sa demande d'objet, `IsApplying` y est
 vrai ; tester `IsRemoteStateLanding`. Réveil trop tôt d'un invité vu deux fois dans n7, pas reproduit : une ligne de
 journal chez l'host dit maintenant ce qui met fin au sommeil d'un invité. `bank_suite` : le banc ne trouve pas l'or.
+
+Le jeu de ce PC contient de nouveau la 0.26.540 publiee (remise a 4h10 le 7 octobre) : refaire devuild.ps1 avant tout test.
