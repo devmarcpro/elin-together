@@ -25,6 +25,17 @@ public class ZoneDataResponse
     [Key(3)]
     public required Dictionary<string, LZ4Bytes> Map { get; init; }
 
+    /// <summary>
+    ///     What the sender holds about the zone besides its map (<see cref="ZoneLeaseState.GetState" />). Taken by
+    ///     a client under the host rule SoftRecall only: its world is no longer copied at each return, and the
+    ///     numbers of a zone it keeps later go back to the host with its release
+    /// </summary>
+    [Key(4)]
+    public int[]? ZoneState { get; set; } = null;
+
+    [Key(5)]
+    public string? IdCurrentSubset { get; set; } = null;
+
     [return: NotNullIfNotNull("zone")]
     public static implicit operator ZoneDataResponse?(Zone? zone)
     {
@@ -47,6 +58,8 @@ public class ZoneDataResponse
             Map = Directory
                 .GetFiles(zone.pathSave, "*.*", SearchOption.TopDirectoryOnly)
                 .ToDictionary(Path.GetFileNameWithoutExtension, LZ4Bytes.CreateFromFile),
+            ZoneState = ZoneLeaseState.GetState(zone),
+            IdCurrentSubset = zone.idCurrentSubset,
         };
     }
 

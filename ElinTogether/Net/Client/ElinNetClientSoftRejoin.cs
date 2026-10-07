@@ -46,6 +46,34 @@ internal partial class ElinNetClient
     internal bool IsAwaitingSoftRejoin => _softRejoinDeadline > 0;
 
     /// <summary>
+    ///     Slice 2: the map of the host we walk into without a copy of the world (the number the host knows it
+    ///     by), from our release to the moment that map is loaded here; 0 otherwise. Until then nothing moves in
+    ///     this game and nothing is typed (IsAwaitingSoftRejoin, IsInTransfer)
+    /// </summary>
+    private int _softReturnZone;
+
+    /// <summary>
+    ///     Once told by the host (ZoneSoftRejoin, Travel), how long its map may take to be loaded here: the map
+    ///     comes in the same frame, the placement one round trip later (after a save, on a host that saves by
+    ///     itself there). Shorter than what is kept for an incoming map (ElinDeltaManager.MaxHoldSeconds):
+    ///     nothing the host says of its map is ever applied to the one we are leaving
+    /// </summary>
+    private const float SoftMapWaitSeconds = 8f;
+
+    /// <summary>
+    ///     Slice 2: we walk from the map we hold alone into the map the host stands on, and nothing else is going
+    ///     on. Not out of the world map nor the zone of a quest (no map of ours to hand back), not into them, and
+    ///     not with something in our hands the game drops on the way out (Chara.TryDropCarryOnly: it would lie on
+    ///     a map that is no longer ours)
+    /// </summary>
+    private bool CanReturnSoftly(int hostZoneUid)
+    {
+        return CanRejoinSoftly() && hostZoneUid != Session.AwayZone!.uid &&
+               game.spatials.Find(hostZoneUid) is not ({ IsRegion: true } or { IsInstance: true }) &&
+               pc.held is not { trait.CanOnlyCarry: true } && !pc.things.Any(t => t.trait.CanOnlyCarry);
+    }
+
+    /// <summary>
     ///     We hold that map alone, stand on it alive, and nothing else is going on
     /// </summary>
     private bool CanRejoinSoftly()
@@ -83,7 +111,9 @@ internal partial class ElinNetClient
             return;
         }
 
-        AskWorldCopy(Session.AwayZone?.uid ?? -1, $"no answer after {SoftRejoinWaitSeconds:F0}s");
+        // the number the host waits under: its own map when we walk into it, the map we stay on otherwise
+        AskWorldCopy(_softReturnZone != 0 ? _softReturnZone : Session.AwayZone?.uid ?? -1,
+            Session.IsAway ? $"no answer after {SoftRejoinWaitSeconds:F0}s" : $"no map after {SoftMapWaitSeconds:F0}s");
     }
 
     /// <summary>
@@ -97,6 +127,7 @@ internal partial class ElinNetClient
 
         _softRejoinDeadline = 0;
         _softPlaced = 0;
+        _softReturnZone = 0;
         _worldAskDeadline = Time.realtimeSinceStartup + WorldAskWaitSeconds;
 
         // away again if the switch was made: nothing about the host map is taken until its world is here
@@ -127,7 +158,9 @@ internal partial class ElinNetClient
             return;
         }
 
-        if (!_rejoining || !core.IsGameStarted || Session.AwayZone is not { } zone || zone.uid != rejoin.ZoneUid ||
+        // the answer to what we asked: about the map we stay on, or (Travel) about the one we walk into
+        var expected = rejoin.Travel ? _softReturnZone : _softReturnZone == 0 ? Session.AwayZone?.uid ?? -1 : -1;
+        if (!_rejoining || !core.IsGameStarted || Session.AwayZone is not { } zone || rejoin.ZoneUid != expected ||
             _zone != zone || _map is null || pc.isDead) {
             AskWorldCopy(rejoin.ZoneUid, "not standing on that map as we left it");
             return;
@@ -180,9 +213,11 @@ internal partial class ElinNetClient
             return $"bag differs (here {bag:X8}, host {rejoin.BagMix:X8})";
         }
 
+        // slice 2: we walk into the host's map, which follows this message; ours stays behind, nothing to compare
+        var travel = rejoin.Travel;
         var ours = ZoneLeaseState.Sums(_map);
-        var sameMap = rejoin.MapSums is { } theirs && ZoneLeaseState.SameFloor(ours, theirs);
-        if (sameMap && !ours.SequenceEqual(rejoin.MapSums!)) {
+        var sameMap = travel || (rejoin.MapSums is { } theirs && ZoneLeaseState.SameFloor(ours, theirs));
+        if (!travel && sameMap && !ours.SequenceEqual(rejoin.MapSums!)) {
             // as when a map changes hands (AdoptHostCopy): told, not a reason to load the map under the player
             EmpLog.Information("Soft rejoin of {ZoneFullName}: the content of a container differs, our copy is kept (here {Local} | host {Host})",
                 zone.ZoneFullName, ZoneLeaseState.TellSums(ours), ZoneLeaseState.TellSums(rejoin.MapSums!));
@@ -196,6 +231,9 @@ internal partial class ElinNetClient
         }
 
         var arrived = AdoptHostCharas(rejoin.Charas);
+        if (travel) {
+            ForgetAbsentCharas(rejoin.ZoneUid, arrived);
+        }
 
         // ponytail: our running task is stopped as by hand, nothing used up (lost today too, with the whole scene).
         // The host knows nothing of it and a client's progress is held by the game that keeps the map
@@ -210,23 +248,30 @@ internal partial class ElinNetClient
         // host link again: only our own character ticks here, see CharaTickEvent) and its deltas are taken
         Session.IsGuest = false;
         Session.AwayZone = null;
-        Session.CurrentZone = zone;
+        // walking in: the map that follows says which zone it is (OnZoneDataResponse), known here or not
+        Session.CurrentZone = travel ? game.spatials.Find(rejoin.ZoneUid) ?? Session.CurrentZone : zone;
         _pendingTravel = null;
         _pendingGrant = null;
         _rejoining = false;
         _handoffDeadline = 0;
         _awaitingActivation = 0;
-        _softRejoinDeadline = 0;
-        _softPlaced = zone.uid;
+        // walking in: still nothing moves nor is typed here until the host's map is loaded (EnterBySoftReturn),
+        // and should it not come the world is asked for
+        _softRejoinDeadline = travel ? Time.realtimeSinceStartup + SoftMapWaitSeconds : 0;
+        _softPlaced = travel ? 0 : zone.uid;
         ReportReturn(0);
 
         // as the host's uid counter: a client takes it from every snapshot (WorldStateSnapshot)
         game.cards.uidNext = rejoin.UidNext;
 
         // nothing of this game was a host card while we were alone: every card of the map, of our bag and of the
-        // boxes is one now, under the number both games have
+        // boxes is one now, under the number both games have. Walking in: the map we leave is no longer ours, the
+        // one that follows is cached when it is loaded, our bag with it (ZoneActivateEvent)
         CardCache.Reset();
-        CardCache.CacheCurrentZone();
+        if (!travel) {
+            CardCache.CacheCurrentZone();
+        }
+
         foreach (var chara in arrived) {
             CardCache.Add(chara);
             CardCache.CacheContainer(chara.things);
@@ -244,6 +289,17 @@ internal partial class ElinNetClient
         // not compared during the switch: the first numbers of the host land with the list of players
         NetDesync.HoldOff();
         StartWorldStateUpdate();
+
+        if (travel) {
+            // from this message on the host's deltas are about a map that is not loaded here yet: kept, and
+            // replayed once we stand on it (Delta.MapPlaced in OnZoneActivateResponse). What it said before was
+            // thrown away while we were away (ApplyChatWhileAway) and is in the copy of the map that follows
+            Delta.HoldForIncomingMap();
+
+            EmpLog.Information("Soft return from {ZoneFullName} to zone {ZoneUid}: client of the host again, no world copy, its map follows ({Renumbered} card(s) renumbered, {Charas} character(s) taken)",
+                zone.ZoneFullName, rejoin.ZoneUid, renumbered.Count, arrived.Count);
+            return null;
+        }
 
         EmpLog.Information("Soft rejoin of {ZoneFullName}: client of the host again in place, no world copy ({Renumbered} card(s) renumbered, {Charas} character(s) taken, map {Sums}, same as the host's {SameMap})",
             zone.ZoneFullName, renumbered.Count, arrived.Count, ZoneLeaseState.TellSums(ours), sameMap);
@@ -284,6 +340,113 @@ internal partial class ElinNetClient
 
         pc.Stub_Move(response.Pos, Card.MoveType.Force);
         pc.SetDir(pc.dir);
+    }
+
+    /// <summary>
+    ///     Slice 2: the host said where we stand on its map, the first one loaded since we are its client again
+    ///     without a copy of the world. Loaded as a client following the host loads one (EnterHostMap), with what
+    ///     a game that just left a map of its own needs around it
+    /// </summary>
+    /// <returns>false when the map could not be loaded: the world is asked for</returns>
+    private bool EnterBySoftReturn(Zone hostZone)
+    {
+        var asked = _softReturnZone;
+        _softReturnZone = 0;
+        _softRejoinDeadline = 0;
+
+        try {
+            var left = _zone;
+            var carried = pc.things.Flatten().Select(t => t.uid).ToHashSet();
+
+            // our companions come along, as when we travel alone (CharaMoveZoneEvent.OnTravelWithCompanions: the
+            // game only drags the party of its leader). The host puts each on its tile afterwards
+            foreach (var companion in CompanionHelper.CompanionsOf(pc)) {
+                if (!companion.isDead && companion.parent is Zone && companion.currentZone != hostZone) {
+                    companion.MoveZone(hostZone);
+                }
+            }
+
+            // what we summoned stays on the map we handed back, where the host has it: the game would carry it
+            // over (Chara.MoveZone, player.listCarryoverMap) as a character the host knows nothing of here
+            if (left is not null && left != hostZone && _map is { } leaving) {
+                foreach (var minion in leaving.charas
+                             .Where(c => c.c_uidMaster != 0 && c.c_minionType == MinionType.Default && c.FindMaster() == pc)
+                             .ToList()) {
+                    left.RemoveCard(minion);
+                }
+            }
+
+            EnterHostMap(hostZone);
+
+            // the game puts the artifacts lying on the map we leave in our bag on the way out (Zone.Deactivate):
+            // they are on the copy we handed back, see AdoptHostCopy
+            foreach (var thing in pc.things.Flatten().Where(t => !carried.Contains(t.uid)).ToList()) {
+                EmpLog.Warning("Soft return: {CardId} {Uid} taken on the way out stays on the map we handed back", thing.id, thing.uid);
+                CardCache.Remove(thing.uid);
+                thing.parentCard?.RemoveCard(thing);
+            }
+
+            // leaving a map of our own is no action of ours on the host's: nothing of it is told
+            Delta.ClearOut();
+
+            // ability tokens are no host cards (the load cached our whole bag): told as a client tells them
+            foreach (var token in pc.things.Where(t => t.trait is TraitAbility).ToList()) {
+                CardCache.Remove(token.uid);
+            }
+
+            CardAddThingEvent.AbilityLayoutDirty = true;
+
+            EmpLog.Information("Soft return: map {ZoneFullName} loaded, no world copy", hostZone.ZoneFullName);
+            return true;
+        } catch (Exception ex) {
+            EmpLog.Warning(ex, "Soft return: map {ZoneFullName} could not be loaded", hostZone.ZoneFullName);
+            AskWorldCopy(asked, $"{ex.GetType().Name}: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    ///     Slice 2: the map we walk into is one we did not hold, and our world is as old as its last copy. The
+    ///     host listed the characters of the world standing on its map (AdoptHostCharas): whoever else our world
+    ///     still puts there is elsewhere by now, and must not be placed by the load
+    ///     (Zone.AddGlobalCharasOnActivate). The other players that are not there, and their companions, are
+    ///     forgotten as a client forgets them when they leave (CharaRemoveFromGameDelta, not taken while away):
+    ///     they come whole when they arrive (CardGenDelta), instead of our old copy being taken for them
+    /// </summary>
+    private static void ForgetAbsentCharas(int hostZoneUid, List<Chara> arrived)
+    {
+        var there = arrived.Select(c => c.uid).ToHashSet();
+
+        foreach (var chara in game.cards.globalCharas.Values.ToList()) {
+            if (chara == pc || there.Contains(chara.uid) || chara.CompanionOwnerUid == pc.uid || chara.IsCompanionOf(pc)) {
+                continue;
+            }
+
+            var ofAnotherPlayer = chara.GetBool("remote_chara") || chara.CompanionOwnerUid != 0;
+            if (!ofAnotherPlayer && chara.currentZone?.uid != hostZoneUid) {
+                continue;
+            }
+
+            if (_map.charas.Contains(chara)) {
+                _zone.RemoveCard(chara);
+            } else {
+                if (chara.parent is Zone) {
+                    chara.parent = null;
+                }
+
+                chara.currentZone = null;
+            }
+
+            if (!ofAnotherPlayer) {
+                continue;
+            }
+
+            if (pc.party is { } party && party.members.Contains(chara)) {
+                party.Stub_RemoveMember(chara);
+            }
+
+            game.cards.globalCharas.Remove(chara);
+        }
     }
 
     /// <summary>

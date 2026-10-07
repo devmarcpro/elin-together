@@ -162,8 +162,9 @@ public class NetSessionRules
 
     /// <summary>
     ///     Council 11: when the host walks onto the map a player holds alone, that player keeps its game and its
-    ///     scene and becomes a client of the host again in place (see ZoneSoftRejoin). Off: it hands the map back
-    ///     and loads the whole world again
+    ///     scene and becomes a client of the host again in place (see ZoneSoftRejoin); when that player walks into
+    ///     the map the host stands on, it keeps its game and loads that one map. Off: it hands the map back and
+    ///     loads the whole world again
     /// </summary>
     [Key(23)]
     public bool SoftRecall { get; set; } = false;

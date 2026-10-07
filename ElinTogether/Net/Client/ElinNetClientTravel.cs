@@ -713,9 +713,25 @@ internal partial class ElinNetClient
 
         // the host stands there (we had not heard yet that it moved): going there is rejoining it
         if (denied.Reason == "emp_travel_host_zone" && Session.IsAway && _pendingGrant is null && !_rejoining) {
-            var arrival = _pendingTravel is { } going ? ZoneArrival.Create(denied.ZoneUid, going.Transition) : null;
+            var hostZoneUid = denied.ZoneUid;
+
+            // host rule SoftRecall, slice 2: a zone we made ourselves (the floor the host already went down to,
+            // made after our last copy of the world) takes the number the host knows it by, as a leased one does:
+            // the map that comes without a world lands in it, and the way in is noted under the right number
+            if (Session.Rules.SoftRecall && denied.HostZoneUid > 0 && _pendingTravel is { } made) {
+                hostZoneUid = denied.HostZoneUid;
+
+                // not when another zone of ours holds that number (ours are as old as our world): the map then
+                // builds its own zone from what comes with it (OnZoneDataResponse)
+                if (game.spatials.Find(hostZoneUid) is not { } other || other == made.Zone ||
+                    other.ZoneFullName == made.Zone.ZoneFullName) {
+                    AdoptHostUid(made.Zone, hostZoneUid);
+                }
+            }
+
+            var arrival = _pendingTravel is { } going ? ZoneArrival.Create(hostZoneUid, going.Transition) : null;
             _pendingTravel = null;
-            _hostZoneUid = denied.ZoneUid;
+            _hostZoneUid = hostZoneUid;
             SendRejoin(arrival);
             EmpPop.Debug("emp_travel_returning".lang());
             return;
@@ -927,6 +943,13 @@ internal partial class ElinNetClient
             return;
         }
 
+        // host rule SoftRecall, slice 2: we walk into the host's map and keep our game. The release is marked
+        // Soft (CreateLeaseRelease) and the host answers ZoneSoftRejoin then that one map, or the world as before
+        if (arrival is not null && CanReturnSoftly(arrival.ZoneUid)) {
+            _softReturnZone = arrival.ZoneUid;
+            _softRejoinDeadline = Time.realtimeSinceStartup + SoftRejoinWaitSeconds;
+        }
+
         _rejoining = true;
         HandBackAwayZone(true, arrival);
     }
@@ -948,7 +971,7 @@ internal partial class ElinNetClient
     ///     Also while a guest waits to hear what becomes of the map its owner just left: if the host recalls it,
     ///     the copy the owner handed back is the one kept
     /// </remarks>
-    internal bool IsInTransfer => _pendingGrant is not null || _rejoining || _handoffDeadline > 0;
+    internal bool IsInTransfer => _pendingGrant is not null || _rejoining || _handoffDeadline > 0 || _softReturnZone != 0;
 
     /// <summary>
     ///     No input during a transfer, it lasts a round trip

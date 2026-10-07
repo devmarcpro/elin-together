@@ -8,7 +8,9 @@ namespace ElinTogether.Models;
 ///     Answer to a <see cref="ZoneLeaseRelease" /> marked Soft, in place of the copy of the world: the host stands
 ///     on the map this player handed back and runs it from now on, the player keeps its game and its scene and is
 ///     a client of the host again. Sent in place of the map the host tells everyone when it enters a zone, right
-///     after what was waiting to be told: everything that comes after it happened after these numbers were taken
+///     after what was waiting to be told: everything that comes after it happened after these numbers were taken <br />
+///     Also the answer to a release that walks into the host's map (<see cref="Travel" />): the same content,
+///     then that one map
 /// </summary>
 [MessagePackObject]
 public class ZoneSoftRejoin
@@ -57,6 +59,15 @@ public class ZoneSoftRejoin
     /// </summary>
     [Key(7)]
     public List<LZ4Bytes>? Charas { get; set; } = null;
+
+    /// <summary>
+    ///     The player walks into the map the host stands on (<see cref="ZoneLeaseRelease.Arrival" />) instead of
+    ///     the host coming to its own: <see cref="ZoneUid" /> is the host's map, which follows this message as
+    ///     any map the host sends (ZoneDataResponse, then the placement). No <see cref="MapSums" />: the player
+    ///     holds no copy of that map to compare
+    /// </summary>
+    [Key(8)]
+    public bool Travel { get; set; } = false;
 }
 
 /// <summary>

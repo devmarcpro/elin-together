@@ -768,6 +768,8 @@ internal partial class ElinNetHost
             peer.Send(new ZoneLeaseDenied {
                 ZoneUid = request.ZoneUid,
                 Reason = reason,
+                // a zone that player made itself has another number there, see ElinNetClient.OnZoneLeaseDenied
+                HostZoneUid = reason == "emp_travel_host_zone" ? zone?.uid ?? 0 : 0,
             });
             return;
         }
@@ -1136,6 +1138,8 @@ internal partial class ElinNetHost
 
         // before the zone is handed over: visitors are called back by it, and come back with the world
         var soft = handedBack && CanRejoinSoftly(release, peer);
+        // slice 2: it walks into the map we stand on, see SendSoftReturn
+        var softReturn = handedBack && !soft && CanReturnSoftly(release, peer);
 
         // the numbers given to its cards that waited for one, see ZoneSoftRejoin.Rebinds
         var rebound = new Dictionary<int, int>();
@@ -1176,6 +1180,9 @@ internal partial class ElinNetHost
             if (chara is { isDead: false } && soft) {
                 // no copy of the world: it stays on the map it handed back, see CompleteSoftRejoin
                 RegisterSoftRejoin(chara, peer, release.ZoneUid, rebound);
+            } else if (chara is { isDead: false } && softReturn) {
+                // no copy of the world either: what it cannot know, then this one map
+                SendSoftReturn(chara, peer, rebound);
             } else if (chara is not null) {
                 EmpLog.Information("Player {@Peer} returns to the host zone",
                     peer);

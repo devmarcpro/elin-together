@@ -56,6 +56,13 @@ internal partial class ElinNetClient
 
     private void RetryZoneSync()
     {
+        // council 11, slice 2: the map we walk into without a copy of the world cannot be loaded in the world we
+        // have (a zone the host made since, whose parent is unknown here too): the world then, at once
+        if (_softReturnZone != 0) {
+            AskWorldCopy(_softReturnZone, "the host's map cannot be loaded in this world");
+            return;
+        }
+
         if (++_zoneSyncFailures >= MaxZoneSyncRetries) {
             // nobody is thrown out for that: it comes back as a player who just arrives, the world then its map.
             // The link is closed as a lost one, not with InvalidZone: that reason reads as "turned away" and
@@ -164,6 +171,13 @@ internal partial class ElinNetClient
 
         _zoneSyncFailures = 0;
 
+        // council 11: with the host rule SoftRecall this world is no longer copied at each return, and what it
+        // holds about a zone is as old as its last copy (or made here, for a zone we created). The host's comes
+        // with its map: a zone we keep later (TakeOverZone) hands these numbers back to the host with our release
+        if (Session.Rules.SoftRecall && response.ZoneState is { } state) {
+            ZoneLeaseState.ApplyState(remoteZone, state, response.IdCurrentSubset);
+        }
+
         // suppress client-side map regeneration
         remoteZone.isGenerated = true;
         remoteZone.dateExpire = int.MaxValue;
@@ -200,6 +214,12 @@ internal partial class ElinNetClient
         using var _ = LogContext.PushProperty("Zone", new { response.ZoneFullName, response.ZoneUid }, true);
 
         _awaitingActivation = 0;
+
+        // council 11: the world was asked for instead (AskWorldCopy), a placement that crossed it is void
+        if (_worldAskDeadline > 0) {
+            EmpLog.Debug("Ignoring the placement on {ZoneUid}, the world is on its way", response.ZoneUid);
+            return;
+        }
 
         // council 11: we never left that map nor loaded it again, the host only says where it holds us
         if (_softPlaced != 0 && _softPlaced == response.ZoneUid) {
@@ -251,31 +271,13 @@ internal partial class ElinNetClient
 
             // as Game.Load does after its own Scene.Init: the windows that were open before the world was replaced
             Helper.OwnSettings.Reopen();
+        } else if (_softReturnZone != 0) {
+            // council 11, slice 2: the first map since we came back without a copy of the world
+            if (!EnterBySoftReturn(currentZone)) {
+                return;
+            }
         } else {
-            if (_zone == currentZone) {
-                EmpLog.Debug("Reloading active zone from received snapshot");
-
-                currentZone.Deactivate();
-            }
-
-            if (currentZone.IsLoaded) {
-                currentZone.UnloadMap();
-            }
-
-            if (pc.currentZone != currentZone) {
-                if (pc.isDead) {
-                    // he is but a husk
-                    currentZone.AddCard(pc);
-                } else {
-                    pc.MoveZone(currentZone);
-                }
-
-                if (pc.currentZone != currentZone) {
-                    currentZone.AddCard(pc);
-                }
-            }
-
-            player.MoveZone(currentZone);
+            EnterHostMap(currentZone);
         }
 
         // the map is loaded: what the host did on it since it took the copy is replayed now
@@ -300,6 +302,38 @@ internal partial class ElinNetClient
             pc.Stub_Move(response.Pos, Card.MoveType.Force);
             pc.SetDir(pc.dir);
         });
+    }
+
+    /// <summary>
+    ///     The game runs and the host sent a map: the one on screen is left (or loaded again when it is the same)
+    ///     and our character stands in the host's zone. Its tile comes right after, see OnZoneActivateResponse
+    /// </summary>
+    private void EnterHostMap(Zone currentZone)
+    {
+        if (_zone == currentZone) {
+            EmpLog.Debug("Reloading active zone from received snapshot");
+
+            currentZone.Deactivate();
+        }
+
+        if (currentZone.IsLoaded) {
+            currentZone.UnloadMap();
+        }
+
+        if (pc.currentZone != currentZone) {
+            if (pc.isDead) {
+                // he is but a husk
+                currentZone.AddCard(pc);
+            } else {
+                pc.MoveZone(currentZone);
+            }
+
+            if (pc.currentZone != currentZone) {
+                currentZone.AddCard(pc);
+            }
+        }
+
+        player.MoveZone(currentZone);
     }
 
     private static void PutHimRightEr(Position? requested)

@@ -277,9 +277,9 @@ internal partial class EmpConfig
             "Server",
             "SoftRecall",
             false,
-            "When the host walks onto the map a player holds alone, that player stays on its map without loading the whole world again\n" +
+            "When the host walks onto the map a player holds alone, that player stays on its map without loading the whole world again; when that player walks into the map the host is on, it loads that one map only\n" +
             "New, off until it has been played more. Should anything not match, the world is loaded as before. Otherwise the world is loaded at each such meeting\n" +
-            "主机走进某位玩家独自所在的地图时，该玩家留在原地图上，不再重新载入整个世界。新功能，默认关闭；如有任何不一致，仍会像以前一样载入世界。关闭时每次这样相遇都会重新载入世界");
+            "主机走进某位玩家独自所在的地图时，该玩家留在原地图上，不再重新载入整个世界；该玩家走进主机所在的地图时，只载入那一张地图。新功能，默认关闭；如有任何不一致，仍会像以前一样载入世界。关闭时每次这样相遇都会重新载入世界");
 
         Server.WorldCopy = config.Bind(
             "Server",

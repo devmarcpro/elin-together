@@ -34,6 +34,15 @@ from travel_suite import (DESCEND, HOME, UP, at_zone, enter_at, marker, on_map, 
 COPY_LINE = "Received save data from host"
 RETURN_LINE = "Back after"
 BAG = 'EClass.pc.things.List(t => true, true).Sum(t => t.Num).ToString()'
+# tranche 2 (retour par la carte seule) : lignes de journal de l'invite et de l'host, et replis sur la copie du monde
+SOFT_MAP_LINE = "Soft return: map {ZoneFullName} loaded"
+SOFT_HOST_LINE = "Soft return to"
+GIVEN_UP_LINE = "given up"
+# numeros en double sur la carte et dans les sacs (les jetons de competence sont propres a chaque jeu)
+DUPES = ('var u = new System.Collections.Generic.List<int>(); '
+         'foreach (var t in EClass._map.things) { u.Add(t.uid); foreach (var s in t.things.List(x => !(x.trait is TraitAbility), true)) u.Add(s.uid); } '
+         'foreach (var c in EClass._map.charas) { u.Add(c.uid); foreach (var s in c.things.List(x => !(x.trait is TraitAbility), true)) u.Add(s.uid); } '
+         'return (u.Count - new System.Collections.Generic.HashSet<int>(u).Count).ToString();')
 
 
 def now():
@@ -123,6 +132,17 @@ def step(ctx, n, order):
     check(f"etage {n}, {order} : sacs inchanges (host {bags[host]} -> {after[host]}, invite {bags[client]} -> {after[client]})",
           bags == after)
     check(f"etage {n}, {order} : aucune copie du monde pour l'invite ({copies})", copies == 0)
+    # tranche 2 (jamais lance au moment de l'ecriture) : « host d'abord » = l'invite marche vers la carte de l'host
+    by_map, told, given_up = (len(lines(t0, x)) for x in (SOFT_MAP_LINE, SOFT_HOST_LINE, GIVEN_UP_LINE))
+    log(f"    retour par la carte seule : {by_map} chez l'invite, {told} chez l'host ; replis sur la copie : {given_up}")
+    if ctx.get("soft"):
+        if order == "host d'abord":
+            check(f"etage {n}, {order} : l'invite est revenu par la carte seule ({by_map}, annonce par l'host {told})",
+                  by_map == 1 and told >= 1)
+        check(f"etage {n}, {order} : aucun repli sur la copie du monde ({given_up})", given_up == 0)
+    dupes = {p: ev(p, DUPES) for p in (host, client)}
+    check(f"etage {n}, {order} : aucun numero en double sur la carte et dans les sacs (host {dupes[host]}, invite {dupes[client]})",
+          dupes[host] == "0" and dupes[client] == "0")
     # apres le passage, le jeu continue-t-il juste ? chacun pose un objet que l'autre voit a la meme case, chacun
     # marche et l'autre le voit, puis les deux jeux ont les memes nombres de carte
     # loin de la case d'arrivee : un seau pose dessus est ramasse par celui qui y arrive au passage suivant
@@ -160,6 +180,7 @@ def main():
            "client": next(h["port"] for h in live if h["role"] == "Client")}
     host, client = ctx["host"], ctx["client"]
     both_joined(host, client, HOME)
+    ctx["soft"] = a.soft
     if a.soft:
         from combat_suite import set_option
         set_option("SoftRecall", True)

@@ -16,7 +16,10 @@ namespace ElinTogether.Net;
 ///     Release (Soft) -> the host applies it, registers the player (RegisterSoftRejoin), walks in and loads the
 ///     map -> where it tells everyone its map (PropagateZoneChangeState) that player gets
 ///     <see cref="ZoneSoftRejoin" /> instead (CompleteSoftRejoin) and is placed on its tile. Anything unexpected on
-///     either side ends with the copy of the world, as without the rule (FallBackToWorldCopy)
+///     either side ends with the copy of the world, as without the rule (FallBackToWorldCopy) <br />
+///     Slice 2, same rule: the player walks into the map the host stands on. Release (Soft, Arrival) -> the host
+///     applies it, registers the player, tells it <see cref="ZoneSoftRejoin" /> (Travel) and sends that one map
+///     (SendSoftReturn): the player keeps its game and loads the map as a client following the host does
 /// </summary>
 internal partial class ElinNetHost
 {
@@ -60,6 +63,92 @@ internal partial class ElinNetHost
                _pendingHostMove is { } move && move.Zone.uid == release.ZoneUid && move.Zone != _zone &&
                CanRecallSoftly(move.Zone) &&
                !(_leases.TryGetValue(peer.Id, out var held) && held.Count > 0);
+    }
+
+    /// <summary>
+    ///     Slice 2: that release walks into the map we stand on (the player took the stairs we took before it).
+    ///     It came alone from a map it held alone, holds nothing else, and we are not on our way elsewhere: it
+    ///     gets <see cref="ZoneSoftRejoin" /> (Travel) and this one map instead of the world, see SendSoftReturn
+    /// </summary>
+    private bool CanReturnSoftly(ZoneLeaseRelease release, ISteamNetPeer peer)
+    {
+        return release is { Soft: true, Rejoin: true, Checkpoint: false, Map: not null, Arrival: { } arrival } &&
+               release.StoodZoneUid == release.ZoneUid && release.GuestCharas is not { Count: > 0 } &&
+               _pendingHostMove is null && core.IsGameStarted && _zone is { map: not null } here &&
+               arrival.ZoneUid == here.uid && release.ZoneUid != here.uid && pc.currentZone == here &&
+               CanRecallSoftly(here) &&
+               !(_leases.TryGetValue(peer.Id, out var held) && held.Count > 0);
+    }
+
+    /// <summary>
+    ///     What a player that comes back without a copy of the world cannot know: taken right after what was
+    ///     waiting to be told went out, see CompleteSoftRejoin
+    /// </summary>
+    private ZoneSoftRejoin CreateSoftRejoin(Chara chara, Zone zone, Dictionary<int, int> rebinds, bool travel)
+    {
+        var own = CompanionHelper.CompanionsOf(chara);
+        return new() {
+            ZoneUid = zone.uid,
+            UidNext = game.cards.uidNext,
+            Rebinds = rebinds,
+            BagMix = NetDesync.Bag(chara),
+            // walking in, it holds no copy of this map: the map itself follows
+            MapSums = travel ? null : ZoneLeaseState.Sums(zone.map),
+            Boxes = Enumerable.Range(0, 3)
+                .Select(box => LZ4Bytes.Create(ShippingHelper.WorldBox(box)?.things.ToList() ?? []))
+                .ToList(),
+            GameDate = [..world.date.raw],
+            Charas = zone.map.charas
+                .Where(c => c.IsGlobal && c != chara && !own.Contains(c) && c.CompanionOwnerUid != chara.uid)
+                .Select(c => LZ4Bytes.Create(c))
+                .ToList(),
+            Travel = travel,
+        };
+    }
+
+    /// <summary>
+    ///     Slice 2, in place of SendSaveProbe: the player is registered on our map without the world, told what
+    ///     it cannot know (<see cref="ZoneSoftRejoin" />), then sent this one map as any player is sent a map.
+    ///     From there the usual path: it answers ZoneDataReceivedResponse, is placed where it walks in (the
+    ///     return spot noted by OnZoneLeaseRelease) and settled. All in this frame, as the world and its map are:
+    ///     nothing happens between the numbers and the copy of the map
+    /// </summary>
+    private void SendSoftReturn(Chara chara, ISteamNetPeer peer, Dictionary<int, int> rebound)
+    {
+        var zone = _zone;
+
+        EmpLog.Information("Soft return to {ZoneFullName}: player {@Peer} walks in, no world copy, {Rebound} card(s) renumbered",
+            zone.ZoneFullName, peer, rebound.Count);
+
+        RegisterPlayer(chara, peer);
+        // kept for as long as the player may say it did not work: it then gets the world (OnZoneSoftRejoinFailed)
+        _softRejoins[peer.Id] = (zone.uid, rebound, Time.unscaledTime + SoftFailSeconds, true);
+
+        try {
+            // as in SendSaveProbe: what is already done on this map is in the copy and in the numbers below, it
+            // goes out before them. That player is still away and takes none of it; from this message on it
+            // keeps what comes until the map is loaded (ElinDeltaManager.HoldForIncomingMap)
+            Delta.RefreshBuffer();
+            WorldStateDeltaUpdate();
+
+            var rejoin = CreateSoftRejoin(chara, zone, rebound, true);
+
+            EmpLog.Information("Soft return to {ZoneFullName}: telling player {@Peer} (uid counter {UidNext}, {Charas} character(s)), then the map",
+                zone.ZoneFullName, peer, rejoin.UidNext, rejoin.Charas?.Count);
+
+            if (!peer.Send(rejoin)) {
+                FallBackToWorldCopy(peer, "not sent");
+                return;
+            }
+        } catch (Exception ex) {
+            EmpLog.Warning(ex, "Soft return to {ZoneFullName} could not be told to player {@Peer}", zone.ZoneFullName, peer);
+            FallBackToWorldCopy(peer, "not told");
+            return;
+        }
+
+        // who plays here, with the numbers of this map (not taken while away)
+        peer.Send(SessionPlayersSnapshot.Create());
+        PropagateZoneChangeState(zone, peer);
     }
 
     /// <summary>
@@ -131,25 +220,10 @@ internal partial class ElinNetHost
             Delta.RefreshBuffer();
             WorldStateDeltaUpdate();
 
-            var own = CompanionHelper.CompanionsOf(chara);
-            var rejoin = new ZoneSoftRejoin {
-                ZoneUid = zone.uid,
-                UidNext = game.cards.uidNext,
-                Rebinds = soft.Rebinds,
-                BagMix = NetDesync.Bag(chara),
-                MapSums = ZoneLeaseState.Sums(zone.map),
-                Boxes = Enumerable.Range(0, 3)
-                    .Select(box => LZ4Bytes.Create(ShippingHelper.WorldBox(box)?.things.ToList() ?? []))
-                    .ToList(),
-                GameDate = [..world.date.raw],
-                Charas = zone.map.charas
-                    .Where(c => c.IsGlobal && c != chara && !own.Contains(c) && c.CompanionOwnerUid != chara.uid)
-                    .Select(c => LZ4Bytes.Create(c))
-                    .ToList(),
-            };
+            var rejoin = CreateSoftRejoin(chara, zone, soft.Rebinds, false);
 
             EmpLog.Information("Soft rejoin of {ZoneFullName}: host stands there, telling player {@Peer} (uid counter {UidNext}, {Charas} character(s), map {Sums})",
-                zone.ZoneFullName, peer, rejoin.UidNext, rejoin.Charas.Count, ZoneLeaseState.TellSums(rejoin.MapSums));
+                zone.ZoneFullName, peer, rejoin.UidNext, rejoin.Charas?.Count, ZoneLeaseState.TellSums(rejoin.MapSums ?? []));
 
             if (!peer.Send(rejoin)) {
                 FallBackToWorldCopy(peer, "not sent");
@@ -208,7 +282,9 @@ internal partial class ElinNetHost
         }
 
         // it stands here already: the map loaded under it must not push it next to us, see OnZoneDataReceivedResponse
-        if (entered && _zone is { } here && here.uid == soft.ZoneUid && chara.pos is { IsValid: true } stood) {
+        // (a spot still noted is the one to keep: the way it walks in by, not used yet, see SendSoftReturn)
+        if (entered && !_returnSpots.ContainsKey(peer.User) && _zone is { } here && here.uid == soft.ZoneUid &&
+            chara.pos is { IsValid: true } stood) {
             _returnSpots[peer.User] = (here.uid, stood.Copy(), null, Time.unscaledTime + ReturnSpotSeconds, false);
         }
 
