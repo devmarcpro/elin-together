@@ -19,8 +19,10 @@
   - `time_suite` 64/65 : la règle « le temps ne saute que quand tous sautent » tient en jeu ; rouge = l'invité ne lit
     pas le message « votre voyage ne fait pas avancer la date » (W8b), à regarder.
   - `sleep_suite` 69/86 puis rejouée 5 fois : nuit à soi et nuit commune vertes. Dans la série n7 l'invité a été
-    réveillé avant la fin de sa nuit deux fois (n1 après 3,5 s, n3 après 1,1 s), sans repos : **pas reproduit** en
-    10 nuits ; la ligne de journal ci-dessus dira par quoi. Les « interrompu : NullReference » de n5 à k1 et les
+    réveillé avant la fin de sa nuit deux fois (n1 après 3,5 s, n3 après 1,1 s), sans repos : **expliqué** : un bernard-l'ermite
+    du monde de test a frappé l'invité endormi (un coup réveille, voulu) puis l'a tué ; mort, l'invité attend ses
+    « derniers mots », d'où tous les NullReference de n5 à k1 et les délais y1/y2 (fautes de mise en place, pas du mod).
+    À retenir : pendant les quelques secondes de sa nuit à soi un joueur est vulnérable, le monde continue. Les « interrompu : NullReference » de n5 à k1 et les
     délais y1/y2 ne sont pas lus. Rouge constant : n2, la date avance de 34 à 46 min pendant la nuit à soi de l'host
     (son jeu tourne vite tant qu'il dort), le test en veut moins de 30. Petite limite, pas corrigée.
   - `bank_suite` 56/86 : **faute du banc** (« bouton de la pile du sac absent » : l'or du personnage de test n'est

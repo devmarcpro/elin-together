@@ -231,7 +231,9 @@ def lone_steps(mover, still, who, other):
           date(mover) - d_mover < 15 and abs(gap()) <= 2)
     check(f"{other} a paye ses pas avec son corps (+{paid} tours, 300 au moins)", paid >= 300)
     check(f"{who} n'a rien vecu de ce voyage ({body(still)[0] - before[0]} tours, {TURNS} au plus)", body(still)[0] - before[0] <= TURNS)
-    check(f"{other} lit une fois que son voyage ne fait pas avancer la date ({told(mover) - said})", told(mover) - said == 1)
+    # seul l'host le dit : un invite ne sait pas ou sont les autres, il se tait (RemoteTravelRegionPatch.Tell)
+    want = 1 if mover == H else 0
+    check(f"{other} lit {want} fois que son voyage ne fait pas avancer la date ({told(mover) - said})", told(mover) - said == want)
 
 
 def side_by_side():

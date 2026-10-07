@@ -27,7 +27,8 @@ internal static class CharaAffinityPatch
         }
 
         switch (NetSession.Instance.Connection) {
-            case ElinNetClient client when !ElinDelta.IsApplying:
+            // (its own drop, resumed inside the answer to its item request, is its own act)
+            case ElinNetClient client when !ElinDelta.IsRemoteStateLanding:
                 client.Delta.AddRemote(new CharaAffinityDelta {
                     Owner = __instance,
                     Value = change,
