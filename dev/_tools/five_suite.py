@@ -8,6 +8,9 @@ F2  chacun pose un objet, les quatre autres le voient a la meme case ; chacun ma
 F3  une minute de jeu a cinq (marcher, ramasser, poser le meme seau a tour de role) : memes nombres de carte partout
 F4  les cinq se couchent : la nuit du monde passe une fois, la meme date dans les cinq jeux
 F5  A et B partent a Vernis (A tient la carte, B invite), C et D restent : puis tout le monde rentre, memes nombres
+F6  combat a cinq : chacun frappe le meme monstre, memes points de vie partout
+F7  l'host part : les quatre invites restent ensemble, puis l'host revient
+F8  un invite ferme son jeu d'un coup : les quatre autres continuent
 
 Ce que le banc ne joue pas comme un joueur : memes raccourcis que les suites dont il reprend les gestes
 (shared_suite.drop, resync_suite.steps/pick/put, sleep_suite.ready_for_bed/to_bed, travel_suite.move) ; les cinq jeux
@@ -163,6 +166,101 @@ def f5(ctx):
     check("memes nombres de carte dans les cinq jeux au retour", ok)
 
 
+def hp_of(port, uid):
+    return int(ev(port, f'var m = EClass._map.charas.Find(c => c.uid == {uid}); return m == null ? "-1" : m.hp.ToString();'))
+
+
+def f6(ctx):
+    """combat a cinq : un monstre solide pres de l'host, chacun le frappe (teleporte a cote, ACT.Melee comme le
+    clic) : memes points de vie dans les cinq jeux apres chaque coup ; l'host l'acheve, il disparait partout"""
+    gone = ev(H, 'var list = EClass._map.charas.Where(c => !c.IsPC && !c.GetBool("remote_chara") && c.party == null).ToList(); '
+                 'foreach (var c in list) c.Destroy(); list.Count.ToString()')
+    log(f"{gone} habitants retires (ils tuent tout monstre en quelques secondes)")
+    m = int(ev(H, 'var m = CharaGen.Create("putty"); EClass._zone.AddCard(m, EClass.pc.pos.GetNearestPoint(allowChara: false)); '
+                  'm.hostility = Hostility.Enemy; m.c_originalHostility = Hostility.Enemy; m.SetLv(40); m.hp = m.MaxHP; m.uid.ToString()'))
+    check("le monstre est dans les cinq jeux", soon(lambda: all(hp_of(p, m) > 0 for p in ALL), 20))
+    for p in ALL:
+        ev(H, f'var m = EClass._map.charas.Find(c => c.uid == {m}); if (m != null) m.hp = m.MaxHP; "ok"')
+        time.sleep(1)
+        before = hp_of(H, m)
+        for _ in range(6):
+            ev(p, f'var m = EClass._map.charas.Find(x => x.uid == {m}); if (m == null || m.isDead) return "mort"; '
+                  'if (EClass.pc.Dist(m) > 1) EClass.pc.Teleport(m.pos.GetNearestPoint(allowBlock: false, allowChara: false), true, true); '
+                  'ACT.Melee.Perform(EClass.pc, m, m.pos); return "ok";')
+            time.sleep(1.2)
+            if 0 <= hp_of(H, m) < before:
+                break
+        hurt = hp_of(H, m)
+        check(f"{NAMES[p]} frappe : le monstre perd des points de vie chez l'host ({before} -> {hurt})", 0 <= hurt < before)
+        ev(H, f'var m = EClass._map.charas.Find(c => c.uid == {m}); if (m != null) m.enemy = null; "ok"')
+        same = soon(lambda: len({hp_of(q, m) for q in ALL}) == 1, 10)
+        check(f"apres le coup de {NAMES[p]} : memes points de vie dans les cinq jeux ({[hp_of(q, m) for q in ALL]})", same)
+    for p in ALL:
+        ev(H, f'var c = EClass.game.cards.globalCharas.Find({ctx[p]}); if (c != null) c.hp = c.MaxHP; "ok"')
+    ev(H, f'var m = EClass._map.charas.Find(c => c.uid == {m}); if (m != null) m.Die(null, EClass.pc); "ok"')
+    check("l'host l'acheve : il n'est plus dans aucun des cinq jeux", soon(lambda: all(hp_of(p, m) == -1 for p in ALL), 20))
+    check("personne n'est mort", all(ev(p, "EClass.pc.isDead.ToString()") == "False" for p in ALL))
+    for p in ALL:
+        rs.idle(p)
+    ok = soon(lambda: same_sums(ALL)[0], 40)
+    for p, got in same_sums(ALL)[1].items():
+        log(f"{NAMES[p]} : {got}")
+    check("memes nombres de carte dans les cinq jeux apres le combat", ok)
+
+
+def f7(ctx):
+    """l'host part a Vernis : les quatre invites restent ensemble (l'un tient la carte, les trois autres sont ses
+    invites), se voient, voient un objet pose ; l'host revient, les cinq sont ensemble, memes nombres"""
+    move(H, VERNIS)
+    check("l'host est a Vernis", soon(lambda: zone_uid(H) == VERNIS, 240))
+    check("les quatre invites sont restes sur leur carte", soon(lambda: all(zone_uid(p) == HOME for p in GUESTS), 60))
+    roles = lambda: [state(p).get("zoneSession") for p in GUESTS]  # noqa: E731
+    check(f"un seul des quatre tient la carte, les trois autres sont chez lui ({roles()})",
+          soon(lambda: roles().count("Host") == 1 and sum(1 for p in GUESTS if state(p).get("guest")) == 3, 240))
+    check("les quatre se voient", soon(lambda: see_all(ctx, GUESTS), 90))
+    check("l'host est seul a Vernis", players(H) == [ctx[H]])
+    for p in (A, D):
+        uid, where = drop(p)
+        others = [q for q in GUESTS if q != p]
+        check(f"sans l'host : objet pose par {NAMES[p]} vu par les trois autres ({where})",
+              soon(lambda: all(on_map(q, [uid]).get(uid) == where for q in others), 40))
+    for p in GUESTS:
+        rs.idle(p)
+    ok = soon(lambda: same_sums(GUESTS)[0], 40)
+    check("sans l'host : memes nombres de carte chez les quatre", ok)
+    move(H, HOME)
+    check("l'host est revenu", soon(lambda: zone_uid(H) == HOME, 240))
+    check("les cinq se voient de nouveau", soon(lambda: all(zone_uid(p) == HOME for p in ALL) and see_all(ctx, ALL), 240))
+    check("plus personne n'est en voyage ni invite d'un autre",
+          soon(lambda: not any(state(p).get("awayZone") or state(p).get("guest") for p in GUESTS), 120))
+    for p in ALL:
+        rs.idle(p)
+    ok = soon(lambda: same_sums(ALL)[0], 60)
+    for p, got in same_sums(ALL)[1].items():
+        log(f"{NAMES[p]} : {got}")
+    check("memes nombres de carte dans les cinq jeux au retour de l'host", ok)
+
+
+def f8(ctx):
+    """un invite ferme son jeu d'un coup (processus tue) : les quatre autres continuent, sa place se libere, son
+    personnage quitte la carte partout ; un objet pose ensuite est vu par les quatre"""
+    import subprocess as sp
+    import emp
+    pid = next(h["pid"] for h in emp.live_ports() if h["port"] == D)
+    sp.run(["taskkill", "/PID", str(pid), "/F"], capture_output=True)
+    rest = (H, A, B, C)
+    four = sorted(ctx[p] for p in rest)
+    for p in rest:
+        check(f"{NAMES[p]} : sa liste n'a plus que quatre joueurs", soon(lambda p=p: players(p) == four, 90))
+    check("le personnage de D a quitte la carte dans les quatre jeux", soon(lambda: not any(chara_on_map(p, ctx[D]) for p in rest), 60))
+    uid, where = drop(B)
+    check(f"objet pose par B vu par les trois autres ({where})",
+          soon(lambda: all(on_map(q, [uid]).get(uid) == where for q in rest if q != B), 30))
+    for p in rest:
+        rs.idle(p)
+    check("memes nombres de carte dans les quatre jeux", soon(lambda: same_sums(rest)[0], 40))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--reuse", action="store_true")
@@ -175,7 +273,7 @@ def main():
         subprocess.run([sys.executable, str(ROOT / "_tools" / "mp_test.py"), "--clients", "4"], check=True)
 
     ctx = {}
-    steps = [f1, f2, f3, f4, f5]
+    steps = [f1, f2, f3, f4, f5, f6, f7, f8]
     if a.only:
         wanted = a.only.split(",")
         steps = [f1] + [s for s in steps[1:] if s.__name__ in wanted]
@@ -185,7 +283,7 @@ def main():
             step(ctx)
         except Exception as ex:  # noqa: BLE001
             check(f"{step.__name__} interrompu : {type(ex).__name__}: {str(ex)[:300]}", False)
-        for p in ALL:
+        for p in (ALL if step is not f8 else (H, A, B, C)):
             try:
                 shot(f"five-{step.__name__}-{NAMES[p]}", p)
             except Exception:  # noqa: BLE001

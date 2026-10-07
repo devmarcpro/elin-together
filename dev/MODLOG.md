@@ -2606,3 +2606,5 @@ fenêtres d'un monde de test à l'autre (même graine, même uid).
 Le jeu de ce PC contient la 0.26.540 publiee (remise a 11h30 le 7 octobre) : refaire devuild.ps1 avant tout test.
 
 Publie : 0.26.548 (commit fab31de). Le jeu de ce PC contient ce build Release (make_release) : refaire devuild.ps1 avant tout test.
+
+Le jeu de ce PC contient la 0.26.548 publiee (remise a la demande de l utilisateur, qui joue) : NE PAS lancer Elin ni build.ps1 sans son accord.
