@@ -13,6 +13,17 @@ internal class QuestChangePhaseEvent
     {
         __state = __instance.phase;
 
+        // a step to a phase this quest does not have: its task was left over from a phase that another game
+        // moved on from (QuestChangePhaseDelta), and every kill "completed" it again. The journal threw
+        // (KeyNotFoundException 'guild_fighter2', then 3, 4...) before the task could be dropped
+        if (QuestPhaseRepair.IsMissing(__instance, a)) {
+            EmpLog.Warning("Quest {QuestId} has no phase {Phase}, staying at {Current} and dropping its task",
+                __instance.id, a, __instance.phase);
+            __instance.task = null;
+            __state = a;
+            return false;
+        }
+
         if (NetSession.Instance.IsHost) {
             return true;
         }
@@ -41,5 +52,40 @@ internal class QuestChangePhaseEvent
 
         // from a client: the host runs what the phase triggers, and tells the others
         NetSession.Instance.Connection?.Delta.AddRemote(delta);
+    }
+}
+
+/// <summary>
+///     A quest in steps (QuestSequence) reads its texts from the row "id + phase": a phase with no row throws at
+///     every look at the journal. One that got there before the guard above (a world played with an older
+///     version) is put back on the last phase it has: "joined" for a guild the group is a member of
+/// </summary>
+[HarmonyPatch(typeof(Quest), nameof(Quest.source), MethodType.Getter)]
+internal static class QuestPhaseRepair
+{
+    internal static bool IsMissing(Quest quest, int phase)
+    {
+        return quest is QuestSequence && phase != 0 && !EClass.sources.quests.map.ContainsKey(quest.id + phase);
+    }
+
+    [HarmonyPrefix]
+    internal static void OnSource(Quest __instance)
+    {
+        if (!IsMissing(__instance, __instance.phase)) {
+            return;
+        }
+
+        var from = __instance.phase;
+        var phase = __instance is QuestGuild { guild.relation.type: FactionRelation.RelationType.Member }
+            ? QuestGuild.Joined
+            : from;
+        while (phase > 0 && IsMissing(__instance, phase)) {
+            phase--;
+        }
+
+        __instance.phase = phase;
+        __instance.task = null;
+        EmpLog.Warning("Quest {QuestId} was at phase {From}, which it does not have: back to {Phase}",
+            __instance.id, from, phase);
     }
 }

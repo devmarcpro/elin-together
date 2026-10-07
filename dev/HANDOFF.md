@@ -29,6 +29,16 @@
   avec les jours de l'host (`CharaReviveDelta` 64) : -500 d'expérience, une chance sur cinq par attribut, à chaque
   mort dans un monde de plus de 90 jours. Lignes à lire dans un journal : `Element 70..77 changed on chara` (invité),
   `Applying element 7x` (host).
+- **Erreurs « guild_fighter2, 3, 4… » en tuant des monstres** (journal réel du 7 octobre, 0.26.548, invité) :
+  `KeyNotFoundException` dans `Quest.source` depuis `QuestChangePhaseEvent.OnClientChangePhase`. Cause : un invité
+  « prend note » d'une phase venue d'un autre jeu (`QuestChangePhaseDelta`) sans lâcher la tâche de la phase quittée
+  (le jeu fait `task = null` après un pas) ; chaque mort rejouée (`CardDamageHpDelta` -> `OnKillChara`) ou chaque karma
+  (`PlayerStandingDelta` -> `OnModKarma`) la « termine » de nouveau, `NextPhase` va vers une phase sans ligne, le
+  journal lève avant `task = null`, et ça recommence à chaque monstre. Corrigé (compilé, **pas joué**) : la tâche est
+  lâchée à l'arrivée de la phase ; `ChangePhase` refuse une phase sans ligne (host et invité) ; une quête déjà à une
+  phase sans ligne est remise sur la dernière qu'elle a (`QuestPhaseRepair`, préfixe de `Quest.source`). À jouer :
+  essai de la guilde des guerriers fait par l'host, l'invité tue ensuite des monstres. Les erreurs du mod sont au
+  niveau Debug avec `@x` : chercher `"@x"` dans un journal, pas seulement Warning/Error.
 - **À-coups de trois cases** : les journaux réels d'après la 0.26.532 n'en ont presque plus (2 et 0 « Reconcile force
   move » contre 57 à 239 avant) : c'était surtout les patchs retirés. Classé, à rouvrir si un journal le remontre.
 - **Joueur refusé qui reçoit le monde entier** : plan écrit (`PLAN_journal_invite_6_octobre.md` §3 c), non fait : le

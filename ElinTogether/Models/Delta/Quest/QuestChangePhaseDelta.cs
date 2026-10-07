@@ -40,6 +40,13 @@ public class QuestChangePhaseDelta : ElinDelta
             // what the phase triggers happened where the step was made, and on the host: a client, even one
             // travelling alone in its own copy of the world, only takes note
             quest.phase = Modifier;
+
+            // the task of the phase left behind is over, as the game drops it after a step (Quest.CompleteTask):
+            // kept, the kills replayed here completed it again and pushed the quest to phases it does not have
+            if (quest is QuestSequence && quest.task is { } task && (quest is QuestGuild || task.IsComplete())) {
+                quest.task = null;
+            }
+
             quest.UpdateJournal();
             return;
         }
