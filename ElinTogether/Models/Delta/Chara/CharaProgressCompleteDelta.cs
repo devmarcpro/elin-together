@@ -66,7 +66,11 @@ public class CharaProgressCompleteDelta : ElinDelta
 
             if (ai != progress) {
                 ai.Tick();
-                if (ai.status != AIAct.Status.Running) {
+
+                // over: the player is idle again. Not when the task runs under an act of this player that the
+                // keeper does not know (a mod's act that repeats tasks, see CharaTaskRemoteEvent.OnStartUnderFake):
+                // that act goes on with its next task, ending it here stopped the whole repetition after one round
+                if (ai.status != AIAct.Status.Running && !(chara.IsPC && ai.parent is { } above && FakeTask.IsMarked(above))) {
                     chara.SetNoGoal();
                 }
             }

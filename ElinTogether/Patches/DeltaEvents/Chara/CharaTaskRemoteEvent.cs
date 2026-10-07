@@ -61,8 +61,41 @@ internal static class CharaTaskRemoteEvent
             return false;
         }
 
+        var args = Map(g, __instance);
+
+        // our own player's task the host cannot stand for: it runs and stops here (CharaTaskProgressEvents, CharaTaskCancelEvent)
+        // (not crafting: it would use the ingredients up here and its product is not one the host knows, so it is
+        // stopped by the host as before, nothing spent, until it is handled for real. The game cannot start it yet:
+        // its only caller is the floating craft list, filled by Thing.GetRecipes, an empty method in 23.352)
+        if (connection.IsClient && __instance.IsPC && args is FakeTask && g is not TaskCraft) {
+            FakeTask.Mark(g);
+        }
+
+        // the tool in hand must reach the others before the task that uses it (Card.Tool there is chara.held)
+        if (__instance.IsPC) {
+            NetProfileSynchronizationContext.Update();
+        }
+
+        connection.Delta.AddRemote(new CharaTaskDelta {
+            Owner = __instance,
+            TaskArgs = args,
+        });
+
+        if (connection.IsClient && __instance.IsPC && args is AIUseCrafterArgs crafterArgs &&
+            g is AI_UseCrafter craft) {
+            RemoteCraft.Attach(craft, crafterArgs);
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    ///     What the game that keeps the map is told to run for this act, FakeTask when it cannot stand for it
+    /// </summary>
+    internal static TaskArgsBase Map(AIAct g, Chara chara)
+    {
         // a switch case is inevitable for the mapping layer
-        TaskArgsBase args = g switch {
+        return g switch {
             // no goal/reset
             NoGoal and not GoalRemote => NoTask.Default,
             // task
@@ -99,7 +132,7 @@ internal static class CharaTaskRemoteEvent
             AI_Dance ai => AIDanceArgs.Create(ai),
             AI_Deconstruct ai => AIDeconstructArgs.Create(ai),
             AI_Drink ai => AIDrinkArgs.Create(ai),
-            AI_Eat ai => AIEatArgs.Create(ai, __instance),
+            AI_Eat ai => AIEatArgs.Create(ai, chara),
             AI_Equip ai => AIEquipArgs.Create(ai),
             AI_Farm ai => AIFarmArgs.Create(ai),
             AI_Fish ai => AIFishArgs.Create(ai),
@@ -177,30 +210,46 @@ internal static class CharaTaskRemoteEvent
             // default
             _ => FakeTask.Default,
         };
+    }
 
-        // our own player's task the host cannot stand for: it runs and stops here (CharaTaskProgressEvents, CharaTaskCancelEvent)
-        // (not crafting: it would use the ingredients up here and its product is not one the host knows, so it is
-        // stopped by the host as before, nothing spent, until it is handled for real. The game cannot start it yet:
-        // its only caller is the floating craft list, filled by Thing.GetRecipes, an empty method in 23.352)
-        if (connection.IsClient && __instance.IsPC && args is FakeTask && g is not TaskCraft) {
-            FakeTask.Mark(g);
+    /// <summary>
+    ///     A task of this game's player started under an act the keeper of the map cannot stand for: a mod's own
+    ///     act that repeats the game's tasks one after the other (digging, harvesting, watering... as AutoAct does:
+    ///     it keeps one task under itself and starts it again on the next target, never through Chara.SetAI). The
+    ///     parent went out as FakeTask and everything under it was run by this game alone: what it dug or picked
+    ///     was never made for real. Each start of such a task is told to the keeper as if the player had started it
+    ///     by hand (when it starts, not when it is put there: its target is set in between), and it is no longer
+    ///     one of the parent's "fake" steps
+    /// </summary>
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(AIAct), nameof(AIAct.Start))]
+    internal static void OnStartUnderFake(AIAct __instance)
+    {
+        if (NetSession.Instance.Connection is not ElinNetClient client || __instance.owner is not { IsPC: true } chara) {
+            return;
         }
 
-        // the tool in hand must reach the others before the task that uses it (Card.Tool there is chara.held)
-        if (__instance.IsPC) {
-            NetProfileSynchronizationContext.Update();
+        // (an act built around its first task holds it without being its parent yet)
+        var parent = __instance.parent ?? (chara.ai is { } top && top != __instance && top.child == __instance ? top : null);
+        if (parent is null || !FakeTask.IsMarked(parent)) {
+            return;
         }
 
-        connection.Delta.AddRemote(new CharaTaskDelta {
-            Owner = __instance,
+        var args = Map(__instance, chara);
+        if (args is FakeTask or NoTask) {
+            return;
+        }
+
+        FakeTask.MarkReal(__instance);
+        NetProfileSynchronizationContext.Update();
+
+        client.Delta.AddRemote(new CharaTaskDelta {
+            Owner = chara,
             TaskArgs = args,
         });
 
-        if (connection.IsClient && __instance.IsPC && args is AIUseCrafterArgs crafterArgs &&
-            g is AI_UseCrafter craft) {
+        if (args is AIUseCrafterArgs crafterArgs && __instance is AI_UseCrafter craft) {
             RemoteCraft.Attach(craft, crafterArgs);
         }
-
-        return true;
     }
 }
