@@ -53,7 +53,18 @@ internal partial class ElinNetClient
         return Session.Rules.SoftRecall && core.IsGameStarted && Session.IsZoneAuthority && Session.ZoneSession is null &&
                Session.AwayZone is { IsRegion: false, IsInstance: false } away && _zone == away && _map is not null &&
                pc is { isDead: false } && _pendingTravel is null && _pendingGrant is null && !_rejoining &&
-               _handoffDeadline <= 0;
+               _handoffDeadline <= 0 && !HasBusyWindow();
+    }
+
+    /// <summary>
+    ///     A dialogue or a trade holds the character it talks to: the switch replaces our stale copies of the
+    ///     world's characters by the host's (AdoptHostCharas), the window would keep the old one, and what is sold
+    ///     or given through it would be gone or exist twice. The world copy closes everything: that path then
+    /// </summary>
+    private static bool HasBusyWindow()
+    {
+        return LayerDrama.IsActive() || ui.GetLayer<LayerDragGrid>() is not null || LayerInventory.listInv.Any(inv =>
+            inv.invs.Count > 0 && inv.invs[0].owner is { } owner && owner.Container != pc && owner.Container.GetRootCard() != pc);
     }
 
     private void UpdateSoftRejoinWait()
@@ -61,7 +72,10 @@ internal partial class ElinNetClient
         if (_worldAskDeadline > 0 && Time.realtimeSinceStartup >= _worldAskDeadline) {
             _worldAskDeadline = 0;
             EmpLog.Warning("No world {Seconds:F0}s after asking for it, joining the game again", WorldAskWaitSeconds);
-            Socket.Disconnect(Host, EmpDisconnectInfo.RemoteClosed);
+            if (Host is not null) {
+                Socket.Disconnect(Host, EmpDisconnectInfo.RemoteClosed);
+            }
+
             return;
         }
 
@@ -95,7 +109,8 @@ internal partial class ElinNetClient
         Delta.ClearOut();
         Delta.ClearIn();
 
-        Host.Send(new ZoneSoftRejoinFailed {
+        // link gone meanwhile: the lost link is handled where every lost link is
+        Host?.Send(new ZoneSoftRejoinFailed {
             ZoneUid = zoneUid,
             Reason = reason,
         });

@@ -1,3 +1,4 @@
+using ElinTogether.Common;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -113,7 +114,13 @@ internal partial class ElinNetHost
     private void CompleteSoftRejoin(ISteamNetPeer peer, Zone zone)
     {
         if (!_softRejoins.TryGetValue(peer.Id, out var soft) || !ActiveRemoteCharas.TryGetValue(peer.Id, out var chara)) {
-            _softRejoins.Remove(peer.Id);
+            // that player was left out of the map broadcast and waits for an answer: none can be made here, its
+            // link is closed and it comes back as a player who arrives (world, then map)
+            if (_softRejoins.Remove(peer.Id)) {
+                EmpLog.Warning("Soft rejoin of player {@Peer} has no character left, closing its link", peer);
+                Socket.Disconnect(peer, EmpDisconnectInfo.RemoteClosed);
+            }
+
             return;
         }
 
