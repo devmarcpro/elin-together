@@ -2608,3 +2608,5 @@ Le jeu de ce PC contient la 0.26.540 publiee (remise a 11h30 le 7 octobre) : ref
 Publie : 0.26.548 (commit fab31de). Le jeu de ce PC contient ce build Release (make_release) : refaire devuild.ps1 avant tout test.
 
 Le jeu de ce PC contient la 0.26.548 publiee (remise a la demande de l utilisateur, qui joue) : NE PAS lancer Elin ni build.ps1 sans son accord.
+
+Publie : 0.26.557 (commit e5db1f1), non jouee. Le jeu de ce PC contient ce build Release : refaire devuild.ps1 avant tout test, et seulement avec l accord de l utilisateur (il joue).
