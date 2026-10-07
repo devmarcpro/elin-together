@@ -147,6 +147,8 @@ internal partial class ElinNetClient
         // also when refused as a guest right after leaving the host map: not away yet, but coming back all the same
         var returning = (Session.IsAway || _rejoining) && !IsZoneSession;
         if (returning) {
+            ReportReturn(probe.Game.Bytes.Length);
+
             // guests of our zone fall back to the host, see OnZoneSessionEnded
             Session.RemoveZoneSession();
             Session.IsGuest = false;

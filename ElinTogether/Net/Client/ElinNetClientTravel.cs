@@ -992,6 +992,9 @@ internal partial class ElinNetClient
             return;
         }
 
+        _skippedAway.Clear();
+        _awaySince = Time.realtimeSinceStartup;
+
         // the host may already have told us where it went (it left the map we stay on)
         _hostZoneUid = _hostZoneAfterDeparture ?? Session.CurrentZone?.uid ?? -1;
         _hostZoneAfterDeparture = null;
@@ -1095,8 +1098,29 @@ internal partial class ElinNetClient
             if (delta is MsgSayDelta or QuestStartDelta or QuestCompleteDelta or QuestChangePhaseDelta or DialogFlagDelta or QuestFailDelta or QuestUpdateDelta or PersonalStateDelta or PlayerStandingDelta or WorldDateAdvanceDelta or WeatherDelta or DayDataDelta or QuestFollowDelta or SleepReadyDelta or SleepStartDelta or CharaSleepDelta or BillPayDelta) {
                 // the regular delta loop does not run while away, see CoreSynchronizationContext
                 delta.Apply(this);
+            } else {
+                var name = delta.GetType().Name;
+                _skippedAway[name] = _skippedAway.GetValueOrDefault(name) + 1;
             }
         }
+    }
+
+    // measure only (council 11): what the host said while this player was away and that its game did not take,
+    // by kind, and since when. Read at the world copy that brings it back, see ReportReturn
+    private readonly Dictionary<string, int> _skippedAway = [];
+    private float _awaySince;
+
+    /// <summary>
+    ///     One line a return: how long away, how big the world copy, what was not taken meanwhile. The figures a
+    ///     return without a world copy needs before it is written (how often nothing of the world moved)
+    /// </summary>
+    private void ReportReturn(int worldBytes)
+    {
+        var kinds = string.Join(", ", _skippedAway.OrderByDescending(k => k.Value).Take(12).Select(k => $"{k.Key} {k.Value}"));
+        EmpLog.Information("Back after {Seconds:F0}s away: world copy of {Bytes} bytes, {Skipped} host deltas not taken meanwhile ({Kinds})",
+            _awaySince > 0 ? Time.realtimeSinceStartup - _awaySince : 0f, worldBytes, _skippedAway.Values.Sum(), kinds);
+        _skippedAway.Clear();
+        _awaySince = 0;
     }
 
     /// <summary>
