@@ -1,32 +1,30 @@
-# Elin Together « indépendance » 0.26.584
+# Elin Together « indépendance » 0.26.590
 
 (English below / version anglaise plus bas)
 
-Suite de la 0.26.566. Cette fois une bonne partie est **jouée au banc de test** (deux fenêtres sur un même PC), pas
-encore dans une vraie partie. Si cette version se passe mal, la 0.26.566 reste en ligne. Compilé pour Elin **EA 23.352
-Patch 1** (canal Nightly). **Tous les joueurs doivent installer ce même zip, et avoir la même liste de mods.** Faites
-une copie de vos sauvegardes avant : `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
+Suite de la 0.26.584. La nouveauté est **jouée au banc de test** (deux fenêtres sur un même PC), pas encore entre deux
+vrais PC. Si cette version se passe mal, la 0.26.584 reste en ligne. Compilé pour Elin **EA 23.352 Patch 1** (canal
+Nightly). **Tous les joueurs doivent installer ce même zip.** Faites une copie de vos sauvegardes avant :
+`%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
 
 ## Nouveau
 
-- **Compatibilité AutoAct** (mod du Workshop) : un invité peut répéter une action (récolter, creuser, miner,
-  arroser…) comme l'hébergeur ; chaque tour est vraiment joué dans le monde. Joué au banc.
-- **Compatibilité Dynamic Riding** (mod du Workshop) : plus d'erreur à chaque rechargement d'écran quand un joueur est
-  sur une monture. Joué au banc.
-- **Liste des mods du monde dans le dépôt GitHub** : un fichier `modlist.txt` est déposé à côté de la sauvegarde, une
-  ligne par mod avec le lien de sa page du Workshop. Il est écrit une seule fois (par le premier joueur qui envoie le
-  monde avec cette version) et n'est plus remplacé par le jeu : on le modifie à la main dans le dépôt.
-- **Moins de rechargements d'écran, derrière une case décochée** (« Server Setting », chez l'hébergeur) : quand
-  l'hébergeur rejoint un invité sur sa carte, ou qu'un invité rejoint l'hébergeur, l'invité ne reçoit plus le monde
-  entier. Au banc : zéro rechargement complet sur six étages de donjon, au lieu d'un par étage. **Décochée par
-  défaut** : pas encore jouée à trois joueurs ni avec des compagnons. Au moindre doute le jeu retombe en silence sur
-  le rechargement d'avant.
-
-## Corrigé
-
-- **Villes qui ne se régénéraient plus, donjons qui n'expiraient plus** : une carte tenue par un invité puis rendue à
-  l'hébergeur revenait marquée « jamais ». Corrigé, et les mondes déjà touchés sont réparés tout seuls au chargement
-  par l'hébergeur. Écrit et compilé, pas joué.
+- **Les mods de la partie, sans s'abonner à rien.** Quand vous rejoignez une partie (ou prenez le monde dans le dépôt)
+  et qu'il vous manque des mods du Workshop : ils sont téléchargés tout seuls, votre compte Steam ne s'abonne à rien,
+  Elin se ferme et se relance **une fois** avec exactement les mods de la partie, puis vous y ramène sans rien
+  cliquer. Si vous avez des mods en trop qui bloquent l'entrée, Elin se relance une fois sans eux. Au lancement
+  suivant d'Elin, vous retrouvez votre propre liste de mods, intacte. Rien n'est jamais supprimé ni désabonné.
+  - La liste de référence : le `modlist.txt` du dépôt quand le monde en vient, sinon les mods de l'hébergeur.
+  - Si Elin ne se relance pas tout seul, relancez-le à la main dans la demi-heure : il vous ramène dans la partie.
+  - Un mod installé à la main (hors Workshop) ne peut pas être téléchargé : son nom est affiché.
+  - Pour garder vos mods et seulement être prévenu des différences : décochez « Fetch the mods of the game by itself » dans
+    l'onglet « Client Setting ». **Ces mods sont choisis par l'hébergeur et tournent sur votre PC : à utiliser avec
+    des gens de confiance.**
+  - Joué au banc : téléchargement Steam sans abonnement, relance avec les mods de la partie, retour tout seul, liste
+    du joueur retrouvée ensuite. **Pas joué** : la relance d'Elin par Steam, le retour par salon Steam et par dépôt
+    GitHub (le banc relance lui-même et revient par une connexion locale), Steam Deck / Linux.
+- **Un refus pour cause de mods nomme les mods** : ceux qui vous manquent, ceux à installer à la main, ceux en trop.
+- **La liste des parties** indique combien de mods a chaque partie et combien vous manquent.
 
 ## Limites connues
 
@@ -53,31 +51,30 @@ Il faut [YK Framework](https://steamcommunity.com/sharedfiles/filedetails/?id=34
 
 ---
 
-# Elin Together "independence" 0.26.584
+# Elin Together "independence" 0.26.590
 
-Follows 0.26.566. This time a good part was **played on the test bench** (two windows on one PC), not yet in a real
-game. If this version goes wrong, 0.26.566 stays online. Built for Elin **EA 23.352 Patch 1** (Nightly branch).
-**Every player must install this same zip and have the same list of mods.** Back up your saves first: `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
+Follows 0.26.584. The new feature was **played on the test bench** (two windows on one PC), not yet between two real
+PCs. If this version goes wrong, 0.26.584 stays online. Built for Elin **EA 23.352 Patch 1** (Nightly branch).
+**Every player must install this same zip.** Back up your saves first: `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
 
 ## New
 
-- **AutoAct compatibility** (Workshop mod): a guest can repeat an action (harvest, dig, mine, water…) like the host;
-  each round is really played in the world. Played on the bench.
-- **Dynamic Riding compatibility** (Workshop mod): no more error at every screen reload when a player rides a mount.
-  Played on the bench.
-- **The mod list of the world in the GitHub depot**: a `modlist.txt` file next to the save, one line a mod with the
-  link of its Workshop page. Written once (by the first player who sends the world with this version) and never
-  replaced by the game: change it by hand in the repository.
-- **Fewer screen reloads, behind an unticked checkbox** ("Server Setting", on the host): when the host joins a guest
-  on its map, or a guest joins the host, the guest no longer receives the whole world. On the bench: no full reload on
-  six dungeon floors, where there was one per floor. **Unticked by default**: not played yet with three players or
-  with companions. At the slightest doubt the game silently falls back to the old reload.
-
-## Fixed
-
-- **Towns that no longer regenerated, dungeons that no longer expired**: a map held by a guest then handed back to the
-  host came back marked "never". Fixed, and worlds already marked are repaired by themselves when the host loads
-  them. Written and compiled, not played.
+- **The mods of the game, without subscribing to anything.** When you join a game (or take the world from the depot)
+  and Workshop mods are missing: they are downloaded by themselves, your Steam account subscribes to nothing, Elin
+  closes and restarts **once** with exactly the mods of that game, then brings you back into it without a click. If
+  mods of yours block the join, Elin restarts once without them. At the next start of Elin your own mod list is back,
+  untouched. Nothing is ever deleted or unsubscribed.
+  - The reference list: the `modlist.txt` of the depot when the world comes from it, else the host's mods.
+  - If Elin does not restart by itself, start it by hand within half an hour: it brings you back into the game.
+  - A mod installed by hand (not on the Workshop) cannot be downloaded: its name is shown.
+  - To keep your mods and only be told what differs: untick "Fetch the mods of the game by itself" in the "Client Setting" tab.
+    **These mods are chosen by the host and run on your PC: use it with people you trust.**
+  - Played on the bench: Steam download without subscribing, restart with the mods of the game, coming back by
+    itself, the player's list back afterwards. **Not played**: Elin restarted by Steam, coming back through a Steam
+    lobby or the GitHub depot (the bench restarts the game itself and comes back by a local connection), Steam Deck /
+    Linux.
+- **A join refused because of mods names the mods**: missing, to install by hand, extra.
+- **The game list** shows how many mods each game has and how many you miss.
 
 ## Known limits
 
