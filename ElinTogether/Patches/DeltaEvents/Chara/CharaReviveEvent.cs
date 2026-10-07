@@ -1,7 +1,9 @@
+using System.Collections;
 using ElinTogether.Helper;
 using ElinTogether.Models;
 using ElinTogether.Net;
 using HarmonyLib;
+using UnityEngine;
 
 namespace ElinTogether.Patches;
 
@@ -50,6 +52,7 @@ internal static class CharaReviveEvent
             Pos = pos,
         });
         _pendingLastWords = null;
+        EmpMod.Instance.StartCoroutine(WatchRevive(__instance, client));
 
         // scene
         EClass.player.deathDialog = true;
@@ -59,6 +62,38 @@ internal static class CharaReviveEvent
         }
 
         return false;
+    }
+
+    // a request with no answer leaves the player dead for good
+    private const float ReviveWait = 10f;
+
+    /// <summary>
+    ///     The revive was asked to the game that keeps the map. If that game stops keeping it before it answers (it
+    ///     left and handed the map over, the link changed), or says nothing for a while, the player would stay dead:
+    ///     asked again, to whoever keeps the map now (this game's own revive when it is this one). The keeper drops a
+    ///     second request for a player already standing
+    /// </summary>
+    private static IEnumerator WatchRevive(Chara chara, ElinNetBase keeper)
+    {
+        var since = Time.realtimeSinceStartup;
+        yield return null;
+
+        while (EClass.core.IsGameStarted && EClass.pc == chara && chara.isDead) {
+            var moved = !ReferenceEquals(NetSession.Instance.Connection, keeper);
+            if ((moved || Time.realtimeSinceStartup - since > ReviveWait) && EClass._zone is { IsActiveZone: true } &&
+                EClass._map?.charas is not null) {
+                EmpLog.Information("Revive not answered ({Reason}), asking again",
+                    moved ? "the map changed hands" : "no answer");
+                chara.Revive();
+                if (!chara.isDead) {
+                    EClass.player.deathDialog = false;
+                }
+
+                yield break;
+            }
+
+            yield return null;
+        }
     }
 
     // what dying costs a player is settled by the game that simulates the map (CharaReviveDelta): not again
