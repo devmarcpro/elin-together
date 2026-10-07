@@ -140,7 +140,9 @@ internal static class ZoneLeaseState
     internal static void ApplyState(Zone zone, int[] state, string? subset)
     {
         for (var i = 0; i < Math.Min(state.Length, zone._ints.Length); i++) {
-            if (!_hostOwnedInts.Contains(i)) {
+            // "never" in a date (9 expiry, 12 regeneration) is what a client's copy of a map carries, see
+            // ZoneDatesRepairPatch: not a date to keep
+            if (!_hostOwnedInts.Contains(i) && !(i is 9 or 12 && state[i] == int.MaxValue)) {
                 zone._ints[i] = state[i];
             }
         }
