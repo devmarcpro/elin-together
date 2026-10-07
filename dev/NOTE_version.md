@@ -1,25 +1,20 @@
-# Elin Together « indépendance » 0.26.557
+# Elin Together « indépendance » 0.26.560
 
 (English below / version anglaise plus bas)
 
-Suite de la 0.26.548, d'après le journal d'une vraie partie jouée avec elle. **Écrit, relu en partie et compilé, pas
-joué** (le jeu n'était pas disponible pour les essais). Si cette version se passe mal, la 0.26.548 reste en ligne.
-Compilé pour Elin **EA 23.352 Patch 1** (canal Nightly). **Tous les joueurs doivent installer ce même zip, et avoir la
-même liste de mods.** Faites une copie de vos sauvegardes avant : `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
+Suite de la 0.26.557, d'après le journal d'une vraie partie jouée avec elle. **Écrit et compilé, pas joué.** Si cette
+version se passe mal, la 0.26.557 reste en ligne. Compilé pour Elin **EA 23.352 Patch 1** (canal Nightly). **Tous les
+joueurs doivent installer ce même zip, et avoir la même liste de mods.** Faites une copie de vos sauvegardes avant :
+`%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
 
 ## Corrigé
 
-- **Messages d'erreur « guild_fighter2 », « guild_fighter3 »… à chaque monstre tué** chez un invité : quand un autre
-  joueur faisait avancer la quête de la Guilde des guerriers, le jeu de l'invité gardait l'ancienne tâche et poussait
-  la quête vers des étapes qui n'existent pas. La tâche est maintenant abandonnée, une quête refuse une étape qui
-  n'existe pas, et une quête déjà coincée se répare toute seule.
-- **Objet lancé par un autre joueur** (une balle, par exemple) : l'animation du vol plantait parfois et l'objet
-  n'atterrissait pas dans votre jeu. Le lancer continue maintenant même si l'animation ne peut pas être dessinée.
-- **Invité mort au moment où l'hébergeur quitte la carte** : sa demande de réanimation est redemandée (trois fois au
-  plus) au lieu de le laisser mort.
-- **Compétences et niveau** : l'hébergeur n'ignore plus ce que le personnage d'un joueur apprend pendant les quelques
-  secondes de son arrivée.
-- **Rune ou carburant** utilisé sur un objet ramassé à l'instant : dans la 0.26.548 il pouvait ne rien se passer.
+- **Jeu cassé (une erreur à chaque instant) en rejoignant l'hébergeur** : un invité mort gardait la position de la
+  carte où il était mort ; replacé sur une carte plus petite (un autre étage de donjon), il se retrouvait hors de la
+  carte. Le personnage est maintenant posé à la place donnée par l'hébergeur avant l'affichage de la carte, et si
+  l'affichage échoue quand même, le jeu replace le personnage et redemande la carte.
+
+Confirmé par ce même journal : plus aucune erreur de la Guilde des guerriers depuis la 0.26.557.
 
 ## Limites connues
 
@@ -28,6 +23,7 @@ même liste de mods.** Faites une copie de vos sauvegardes avant : `%USERPROFILE
 - Sur la carte du monde, quand tous voyagent ensemble, seuls les pas de l'hébergeur font avancer la date.
 - Un joueur refusé par celui qui tient une carte reçoit encore le monde entier.
 - Chez l'hébergeur, les invités qui marchent avancent par à-coups de trois cases.
+- Quand l'hébergeur rejoint un invité sur sa carte, l'écran de l'invité recharge (le monde entier est renvoyé).
 - Quand l'hébergeur part ou plante, aucun invité ne reprend le monde tout seul.
 
 ## En cas de problème pendant une partie
@@ -44,25 +40,20 @@ Il faut [YK Framework](https://steamcommunity.com/sharedfiles/filedetails/?id=34
 
 ---
 
-# Elin Together "independence" 0.26.557
+# Elin Together "independence" 0.26.560
 
-Follows 0.26.548, from the log of a real game played with it. **Written, partly reviewed and compiled, not played**
-(the game was not available for testing). If this version goes wrong, 0.26.548 stays online. Built for Elin **EA
-23.352 Patch 1** (Nightly branch). **Every player must install this same zip and have the same list of mods.** Back up
-your saves first: `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
+Follows 0.26.557, from the log of a real game played with it. **Written and compiled, not played.** If this version
+goes wrong, 0.26.557 stays online. Built for Elin **EA 23.352 Patch 1** (Nightly branch). **Every player must install
+this same zip and have the same list of mods.** Back up your saves first: `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
 
 ## Fixed
 
-- **Error messages "guild_fighter2", "guild_fighter3"… at every monster killed** on a guest: when another player moved
-  the Fighters Guild quest on, the guest's game kept the old task and pushed the quest to steps that do not exist. The
-  task is now dropped, a quest refuses a step it does not have, and a quest already stuck repairs itself.
-- **A thing thrown by another player** (a ball, for instance): the flight animation sometimes failed and the thing
-  never landed in your game. The throw now goes on even when the animation cannot be drawn.
-- **A guest dead when the host leaves the map**: its revive request is asked again (three times at most) instead of
-  leaving it dead.
-- **Skills and level**: the host no longer ignores what a player's character learns during the few seconds of its
-  arrival.
-- **A rune or fuel** used on a thing picked up a moment before: in 0.26.548 nothing could happen.
+- **Game broken (an error at every moment) when joining the host**: a dead guest kept the position of the map it died
+  on; put on a smaller map (another dungeon floor), it stood outside the map. The character is now placed where the
+  host says before the map is shown, and if showing it still fails, the game places the character and asks for the map
+  again.
+
+Confirmed by that same log: no Fighters Guild error since 0.26.557.
 
 ## Known limits
 
@@ -71,6 +62,7 @@ your saves first: `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
 - On the world map, when everyone travels together, only the host's steps move the date.
 - A player refused by the holder of a map still receives the whole world.
 - On the host, walking guests move in jumps of three tiles.
+- When the host joins a guest on its map, the guest's screen reloads (the whole world is sent again).
 - When the host leaves or crashes, no guest takes the world over by itself.
 
 ## If something goes wrong during a game
