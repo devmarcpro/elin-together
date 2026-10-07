@@ -126,6 +126,7 @@ namespace ElinTogether.Models;
 [Union(841, typeof(CharaBagDelta))]
 [Union(842, typeof(DesyncReportDelta))]
 [Union(843, typeof(CardPoseDelta))]
+[Union(844, typeof(CodexCardDelta))]
 // Act
 [Union(900, typeof(ActThrowDelta))]
 // Element

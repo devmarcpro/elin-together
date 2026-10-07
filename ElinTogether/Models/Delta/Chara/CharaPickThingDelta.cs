@@ -66,7 +66,17 @@ public class CharaPickThingDelta : ElinDelta
 
         switch (Type) {
             case PickType.Pick:
-                chara.Pick(thing, tryStack: TryStack);
+                // a card of the codex: collected or kept is the choice of the player who picked it (its own
+                // "collect cards" setting), and its game told the codex itself (CodexCardDelta). With this
+                // game's setting the card went to this codex, or was taken away from a player who keeps them
+                var collect = game.config.autoCollectCard;
+                game.config.autoCollectCard = false;
+                try {
+                    chara.Pick(thing, tryStack: TryStack);
+                } finally {
+                    game.config.autoCollectCard = collect;
+                }
+
                 // force add
                 if (net.IsHost && !thing.isDestroyed && thing.parent == _zone) {
                     EmpLog.Warning("Mirror pick of {Uid} failed to store, forcing into chara {OwnerUid}",

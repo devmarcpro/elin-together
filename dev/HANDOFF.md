@@ -48,6 +48,17 @@
   et un `Scene.Init` qui lève replace le personnage et redemande la carte. Cause exacte de la mauvaise position non
   établie (copie du monde prise pendant le va-et-vient de l'host). Vus aussi, anciens : `Handed zone … while not in
   it`, `Zone … unknown here and could not be built` (`Region._OnDeserialized`, clé nulle), rattrapés tout seuls.
+- **Publiée : 0.26.560** (invité mort hors carte). Depuis, non publié : garde `Region._OnDeserialized`, mesure des
+  retours (conseil 11, `PLAN_conseil11_rechargements.md`), **codex partagé**.
+- **« Les cartes du codex ne se cumulent pas »** (utilisateur, 2026-10-07) : le codex est dans `Player`, qu'un invité
+  reçoit de l'host à chaque copie du monde ; ce qu'un invité collectait n'était compté que chez lui (ou chez l'host
+  seulement si l'host a « collecter les cartes » coché) et repartait à la copie suivante. Corrigé (compilé, **pas
+  joué**) : codex commun comme les recettes, `CodexCardDelta` (844, prochain libre 845), `CodexCardPatch`
+  (`CodexManager.AddCard`, `ContentCodex.OnClickGetCard`), accepté d'un joueur absent et reçu par lui ; l'host qui
+  rejoue le ramassage d'un autre joueur n'applique plus son propre réglage de collecte (`CharaPickThingDelta`).
+  Non couvert : les compteurs de monstres tués / points faibles / apparitions du codex (par jeu, repris de l'host à
+  chaque copie) ; une carte prise du codex par un invité crée une figurine chez lui (objet créé par un client : à
+  vérifier au banc).
 - **À-coups de trois cases** : les journaux réels d'après la 0.26.532 n'en ont presque plus (2 et 0 « Reconcile force
   move » contre 57 à 239 avant) : c'était surtout les patchs retirés. Classé, à rouvrir si un journal le remontre.
 - **Joueur refusé qui reçoit le monde entier** : plan écrit (`PLAN_journal_invite_6_octobre.md` §3 c), non fait : le
