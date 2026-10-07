@@ -98,7 +98,9 @@ def main():
     fetch = ev(A, 'var e = HarmonyLib.AccessTools.Property(HarmonyLib.AccessTools.TypeByName("ElinTogether.EmpConfig+Client"), "FetchMods").GetValue(null); '
                   'return HarmonyLib.AccessTools.Property(e.GetType(), "Value").GetValue(e).ToString();')
     if fetch != "False":
-        sys.exit("« FetchMods » est coche chez l'invite : ce banc ne joue pas le telechargement ni la relance. Decocher, puis relancer.")
+        # ce banc ne joue pas le telechargement ni la relance (modfetch_suite, modfetch_dl)
+        ev(A, 'HarmonyLib.Traverse.Create(HarmonyLib.AccessTools.TypeByName("ElinTogether.EmpConfig+Client")).Property("FetchMods")'
+              '.GetValue<BepInEx.Configuration.ConfigEntry<bool>>().Value = false; "ok"')
     if not (state(H).get("connected") and state(A).get("connected")):
         sys.exit("il faut un host et un client deja en jeu (python _tools/mp_test.py)")
 
