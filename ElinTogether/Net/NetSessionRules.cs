@@ -160,7 +160,16 @@ public class NetSessionRules
     [Key(22)]
     public bool UseSharedTax { get; set; } = true;
 
+    /// <summary>
+    ///     Council 11: when the host walks onto the map a player holds alone, that player keeps its game and its
+    ///     scene and becomes a client of the host again in place (see ZoneSoftRejoin). Off: it hands the map back
+    ///     and loads the whole world again
+    /// </summary>
+    [Key(23)]
+    public bool SoftRecall { get; set; } = false;
+
     public static NetSessionRules Default => new() {
+        SoftRecall = EmpConfig.Server.SoftRecall.Value,
         UseSharedTax = EmpConfig.Server.SharedTax.Value,
         KeepWorldCopy = EmpConfig.Server.WorldCopy.Value,
         AutoResync = EmpConfig.Server.AutoResync.Value,

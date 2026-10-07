@@ -273,6 +273,14 @@ internal partial class EmpConfig
             "Otherwise on the host's fame, as the game does\n" +
             "每月税金按在线玩家中最高的名声计算，而不总是按主机的名声。关闭时按主机的名声计算（与原版相同）");
 
+        Server.SoftRecall = config.Bind(
+            "Server",
+            "SoftRecall",
+            false,
+            "When the host walks onto the map a player holds alone, that player stays on its map without loading the whole world again\n" +
+            "New, off until it has been played more. Should anything not match, the world is loaded as before. Otherwise the world is loaded at each such meeting\n" +
+            "主机走进某位玩家独自所在的地图时，该玩家留在原地图上，不再重新载入整个世界。新功能，默认关闭；如有任何不一致，仍会像以前一样载入世界。关闭时每次这样相遇都会重新载入世界");
+
         Server.WorldCopy = config.Bind(
             "Server",
             "WorldCopy",
@@ -411,6 +419,7 @@ internal partial class EmpConfig
         internal static ConfigEntry<bool> AutoSave { get; set; } = null!;
         internal static ConfigEntry<bool> WorldCopy { get; set; } = null!;
         internal static ConfigEntry<bool> SharedTax { get; set; } = null!;
+        internal static ConfigEntry<bool> SoftRecall { get; set; } = null!;
         internal static ConfigEntry<bool> AutoHost { get; set; } = null!;
         internal static ConfigEntry<bool> OwnSleep { get; set; } = null!;
         internal static ConfigEntry<bool> TimeJumpsTogether { get; set; } = null!;

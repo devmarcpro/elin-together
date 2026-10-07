@@ -187,6 +187,16 @@ internal static class NetDesync
     private static double _lastCostMs;
 
     /// <summary>
+    ///     This game just became a client on the map it stands on without loading it (ZoneSoftRejoin): nothing is
+    ///     compared for as long as after a map load, what the host did meanwhile is still on its way
+    /// </summary>
+    internal static void HoldOff()
+    {
+        _quietUntil = Math.Max(_quietUntil, Time.unscaledTime + LoadGrace);
+        _mapStrikes = _bagStrikes = 0;
+    }
+
+    /// <summary>
     ///     The numbers of the active map as this game holds it, null when there is nothing to compare
     /// </summary>
     internal static MapSums? Collect()

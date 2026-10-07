@@ -19,6 +19,13 @@ internal class PauseGame
             return;
         }
 
+        // our map and our character are with the host, its answer is on its way: nothing moves here meanwhile,
+        // see ElinNetClient.IsAwaitingSoftRejoin
+        if (NetSession.Instance.Transport is ElinNetClient { IsAwaitingSoftRejoin: true }) {
+            __result = true;
+            return;
+        }
+
         if (!__result) {
             return;
         }

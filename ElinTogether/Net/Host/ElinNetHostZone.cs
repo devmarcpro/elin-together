@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using ElinTogether.Common;
 using ElinTogether.Elements;
 using ElinTogether.Helper;
@@ -23,6 +24,29 @@ internal partial class ElinNetHost
         // nobody connected (a guest away is still a peer): saving and compressing the map is for nothing, whoever
         // comes later asks for the zone (OnMapDataRequest)
         if (peer is null && Socket.Peers.Count == 0) {
+            Session.Lobby.Current[EmpLobbyData.CurrentZone] = zone.NameWithLevel;
+            return;
+        }
+
+        // council 11: the players who stay on this very map keep their copy of it, see CompleteSoftRejoin
+        if (peer is null && TakeSoftRejoins(zone) is { Count: > 0 } staying) {
+            // what is already done is in the map and in the numbers sent below: it goes out before them
+            Delta.RefreshBuffer();
+            WorldStateDeltaUpdate();
+
+            var others = Socket.Peers.Where(p => !staying.Contains(p)).ToList();
+            if (others.Count > 0) {
+                var map = ZoneDataResponse.Create(zone);
+                foreach (var other in others) {
+                    other.Send(map);
+                }
+            }
+
+            foreach (var stays in staying) {
+                CompleteSoftRejoin(stays, zone);
+            }
+
+            InviteToQuestZone(zone);
             Session.Lobby.Current[EmpLobbyData.CurrentZone] = zone.NameWithLevel;
             return;
         }

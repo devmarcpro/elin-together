@@ -41,6 +41,7 @@ internal partial class ElinNetClient : ElinNetBase
         UpdateHandoffWait();
         UpdateQuestInvite();
         UpdateTransferLock();
+        UpdateSoftRejoinWait();
 
         if (IsConnected) {
             _lastTimeout = DateTime.Now;
@@ -159,6 +160,7 @@ internal partial class ElinNetClient : ElinNetBase
         Router.RegisterHandler<ZoneLeaseDepart>(OnZoneLeaseDepart);
         Router.RegisterHandler<ZoneLeaseDenied>(OnZoneLeaseDenied);
         Router.RegisterHandler<ZoneLeaseRecall>(OnZoneLeaseRecall);
+        Router.RegisterHandler<ZoneSoftRejoin>(OnZoneSoftRejoin);
         Router.RegisterHandler<ZoneGuestRequest>(OnZoneGuestRequest);
         Router.RegisterHandler<ZoneGuestLeft>(OnZoneGuestLeft);
         Router.RegisterHandler<ShippingPayout>(OnShippingPayout);

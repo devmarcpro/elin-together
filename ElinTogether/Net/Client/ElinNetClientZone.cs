@@ -104,6 +104,9 @@ internal partial class ElinNetClient
 
         EmpLog.Information("Received zone state");
 
+        // a map follows after all: the placement that comes with it is a real one
+        _softPlaced = 0;
+
         // the map awaited since the world copy, see AskMissingMap
         _mapAwaited++;
 
@@ -197,6 +200,13 @@ internal partial class ElinNetClient
         using var _ = LogContext.PushProperty("Zone", new { response.ZoneFullName, response.ZoneUid }, true);
 
         _awaitingActivation = 0;
+
+        // council 11: we never left that map nor loaded it again, the host only says where it holds us
+        if (_softPlaced != 0 && _softPlaced == response.ZoneUid) {
+            _softPlaced = 0;
+            ConfirmSoftPlacement(response);
+            return;
+        }
 
         EmpLog.Information("Received zone activation");
 

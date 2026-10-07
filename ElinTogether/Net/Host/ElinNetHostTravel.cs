@@ -305,6 +305,7 @@ internal partial class ElinNetHost
     {
         base.Update();
         UpdateQuestAsk();
+        UpdateSoftRejoins();
     }
 
     /// <summary>
@@ -730,6 +731,7 @@ internal partial class ElinNetHost
         _pendingHostMove = (zone, transition);
         peer.Send(new ZoneLeaseRecall {
             ZoneUid = zone.uid,
+            Soft = CanRecallSoftly(zone),
         });
         EmpPop.Information("emp_travel_recalling".lang(), peer);
         return false;
@@ -1132,8 +1134,13 @@ internal partial class ElinNetHost
         // a guest hands nothing back, it is only leaving
         _guests.Remove(peer.Id);
 
-        var chara = ReplaceRemoteChara(peer.User, release.Chara);
-        ReplaceCompanions(release.Companions, SavedRemoteCharas.TryGetValue(peer.User, out var ownerUid) ? ownerUid : 0);
+        // before the zone is handed over: visitors are called back by it, and come back with the world
+        var soft = handedBack && CanRejoinSoftly(release, peer);
+
+        // the numbers given to its cards that waited for one, see ZoneSoftRejoin.Rebinds
+        var rebound = new Dictionary<int, int>();
+        var chara = ReplaceRemoteChara(peer.User, release.Chara, rebound: rebound);
+        ReplaceCompanions(release.Companions, SavedRemoteCharas.TryGetValue(peer.User, out var ownerUid) ? ownerUid : 0, rebound);
         ReplaceGuestCharas(release, peer);
 
         // never next to the host when something tells where: it walks into the host's map by the way it took, or
@@ -1166,7 +1173,10 @@ internal partial class ElinNetHost
             _departed.Remove(peer.Id);
             _checkpointUidNext.Remove(peer.Id);
 
-            if (chara is not null) {
+            if (chara is { isDead: false } && soft) {
+                // no copy of the world: it stays on the map it handed back, see CompleteSoftRejoin
+                RegisterSoftRejoin(chara, peer, release.ZoneUid, rebound);
+            } else if (chara is not null) {
                 EmpLog.Information("Player {@Peer} returns to the host zone",
                     peer);
 
@@ -1302,7 +1312,8 @@ internal partial class ElinNetHost
     ///     Swap the host copy of the player character for the one simulated by the client
     /// </summary>
     /// <param name="register">zone session: take the uploaded uid as the saved chara of that player</param>
-    private Chara? ReplaceRemoteChara(UserData user, LZ4Bytes data, bool register = false)
+    /// <param name="rebound">filled with the numbers given to its cards that waited for one: old -> new</param>
+    private Chara? ReplaceRemoteChara(UserData user, LZ4Bytes data, bool register = false, Dictionary<int, int>? rebound = null)
     {
         var uploaded = data.Decompress<Chara>();
 
@@ -1342,7 +1353,9 @@ internal partial class ElinNetHost
         InvPlaceAbilityDelta.InvalidateFakeAbilityCard(uploaded);
         foreach (var thing in uploaded.things.Flatten().ToList()) {
             if (PendingUid.IsPending(thing.uid)) {
+                var pending = thing.uid;
                 game.cards.AssignUID(thing);
+                rebound?[pending] = thing.uid;
             }
         }
 
@@ -1594,6 +1607,7 @@ internal partial class ElinNetHost
         _departed.Remove(peer.Id);
         _pendingGuests.Remove(peer.Id);
         _guests.Remove(peer.Id);
+        _softRejoins.Remove(peer.Id);
 
         // cards of the last checkpoint are in the save now, the host must not allocate their uids
         if (_checkpointUidNext.Remove(peer.Id, out var uidNext)) {

@@ -771,8 +771,14 @@ internal partial class ElinNetClient
             return;
         }
 
-        EmpLog.Information("Host recalls zone {ZoneFullName}, rejoining",
-            Session.AwayZone.ZoneFullName);
+        // host rule SoftRecall: we keep our game and wait for ZoneSoftRejoin instead of the world, see
+        // ElinNetClientSoftRejoin. Anything else going on (dead, visitors, not on that map): as before
+        if (recall.Soft && CanRejoinSoftly()) {
+            _softRejoinDeadline = Time.realtimeSinceStartup + SoftRejoinWaitSeconds;
+        }
+
+        EmpLog.Information("Host recalls zone {ZoneFullName}, rejoining (in place {Soft})",
+            Session.AwayZone.ZoneFullName, IsAwaitingSoftRejoin);
 
         SendRejoin();
         // the screen reloads when the host answers: say who is coming and why
@@ -1063,6 +1069,7 @@ internal partial class ElinNetClient
             Checkpoint = checkpoint,
             StoodZoneUid = stoodIn,
             Arrival = arrival,
+            Soft = rejoin && !checkpoint && IsAwaitingSoftRejoin,
             GuestCharas = (Session.ZoneSession as ElinNetHost)?.CollectGuestCharas(),
             GuestCompanions = (Session.ZoneSession as ElinNetHost)?.CollectGuestCompanions(),
         };
@@ -1158,6 +1165,7 @@ internal partial class ElinNetClient
             ZoneLeaseDepart or
             ZoneLeaseDenied or
             ZoneLeaseRecall or
+            ZoneSoftRejoin or
             ZoneGuestRequest or
             ShippingPayout or
             ZoneDataResponse or

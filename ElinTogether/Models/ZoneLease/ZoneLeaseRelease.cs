@@ -86,4 +86,11 @@ public class ZoneLeaseRelease
     /// </summary>
     [Key(13)]
     public int[]? MapSums { get; set; } = null;
+
+    /// <summary>
+    ///     Answer to a soft recall: this game keeps its scene and waits for <see cref="ZoneSoftRejoin" /> instead
+    ///     of a copy of the world. The host may still answer with the world
+    /// </summary>
+    [Key(14)]
+    public bool Soft { get; set; } = false;
 }

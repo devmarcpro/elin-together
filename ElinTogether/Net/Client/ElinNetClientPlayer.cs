@@ -157,6 +157,10 @@ internal partial class ElinNetClient
             _pendingGrant = null;
             _rejoining = false;
             _handoffDeadline = 0;
+            // the host answered a soft release with the world after all
+            _softRejoinDeadline = 0;
+            _softPlaced = 0;
+            _worldAskDeadline = 0;
             _localZones.Clear();
             StartWorldStateUpdate();
         }

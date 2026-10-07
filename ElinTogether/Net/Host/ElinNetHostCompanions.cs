@@ -79,7 +79,8 @@ internal partial class ElinNetHost
     /// <summary>
     ///     Swap the host copies of the companions for the ones simulated by their travelling owner
     /// </summary>
-    private void ReplaceCompanions(List<LZ4Bytes>? companions, int ownerUid)
+    /// <param name="rebound">filled with the numbers given to their cards that waited for one: old -> new</param>
+    private void ReplaceCompanions(List<LZ4Bytes>? companions, int ownerUid, Dictionary<int, int>? rebound = null)
     {
         if (companions is null || ownerUid == 0) {
             return;
@@ -131,7 +132,9 @@ internal partial class ElinNetHost
 
             foreach (var thing in uploaded.things.Flatten().ToList()) {
                 if (PendingUid.IsPending(thing.uid)) {
+                    var pending = thing.uid;
                     game.cards.AssignUID(thing);
+                    rebound?[pending] = thing.uid;
                 }
             }
 

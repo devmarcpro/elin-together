@@ -233,13 +233,12 @@ internal partial class ElinNetHost
     }
 
     /// <summary>
-    ///     Send a save snapshot for replication
+    ///     The character is played by that peer from now on: in the party, on the host's map, in the player list.
+    ///     Shared by the copy of the world (<see cref="SendSaveProbe" />) and the return without one
+    ///     (RegisterSoftRejoin)
     /// </summary>
-    public void SendSaveProbe(Chara chara, ISteamNetPeer peer)
+    private void RegisterPlayer(Chara chara, ISteamNetPeer peer)
     {
-        EmpLog.Information("Sending save probe to player {@Peer} for replication",
-            peer);
-
         // register before any SetAI
         ActiveRemoteCharas[peer.Id] = chara;
 
@@ -258,6 +257,17 @@ internal partial class ElinNetHost
         CardCache.CacheContainer(chara.things);
 
         Session.CurrentPlayers.Add(state);
+    }
+
+    /// <summary>
+    ///     Send a save snapshot for replication
+    /// </summary>
+    public void SendSaveProbe(Chara chara, ISteamNetPeer peer)
+    {
+        EmpLog.Information("Sending save probe to player {@Peer} for replication",
+            peer);
+
+        RegisterPlayer(chara, peer);
 
         // what is already done is in the copies below: told to everyone before them, this player would
         // otherwise replay it on top of a world that has it

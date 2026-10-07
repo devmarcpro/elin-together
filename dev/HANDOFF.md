@@ -61,6 +61,17 @@
   (host -> absents ; absent -> host -> joueurs de la carte de l'host). Limites : un joueur seul ailleurs n'apprend
   les morts des autres cartes qu'à sa copie du monde suivante ; une figurine tirée du codex par un invité est un objet
   créé par un client (à vérifier au banc). À jouer : invité qui collecte, tue seul ailleurs, revient ; totaux égaux.
+- **Publiée : 0.26.566** (codex commun, garde de région, mesure des retours). **Depuis, non publié et à ne PAS publier
+  avant le banc** : « retour sur place » (conseil 11, tranche 1), règle `SoftRecall` n° 23, **décochée par défaut**,
+  écrit par un agent, relu une fois, compilé, jamais lancé. Tout est dans `PLAN_retour_sur_place.md` (séquence des
+  messages, 18 points à vérifier au banc, ce qui retombe sur la copie). Fichiers neufs : `Net/Host/ElinNetHostSoftRejoin.cs`,
+  `Net/Client/ElinNetClientSoftRejoin.cs`, `Models/ZoneLease/ZoneSoftRejoin.cs`. Test : `floors_suite.py` (étapes
+  « invité d'abord » vertes case cochée ; « host d'abord » = tranche 2, pas écrite). Prochaine règle libre : 24.
+  Suspects relevés à la lecture, non touchés : `dateExpire`/`dateRegenerate` à `int.MaxValue` renvoyés à l'host par
+  un invité qui a hérité d'une carte ; `PropagateZoneChangeState` sans vidage du tampon avant la carte ; aucun délai
+  côté invité en attendant la copie du monde après un rendu de carte.
+- **Demande de l'utilisateur (2026-10-07, soir)** : « travailler sur des choses vraiment importantes » = ce chantier
+  puis la reprise quand l'host part ; il ne libère pas encore Elin (« tu peux pas encore »).
 - **À-coups de trois cases** : les journaux réels d'après la 0.26.532 n'en ont presque plus (2 et 0 « Reconcile force
   move » contre 57 à 239 avant) : c'était surtout les patchs retirés. Classé, à rouvrir si un journal le remontre.
 - **Joueur refusé qui reçoit le monde entier** : plan écrit (`PLAN_journal_invite_6_octobre.md` §3 c), non fait : le

@@ -286,5 +286,7 @@
     "LangGeneral.emp_ui_sv_cfg_world_copy.text": "其他玩家保留一份世界副本",
     "LangGeneral.emp_ui_sv_desc_world_copy.text": "开启：每次自动保存后，每位玩家的电脑都会在自己的存档之外保留一份世界副本。关闭：世界只存在于主机的电脑上。",
     "LangGeneral.emp_ui_sv_cfg_shared_tax.text": "按名声最高的玩家计税",
-    "LangGeneral.emp_ui_sv_desc_shared_tax.text": "开：每月税金按在线玩家中最高的名声计算。关：按主机的名声计算（与原版相同）。"
+    "LangGeneral.emp_ui_sv_desc_shared_tax.text": "开：每月税金按在线玩家中最高的名声计算。关：按主机的名声计算（与原版相同）。",
+    "LangGeneral.emp_ui_sv_cfg_soft_recall.text": "主机来到玩家所在地图时不重新载入世界（新功能）",
+    "LangGeneral.emp_ui_sv_desc_soft_recall.text": "开启：主机走进某位玩家独自所在的地图时，该玩家留在原地，不再重新载入整个世界；如有任何不一致，仍会像以前一样载入世界。关闭：每次都会重新载入世界。"
 }

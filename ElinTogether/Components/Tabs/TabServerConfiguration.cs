@@ -23,6 +23,7 @@ internal class TabServerConfiguration : TabEmpBase
         Option(players, "import_chara", EmpConfig.Server.ImportCharacter);
         Option(players, "auto_reconnect", EmpConfig.Server.AutoReconnect);
         Option(players, "auto_resync", EmpConfig.Server.AutoResync);
+        Option(players, "soft_recall", EmpConfig.Server.SoftRecall);
         Option(players, "auto_host", EmpConfig.Server.AutoHost);
         Option(players, "auto_save", EmpConfig.Server.AutoSave);
         Option(players, "world_copy", EmpConfig.Server.WorldCopy);
