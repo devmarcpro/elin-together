@@ -84,6 +84,20 @@
   (`SpriteProvider.SetSpriteIdle`, table d'une seule image posée par le mod) ; garde `Patches/Compat/
   RideSpriteGuardPatch.cs`, 0 exception après deux allers-retours. Le décalage du dragon sous le cavalier vu de dos
   est celui du mod lui-même (pareil en solo, pas touché).
+- **Tranche 2 des retours (l'invité rejoint la carte de l'host)** : écrite par un agent, relue, **jouée** :
+  `floors_suite --soft --floors 6` = **0 copie du monde sur 6 étages**, 72/72 (4 copies règle décochée, 2 avec la
+  tranche 1 seule). Détail et 21 points à jouer dans `PLAN_retour_sur_place.md`. Pas encore joué : règle décochée
+  après ces retouches (`guest_suite`, `floors_suite` sans `--soft`), trois joueurs, compagnons, repli forcé.
+- **Dynamic Riding, « la monture et le cavalier ne glissent pas à la même vitesse »** (utilisateur) : **pas
+  reproduit**. Mesuré au banc (monture dragon, invité qui marche, 400 à 500 relevés par jeu) : écart des positions de
+  rendu cavalier/monture nul chez l'host, écart des acteurs constant à ±0,03 chez les deux. Un correctif essayé
+  (monture collée au cavalier, `SetFirst` à chaque image) ne changeait rien de mesurable : **retiré**. Piste non
+  vérifiée : sur l'écran du cavalier lui-même, le joueur local glisse par le chemin « PC » de `CharaRenderer.Draw`
+  (ligne 214, `MoveTowards`) et sa monture par le chemin « PNJ » (ligne 258) ; ce serait pareil en solo. À demander :
+  qui le voit (le cavalier ou les autres), en marche continue ou par à-coups, option de déplacement fluide.
+- **Liste des mods dans le dépôt** : `modlist.txt` (GitHub), fait, `depot_github_test` 77/77 ; suite demandée :
+  charger les mods du dépôt quand on héberge ou rejoint, téléchargement sans abonnement « comme Civ 6 »
+  (`PLAN_mods_de_l_host.md`, conseil 12 tenu).
 - **Demande en cours** : que l'invité récupère tout seul les mods de l'host en rejoignant (`PLAN_profil_mods.md`,
   rien d'écrit) : recherche des faits lancée, conseil à réunir (question : redémarrage et consentement contre « le
   joueur n'a pas à réfléchir »).
