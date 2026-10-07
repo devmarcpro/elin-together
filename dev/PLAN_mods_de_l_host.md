@@ -71,3 +71,17 @@ Cinq avis, deux relectures croisées, synthèse par la session.
 
 **À trancher par l'utilisateur** : M2 par un bouton (un clic) ou sans aucun clic (application stricte de « aucune
 question ») ; M3 un jour ou jamais.
+
+## Remarque de l'utilisateur après le conseil (2026-10-07) : « comme Civ 6 : téléchargé pour la partie, sans abonnement »
+
+Elle lève l'objection principale du conseil (abonnement permanent, valable sur tout le compte, actif en solo).
+- Steam le permet : `SteamUGC.DownloadItem(id)` télécharge un objet du Workshop **sans y abonner le compte** (copie
+  gardée en cache par Steam, qu'il peut nettoyer plus tard). Le jeu lui-même s'en sert déjà pour ses abonnements.
+- Ce que Civ 6 a et qu'Elin n'a pas : Civ 6 charge les mods au lancement d'une PARTIE, Elin au démarrage du JEU.
+  Une relance reste donc nécessaire.
+- Obstacle à lever : avec la synchronisation du jeu cochée (`syncMods`), Elin ne charge du dossier Workshop que les
+  objets auxquels le compte est abonné : un objet téléchargé sans abonnement y serait ignoré. Piste : le rendre
+  visible comme mod local le temps de la session (dossier ou jonction dans `Package/`, toujours chargé), puis le
+  désactiver dans `loadorder.txt` à la fin et le retirer au lancement suivant. À concevoir et à essayer sur un vrai PC.
+- Conséquence sur le découpage : M2 devient « télécharger sans abonnement » ; le compte Steam et le jeu solo de
+  l'invité ne sont plus touchés, ce qui rouvre la question « un clic ou aucun ».
