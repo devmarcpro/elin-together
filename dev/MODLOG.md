@@ -2612,3 +2612,5 @@ Le jeu de ce PC contient la 0.26.548 publiee (remise a la demande de l utilisate
 Publie : 0.26.557 (commit e5db1f1), non jouee. Le jeu de ce PC contient ce build Release : refaire devuild.ps1 avant tout test, et seulement avec l accord de l utilisateur (il joue).
 
 Publie : 0.26.560 (non jouee). Le jeu de ce PC contient ce build Release.
+
+Publie : 0.26.566 (non jouee). Le jeu de ce PC contient ce build Release.
