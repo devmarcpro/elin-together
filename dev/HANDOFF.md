@@ -1,6 +1,29 @@
 # Passation — ElinTogether « indépendance », état au 2026-10-06, 22h30 (haut du fichier ; le reste est plus ancien)
 
-## EN PAUSE le 7 octobre 2026, 0h30 (à lire en premier ; l'utilisateur a demandé de tout mettre en attente)
+## État au 7 octobre 2026, 2h25 (à lire en premier ; juste avant un compactage de la session)
+
+- **Publiée : 0.26.540** (commit `887405a`, `feat/independent-travel` au même commit), non jouée à la publication :
+  réglages de l'invité gardés à chaque carte et à la reconnexion (`Helper/OwnSettings.cs`, fichier local
+  `ElinMP/OwnSettings`), lecture d'un invité plus figée quand l'host quitte la carte (`Helper/PendingOnHost.cs`),
+  coffre d'expédition de l'host qui joue un personnage échangé (`Net/Host/ElinNetHostShipping.cs`, l'or dû est reversé
+  à 5 h), bouton « Join » dans la liste des parties. Notes : `PLAN_fenetres_invite.md`, `PLAN_bloque_lecture.md`,
+  `PLAN_expedition_host.md`.
+- **Joué au banc après la publication** : connexion à deux fenêtres ; `windows_suite` **69/70** (seul rouge : W5 attend
+  l'écran de choix du personnage, qui n'existe plus : test à corriger).
+- **En cours au moment du compactage** : `bash _tools/run_short.sh n7 place_suite bank_suite pickup_suite resync_suite
+  bills_suite sleep_suite time_suite` (journaux `dev/_shots/<suite>-n7.log`). À LIRE en premier à la reprise. Ces
+  suites n'ont jamais tourné : un rouge peut venir du test.
+- **Le jeu de ce PC contient le build de TEST (Debug)** : remettre la version publiée avant que l'utilisateur joue
+  d'ici : `rm -rf <jeu>/Package/Mod_ElinTogether && cp -r dev/_release/ElinTogether-independance/Mod_ElinTogether <jeu>/Package/`.
+  Steam tourne sur ce PC (relancé avec l'accord de l'utilisateur : « tu peux te servir d'elin »).
+- **Retours notés, pas commencés** (`PLAN_retours_soiree_6_octobre.md`, fin du fichier) : objet qu'on ne peut pas
+  prendre au clic gauche « avec certains arrivés » ; niveau des monstres de la base sur le joueur connecté de plus bas
+  niveau. **À faire ensuite** : réanimation d'un invité quand l'host quitte la carte (`CharaReviveEvent.cs`, voir
+  `PLAN_bloque_lecture.md`) ; joueur refusé par le teneur d'une carte qui reçoit le monde entier ; invités qui avancent
+  par à-coups de 3 cases chez l'host ; la liste « à décider » de `PLAN_fenetres_invite.md` (réglages de jeu qui sont
+  ceux de l'host chez un invité) ; jouer toutes les suites jamais lancées (liste plus bas).
+
+## EN PAUSE le 7 octobre 2026, 0h30 (plus ancien)
 
 - **Publiée : 0.26.532** (commit `b2b1490`, `feat/independent-travel` au même commit). Elle corrige la cause principale
   des désynchronisations, trouvée dans les journaux d'une vraie partie à quatre : en build Release, le mod retirait TOUS
