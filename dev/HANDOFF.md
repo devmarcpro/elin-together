@@ -70,6 +70,17 @@
   Suspects relevés à la lecture, non touchés : `dateExpire`/`dateRegenerate` à `int.MaxValue` renvoyés à l'host par
   un invité qui a hérité d'une carte ; `PropagateZoneChangeState` sans vidage du tampon avant la carte ; aucun délai
   côté invité en attendant la copie du monde après un rendu de carte.
+- **Banc du 7 octobre, 19h40 (Elin rendu)** : `floors_suite` case décochée = 4 copies du monde pour 4 étages ;
+  `floors_suite --soft` (règle `SoftRecall` cochée) = **0 copie quand l'host rejoint l'invité**, 9 fois sur 9 sur
+  trois passes (4, 8 puis 6 étages), sommes de carte égales, objets posés vus des deux côtés, déplacements vus, sacs
+  inchangés ; restent rouges les étapes « host d'abord » (tranche 2, pas écrite). Le « +1 objet » d'une passe était
+  un seau posé sur la case de l'escalier, ramassé à l'arrivée (test corrigé). Pas encore joué : repli forcé, dialogue
+  ouvert, compagnons, troisième joueur, tâche en cours, ville, les 18 points de `PLAN_retour_sur_place.md`.
+- **AutoAct** (Workshop 3370686923, demande du 7 octobre) : compatible pour un invité (`CharaTaskRemoteEvent.
+  OnStartUnderFake`, `FakeTask.MarkReal`, `CharaProgressCompleteDelta`), `autoact_suite` 11/11, `guest_suite` 332/334.
+- **Demande en cours** : que l'invité récupère tout seul les mods de l'host en rejoignant (`PLAN_profil_mods.md`,
+  rien d'écrit) : recherche des faits lancée, conseil à réunir (question : redémarrage et consentement contre « le
+  joueur n'a pas à réfléchir »).
 - **Demande de l'utilisateur (2026-10-07, soir)** : « travailler sur des choses vraiment importantes » = ce chantier
   puis la reprise quand l'host part ; il ne libère pas encore Elin (« tu peux pas encore »).
 - **À-coups de trois cases** : les journaux réels d'après la 0.26.532 n'en ont presque plus (2 et 0 « Reconcile force

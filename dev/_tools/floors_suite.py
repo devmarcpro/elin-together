@@ -27,7 +27,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 import emp  # noqa: E402
 from mp_test import log, state  # noqa: E402
-from travel_suite import (DESCEND, HOME, LOCALLOW, RESULTS, both_joined, check, dismiss_dialogs, ev, host_goto,  # noqa: E402
+import resync_suite as rs  # noqa: E402
+from travel_suite import (DESCEND, HOME, UP, at_zone, enter_at, marker, on_map, LOCALLOW, RESULTS, both_joined, check, dismiss_dialogs, ev, host_goto,  # noqa: E402
                           make_nefia, scan_logs, wait, walk_in, zone_uid)
 
 COPY_LINE = "Received save data from host"
@@ -58,18 +59,33 @@ def level(port):
     return int(ev(port, 'EClass._zone.lv.ToString()'))
 
 
-def descend(port, who):
-    """L'escalier descendant de la carte de ce joueur ; attend qu'il soit en jeu un etage plus bas."""
+def descend(port, who, down=True):
+    """L'escalier de la carte de ce joueur (descendant, ou montant quand `down` est faux : un donjon de test n'a que
+    deux ou trois etages) ; attend qu'il soit en jeu sur un autre etage."""
     lv = level(port)
-    if not check(f"{who} : un escalier descend depuis l'etage {lv}", ev(port, DESCEND) == "ok"):
+    took = ev(port, DESCEND if down else UP)
+    if not check(f"{who} : un escalier {'descend' if down else 'monte'} depuis l'etage {lv} ({took})", took == "ok"):
         return False
 
-    def below():
+    def moved():
         dismiss_dialogs(port)
-        return state(port).get("sceneMode") == "Zone" and level(port) < lv
+        return state(port).get("sceneMode") == "Zone" and level(port) != lv
 
-    wait(below, f"{who} sous l'etage {lv}", timeout=180)
+    wait(moved, f"{who} hors de l'etage {lv}", timeout=180)
     return True
+
+
+def put_down(host, port):
+    """Un seau pose par ce joueur : l'host cree le sien au sol ; celui de l'invite lui est donne par l'host (un
+    client ne cree pas d'objet) puis pose par l'invite, comme un objet de son sac."""
+    if port == host:
+        return marker(host)
+    me = ev(port, "EClass.pc.uid.ToString()")
+    uid = int(ev(host, f'var c = EClass._map.charas.Find(x => x.uid == {me}); var t = c.AddThing(ThingGen.Create("bucket")); return t.uid.ToString();'))
+    rs.eventually(lambda: ev(port, f'(EClass.pc.things.Find({uid}) != null).ToString()') == "True", timeout=15)
+    rs.put(port, uid)
+    rs.eventually(lambda: uid in on_map(port, [uid]), timeout=15)
+    return uid, on_map(port, [uid]).get(uid)
 
 
 def together(host, client):
@@ -88,10 +104,12 @@ def step(ctx, n, order):
     names = {host: "l'host", client: "l'invite"}
     bags = {p: int(ev(p, BAG)) for p in (host, client)}
     t0 = now()
-    if not descend(first, f"etage {n}, {order} : {names[first]}"):
+    # on descend tant qu'il y a un escalier, puis on remonte : chaque passage est un changement d'etage
+    down = ev(first, 'return (EClass._map.FindThing<TraitStairsDown>() != null).ToString();') == "True"
+    if not descend(first, f"etage {n}, {order} : {names[first]}", down):
         return None
     time.sleep(4)
-    if not descend(second, f"etage {n}, {order} : {names[second]}"):
+    if not descend(second, f"etage {n}, {order} : {names[second]}", down):
         return None
     started = time.time()
     together(host, client)
@@ -105,12 +123,34 @@ def step(ctx, n, order):
     check(f"etage {n}, {order} : sacs inchanges (host {bags[host]} -> {after[host]}, invite {bags[client]} -> {after[client]})",
           bags == after)
     check(f"etage {n}, {order} : aucune copie du monde pour l'invite ({copies})", copies == 0)
+    # apres le passage, le jeu continue-t-il juste ? chacun pose un objet que l'autre voit a la meme case, chacun
+    # marche et l'autre le voit, puis les deux jeux ont les memes nombres de carte
+    # loin de la case d'arrivee : un seau pose dessus est ramasse par celui qui y arrive au passage suivant
+    for p in (client, host):
+        rs.idle(p)
+        rs.steps(p, 5)
+    time.sleep(4)
+    for p, q in ((client, host), (host, client)):
+        uid, where = put_down(host, p)
+        check(f"etage {n}, {order} : objet pose par {names[p]} vu par {names[q]} a la meme case ({where})",
+              rs.eventually(lambda: on_map(q, [uid]).get(uid) == where, timeout=20))
+    me = int(ev(client, "EClass.pc.uid.ToString()"))
+    rs.idle(client)
+    rs.steps(client)
+    time.sleep(3)
+    check(f"etage {n}, {order} : l'invite marche, l'host le voit ou il est ({rs.pos(client)})",
+          rs.eventually(lambda: max(abs(a - b) for a, b in zip(rs.pos(host, me), rs.pos(client))) <= 1, timeout=15))
+    for p in (host, client):
+        rs.idle(p)
+    same = rs.eventually(rs.equal, timeout=30)
+    check(f"etage {n}, {order} : memes nombres de carte (host {rs.sums(host)[0]} | invite {rs.sums(client)[0]})", same)
     return {"etage": n, "ordre": order, "copies": copies, "secondes": round(took, 1)}
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--floors", type=int, default=4)
+    ap.add_argument("--soft", action="store_true", help="coche la regle SoftRecall chez l'host avant de descendre")
     a = ap.parse_args()
     sys.stdout.reconfigure(encoding="utf-8")
     t0 = now()
@@ -120,6 +160,11 @@ def main():
            "client": next(h["port"] for h in live if h["role"] == "Client")}
     host, client = ctx["host"], ctx["client"]
     both_joined(host, client, HOME)
+    if a.soft:
+        from combat_suite import set_option
+        set_option("SoftRecall", True)
+        time.sleep(3)
+        log("regle SoftRecall : " + " / ".join(ev(p, "ElinTogether.Net.NetSession.Instance.Rules.SoftRecall.ToString()") for p in (host, client)))
     region = int(ev(client, 'EClass._zone.ParentZone.uid.ToString()'))
 
     rows = []
@@ -128,7 +173,10 @@ def main():
         if site:
             nefia, spot = site
             walk_in(ctx, host, region, nefia, spot)
-            walk_in(ctx, client, region, nefia, spot)
+            # l'invite y rejoint l'host : il n'y est pas seul, walk_in attendrait qu'il le soit
+            ev(client, 'EClass.player.ExitBorder(); "ok"')
+            at_zone(ctx, client, region)
+            enter_at(client, spot)
             together(host, client)
             for n in range(1, a.floors + 1):
                 order = "host d'abord" if n % 2 else "invite d'abord"
