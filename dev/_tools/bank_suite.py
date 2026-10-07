@@ -120,7 +120,12 @@ def bag(port, item):
 
 
 def deposit(port, box, item, num):
-    """Le lacher de `num` de la pile du sac sur une case libre de la fenetre."""
+    """Le lacher de `num` de la pile du sac sur une case libre de la fenetre. L'or est dans la bourse (un sac du
+    sac) : sa fenetre est ouverte d'abord, comme un joueur l'ouvre."""
+    if item == "money":
+        ev(port, 'var purse = EClass.pc.things.List(t => t.id == "money", true).OrderByDescending(t => t.Num).Select(t => t.parent as Thing).FirstOrDefault(); '
+                 'if (purse != null && !LayerInventory.listInv.Any(q => q.invs.Count > 0 && q.invs[0].owner.Container == purse)) LayerInventory.CreateContainer(purse); return "ok";')
+        time.sleep(1.5)
     return ev(port, f'var w = {win(box)}; if (w == null) return "fenetre absente"; '
                     'var src = LayerInventory.listInv.Where(q => q != w).SelectMany(q => q.GetComponentsInChildren<ButtonGrid>(true))'
                     f'.FirstOrDefault(g => g.card != null && g.card.id == "{item}" && g.card.Num >= {num} && g.card.GetRootCard() == EClass.pc); '

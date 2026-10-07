@@ -30,7 +30,11 @@ internal static class CardTryStackEvent
             return false;
         }
 
-        if (ElinDelta.IsApplying) {
+        // state landing from the network stacks here. The player's own take out of a chest, a shop or the bank
+        // (resumed inside the answer to its item request) is asked like a pick-up from the ground: the host
+        // replays the pick for a character that is not its own, at the root of the bag, and never found the
+        // stack of a purse or a sub-bag: the gold a guest took out of the bank was missing in its own game
+        if (ElinDelta.IsRemoteStateLanding) {
             return true;
         }
 
