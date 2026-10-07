@@ -53,12 +53,14 @@
 - **« Les cartes du codex ne se cumulent pas »** (utilisateur, 2026-10-07) : le codex est dans `Player`, qu'un invité
   reçoit de l'host à chaque copie du monde ; ce qu'un invité collectait n'était compté que chez lui (ou chez l'host
   seulement si l'host a « collecter les cartes » coché) et repartait à la copie suivante. Corrigé (compilé, **pas
-  joué**) : codex commun comme les recettes, `CodexCardDelta` (844, prochain libre 845), `CodexCardPatch`
-  (`CodexManager.AddCard`, `ContentCodex.OnClickGetCard`), accepté d'un joueur absent et reçu par lui ; l'host qui
-  rejoue le ramassage d'un autre joueur n'applique plus son propre réglage de collecte (`CharaPickThingDelta`).
-  Non couvert : les compteurs de monstres tués / points faibles / apparitions du codex (par jeu, repris de l'host à
-  chaque copie) ; une carte prise du codex par un invité crée une figurine chez lui (objet créé par un client : à
-  vérifier au banc).
+  joué**) : codex commun comme les recettes, `CodexDelta` (844, prochain libre 845 ; sortes : carte, tué, point
+  faible, apparition, carte donnée), `CodexPatch`, accepté d'un joueur absent et reçu par lui ; l'host qui rejoue le
+  ramassage d'un autre joueur n'applique plus son propre réglage de collecte (`CharaPickThingDelta`). Règle : ce
+  qu'un seul jeu sait (carte, point faible lu, carte donnée, apparition) est dit à tous ; un monstre tué est compté
+  par chaque jeu de la carte (le coup y est rejoué), le jeu qui tient la carte ne le dit qu'à ceux qui n'y sont pas
+  (host -> absents ; absent -> host -> joueurs de la carte de l'host). Limites : un joueur seul ailleurs n'apprend
+  les morts des autres cartes qu'à sa copie du monde suivante ; une figurine tirée du codex par un invité est un objet
+  créé par un client (à vérifier au banc). À jouer : invité qui collecte, tue seul ailleurs, revient ; totaux égaux.
 - **À-coups de trois cases** : les journaux réels d'après la 0.26.532 n'en ont presque plus (2 et 0 « Reconcile force
   move » contre 57 à 239 avant) : c'était surtout les patchs retirés. Classé, à rouvrir si un journal le remontre.
 - **Joueur refusé qui reçoit le monde entier** : plan écrit (`PLAN_journal_invite_6_octobre.md` §3 c), non fait : le

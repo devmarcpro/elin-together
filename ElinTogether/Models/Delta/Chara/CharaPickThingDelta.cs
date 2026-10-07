@@ -67,7 +67,7 @@ public class CharaPickThingDelta : ElinDelta
         switch (Type) {
             case PickType.Pick:
                 // a card of the codex: collected or kept is the choice of the player who picked it (its own
-                // "collect cards" setting), and its game told the codex itself (CodexCardDelta). With this
+                // "collect cards" setting), and its game told the codex itself (CodexDelta). With this
                 // game's setting the card went to this codex, or was taken away from a player who keeps them
                 var collect = game.config.autoCollectCard;
                 game.config.autoCollectCard = false;
