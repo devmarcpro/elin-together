@@ -57,6 +57,12 @@ internal class TabClientConfiguration : TabEmpBase
         Toggle("emp_ui_cl_fetch_mods", fetch.Value, value => fetch.Value = value)
             .SetTooltipLang(fetch.Description.Description);
         TextSmall("        " + "emp_ui_cl_desc_fetch_mods".lang());
+
+        // ... and kept: subscribed to, on in the player's own list, so that the next join needs no restart
+        var keep = EmpConfig.Client.KeepMods;
+        Toggle("emp_ui_cl_keep_mods", keep.Value, value => keep.Value = value)
+            .SetTooltipLang(keep.Description.Description);
+        TextSmall("        " + "emp_ui_cl_desc_keep_mods".lang());
     }
 
     private YKHorizontal Row()

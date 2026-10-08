@@ -291,8 +291,27 @@ internal static class ModFetch
             }
 
             // (Elin is about to close: never under a game the player started meanwhile)
+            // client setting KeepMods: the player keeps the mods of this game. Its Steam account subscribes to
+            // them and they are switched on in its own list, so the next start of Elin has them and joining this
+            // game again needs no restart (without it they are fetched, hidden, and Elin restarts at every start)
+            var keep = new List<string>();
+            if (EmpConfig.Client.KeepMods.Value && !EClass.core.IsGameStarted) {
+                foreach (var mod in diff.Missing) {
+                    var folder = folders.TryGetValue(mod.Workshop, out var fetched)
+                        ? fetched
+                        : packages.FirstOrDefault(p => ModList.WorkshopOf(p) == mod.Workshop && p.dirInfo is not null && !IsLink(p))?.dirInfo.FullName;
+                    if (folder is null) {
+                        continue;
+                    }
+
+                    keep.Add(folder);
+                    SteamUGC.SubscribeItem(new PublishedFileId_t(ulong.Parse(mod.Workshop)));
+                    EmpLog.Information("Keeping the mod {Workshop} of the game: subscribed, on in the player's own list", mod.Workshop);
+                }
+            }
+
             failure = EClass.core.IsGameStarted ? "the player started a game" :
-                Apply(reference, returnTo, folders, links) ?? "";
+                Apply(reference, returnTo, folders, links, keep) ?? "";
         } finally {
             SteamCallback<DownloadItemResult_t>.Remove(onResult);
             if (failure.Length > 0) {
@@ -345,11 +364,13 @@ internal static class ModFetch
     }
 
     /// <returns>null when the list of the session is written, else why not (and everything is as it was)</returns>
-    private static string? Apply(string reference, string returnTo, Dictionary<string, string> folders, bool links)
+    private static string? Apply(string reference, string returnTo, Dictionary<string, string> folders, bool links, List<string> keep)
     {
         try {
             // (where Steam really put them, should it not be where it was expected)
             Hide(folders.Values);
+            // before the player's list is kept aside: what it keeps is on in it
+            Show(keep);
 
             if (!File.Exists(LoadOrder)) {
                 File.WriteAllText(LoadOrder, "");
@@ -466,6 +487,36 @@ internal static class ModFetch
         if (lines.Count > count) {
             Write(LoadOrder, lines);
         }
+    }
+
+    /// <summary>
+    ///     The player's own list has these folders switched on, and they are no longer hidden at the exit: the
+    ///     mods of a game the player chose to keep (KeepMods)
+    /// </summary>
+    private static void Show(List<string> folders)
+    {
+        if (folders.Count == 0) {
+            return;
+        }
+
+        var kept = folders.Select(Path.GetFullPath).ToList();
+        _hidden.RemoveAll(h => kept.Contains(h, StringComparer.OrdinalIgnoreCase));
+        var lines = File.Exists(LoadOrder) ? File.ReadAllLines(LoadOrder).ToList() : [];
+        foreach (var folder in kept) {
+            var start = folder.Replace('\\', '/') + ",";
+            var at = lines.FindIndex(l => l.Replace('\\', '/').StartsWith(start, StringComparison.OrdinalIgnoreCase));
+            if (at < 0) {
+                lines.Add(folder + ",1");
+                continue;
+            }
+
+            // "folder,0" or "folder,0,id": only the switch changes
+            var rest = lines[at].Substring(start.Length);
+            var comma = rest.IndexOf(',');
+            lines[at] = folder + ",1" + (comma < 0 ? "" : rest.Substring(comma));
+        }
+
+        Write(LoadOrder, lines);
     }
 
     /// <summary>

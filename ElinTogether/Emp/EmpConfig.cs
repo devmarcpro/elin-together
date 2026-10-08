@@ -80,6 +80,16 @@ internal partial class EmpConfig
             "这些模组由主机（或仓库的 modlist.txt）决定，其代码会在本机运行：仅与你信任的人一起使用\n" +
             "加入的游戏（或从仓库取得的世界）有本机未加载的创意工坊模组时：不订阅直接下载，以该游戏的模组重启 Elin 一次并自动回到游戏；下次启动恢复你自己的模组列表。取消勾选则保留自己的模组，只提示差异");
 
+        Client.KeepMods = config.Bind(
+            "Client",
+            "KeepMods",
+            false,
+            "Keep the mods of the game you join: your Steam account subscribes to them on the Workshop and they stay on in your own mod list\n" +
+            "Elin still restarts once, the first time. After that, joining the same game again needs no restart, even after closing Elin\n" +
+            "Off: they are fetched without subscribing and your own list is back at each start, so Elin restarts at each first join\n" +
+            "To undo: unsubscribe from them on the Workshop, or switch them off in the Mod Viewer. Only with \"Fetch the mods of the game by itself\"\n" +
+            "保留所加入游戏的模组：你的 Steam 账号会在创意工坊订阅它们，并在你自己的模组列表中保持启用。第一次仍会重启一次，之后再次加入同一游戏无需重启。关闭时：不订阅直接获取，每次启动后第一次加入都会重启");
+
         Client.PingKeybind = config.Bind(
             "Client",
             "PingKeybind",
@@ -418,6 +428,7 @@ internal partial class EmpConfig
         internal static ConfigEntry<string> DepotPassword { get; set; } = null!;
         internal static ConfigEntry<string> ServerAddress { get; set; } = null!;
         internal static ConfigEntry<bool> FetchMods { get; set; } = null!;
+        internal static ConfigEntry<bool> KeepMods { get; set; } = null!;
     }
 
     internal static class Server
