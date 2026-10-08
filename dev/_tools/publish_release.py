@@ -2,6 +2,7 @@
 import hashlib
 import io
 import json
+import os
 import subprocess
 import sys
 import urllib.error
@@ -37,3 +38,7 @@ print('asset', asset['size'], asset['browser_download_url'])
 public = urllib.request.urlopen(urllib.request.Request(asset['browser_download_url'], headers={'User-Agent': 'x'})).read()
 print('local ', len(data), hashlib.sha256(data).hexdigest())
 print('public', len(public), hashlib.sha256(public).hexdigest(), 'IDENTIQUE' if public == data else 'DIFFERENT')
+mac = zip_path[:-4] + '-mac.zip'
+if os.path.exists(mac):
+    asset = call(rel['upload_url'].split('{')[0] + '?name=ElinTogether-independance-mac.zip', open(mac, 'rb').read(), {'Content-Type': 'application/zip'})
+    print('mac  ', asset['size'], asset['browser_download_url'])
