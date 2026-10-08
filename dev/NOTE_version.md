@@ -1,30 +1,29 @@
-# Elin Together « indépendance » 0.26.597
+# Elin Together « indépendance » 0.26.605
 
 (English below / version anglaise plus bas)
 
-Suite de la 0.26.590 : **une correction importante**, à installer par tout le monde. Compilé pour Elin **EA 23.352
-Patch 1** (canal Nightly). **Tous les joueurs doivent installer ce même zip.** Faites une copie de vos sauvegardes
-avant : `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
+Suite de la 0.26.597 : **deux corrections venues d'une vraie soirée**, lues dans les journaux des joueurs. Elles sont
+**écrites et compilées, pas jouées** : ni au banc de test, ni en vraie partie. Si cette version se passe mal, la
+0.26.597 reste en ligne. Compilé pour Elin **EA 23.352 Patch 1** (canal Nightly). **Tous les joueurs doivent installer
+ce même zip.** Faites une copie de vos sauvegardes avant : `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
 
-## Corrigé
+## Corrigé (pas joué)
 
-- **L'histoire principale ne pouvait plus avancer depuis la 0.26.557**, chez l'hébergeur comme chez un invité. Signalé
-  par des testeurs : le premier dialogue d'Ashland tournait en boucle, on n'en sortait pas, et la hache et l'or étaient
-  redonnés sans fin ; la partie relancée rouvrait le même dialogue. Une protection ajoutée dans la 0.26.557 refusait
-  tout changement d'étape de la quête principale. Merci pour le retour.
-  - **Joué au banc** (deux fenêtres sur un même PC) : première rencontre avec Ashland, acte lu, puis la hache et l'or,
-    par un invité ; une seule hache, l'histoire avance dans les deux jeux, le dialogue revient à son menu.
-  - **Pas joué** : une nouvelle partie depuis l'écran de création, la suite de l'histoire (même cause, même
-    correction), deux vrais PC.
-  - Un monde déjà pris dans la boucle garde ses haches et son or en trop : rien ne les retire.
+- **Impossible de rejoindre une partie avec un personnage monté.** Le personnage était posé sur la case donnée par
+  l'hébergeur, sa monture restait à sa place d'avant, hors de cette carte : le jeu levait une erreur au démarrage de la
+  carte, puis la même erreur cinq fois par seconde. La monture (et ce qui chevauche le personnage) est maintenant
+  amenée sur sa case avant que la carte démarre.
+- **Une erreur à chaque dialogue avec un personnage, chez un joueur qui a un mod de langue** (français…), après la
+  relance d'Elin « avec les mods de la partie » : la relance coupait aussi son mod de langue
+  (`DirectoryNotFoundException … Lang\EN\Dialog\dialog.xlsx`). Le mod qui apporte la langue du joueur reste allumé.
 
-## Signalé, pas corrigé
+## À savoir : la relance d'Elin pour les mods
 
-- **« L'invité plante à sa première connexion, puis entre à la deuxième »** : pas reproduit. Ce n'est peut-être pas un
-  plantage : quand vos mods ne sont pas ceux de la partie, Elin se ferme et se relance **une fois** avec les mods de
-  la partie (nouveauté de la 0.26.590), après un message court en haut à gauche de l'écran. Si cela vous arrive,
-  envoyez `Player.log` et `ElinMP\Logs` : nous saurons. Pour garder vos mods et seulement être prévenu des
-  différences : décochez « Fetch the mods of the game by itself » dans l'onglet « Client Settings ».
+Ce que des testeurs ont décrit comme « le jeu plante à la première connexion, puis entre à la deuxième » est la relance
+voulue depuis la 0.26.590 : quand vos mods ne sont pas ceux de la partie, Elin se ferme et se relance **une fois** avec
+les mods de la partie. Elle revient **à chaque lancement d'Elin**, parce que votre propre liste de mods revient à
+chaque fois. Pour l'éviter : abonnez-vous sur le Workshop aux mods de la partie, ou décochez « Fetch the mods of the
+game by itself » dans l'onglet « Client Settings ». Une façon plus simple est à l'étude.
 
 ## Limites connues
 
@@ -54,30 +53,29 @@ Entrée. C'est le même mod ; `LISEZMOI-MAC.txt` explique le reste. **Pas encore
 
 ---
 
-# Elin Together "independence" 0.26.597
+# Elin Together "independence" 0.26.605
 
-Follows 0.26.590: **one important fix**, to be installed by everyone. Built for Elin **EA 23.352 Patch 1** (Nightly
-branch). **Every player must install this same zip.** Back up your saves first:
+Follows 0.26.597: **two fixes from a real evening**, read in the players' logs. They are **written and compiled, not
+played**: neither on the test bench nor in a real game. If this version goes wrong, 0.26.597 stays online. Built for
+Elin **EA 23.352 Patch 1** (Nightly branch). **Every player must install this same zip.** Back up your saves first:
 `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
 
-## Fixed
+## Fixed (not played)
 
-- **The main story could no longer move on since 0.26.557**, for the host and for a guest. Reported by testers:
-  Ashland's first dialog looped, could not be left, and the axe and the gold were given again without end; the game
-  loaded again reopened the same dialog. A guard added in 0.26.557 refused every change of step of the main quest.
-  Thank you for the report.
-  - **Played on the bench** (two windows on one PC): the first meeting with Ashland, the deed read, then the axe and
-    the gold, by a guest; one axe, the story moves on in both games, the dialog comes back to its menu.
-  - **Not played**: a new game from the creation screen, the rest of the story (same cause, same fix), two real PCs.
-  - A world already caught in the loop keeps its extra axes and gold: nothing removes them.
+- **A mounted character could not join a game.** The character was put on the tile the host gives, its mount stayed
+  where it was before, outside that map: the game threw when the map started, then the same error five times a second.
+  The mount (and what rides the character) is now brought onto its tile before the map starts.
+- **An error at every talk to a character, for a player with a language mod** (French…), after Elin restarted "with
+  the mods of the game": the restart switched the language mod off too
+  (`DirectoryNotFoundException … Lang\EN\Dialog\dialog.xlsx`). The mod that brings the player's language stays on.
 
-## Reported, not fixed
+## Good to know: Elin restarting for the mods
 
-- **"The guest crashes on its first join, then connects on the second"**: not reproduced. It may not be a crash: when
-  your mods are not those of the game, Elin closes and restarts **once** with the mods of that game (new in
-  0.26.590), after a short message at the top left of the screen. If it happens to you, send `Player.log` and
-  `ElinMP\Logs`: we will know. To keep your own mods and only be told what differs: untick "Fetch the mods of the game
-  by itself" in the "Client Settings" tab.
+What testers described as "the game crashes on the first join, then connects on the second" is the restart meant
+since 0.26.590: when your mods are not those of the game, Elin closes and restarts **once** with the mods of that
+game. It comes back **at every start of Elin**, because your own mod list comes back each time. To avoid it: subscribe
+on the Workshop to the mods of the game, or untick "Fetch the mods of the game by itself" in the "Client Settings"
+tab. A simpler way is being looked at.
 
 ## Known limits
 
