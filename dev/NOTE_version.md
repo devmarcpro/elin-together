@@ -1,30 +1,30 @@
-# Elin Together « indépendance » 0.26.590
+# Elin Together « indépendance » 0.26.597
 
 (English below / version anglaise plus bas)
 
-Suite de la 0.26.584. La nouveauté est **jouée au banc de test** (deux fenêtres sur un même PC), pas encore entre deux
-vrais PC. Si cette version se passe mal, la 0.26.584 reste en ligne. Compilé pour Elin **EA 23.352 Patch 1** (canal
-Nightly). **Tous les joueurs doivent installer ce même zip.** Faites une copie de vos sauvegardes avant :
-`%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
+Suite de la 0.26.590 : **une correction importante**, à installer par tout le monde. Compilé pour Elin **EA 23.352
+Patch 1** (canal Nightly). **Tous les joueurs doivent installer ce même zip.** Faites une copie de vos sauvegardes
+avant : `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
 
-## Nouveau
+## Corrigé
 
-- **Les mods de la partie, sans s'abonner à rien.** Quand vous rejoignez une partie (ou prenez le monde dans le dépôt)
-  et qu'il vous manque des mods du Workshop : ils sont téléchargés tout seuls, votre compte Steam ne s'abonne à rien,
-  Elin se ferme et se relance **une fois** avec exactement les mods de la partie, puis vous y ramène sans rien
-  cliquer. Si vous avez des mods en trop qui bloquent l'entrée, Elin se relance une fois sans eux. Au lancement
-  suivant d'Elin, vous retrouvez votre propre liste de mods, intacte. Rien n'est jamais supprimé ni désabonné.
-  - La liste de référence : le `modlist.txt` du dépôt quand le monde en vient, sinon les mods de l'hébergeur.
-  - Si Elin ne se relance pas tout seul, relancez-le à la main dans la demi-heure : il vous ramène dans la partie.
-  - Un mod installé à la main (hors Workshop) ne peut pas être téléchargé : son nom est affiché.
-  - Pour garder vos mods et seulement être prévenu des différences : décochez « Fetch the mods of the game by itself » dans
-    l'onglet « Client Setting ». **Ces mods sont choisis par l'hébergeur et tournent sur votre PC : à utiliser avec
-    des gens de confiance.**
-  - Joué au banc : téléchargement Steam sans abonnement, relance avec les mods de la partie, retour tout seul, liste
-    du joueur retrouvée ensuite. **Pas joué** : la relance d'Elin par Steam, le retour par salon Steam et par dépôt
-    GitHub (le banc relance lui-même et revient par une connexion locale), Steam Deck / Linux.
-- **Un refus pour cause de mods nomme les mods** : ceux qui vous manquent, ceux à installer à la main, ceux en trop.
-- **La liste des parties** indique combien de mods a chaque partie et combien vous manquent.
+- **L'histoire principale ne pouvait plus avancer depuis la 0.26.557**, chez l'hébergeur comme chez un invité. Signalé
+  par des testeurs : le premier dialogue d'Ashland tournait en boucle, on n'en sortait pas, et la hache et l'or étaient
+  redonnés sans fin ; la partie relancée rouvrait le même dialogue. Une protection ajoutée dans la 0.26.557 refusait
+  tout changement d'étape de la quête principale. Merci pour le retour.
+  - **Joué au banc** (deux fenêtres sur un même PC) : première rencontre avec Ashland, acte lu, puis la hache et l'or,
+    par un invité ; une seule hache, l'histoire avance dans les deux jeux, le dialogue revient à son menu.
+  - **Pas joué** : une nouvelle partie depuis l'écran de création, la suite de l'histoire (même cause, même
+    correction), deux vrais PC.
+  - Un monde déjà pris dans la boucle garde ses haches et son or en trop : rien ne les retire.
+
+## Signalé, pas corrigé
+
+- **« L'invité plante à sa première connexion, puis entre à la deuxième »** : pas reproduit. Ce n'est peut-être pas un
+  plantage : quand vos mods ne sont pas ceux de la partie, Elin se ferme et se relance **une fois** avec les mods de
+  la partie (nouveauté de la 0.26.590), après un message court en haut à gauche de l'écran. Si cela vous arrive,
+  envoyez `Player.log` et `ElinMP\Logs` : nous saurons. Pour garder vos mods et seulement être prévenu des
+  différences : décochez « Fetch the mods of the game by itself » dans l'onglet « Client Settings ».
 
 ## Limites connues
 
@@ -33,9 +33,8 @@ Nightly). **Tous les joueurs doivent installer ce même zip.** Faites une copie 
 - Sur la carte du monde, quand tous voyagent ensemble, seuls les pas de l'hébergeur font avancer la date.
 - Un joueur refusé par celui qui tient une carte reçoit encore le monde entier.
 - Chez l'hébergeur, les invités qui marchent avancent par à-coups de trois cases.
-- Quand l'hébergeur et un invité se retrouvent sur une carte, l'écran de l'invité recharge (le monde entier est renvoyé), sauf si l'hébergeur coche la nouvelle case.
+- Quand l'hébergeur et un invité se retrouvent sur une carte, l'écran de l'invité recharge (le monde entier est renvoyé), sauf si l'hébergeur coche la case « No world reload when the host and a player meet again ».
 - Quand l'hébergeur part ou plante, aucun invité ne reprend le monde tout seul.
-- Ce qui a été collecté dans le codex avant cette version par un invité ne revient pas.
 
 ## En cas de problème pendant une partie
 
@@ -55,30 +54,30 @@ Entrée. C'est le même mod ; `LISEZMOI-MAC.txt` explique le reste. **Pas encore
 
 ---
 
-# Elin Together "independence" 0.26.590
+# Elin Together "independence" 0.26.597
 
-Follows 0.26.584. The new feature was **played on the test bench** (two windows on one PC), not yet between two real
-PCs. If this version goes wrong, 0.26.584 stays online. Built for Elin **EA 23.352 Patch 1** (Nightly branch).
-**Every player must install this same zip.** Back up your saves first: `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
+Follows 0.26.590: **one important fix**, to be installed by everyone. Built for Elin **EA 23.352 Patch 1** (Nightly
+branch). **Every player must install this same zip.** Back up your saves first:
+`%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
 
-## New
+## Fixed
 
-- **The mods of the game, without subscribing to anything.** When you join a game (or take the world from the depot)
-  and Workshop mods are missing: they are downloaded by themselves, your Steam account subscribes to nothing, Elin
-  closes and restarts **once** with exactly the mods of that game, then brings you back into it without a click. If
-  mods of yours block the join, Elin restarts once without them. At the next start of Elin your own mod list is back,
-  untouched. Nothing is ever deleted or unsubscribed.
-  - The reference list: the `modlist.txt` of the depot when the world comes from it, else the host's mods.
-  - If Elin does not restart by itself, start it by hand within half an hour: it brings you back into the game.
-  - A mod installed by hand (not on the Workshop) cannot be downloaded: its name is shown.
-  - To keep your mods and only be told what differs: untick "Fetch the mods of the game by itself" in the "Client Setting" tab.
-    **These mods are chosen by the host and run on your PC: use it with people you trust.**
-  - Played on the bench: Steam download without subscribing, restart with the mods of the game, coming back by
-    itself, the player's list back afterwards. **Not played**: Elin restarted by Steam, coming back through a Steam
-    lobby or the GitHub depot (the bench restarts the game itself and comes back by a local connection), Steam Deck /
-    Linux.
-- **A join refused because of mods names the mods**: missing, to install by hand, extra.
-- **The game list** shows how many mods each game has and how many you miss.
+- **The main story could no longer move on since 0.26.557**, for the host and for a guest. Reported by testers:
+  Ashland's first dialog looped, could not be left, and the axe and the gold were given again without end; the game
+  loaded again reopened the same dialog. A guard added in 0.26.557 refused every change of step of the main quest.
+  Thank you for the report.
+  - **Played on the bench** (two windows on one PC): the first meeting with Ashland, the deed read, then the axe and
+    the gold, by a guest; one axe, the story moves on in both games, the dialog comes back to its menu.
+  - **Not played**: a new game from the creation screen, the rest of the story (same cause, same fix), two real PCs.
+  - A world already caught in the loop keeps its extra axes and gold: nothing removes them.
+
+## Reported, not fixed
+
+- **"The guest crashes on its first join, then connects on the second"**: not reproduced. It may not be a crash: when
+  your mods are not those of the game, Elin closes and restarts **once** with the mods of that game (new in
+  0.26.590), after a short message at the top left of the screen. If it happens to you, send `Player.log` and
+  `ElinMP\Logs`: we will know. To keep your own mods and only be told what differs: untick "Fetch the mods of the game
+  by itself" in the "Client Settings" tab.
 
 ## Known limits
 
@@ -87,9 +86,8 @@ PCs. If this version goes wrong, 0.26.584 stays online. Built for Elin **EA 23.3
 - On the world map, when everyone travels together, only the host's steps move the date.
 - A player refused by the holder of a map still receives the whole world.
 - On the host, walking guests move in jumps of three tiles.
-- When the host and a guest meet on a map, the guest's screen reloads (the whole world is sent again), unless the host ticks the new checkbox.
+- When the host and a guest meet on a map, the guest's screen reloads (the whole world is sent again), unless the host ticks "No world reload when the host and a player meet again".
 - When the host leaves or crashes, no guest takes the world over by itself.
-- What a guest collected in the codex before this version does not come back.
 
 ## If something goes wrong during a game
 
