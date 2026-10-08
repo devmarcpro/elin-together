@@ -19,7 +19,7 @@ F8  l'host sauvegarde, les deux jeux sont fermes puis relances ; l'host reprend 
 
 Ce que le banc ne joue PAS comme deux vrais joueurs : la connexion passe par le reseau local (`emp.add_local`,
 `emp.connect_udp`) et non par Steam (un seul compte Steam sur ce PC) ; un bouton est « clique » par son onClick et
-non par la souris ; une ligne de dialogue avance par DramaSequence.PlayNext ; l'acte est lu par TraitDeed.OnRead (ce
+non par la souris ; une ligne de dialogue avance par ce que fait le clic (suite, ou saut de la ligne) ; l'acte est lu par TraitDeed.OnRead (ce
 que fait le clic « lire ») ; les jeux sont fermes en tuant leur processus apres la sauvegarde, pas par « Exit »."""
 import subprocess
 import sys
@@ -50,7 +50,10 @@ BAG = ('var c = EClass._map.charas.Find(x => x.uid == %d); if (c == null) return
        'System.Func<string, int> n = id => c.things.Where(t => t.id == id).Sum(t => t.Num); return n("deed") + "," + n("axe") + "," + n("money2");')
 STEP = ('var d = LayerDrama.Instance; if (d == null) return "ferme|0"; return d.drama.sequence.lastStep + "|" + '
         'd.GetComponentsInChildren<UnityEngine.UI.Button>(false).Count(x => x.GetComponentsInChildren<UnityEngine.UI.Text>(true).Any(t => t.text.Length > 3));')
-NEXT = 'var d = LayerDrama.Instance; if (d == null) return "ferme"; d.drama.sequence.PlayNext(); return "suite";'
+NEXT = ('var d = LayerDrama.Instance; if (d == null) return "ferme"; var s = d.drama.sequence; '
+        # ce que fait le clic sur une ligne (DramaEventTalk.Play) : la suite, ou le saut que la ligne porte
+        'var t = HarmonyLib.Traverse.Create(s).Field("currentEvent").GetValue() as DramaEventTalk; if (t == null) return "attend"; '
+        'if (t.temp) s.tempEvents.Clear(); if (t.idJump.IsEmpty()) s.PlayNext(); else s.Play(t.idJump); return "suite";')
 HANG_UP = 'if (LayerDrama.Instance != null) EClass.ui.RemoveLayer<LayerDrama>(); "ok"'
 
 

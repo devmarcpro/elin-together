@@ -13,7 +13,7 @@ A3  l'invite reparle a Ashland : une hache, dix lingots, la quete principale a 2
     deux jeux, les trois quetes d'Ashland proposees une fois, le dialogue arrive a son menu
 A4  l'invite lui reparle : le menu tout de suite, rien n'est redonne
 
-Ce que le banc ne joue pas comme un joueur : il avance le dialogue par DramaSequence.PlayNext au lieu du clic, il ne
+Ce que le banc ne joue pas comme un joueur : il avance le dialogue par ce que fait le clic (suite, ou saut de la ligne), sans la souris, il ne
 lit pas l'acte (le monde de test est deja revendique : il appelle les deux ChangePhase que TraitDeed.OnRead fait),
 et il ne ferme pas puis ne relance pas la partie."""
 import sys
@@ -36,7 +36,10 @@ COUNT = ('System.Func<string, int> n = id => EClass._map.things.Where(t => t.id 
 WHERE = ('var d = LayerDrama.Instance; if (d == null) return "ferme"; '
          'var b = d.GetComponentsInChildren<UnityEngine.UI.Button>(false).Count(x => x.GetComponentsInChildren<UnityEngine.UI.Text>(true).Any(t => t.text.Length > 3)); '
          'return d.drama.sequence.lastStep + "|" + b;')
-NEXT = 'var d = LayerDrama.Instance; if (d == null) return "ferme"; d.drama.sequence.PlayNext(); return "suite";'
+NEXT = ('var d = LayerDrama.Instance; if (d == null) return "ferme"; var s = d.drama.sequence; '
+        # ce que fait le clic sur une ligne (DramaEventTalk.Play) : la suite, ou le saut que la ligne porte
+        'var t = HarmonyLib.Traverse.Create(s).Field("currentEvent").GetValue() as DramaEventTalk; if (t == null) return "attend"; '
+        'if (t.temp) s.tempEvents.Clear(); if (t.idJump.IsEmpty()) s.PlayNext(); else s.Play(t.idJump); return "suite";')
 HANG_UP = 'if (LayerDrama.Instance != null) EClass.ui.RemoveLayer<LayerDrama>(); "ok"'
 
 
