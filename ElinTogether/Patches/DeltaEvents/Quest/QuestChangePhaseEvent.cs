@@ -65,7 +65,19 @@ internal static class QuestPhaseRepair
 {
     internal static bool IsMissing(Quest quest, int phase)
     {
-        return quest is QuestSequence && phase != 0 && !EClass.sources.quests.map.ContainsKey(quest.id + phase);
+        if (quest is not QuestSequence || phase == 0) {
+            return false;
+        }
+
+        // the row a quest reads at a phase is the quest's own business: the main quest has one row for all its
+        // phases (QuestMain.idSource), and "main250" not existing kept the story from ever moving on
+        var at = quest.phase;
+        quest.phase = phase;
+        try {
+            return !EClass.sources.quests.map.ContainsKey(quest.idSource);
+        } finally {
+            quest.phase = at;
+        }
     }
 
     [HarmonyPrefix]
