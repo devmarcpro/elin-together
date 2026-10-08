@@ -255,6 +255,8 @@ internal partial class ElinNetClient
                 pc.pos.Set(given.X, given.Z);
             }
 
+            BringRideAlong();
+
             try {
                 scene.Init(Scene.Mode.Zone);
             } catch (Exception ex) {
@@ -264,6 +266,8 @@ internal partial class ElinNetClient
                     var center = loaded.GetCenterPos();
                     pc.pos.Set(center.x, center.z);
                 }
+
+                BringRideAlong();
 
                 RetryZoneSync();
                 return;
@@ -302,6 +306,22 @@ internal partial class ElinNetClient
             pc.Stub_Move(response.Pos, Card.MoveType.Force);
             pc.SetDir(pc.dir);
         });
+    }
+
+    /// <summary>
+    ///     A mount, and what rides our character, stand on its tile (Chara.SyncRide). Our character was just put on
+    ///     the tile the host gives: left on the tile of the map the world copy was taken on, they made the game
+    ///     move them from a cell outside this map when it starts (Zone.Activate, SyncRide, Map._RemoveCard:
+    ///     IndexOutOfRange), and the player could not join. Real session of 2026-10-08, a mounted player, 0.26.597
+    /// </summary>
+    private static void BringRideAlong()
+    {
+        foreach (var rider in new[] { pc.ride, pc.parasite, pc.host }) {
+            if (rider is not null && !rider.pos.Equals(pc.pos)) {
+                EmpLog.Debug("Bringing {Uid} from {@From} to our character's tile {@To}", rider.uid, (Position)rider.pos, (Position)pc.pos);
+                rider.pos.Set(pc.pos.x, pc.pos.z);
+            }
+        }
     }
 
     /// <summary>

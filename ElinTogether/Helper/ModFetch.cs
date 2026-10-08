@@ -410,9 +410,17 @@ internal static class ModFetch
                           !File.Exists(Path.Combine(BepInEx.Paths.BepInExAssemblyDirectory, dll)) &&
                           !File.Exists(Path.Combine(own, dll)))
             .ToList();
+        // nor the mod that brings the language the player reads the game in (French...): switched off, the game
+        // fell back to the English texts but still looked for that language's files, and every talk to a
+        // character threw (DirectoryNotFoundException on Lang/EN/Dialog/dialog.xlsx, a real session, 0.26.597)
+        var lang = global::Lang.langCode ?? "";
+        var speaks = lang.Length == 0 || global::Lang.IsBuiltin(lang)
+            ? []
+            : packages.Where(p => Directory.Exists(Path.Combine(p.dirInfo.FullName, "Lang", lang))).ToList();
         var kept = new HashSet<string>();
         var todo = new Stack<string?>(packages
             .Where(p => needed.Any(dll => File.Exists(Path.Combine(p.dirInfo.FullName, dll))))
+            .Concat(speaks)
             .Select(p => BaseModPackage.NormalizeId(p.id))
             .Append(ModInfo.Guid));
         while (todo.Count > 0) {
