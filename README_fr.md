@@ -201,6 +201,10 @@ jamais supprimé ni désabonné.
 - La liste de référence est le `modlist.txt` du dépôt quand le monde en vient, sinon les mods de l'host.
 - Si Elin ne se relance pas tout seul, relancez-le à la main dans la demi-heure : il vous ramène dans la partie.
 - Un mod installé à la main, hors Workshop, ne peut pas être téléchargé : son nom est affiché.
+- Votre propre liste revient à chaque lancement d'Elin, donc Elin se relance à la première connexion de chaque
+  lancement. Pour l'éviter, cochez « Keep the mods of the game (subscribe on the Workshop) » dans *Client Settings* :
+  votre compte Steam s'y abonne, Elin se relance encore une fois, puis plus jamais pour cette partie. Pour revenir en
+  arrière, désabonnez-vous sur le Workshop.
 - Pour garder vos mods et seulement être prévenu des différences, décochez « Fetch the mods of the game by
   itself » dans *Client Settings*.
 

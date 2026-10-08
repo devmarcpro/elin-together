@@ -194,6 +194,9 @@ next start of Elin your own mod list is back, untouched. Nothing is ever deleted
 - The reference list is the `modlist.txt` of the depot when the world comes from one, else the host's mods.
 - If Elin does not restart by itself, start it by hand within half an hour: it brings you back into the game.
 - A mod installed by hand, outside the Workshop, cannot be downloaded: its name is shown.
+- Your own list is back at every start of Elin, so Elin restarts at the first join of every start. To skip that,
+  tick "Keep the mods of the game (subscribe on the Workshop)" in *Client Settings*: your Steam account subscribes
+  to them, Elin restarts once more, then no longer for that game. To undo, unsubscribe on the Workshop.
 - To keep your own mods and only be told what differs, untick "Fetch the mods of the game by itself" in
   *Client Settings*.
 
