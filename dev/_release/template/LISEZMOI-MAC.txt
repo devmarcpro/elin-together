@@ -1,0 +1,39 @@
+ElinTogether (version "independance") sur Mac
+=============================================
+
+Elin est un jeu Windows : sur Mac il tourne dans CrossOver, Whisky ou Wine, avec le Steam de Windows.
+Le mod est le meme que sur PC ; seul l'installateur change. PAS ENCORE ESSAYE SUR UN VRAI MAC : dis-nous ce que ca donne.
+
+Avant
+-----
+1. Elin sur le canal "nightly" (Steam, clic droit sur Elin, Proprietes, Betas), lance au moins une fois.
+2. Abonne au mod "YK Framework" sur le Workshop : https://steamcommunity.com/sharedfiles/filedetails/?id=3400020753
+3. Elin ferme.
+
+Installer
+---------
+1. Dezippe ce dossier.
+2. Ouvre l'application Terminal, tape   bash   puis un espace, fais glisser le fichier Installer-Mac.command dans la
+   fenetre, et appuie sur Entree.
+   (Un double-clic sur le fichier marche aussi si macOS l'accepte : clic droit, Ouvrir, Ouvrir.)
+3. L'installateur cherche Elin tout seul. S'il ne le trouve pas, il demande de faire glisser le dossier d'Elin
+   (celui qui contient Elin.exe) dans la fenetre.
+
+Il ne touche qu'a deux choses, dans le dossier d'Elin : Package/Mod_ElinTogether et loadorder.txt.
+L'ancien etat est garde dans _ElinTogether_sauvegarde.
+
+Si le bouton "Elin Together" n'apparait pas sur l'ecran titre
+-------------------------------------------------------------
+Alors aucun mod ne se charge dans ta bouteille. Dans ses reglages (Wine Configuration, onglet Libraries), ajoute
+"winhttp" et regle-le sur "native, builtin", puis relance Elin.
+
+Retirer
+-------
+Dans le Terminal :   bash   espace, glisse Installer-Mac.command, espace,   retirer   puis Entree.
+
+A savoir
+--------
+- Tous les joueurs doivent avoir la meme version de ce mod et d'Elin.
+- "Les mods de la partie telecharges tout seuls" : la relance automatique d'Elin n'est pas essayee sur Mac. Si Elin
+  se ferme et ne revient pas, relance-le a la main dans la demi-heure : il te ramene dans la partie.
+- Le serveur dedie (Serveur.bat) est pour Windows.

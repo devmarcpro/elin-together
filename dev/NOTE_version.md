@@ -49,6 +49,10 @@ Il faut [YK Framework](https://steamcommunity.com/sharedfiles/filedetails/?id=34
 **Nightly**. Chacun télécharge `ElinTogether-independance.zip` (ci-dessous), le décompresse et lance `Installer.bat`
 (`Desinstaller.bat` fait l'inverse). `LISEZMOI.txt` dans le zip explique le reste.
 
+**Sur Mac** (Elin dans CrossOver, Whisky ou Wine) : téléchargez `ElinTogether-independance-mac.zip`, décompressez-le,
+ouvrez le Terminal, tapez `bash` puis un espace, faites glisser `Installer-Mac.command` dans la fenêtre et appuyez sur
+Entrée. C'est le même mod ; `LISEZMOI-MAC.txt` explique le reste. **Pas encore essayé sur un vrai Mac.**
+
 ---
 
 # Elin Together "independence" 0.26.590
@@ -98,3 +102,7 @@ PCs. If this version goes wrong, 0.26.584 stays online. Built for Elin **EA 23.3
 Requires [YK Framework](https://steamcommunity.com/sharedfiles/filedetails/?id=3400020753) and Elin on the **Nightly**
 branch. Each player downloads `ElinTogether-independance.zip` (below), unzips it and runs `Installer.bat`
 (`Desinstaller.bat` switches back). The installer and its notes (`LISEZMOI.txt` in the zip) are in French.
+
+**On a Mac** (Elin in CrossOver, Whisky or Wine): download `ElinTogether-independance-mac.zip`, unzip it, open
+Terminal, type `bash` and a space, drag `Installer-Mac.command` into the window and press Enter. Same mod;
+`LISEZMOI-MAC.txt` (in French) has the rest. **Not tried on a real Mac yet.**
