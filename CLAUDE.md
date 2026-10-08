@@ -44,6 +44,13 @@ Les commandes de test se lancent depuis `dev/` avec `PYTHONPATH=_tools/pylib`.
   le choix du dialogue ou du menu plutôt que la fonction interne qui « fait pareil ». Un raccourci du pont de test
   ne prouve que le raccourci. Les suites rapides restent pour prouver une correction (rouge puis vert) et ne rien
   casser ; les vraies parties et le bot disent ce qu'on n'a pas pensé à tester.
+- **Lire les journaux avant de conclure** (demande de l'utilisateur, 2026-10-08). Le total d'une suite (« 91/116 »)
+  ne suffit pas. Après chaque passe, et avant d'annoncer un défaut ou de dire que tout va bien : lire dans le journal
+  de la suite les lignes autour de chaque échec (ce que le test venait de faire, l'état des deux jeux), puis les
+  journaux des jeux pour la même minute : `Player.log` de l'host, `dev/_shots/elin2-player.log` de l'invité, et ceux
+  du mod dans `ElinMP/Logs` (les erreurs du mod sont au niveau Debug avec `@x`, pas seulement Warning/Error). Ce jour-là,
+  trois « défauts » venaient des outils de test eux-mêmes et un diagnostic (« propre aux mondes neufs ») a été annoncé
+  sur un simple total, puis démenti par la lecture du détail. Dire à l'utilisateur ce qui a été lu et ce qui ne l'a pas été.
 - **Un changement = un test = un commit.** Ne jamais laisser une correction sans test, même venue d'une relecture.
   Ce qui n'a pas pu être testé est écrit comme tel dans le commit, le journal et le résumé.
 - Tenir `dev/MODLOG.md` (journal daté, pièges, résultats de tests) et `dev/DOCUMENTATION.md` à jour à chaque étape :
