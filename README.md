@@ -1,6 +1,6 @@
 # Elin Together — "independence" fork
 
-English | [Français](README_fr.md)
+English | [Français](README_fr.md) | [中文](README_zh.md) | [日本語](README_ja.md)
 
 [![Latest release](https://img.shields.io/github/v/release/devmarcpro/elin-together?include_prereleases&label=latest%20release)](https://github.com/devmarcpro/elin-together/releases)
 
@@ -103,14 +103,14 @@ Almost all of this is a **checkbox on the host's side**: unticked, the mod behav
 
 | | |
 |---|---|
-| ![Host options: every feature is a checkbox](assets/screens/host-options.jpg) | ![The host leaves on a quest: the guest chooses to go along](assets/screens/quest-ask-guest.jpg) |
-| Host options: every feature is a checkbox | The host leaves on a quest: the guest chooses to go along |
-| ![Both players in the same quest zone](assets/screens/quest-together.jpg) | ![The guest leaves on a quest: the same question for the host](assets/screens/quest-ask-host.jpg) |
-| Both players in the same quest zone | The guest leaves on a quest: the same question for the host |
-| ![Trading between players](assets/screens/trade.jpg) | ![Each player has its own fame and karma](assets/screens/own-fame-karma.jpg) |
-| Trading between players | Each player has its own fame and karma |
-| ![Choosing a character when joining](assets/screens/character-choice.jpg) | ![Base: a guest's request is refused, at no cost](assets/screens/base-host-only.jpg) |
-| Choosing a character (if the host turns it on) | Base kept to the host: a guest's request is refused, at no cost |
+| ![Host rules: every feature is a checkbox](assets/screens/host-options.jpg) | ![Player settings: the depot, its key, the mods fetched by themselves](assets/screens/client-settings.jpg) |
+| Host rules: every feature is a checkbox | Player settings: the depot, its key, and the mods fetched by themselves |
+| ![The host leaves on a quest: the guest chooses to go along](assets/screens/quest-ask-guest.jpg) | ![Both players in the same quest zone](assets/screens/quest-together.jpg) |
+| The host leaves on a quest: the guest chooses to go along | Both players in the same quest zone |
+| ![The guest leaves on a quest: the same question for the host](assets/screens/quest-ask-host.jpg) | ![Trading between players](assets/screens/trade.jpg) |
+| The guest leaves on a quest: the same question for the host | Trading between players |
+| ![Each player has its own fame and karma](assets/screens/own-fame-karma.jpg) | ![A dropped link: the guest is brought back into the game](assets/screens/reconnect.jpg) |
+| Each player has its own fame and karma | A dropped link: the guest is brought back into the game |
 
 ## Install
 
@@ -138,7 +138,8 @@ version of itself. Each release is built for one Elin build, named in its title.
 ## Play
 
 Open the mod's panel with the *Elin Together* button on the title screen, or Esc → Mods → Elin Together in game.
-It has three tabs: *Lobby*, *Server Setting* (the host's rules) and *Client Settings*.
+Its tabs are *Lobby*, *Server Setting* (the host's rules) and *Client Settings*, plus *Session Info* once a game
+is open.
 
 - **Host.** Load a save that has a claimed land, then *Start Server* in the Lobby tab. A world that was already
   shared opens to your Steam friends by itself.
@@ -313,6 +314,3 @@ The mod is the work of the Elin Together team: [DK](https://github.com/gottyduke
 The fork's changes were written with an AI coding assistant (Claude Code), directed by the fork's owner; each
 change comes with an in-game test, listed in its commit message. No game file and no decompiled game code is in
 this repository.
-
-The original project's README is kept in [中文](README_zh.md) and [日本語](README_ja.md): each starts with an
-older translation of this fork's description, and the rest of the file describes the original mod, not this fork.

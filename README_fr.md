@@ -1,6 +1,6 @@
 # Elin Together — version « indépendance »
 
-[English](README.md) | Français
+[English](README.md) | Français | [中文](README_zh.md) | [日本語](README_ja.md)
 
 [![Dernière version](https://img.shields.io/github/v/release/devmarcpro/elin-together?include_prereleases&label=derni%C3%A8re%20version)](https://github.com/devmarcpro/elin-together/releases)
 
@@ -108,14 +108,14 @@ Presque tout cela est une **case à cocher côté host** : décochée, le mod se
 
 | | |
 |---|---|
-| ![Options de l'host : chaque fonction est une case à cocher](assets/screens/host-options.jpg) | ![L'host part en quête : l'invité choisit de l'accompagner](assets/screens/quest-ask-guest.jpg) |
-| Options de l'host : chaque fonction est une case à cocher | L'host part en quête : l'invité choisit de l'accompagner |
-| ![Les deux joueurs dans la même zone de quête](assets/screens/quest-together.jpg) | ![L'invité part en quête : la même question pour l'host](assets/screens/quest-ask-host.jpg) |
-| Les deux joueurs dans la même zone de quête | L'invité part en quête : la même question pour l'host |
-| ![Échange entre joueurs](assets/screens/trade.jpg) | ![Chaque joueur a sa renommée et son karma](assets/screens/own-fame-karma.jpg) |
-| Échange entre joueurs | Chaque joueur a sa renommée et son karma |
-| ![Choix du personnage en rejoignant](assets/screens/character-choice.jpg) | ![Base : la demande d'un invité est refusée, sans rien coûter](assets/screens/base-host-only.jpg) |
-| Choix du personnage (si l'host l'active) | Base réservée à l'host : la demande d'un invité est refusée, sans rien coûter |
+| ![Règles de l'host : chaque fonction est une case à cocher](assets/screens/host-options.jpg) | ![Réglages du joueur : le dépôt, sa clé, les mods récupérés tout seuls](assets/screens/client-settings.jpg) |
+| Règles de l'host : chaque fonction est une case à cocher | Réglages du joueur : le dépôt, sa clé, et les mods récupérés tout seuls |
+| ![L'host part en quête : l'invité choisit de l'accompagner](assets/screens/quest-ask-guest.jpg) | ![Les deux joueurs dans la même zone de quête](assets/screens/quest-together.jpg) |
+| L'host part en quête : l'invité choisit de l'accompagner | Les deux joueurs dans la même zone de quête |
+| ![L'invité part en quête : la même question pour l'host](assets/screens/quest-ask-host.jpg) | ![Échange entre joueurs](assets/screens/trade.jpg) |
+| L'invité part en quête : la même question pour l'host | Échange entre joueurs |
+| ![Chaque joueur a sa renommée et son karma](assets/screens/own-fame-karma.jpg) | ![Une coupure : l'invité est ramené dans la partie](assets/screens/reconnect.jpg) |
+| Chaque joueur a sa renommée et son karma | Une coupure : l'invité est ramené tout seul dans la partie |
 
 ## Installer
 
@@ -142,7 +142,8 @@ une autre version de lui-même. Chaque version est compilée pour une version d'
 ## Jouer
 
 Le panneau du mod s'ouvre par le bouton *Elin Together* de l'écran titre, ou par Échap → Mods → Elin Together en
-jeu. Il a trois onglets : *Lobby*, *Server Setting* (les règles de l'host) et *Client Settings*.
+jeu. Ses onglets : *Lobby*, *Server Setting* (les règles de l'host) et *Client Settings*, plus *Session Info* une
+fois la partie ouverte.
 
 - **Héberger.** Chargez une partie qui a un terrain revendiqué, puis *Start Server* dans l'onglet Lobby. Un monde
   déjà partagé s'ouvre tout seul à vos amis Steam.
