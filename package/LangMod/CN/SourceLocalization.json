@@ -309,5 +309,6 @@
     "LangGeneral.emp_ui_cl_desc_keep_mods.text": "开启：你的 Steam 账号会订阅所加入游戏的模组，并在你自己的模组列表中保持启用。第一次仍会重启一次；之后即使关闭 Elin，再次加入同一游戏也无需重启。想取消时，在创意工坊取消订阅即可。关闭：不订阅直接获取，每次启动 Elin 后第一次加入都会重启。",
     "LangGeneral.emp_ui_sv_cfg_takeover.text": "主机离开时由其他玩家接管",
     "LangGeneral.emp_ui_sv_desc_takeover.text": "开启：主机离开时，一位玩家用自己的副本重新开放世界，游戏在那里继续（需要上面的“世界副本”）。关闭：主机离开游戏即结束。",
-    "LangGeneral.emp_takeover_begin.text": "主机已离开。由你接管世界，游戏稍后将在这里继续。"
+    "LangGeneral.emp_takeover_begin.text": "主机已离开。由你接管世界，游戏稍后将在这里继续。",
+    "LangGeneral.emp_takeover_leaving.text": "正在离开：正在把最后的存档交给其他玩家…"
 }

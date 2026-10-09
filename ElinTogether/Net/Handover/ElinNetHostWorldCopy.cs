@@ -151,6 +151,138 @@ internal partial class ElinNetHost
 
     private bool _leavingTold;
 
+    // the guests are given that long to get the last save, then the host leaves whatever they have
+    private const float LastCopySeconds = 15f;
+    private static bool _leaving;
+
+    /// <summary>
+    ///     The player who hosts asked to leave and guests would take the world over: they get a last save first
+    /// </summary>
+    internal static bool OwesGuestsLastCopy =>
+        !_leaving && NetSession.Instance.Transport is ElinNetHost host && host.OwesLastCopy();
+
+    private bool OwesLastCopy()
+    {
+        return !IsZoneSession && !_leavingTold && Session.Rules.AllowTakeover && Session.Rules.KeepWorldCopy &&
+               core.IsGameStarted && Socket.Peers.Any(Playing);
+    }
+
+    // in the game: its first state came in, or it is on a map of its own
+    private bool Playing(ISteamNetPeer peer)
+    {
+        return peer.IsConnected && _handshakes.TryGetValue(peer.Id, out var shake) &&
+               shake.Phase == NetHandshakePhase.Joined &&
+               (IsAway(peer) || (States.TryGetValue(peer.Id, out var state) && state.LastReceivedTick != -1));
+    }
+
+    /// <summary>
+    ///     The host leaves by its own choice (the mod's Disconnect, the game's "return to title" and "quit"): the
+    ///     world as it is now goes to the guests before the links close, so that the one who takes it over starts
+    ///     from this very moment and not from the last save made by itself. Then <paramref name="then" />, always
+    /// </summary>
+    /// <param name="save">False when the game was just saved by what calls this</param>
+    internal static void LeaveWithLastCopy(bool save, Action then)
+    {
+        // (asked twice: the first one is under way)
+        if (_leaving) {
+            return;
+        }
+
+        if (NetSession.Instance.Transport is not ElinNetHost host || !host.OwesLastCopy()) {
+            then();
+            return;
+        }
+
+        _leaving = true;
+        EmpMod.Instance.StartCoroutine(host.GiveLastCopy(save, then));
+    }
+
+    private System.Collections.IEnumerator GiveLastCopy(bool save, Action then)
+    {
+        EmpPop.Information("emp_takeover_leaving".lang());
+
+        var watch = Stopwatch.StartNew();
+        var since = DateTime.UtcNow.Ticks;
+        var given = false;
+        var saved = !save;
+        if (save) {
+            try {
+                saved = EmpAutoHost.SafeToSave() && game.Save(true, true);
+            } catch (Exception ex) {
+                EmpLog.Warning(ex, "Leaving: the world could not be saved, the guests keep the copy they have");
+            }
+        }
+
+        if (saved) {
+            // a read of an earlier save still under way would leave this one out
+            while (this != null && Volatile.Read(ref _worldSnapshotReading) != 0 && watch.Elapsed.TotalSeconds < LastCopySeconds) {
+                yield return null;
+            }
+
+            if (this != null) {
+                Safely(WorldSaved);
+            }
+
+            // every frame instead of a few times a second: nothing else of the host is worth its upload now
+            while (this != null && watch.Elapsed.TotalSeconds < LastCopySeconds && !(given = LastCopyGiven(since))) {
+                Safely(PumpWorldCopy);
+                yield return null;
+            }
+
+            // what Steam took is on the wire and came in
+            var flushed = watch.Elapsed.TotalSeconds + 3;
+            while (this != null && given && watch.Elapsed.TotalSeconds < flushed && Socket.Peers.Any(p => Unacked(p) > 0)) {
+                yield return null;
+            }
+        }
+
+        EmpLog.Information("Leaving: last save {Result} after {Seconds:F1}s",
+            given ? "given to every guest" : saved ? "not given in time" : "not made", watch.Elapsed.TotalSeconds);
+
+        _leaving = false;
+        try {
+            if (this != null) {
+                AnnounceLeaving();
+            }
+        } finally {
+            then();
+        }
+    }
+
+    // whatever goes wrong, the host leaves
+    private static void Safely(Action step)
+    {
+        try {
+            step();
+        } catch (Exception ex) {
+            EmpLog.Warning(ex, "Leaving: the last save is not on its way");
+        }
+    }
+
+    private bool LastCopyGiven(long since)
+    {
+        return _worldSnapshot is { } latest && latest.Manifest.Saved >= since &&
+               Socket.Peers.Where(Playing).All(p =>
+                   _worldCopyGiven.TryGetValue(p.Id, out var had) && had == latest.Manifest.Saved &&
+                   !(_worldCopyLinks.TryGetValue(p.Id, out var link) && link.Sending is not null));
+    }
+
+    /// <summary>
+    ///     Reliable bytes this guest has not acknowledged yet
+    /// </summary>
+    private static int Unacked(ISteamNetPeer peer)
+    {
+        if (peer is not SteamNetPeer steam || NetShutdown.IsQuitting) {
+            return 0;
+        }
+
+        var status = new SteamNetConnectionRealTimeStatus_t();
+        var lane = new SteamNetConnectionRealTimeLaneStatus_t();
+        return SteamNetworkingSockets.GetConnectionRealTimeStatus(steam.Connection, ref status, 0, ref lane) == EResult.k_EResultOK
+            ? status.m_cbPendingReliable + status.m_cbSentUnackedReliable
+            : 0;
+    }
+
     /// <summary>
     ///     A few times a second: the latest save is offered to who does not have it, one part goes to one guest
     ///     that asked for files (the first in line, the others wait their turn)

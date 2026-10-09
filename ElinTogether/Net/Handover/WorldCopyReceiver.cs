@@ -32,6 +32,11 @@ internal static class WorldCopyReceiver
     private static System.Threading.Tasks.Task<WorldCopyStore.Closed>? _closing;
     private static WorldCopyManifest? _waiting;
 
+    /// <summary>
+    ///     Every file of a save came in and they are being checked: a whole copy more in a moment
+    /// </summary>
+    internal static bool IsClosing => _closing is not null;
+
     internal static void Offer(WorldCopyManifest offer)
     {
         if (!WorldCopyStore.IsSafe(offer)) {

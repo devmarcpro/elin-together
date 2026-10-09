@@ -25,7 +25,7 @@ internal class EmpConsole
     [ConsoleCommand("disconnect")]
     internal static void Disconnect()
     {
-        NetSession.Instance.ResetSession();
+        ElinNetHost.LeaveWithLastCopy(true, NetSession.Instance.ResetSession);
     }
 
     [ConsoleCommand("kick")]

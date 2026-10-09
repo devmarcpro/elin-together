@@ -33,7 +33,11 @@ internal static class WorldTakeover
     internal static string State { get; private set; } = "idle";
 
     /// <returns>empty when started, else why not</returns>
-    internal static string Begin()
+    /// <param name="afterCopy">
+    ///     The host just said it leaves: the save it sent last may still be on its way to the disk, the takeover
+    ///     waits for it (a few seconds at most)
+    /// </param>
+    internal static string Begin(bool afterCopy = false)
     {
         var session = NetSession.Instance;
         if (_busy) {
@@ -49,20 +53,34 @@ internal static class WorldTakeover
             return "another game is being played";
         }
 
-        if (WorldHandover.Mine() is not { } copy) {
+        if (!afterCopy && WorldHandover.Mine() is null) {
             return "no whole copy of the world";
         }
 
         _busy = true;
         State = "reading the copy";
-        EmpMod.Instance.StartCoroutine(Run(copy, CorePath.RootSave));
+        EmpMod.Instance.StartCoroutine(Run(afterCopy, CorePath.RootSave));
         return "";
     }
 
-    private static IEnumerator Run(WorldHandover.Copy copy, string saves)
+    private const float CopyWaitSeconds = 20f;
+
+    private static IEnumerator Run(bool afterCopy, string saves)
     {
         var id = "";
         try {
+            // every part the host sent came in before its word that it leaves: only the check of the files is left
+            var until = UnityEngine.Time.realtimeSinceStartup + CopyWaitSeconds;
+            while (afterCopy && WorldCopyReceiver.IsClosing && UnityEngine.Time.realtimeSinceStartup < until) {
+                yield return null;
+            }
+
+            if (WorldHandover.Mine() is not { } copy) {
+                EmpLog.Warning("World not taken over, nothing changed: {Why}", "no whole copy of the world");
+                State = "failed: no whole copy of the world";
+                yield break;
+            }
+
             // the game goes on (or waits at the title) while the files are read and written
             id = GameIO.GetNewId(saves, SavePrefix);
             var laying = STask.Run(() => Lay(copy, Path.Combine(saves, id)));

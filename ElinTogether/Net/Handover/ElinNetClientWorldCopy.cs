@@ -27,7 +27,7 @@ internal partial class ElinNetClient
             return;
         }
 
-        var why = WorldTakeover.Begin();
+        var why = WorldTakeover.Begin(true);
         if (why.Length > 0) {
             EmpLog.Warning("The host leaves and the world is not taken over: {Why}", why);
             return;

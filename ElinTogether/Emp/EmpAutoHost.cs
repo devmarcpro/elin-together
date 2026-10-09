@@ -176,7 +176,7 @@ internal static class EmpAutoHost
     /// <summary>
     ///     Where the game's own quick save key would save, and nothing the save would take from the player's hands
     /// </summary>
-    private static bool SafeToSave()
+    internal static bool SafeToSave()
     {
         return EClass.scene.mode == Scene.Mode.Zone && !EClass.game.isLoading && EClass.pc is { IsInActiveZone: true };
     }

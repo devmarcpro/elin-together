@@ -4,6 +4,7 @@ PLAN_reprise_automatique.md). Test court, sur des instances deja lancees (host +
     python _tools/mp_test.py
     python _tools/takeover_suite.py            # ~10 minutes : la reprise demandee a la main (emp.take_over), R2
     python _tools/takeover_suite.py --auto     # ~15 minutes : l'host quitte, l'invite reprend tout seul, R3
+    python _tools/takeover_suite.py --menu     # pareil, l'host quitte par le menu du jeu (retour au titre, oui)
 
 T0  (--auto) case « un autre joueur reprend quand l'host part » decochee : l'host ferme sa partie, l'invite se
     retrouve a l'ecran titre et ne rouvre rien ; l'host rouvre, l'invite revient seul. Puis la case est cochee.
@@ -20,8 +21,9 @@ Ce que le banc ne joue pas comme un joueur :
 - sans --auto la reprise est demandee par une commande de test ;
 - l'host « part » en fermant sa session (emp.disconnect, ce que fait le bouton Disconnect) : il ne revient pas a
   l'ecran titre par le menu, ne ferme pas Elin, ne plante pas (R5) ;
-- --auto : ce que l'invite a fait depuis la derniere sauvegarde automatique est perdu (l'host n'envoie pas encore
-  une derniere copie en partant), le test ne le mesure pas : l'invite ne bouge pas ;
+- --menu : GotoTitle est appele par le pont de test (ce que fait la ligne du menu), le « oui » est clique ;
+- la derniere copie est prouvee par un objet pose par l'HOST apres la derniere sauvegarde automatique ; ce que
+  l'INVITE a fait entre-temps n'est pas mesure (il ne bouge pas) ;
 - la case est cochee par une commande de test (emp.takeover_rule), pas dans l'onglet Server Setting ;
 - deux fenetres sur un seul PC : le nouvel host ouvre un port local, pas un salon Steam ; l'ancien host le rejoint
   par ce port, pas par une invitation ni par la liste d'amis ;
@@ -39,11 +41,15 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 import emp  # noqa: E402
 from mp_test import SAVES, log, ok, shot, state  # noqa: E402
-from travel_suite import RESULTS, check, dismiss_dialogs, ev, eventually, players, scan_logs  # noqa: E402
+from travel_suite import RESULTS, check, dismiss_dialogs, ev, eventually, marker, players, scan_logs  # noqa: E402
 from worldcopy_suite import BENCH, copies, guest_saves, host_files, same_as_host, save_once, whole  # noqa: E402
 
 H, A = 27551, 27552
 GOLD = 'EClass.game.cards.globalCharas.Find({uid}).GetCurrency().ToString()'
+# la question du jeu « retourner au titre ? » : le premier bouton, oui
+YES = ('var d = EClass.ui.layers.OfType<Dialog>().LastOrDefault(); if (d == null) return "no dialog"; '
+       'var b = d.GetComponentsInChildren<UnityEngine.UI.Button>(true).Where(x => x.name.StartsWith("ButtonGeneral(Clone)")).ToList(); '
+       'if (b.Count != 2) return "other dialog"; b[0].onClick.Invoke(); return "yes";')
 TO_TITLE = 'EClass.ui.RemoveLayers(); EClass.game.Kill(); EClass.scene.Init(Scene.Mode.Title); "ok"'
 
 
@@ -122,9 +128,19 @@ def t2(ctx):
     if ctx["auto"]:
         ctx["saves"] = guest_saves()
         before = {d.name for d in SAVES.iterdir() if d.is_dir()}
-        t = time.time()
-        command(H, "emp.disconnect")
+        # pose apres la derniere sauvegarde automatique : dans le monde repris seulement si l'host, en partant,
+        # a sauvegarde et envoye cette sauvegarde
+        ctx["mark"], _ = marker(H)
         time.sleep(2)
+        t = time.time()
+        if ctx["menu"]:
+            ev(H, 'EClass.game.GotoTitle(); "ok"')
+            time.sleep(1)
+            log("menu du jeu, retour au titre : " + ev(H, YES))
+        else:
+            command(H, "emp.disconnect")
+        check("l'host a quitte sa partie", eventually(lambda: state(H).get("role") != "Host", timeout=60))
+        time.sleep(1)
         ctx["world"] = host_files()
     else:
         command(H, "emp.disconnect")
@@ -160,6 +176,9 @@ def t2(ctx):
           me.get("uid") == ctx["guest"]["uid"] and me.get("name") == ctx["guest"]["name"])
     gold = ev(A, "EClass.pc.GetCurrency().ToString()")
     check(f"avec son or ({gold}, {ctx['gold']} a la derniere copie)", gold == ctx["gold"])
+    if ctx.get("mark"):
+        check("ce que l'host a fait apres la derniere sauvegarde automatique est dans le monde repris (un seau pose)",
+              ev(A, f"EClass._map.things.Any(t => t.uid == {ctx['mark']}).ToString()") == "True")
     check("vivant, sur une carte", not me.get("isDead") and ev(A, "EClass.pc.IsInActiveZone.ToString()") == "True")
     number = ev(A, f"{BENCH}.Handover.ToString()")
     check(f"le numero de reprise du monde est 1 ({number})", number == "1")
@@ -188,7 +207,8 @@ def t2(ctx):
 
 def t3(ctx):
     """l'ancien host rejoint le nouvel host et retrouve son personnage"""
-    ev(H, TO_TITLE)
+    if state(H).get("gameStarted"):
+        ev(H, TO_TITLE)
     if not check("l'ancien host est a l'ecran titre", eventually(lambda: state(H).get("sceneMode") == "Title", timeout=60)):
         return False
     time.sleep(3)
@@ -219,12 +239,13 @@ def t3(ctx):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--auto", action="store_true")
+    ap.add_argument("--menu", action="store_true")
     a = ap.parse_args()
     sys.stdout.reconfigure(encoding="utf-8")
     start = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
-    ctx = {"auto": a.auto}
+    ctx = {"auto": a.auto or a.menu, "menu": a.menu}
     try:
-        for step in ((t0, t1, t2, t3) if a.auto else (t1, t2, t3)):
+        for step in ((t0, t1, t2, t3) if ctx["auto"] else (t1, t2, t3)):
             log(f"--- {step.__name__.upper()} : {step.__doc__}")
             try:
                 good = step(ctx)

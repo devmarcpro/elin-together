@@ -151,3 +151,17 @@ entre deux PC » tant que ce n'est pas fait.
   le même chemin), un invité parti sur une autre carte, deux invités (qui est désigné, que fait l'autre : R4), la
   case cochée dans l'onglet. **Risque connu tant que R6 n'est pas fait** : un host qui recharge sa sauvegarde ou
   rouvre sa partie juste après l'avoir fermée se retrouve avec un deuxième host du même monde.
+- 2026-10-09, 11h45 : **R3 finie au banc : la dernière copie. `takeover_suite.py --menu` 36/36.** L'host qui part
+  de lui-même (bouton Disconnect du mod, « retour au titre » et « quitter » du menu du jeu) donne d'abord sa
+  dernière sauvegarde aux invités (`ElinNetHost.LeaveWithLastCopy` : sauvegarde, lecture, envoi à chaque image au
+  lieu de 4 fois par seconde, attente que tout soit reçu, 15 s au plus), lit « Leaving: the other players are
+  getting the last save… », puis prévient et ferme. Le menu du jeu passe par `Patches/HostLeavePatch.cs` (même
+  question, même sauvegarde que le jeu, puis la copie, puis le titre). L'invité attend que sa copie soit vérifiée
+  avant de rouvrir (`WorldTakeover.Begin(afterCopy)`). Mesuré : dernière sauvegarde donnée en 3 s (1 Mo), invité
+  host 47 s après le « oui » de l'host. Preuve : un seau posé par l'host après la dernière sauvegarde automatique
+  est dans le monde repris. T0 (case décochée) vert avec la vérification corrigée. Journaux lus : 0 exception,
+  aucune pile. **Pas joués** : le bouton Disconnect lui-même et « quitter » (même fonction, autre entrée), Alt+F4 ou
+  la croix de la fenêtre (pas de dernière copie dans ce cas : seulement l'annonce), un grand monde ou un envoi lent
+  (au-delà de 15 s l'host part quand même et l'invité repart de la copie d'avant), ce que l'INVITÉ a fait depuis
+  la dernière sauvegarde, la fin d'un personnage (retour au titre sans question : pas de copie). Suite : R4 (les
+  autres invités suivent, trois fenêtres : demander l'accord), puis R5 (plantage), R6 (l'ancien host revient seul).

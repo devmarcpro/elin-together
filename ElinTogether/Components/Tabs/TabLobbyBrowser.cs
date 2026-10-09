@@ -165,11 +165,14 @@ internal class TabLobbyBrowser : TabEmpBase
     {
         var isClient = NetSession.Instance.Transport is ElinNetClient;
 
-        NetSession.Instance.ResetSession();
-        LayerElinTogether.Instance?.Reopen();
+        // (a host whose guests would take the world over gives them a last save first)
+        ElinNetHost.LeaveWithLastCopy(true, () => {
+            NetSession.Instance.ResetSession();
+            LayerElinTogether.Instance?.Reopen();
 
-        if (isClient) {
-            EMono.scene.Init(Scene.Mode.Title);
-        }
+            if (isClient) {
+                EMono.scene.Init(Scene.Mode.Title);
+            }
+        });
     }
 }
