@@ -58,6 +58,7 @@ public abstract partial class ElinNetBase : EMono
         Scheduler.Tick();
         Socket.Poll();
         DialogFlagSync.Tick();
+        Patches.InvSettingsWatch.Tick();
 #if DEBUG
         EmpBotLauncher.Tick();
 #endif

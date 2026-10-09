@@ -1,15 +1,18 @@
 using System.Collections.Generic;
 using System.Linq;
 using ElinTogether.Net;
+using ElinTogether.Patches;
 using MessagePack;
 
 namespace ElinTogether.Models;
 
 /// <summary>
-///     The shared/personal flag and the rules of a container of the map (priority, no rotten, only rottable, categories,
-///     advanced distribution, user filter, autodump, exclude from crafting, compress): residents, crafting and quests
-///     use them, so every copy of the world must agree on it. The sort mode and the window layout are the screen of each
-///     player (pref.sortInv, the bag window) and never travel
+///     The settings of a container of the map: the shared/personal flag, the storage rules (priority, no rotten,
+///     only rottable, categories, advanced distribution, user filter, autodump, exclude from crafting, compress)
+///     that residents, crafting and quests use, and what a player sets on the container itself (name, icon, size
+///     and colour of its grid, sort). They are saved with the container, in the world of the host: every copy of
+///     the world agrees on them, or what a guest sets is gone with its copy. Where the window stands on the screen
+///     and whether it is open stay each player's
 /// </summary>
 [MessagePackObject]
 public class InvSaveDataDelta : ElinDelta
@@ -29,9 +32,41 @@ public class InvSaveDataDelta : ElinDelta
     [Key(3)]
     public RemoteCard? Container { get; init; }
 
+    // the name and the icon the player gave the container; not told by a game that only tells the rules
+    [Key(4)]
+    public bool WithCard { get; init; }
+
+    [Key(5)]
+    public string? AltName { get; init; }
+
+    [Key(6)]
+    public int Icon { get; init; }
+
+    internal static InvSaveDataDelta Of(Card container, Window.SaveData data)
+    {
+        return new() {
+            WindowId = "",
+            Data = LZ4Bytes.Create(data),
+            IsShop = false,
+            Container = container,
+            WithCard = true,
+            AltName = container.c_altName,
+            Icon = container.c_indexContainerIcon,
+        };
+    }
+
+    /// <summary>
+    ///     A bag, an ally, a shop and what a character carries belong to that player, not to the map
+    /// </summary>
+    internal static bool IsOfTheMap(Card container)
+    {
+        return container is { IsContainer: true, isChara: false, isNPCProperty: false } &&
+               container.trait is not TraitChestMerchant && container.GetRootCard() is not Chara;
+    }
+
     protected override void OnApply(ElinNetBase net)
     {
-        if (Container?.Find() is not { IsContainer: true } container || container.GetRootCard() is Chara ||
+        if (Container?.Find() is not { } container || !IsOfTheMap(container) ||
             Data.Decompress<Window.SaveData>() is not { } data) {
             return;
         }
@@ -45,12 +80,7 @@ public class InvSaveDataDelta : ElinDelta
             // only the host manages the base: the sender gets the settings the host keeps, which puts its copy back
             if (NetSession.Instance.Rules.HostManagesBase && !host.IsZoneSession) {
                 if (container.c_windowSaveData is { } kept) {
-                    host.SendDeltaTo(OriginPeer, new InvSaveDataDelta {
-                        WindowId = WindowId,
-                        Data = LZ4Bytes.Create(kept),
-                        IsShop = false,
-                        Container = container,
-                    });
+                    host.SendDeltaTo(OriginPeer, Of(container, kept));
                 }
 
                 return;
@@ -59,14 +89,36 @@ public class InvSaveDataDelta : ElinDelta
             host.Delta.AddRemote(this);
         }
 
-        // saved with the container itself; nothing here for pref.* or for the layout of a window
+        // saved with the container itself; nothing here for pref.*
         var saveData = container.c_windowSaveData ??= new Window.SaveData { useBG = true };
+        var look = Look(saveData);
         saveData.sharedType = data.sharedType;
         CopyRules(data, saveData);
+        if (WithCard) {
+            container.c_altName = AltName;
+            container.c_indexContainerIcon = Icon;
+        }
 
-        // the window is open here too: its button shows the new flag (it uses the same saveData)
-        var button = LayerInventory.listInv.Find(l => l.invs[0].owner.Container == container)
-            ?.invs[0].window.buttonShared;
+        InvSettingsWatch.Received(container, saveData);
+
+        // the window is open here too: it uses the same saveData
+        var inv = LayerInventory.listInv.Find(l => l.invs.Count > 0 && l.invs[0].owner.Container == container)?.invs[0];
+        if (inv == null) {
+            return;
+        }
+
+        if (WithCard) {
+            if (look != Look(saveData)) {
+                inv.RefreshWindow();
+                inv.RefreshGrid();
+            }
+
+            if (container.isThing) {
+                LayerInventory.SetDirty(container.Thing);
+            }
+        }
+
+        var button = inv.window.buttonShared;
         if (button == null) {
             return;
         }
@@ -76,7 +128,7 @@ public class InvSaveDataDelta : ElinDelta
         button.tooltip.lang = flag ? "hintShared" : "hintPrivate";
     }
 
-    // the part of the settings that is a rule of the world; the position, size, colour and sort of the window stay as they are
+    // everything the menus of the window set, but the place of the window (x, y, w, h, anchors, fixed) and whether it is open
     private static void CopyRules(Window.SaveData from, Window.SaveData to)
     {
         to.priority = from.priority;
@@ -85,19 +137,39 @@ public class InvSaveDataDelta : ElinDelta
         to.noRotten = from.noRotten;
         to.onlyRottable = from.onlyRottable;
         to.excludeCraft = from.excludeCraft;
+        to.excludeDump = from.excludeDump;
         to.compress = from.compress;
         to.autodump = from.autodump;
         to.cats = new HashSet<int>(from.cats ?? []);
         to.filter = from.filter;
         to._filterStrs = null;
+
+        to.size = from.size;
+        to.columns = from.columns;
+        to.color = from.color;
+        to.useBG = from.useBG;
+        to.category = from.category;
+        // (the number itself: read back, "no sort chosen" comes out as a sort)
+        to.ints[15] = from.ints[15];
+        to.sort_ascending = from.sort_ascending;
+        to.alwaysSort = from.alwaysSort;
+        to.noRightClickClose = from.noRightClickClose;
+        to.shiftToShowMenu = from.shiftToShowMenu;
+    }
+
+    // what makes the window of the container look different
+    private static string Look(Window.SaveData d)
+    {
+        return string.Join("|", d.size, d.columns, d.ints[8], d.useBG, (int)d.category, d.ints[15], d.sort_ascending, d.alwaysSort);
     }
 
     /// <summary>
-    ///     What <see cref="CopyRules" /> copies, as a text: the changes made in the menu are found by comparing it before and after
+    ///     What is told to the other games, as a text: a change is found by comparing it before and after
     /// </summary>
-    internal static string Rules(Window.SaveData d)
+    internal static string State(Card container, Window.SaveData d)
     {
         return string.Join("|", (int)d.sharedType, d.priority, (int)d.flag, d.advDistribution, d.noRotten, d.onlyRottable, d.excludeCraft,
-            d.compress, (int)d.autodump, d.filter, string.Join(",", d.cats.OrderBy(i => i)));
+            d.excludeDump, d.compress, (int)d.autodump, d.filter, string.Join(",", (d.cats ?? []).OrderBy(i => i)),
+            Look(d), d.noRightClickClose, d.shiftToShowMenu, container.c_altName, container.c_indexContainerIcon);
     }
 }

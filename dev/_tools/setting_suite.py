@@ -183,7 +183,10 @@ def s7(ctx):
         win = f'LayerInventory.listInv.Find(l => l.invs[0].owner.Container == {thing(t)})'
         rules = lambda p: ev(p, f'var d = {thing(t)}.c_windowSaveData; return d == null ? "aucun" : d.priority + "/" + d.noRotten + "/" + (int)d.flag + "/" + d.sharedType + "/" '  # noqa: E731
                                 '+ d.filter + "/" + string.Join(",", d.cats.OrderBy(i => i));')
-        size = lambda p: ev(p, f'var d = {thing(t)}.c_windowSaveData; return d == null ? "aucun" : d.size.ToString();')  # noqa: E731
+        # ce qu'un joueur regle sur le coffre lui-meme : nom, icone, taille et tri de sa grille (retour du 2026-10-09 :
+        # « les parametres de coffres modifies par un invite ne sont pas sauvegardes »)
+        look = lambda p: ev(p, f'var t = {thing(t)}; var d = t.c_windowSaveData; return d == null ? "aucun" : t.c_altName + "/" + t.c_indexContainerIcon + "/" '  # noqa: E731
+                               '+ d.size + "/" + d.columns + "/" + d.alwaysSort + "/" + d.sort_ascending + "/" + d.excludeDump;')
         # un objet que le rangement de l'host pose dans ce coffre (ou pas) : Zone.FindSharedContainer, comme AI_Haul
         goes_in = lambda decay: ev(H, f'var m = ThingGen.Create("meat"); for (var i = 0; i < 40 && !m.Name.Contains("meat"); i++) {{ m.Destroy(); m = ThingGen.Create("meat"); }} m.decay = {decay}; var c = EClass._zone.FindSharedContainer(m); '  # noqa: E731
                                       f'var r = (c != null && c.uid == {t}) + " " + m.Name + " cat " + m.category.id + " -> " + (c == null ? "aucun coffre" : c.Name + " " + c.uid); m.Destroy(); return r;')
@@ -205,7 +208,14 @@ def s7(ctx):
             want = rules(port)
             check(cond=eventually(lambda: rules(other) == want and rules(H) == want and rules(A) == want, timeout=10),
                   label=f"{who} regle le coffre : les deux jeux disent pareil (voulu {want}, host {rules(H)}, invite {rules(A)})")
-            check(f"{who} : la taille de sa fenetre reste a lui (chez l'autre : {size(other)})", size(other) in ("0", "aucun"))
+            # nom et icone : poses comme le font la boite de saisie et le menu des icones, fenetre ouverte, menu ferme
+            ev(port, f'var t = {thing(t)}; var d = {win}.invs[0].window.saveData; t.c_altName = "Coffre de {key}"; t.c_indexContainerIcon = 3; '
+                     'd.columns = 4; d.alwaysSort = true; d.sort_ascending = true; "ok"')
+            mine = look(port)
+            check(cond=eventually(lambda: look(H) == mine and look(A) == mine, timeout=10),
+                  label=f"{who} nomme le coffre, change son icone, sa taille et son tri : les deux jeux disent pareil (voulu {mine}, host {look(H)}, invite {look(A)})")
+            check(f"{who} : le nom est celui qu'il a donne ({mine})", mine.startswith(f"Coffre de {key}/3/5/4/True/True"))
+            check(f"{who} : les regles de rangement n'ont pas bouge ({rules(other)})", rules(other) == want)
             # ce que fait un habitant de l'host : l'objet pourri est refuse par ce coffre, un frais est accepte (priorite 7, filtre « meat »)
             rotten, fresh = goes_in(99999), goes_in(0)
             check(f"{who} : l'host refuse l'objet pourri pour ce coffre ({rotten})", rotten.startswith("False"))

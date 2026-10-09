@@ -1,101 +1,71 @@
-using System;
+using System.Collections.Generic;
 using ElinTogether.Models;
 using ElinTogether.Net;
-using HarmonyLib;
 
 namespace ElinTogether.Patches;
 
-[HarmonyPatch(typeof(UIInventory), nameof(UIInventory.RefreshMenu))]
-internal class InvRefreshMenuEvent
+/// <summary>
+///     The settings of a container of the map are changed from many places of its window (the menu of the sort
+///     button and its sub menus, the dialogs they open once the menu is gone: filter, name, colour, icon, paste;
+///     the shared button). Instead of following each of them, the settings of every container whose window is open
+///     are looked at each frame, and what changed is told to the other games (InvSaveDataDelta) <br />
+///     Before, only the storage rules were told, and only from the menu: a name, an icon, a size or a sort set by
+///     a guest lived in its copy of the world and were gone with it
+/// </summary>
+internal static class InvSettingsWatch
 {
-    // the last menu's "send if the rules changed", for the filter dialog that its button opens after the menu is gone
-    internal static Action? Resend;
+    // container uid -> its settings as last seen here or received
+    private static readonly Dictionary<int, string> _seen = [];
 
-    [HarmonyPostfix]
-    internal static void OnRefreshMenu(UIInventory __instance)
+    /// <summary>
+    ///     Called every frame while a session is on
+    /// </summary>
+    internal static void Tick()
     {
-        // sort and layout of a window are the screen of this player; what the sort button's menu changes of the rules is
-        // sent when it closes (after the game's own listener, which builds the menu)
-        __instance.window.buttonShared.onClick.AddListener(PropagateSharedType);
-        if (__instance.window.buttonSort != null) {
-            __instance.window.buttonSort.onClick.AddListener(WatchMenu);
-        }
-
-        return;
-
-        void WatchMenu()
-        {
-            Resend = null;
-            // a bag, an ally, a shop and what a character carries belong to that player, not to the map
-            if (__instance.owner.Container is not { } container || container.GetRootCard() is Chara ||
-                __instance.window.saveData is not { } data || !EClass.ui.contextMenu.isActive) {
-                return;
-            }
-
-            var before = InvSaveDataDelta.Rules(data);
-            EClass.ui.contextMenu.currentMenu.onDestroy += () => {
-                // the menu's buttons close it before they act (autodump, paste): look again next frame
-                Resend = Send;
-                EClass.core.actionsNextFrame.Add(Send);
-            };
+        // alone on a map of its own, the whole map goes back to the host with its containers
+        if (NetSession.Instance.Connection is not { } connection || !EClass.core.IsGameStarted) {
+            _seen.Clear();
             return;
-
-            void Send()
-            {
-                var now = InvSaveDataDelta.Rules(data);
-                if (NetSession.Instance.Connection is not { } connection || now == before) {
-                    return;
-                }
-
-                before = now;
-                connection.Delta.AddRemote(new InvSaveDataDelta {
-                    WindowId = __instance.window.idWindow,
-                    Data = LZ4Bytes.Create(data),
-                    IsShop = false,
-                    Container = container,
-                });
-            }
         }
 
-        void PropagateSharedType()
-        {
-            if (NetSession.Instance.Connection is not { } connection) {
-                return;
+        var open = LayerInventory.listInv;
+        if (open.Count == 0) {
+            return;
+        }
+
+        // (containers seen long ago and destroyed since)
+        if (_seen.Count > 256) {
+            _seen.Clear();
+        }
+
+        for (var i = 0; i < open.Count; i++) {
+            var layer = open[i];
+            if (layer == null || layer.invs.Count == 0 || layer.invs[0] is not { } inv || inv.window == null ||
+                inv.window.saveData is not { } data || inv.owner?.Container is not { } container ||
+                !InvSaveDataDelta.IsOfTheMap(container)) {
+                continue;
             }
 
-            // a bag, an ally, a shop and what a character carries belong to that player, not to the map
-            var container = __instance.owner.Container;
-            if (container.GetRootCard() is Chara) {
-                return;
+            var now = InvSaveDataDelta.State(container, data);
+            if (!_seen.TryGetValue(container.uid, out var was)) {
+                _seen[container.uid] = now;
+                continue;
             }
 
-            connection.Delta.AddRemote(new InvSaveDataDelta {
-                WindowId = __instance.window.idWindow,
-                Data = LZ4Bytes.Create(__instance.window.saveData),
-                IsShop = false,
-                Container = container,
-            });
+            if (was == now) {
+                continue;
+            }
+
+            _seen[container.uid] = now;
+            connection.Delta.AddRemote(InvSaveDataDelta.Of(container, data));
         }
     }
-}
 
-/// <summary>
-///     The "filter" button of the menu closes it, then asks the text in a dialog: the change comes after the menu is gone
-/// </summary>
-[HarmonyPatch(typeof(Dialog), nameof(Dialog.InputName))]
-internal class InvFilterDialogEvent
-{
-    [HarmonyPrefix]
-    internal static void OnInputName(Dialog.InputType inputType, ref Action<bool, string> onClose)
+    /// <summary>
+    ///     What another game changed is not a change of this one
+    /// </summary>
+    internal static void Received(Card container, Window.SaveData data)
     {
-        if (inputType != Dialog.InputType.DistributionFilter || InvRefreshMenuEvent.Resend is not { } resend) {
-            return;
-        }
-
-        var close = onClose;
-        onClose = (cancel, text) => {
-            close(cancel, text);
-            resend();
-        };
+        _seen[container.uid] = InvSaveDataDelta.State(container, data);
     }
 }
