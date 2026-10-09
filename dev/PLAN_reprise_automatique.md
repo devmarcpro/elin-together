@@ -103,3 +103,15 @@ entre deux PC » tant que ce n'est pas fait.
 
 - 2026-10-09 : plan écrit, code lu, rien lancé. Prochaine chose : R1 (lancer `worldcopy_suite.py`), qui demande le jeu
   de l'utilisateur environ 25 minutes.
+- 2026-10-09, 10h20 : **R1, première passe de `worldcopy_suite.py` : 24/26, la copie marche.** C1 à C4 verts sur le
+  fond : copie entière en 16 s (28 fichiers, 1 084 117 octets, mêmes sommes que chez l'host), la sauvegarde suivante
+  n'envoie que le fichier changé (1 sur 28), une copie coupée au milieu ne remplace pas la précédente et l'invité
+  revient seul, aucune sauvegarde de l'invité touchée (copies dans `ElinMP/WorldCopy_2`). Deux rouges : (1) le jeu de
+  l'invité a gelé une fois 536 ms pendant la réception (limite du test : 200 ms ; PC lent, fenêtre réduite : à mesurer
+  de nouveau avant d'allumer la case pour tous) ; (2) 7 845 exceptions `RenderTextureDesc height must be greater than
+  zero` dans le journal de l'invité : **ce n'est pas le mod**, c'est la fenêtre de test réduite (demande de
+  l'utilisateur : fenêtres hors de sa vue). Corrigé côté banc : les fenêtres sont posées hors de l'écran, pas réduites
+  (`keep_back.ps1`, hors dépôt). Journaux lus : host 0 exception ; mod chez l'invité, 4 « Message not sent » et une
+  déconnexion, tous pendant la coupure voulue de C3. Reste pour finir R1 : rejouer fenêtres non réduites, la copie pour
+  un invité parti seul sur une autre carte, puis cocher `WorldCopy` par défaut. Vu en passant : les `world_6`…
+  `world_emp_2` qui traînent dans les sauvegardes sont les sauvegardes locales de l'invité de test.
