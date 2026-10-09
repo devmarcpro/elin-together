@@ -101,10 +101,17 @@ def stays_out(until, what):
     check(f"{what} : il reste a l'ecran titre, sans lien", not left)
 
 
-def lose_and_return(n):
+def drop():
+    """Steam ferme le lien de lui-meme, avec son propre mot (« Connection dropped ») : vu en vraie partie le
+    2026-10-09, l'invite etait laisse a l'ecran titre. L'host ferme le lien sans passer par le mod."""
+    log(ok(emp.call(H, "command", {"cmd": "emp.drop_links"})))
+    return time.time()
+
+
+def lose_and_return(n, how=None):
     """Coupure de 20 s : l'invite revient seul. `n` : le numero de la coupure, pour les libelles."""
     before = snap()
-    t = cut(20)
+    t = how() if how else cut(20)
     lost = back = None
     shown = stranded = False
     while time.time() - t < 90:
@@ -147,6 +154,13 @@ def lose_and_return(n):
 def r1(ctx):
     """l'invite perd son lien 20 s : il revient seul, a sa place, sans ecran"""
     lose_and_return(1)
+
+
+def r6(ctx):
+    """le lien ferme par Steam avec un mot qui n'est pas du mod : l'invite revient seul aussi
+    Ce que le banc ne joue pas comme un joueur : la fermeture est provoquee chez l'host (CloseConnection avec le texte
+    de Steam), pas par une vraie panne du relais Steam entre deux PC"""
+    lose_and_return(6, drop)
 
 
 def r2(ctx):
@@ -217,7 +231,7 @@ def main():
     sys.stdout.reconfigure(encoding="utf-8")
     t0 = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
     ctx = {}
-    steps = [r1, r2, r3, r4, r5]
+    steps = [r1, r2, r3, r4, r5, r6]
     if a.only:
         steps = [s for s in steps if s.__name__ in a.only.split(",")]
     try:

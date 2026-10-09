@@ -197,6 +197,17 @@ internal class EmpConsole
         return $"Takeover when the host leaves: {(on != 0 ? "on" : "off")}";
     }
 
+    /// <summary>
+    ///     Bench, host: the links of the guests drop the way Steam drops them by itself
+    /// </summary>
+    [ConsoleCommand("drop_links")]
+    internal static string DropLinks()
+    {
+        return NetSession.Instance.Transport is ElinNetHost host
+            ? $"Dropped {host.DropLinksAsSteam()} link(s) as Steam does"
+            : "Only the host drops links";
+    }
+
     private static void SetPacketLoss(float percent)
     {
         var value = Marshal.AllocHGlobal(sizeof(float));

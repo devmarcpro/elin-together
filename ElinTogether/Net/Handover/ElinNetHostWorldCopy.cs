@@ -151,6 +151,25 @@ internal partial class ElinNetHost
 
     private bool _leavingTold;
 
+#if DEBUG
+    /// <summary>
+    ///     Bench: every link is closed the way Steam closes one it gave up on, with Steam's own word and without
+    ///     this game being told (it finds out as it would in a real game: the peer is no longer connected)
+    /// </summary>
+    internal int DropLinksAsSteam()
+    {
+        var dropped = 0;
+        foreach (var peer in Socket.Peers) {
+            if (peer is SteamNetPeer steam) {
+                SteamNetworkingSockets.CloseConnection(steam.Connection, 0, "Connection dropped", false);
+                dropped++;
+            }
+        }
+
+        return dropped;
+    }
+#endif
+
     // the guests are given that long to get the last save, then the host leaves whatever they have
     private const float LastCopySeconds = 15f;
     private static bool _leaving;

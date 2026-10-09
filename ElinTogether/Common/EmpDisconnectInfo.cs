@@ -26,7 +26,14 @@ public static class EmpDisconnectInfo
     /// </summary>
     public static bool IsLinkLost(string? reason)
     {
-        return string.IsNullOrEmpty(reason) || reason is Timeout or InactivePeer or RemoteClosed;
+        if (string.IsNullOrEmpty(reason) || reason is Timeout or InactivePeer or RemoteClosed) {
+            return true;
+        }
+
+        // every reason of ours is a word of this class, or the refusal of a version ("emp_version_mismatch|..."):
+        // anything else is Steam's own word for a link it gave up on ("Connection dropped", seen in a real game
+        // on 2026-10-09: the guest was left on the title screen)
+        return !reason!.StartsWith("emp_", System.StringComparison.Ordinal);
     }
 
     public static string Describe(string? reason)
