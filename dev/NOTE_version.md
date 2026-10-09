@@ -4,7 +4,7 @@
 
 Suite de la 0.26.608 : **trois corrections venues de vraies parties**, et **une nouveauté à l'essai, éteinte au
 départ**. Les corrections ont été jouées au banc de test (deux fenêtres sur un PC), pas encore entre deux PC. Si
-cette version se passe mal, la 0.26.608 reste en ligne. Compilé pour Elin **EA 23.352 Patch 1** (canal Nightly).
+cette version se passe mal, la 0.26.608 reste en ligne. Compilé pour Elin **EA 23.353** (canal Nightly).
 **Tous les joueurs doivent installer ce même zip.** Faites une copie de vos sauvegardes avant :
 `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
 
@@ -81,7 +81,7 @@ Entrée. C'est le même mod ; `LISEZMOI-MAC.txt` explique le reste. **Pas encore
 
 Follows 0.26.608: **three fixes that came from real games**, and **one new thing to try, off at first**. The fixes
 were played on the test bench (two windows on one PC), not between two PCs yet. If this version goes wrong, 0.26.608
-stays online. Built for Elin **EA 23.352 Patch 1** (Nightly branch). **Every player must install this same zip.**
+stays online. Built for Elin **EA 23.353** (Nightly branch). **Every player must install this same zip.**
 Back up your saves first: `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
 
 ## Fixed
