@@ -1,29 +1,44 @@
-# Elin Together « indépendance » 0.26.608
+# Elin Together « indépendance » 0.26.618
 
 (English below / version anglaise plus bas)
 
-Suite de la 0.26.605, avec **une nouvelle option pour les parties avec mods**. Elle est **écrite et compilée, pas
-jouée**, comme les deux corrections de la 0.26.605 qu'elle contient aussi. Si cette version se passe mal, la 0.26.597
-reste en ligne. Compilé pour Elin **EA 23.352 Patch 1** (canal Nightly). **Tous les joueurs doivent installer ce même
-zip.** Faites une copie de vos sauvegardes avant : `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
+Suite de la 0.26.608 : **deux corrections venues de vraies parties**, et **une nouveauté à l'essai, éteinte au
+départ**. Les corrections ont été jouées au banc de test (deux fenêtres sur un PC), pas encore entre deux PC. Si
+cette version se passe mal, la 0.26.608 reste en ligne. Compilé pour Elin **EA 23.352 Patch 1** (canal Nightly).
+**Tous les joueurs doivent installer ce même zip.** Faites une copie de vos sauvegardes avant :
+`%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
 
-## Nouveau (pas joué)
+## Corrigé
 
-- **Garder les mods de la partie, pour ne plus voir Elin se fermer à chaque soirée.** Depuis la 0.26.590, quand il vous
-  manque des mods de la partie, Elin se ferme et se relance avec ces mods ; comme votre propre liste revient à chaque
-  lancement, cela recommençait à la première connexion de chaque lancement (des testeurs l'ont décrit comme « le jeu
-  plante à la première connexion, puis entre à la deuxième »). Nouvelle case, décochée au départ, onglet « Client
-  Settings » : **« Keep the mods of the game (subscribe on the Workshop) »**.
-  - Cochée : votre compte Steam s'abonne aux mods de la partie et ils restent allumés dans votre liste. Elin se relance
-    encore **une fois**, puis plus jamais pour cette partie, même après avoir fermé le jeu.
-  - Pour revenir en arrière : désabonnez-vous sur le Workshop, ou éteignez ces mods dans le Mod Viewer.
-  - Décochée : comme avant.
-- Le message affiché après une relance dit maintenant comment l'éviter la fois suivante.
+- **Un joueur renvoyé à l'écran titre quand la liaison Steam tombe (« Connection dropped »).** Vu en vraie partie :
+  la liaison entre deux joueurs est tombée une demi-minute, aucun jeu n'avait planté, mais le joueur invité se
+  retrouvait à l'écran titre et devait rejoindre à la main. Il revient maintenant tout seul dans la partie, avec le
+  message de reconnexion, comme pour les autres coupures.
+- **Les réglages d'un coffre faits par un invité n'étaient pas gardés.** Seules les règles de rangement (priorité,
+  catégories, filtre, partagé ou personnel) partaient chez l'hébergeur. Le nom du coffre, son icône, la taille, les
+  colonnes et la couleur de sa grille, le tri et « toujours trier » sont maintenant enregistrés avec le coffre, pour
+  tous les joueurs. Conséquence : la taille et le tri d'un coffre de la base sont les mêmes pour tout le monde ; seule
+  la place de la fenêtre à l'écran reste à chacun. Les sacs que chacun porte restent personnels.
 
-## Corrigé dans la 0.26.605 (pas joué)
+## Nouveau, à l'essai (case décochée au départ)
 
-- Impossible de rejoindre une partie avec un personnage monté.
-- Une erreur à chaque dialogue avec un personnage, chez un joueur qui a un mod de langue, après la relance d'Elin.
+- **« Another player takes over when the host leaves »** (onglet « Server Setting », a besoin de la case « The other
+  players keep a copy of the world »). Quand l'hébergeur quitte par le menu du jeu ou par le bouton Disconnect, il
+  envoie d'abord sa dernière sauvegarde, puis un autre joueur rouvre le monde chez lui en moins d'une minute, sans
+  clic, avec son propre personnage ; le personnage de l'ancien hébergeur l'attend, et il le retrouve en rejoignant.
+  Le monde repris est rangé dans une sauvegarde neuve chez celui qui reprend ; aucune sauvegarde existante n'est
+  touchée.
+  - **Joué à deux fenêtres sur un PC seulement.** Pas joué : trois joueurs (les autres invités ne suivent pas encore
+    le nouvel hébergeur tout seuls), un plantage de l'hébergeur (rien ne se passe dans ce cas, comme avant), deux
+    vrais PC.
+  - **Risque connu** : un hébergeur qui rouvre sa partie juste après l'avoir quittée se retrouve à côté d'un
+    deuxième hébergeur du même monde. Laissez la case décochée si vous ne voulez pas essayer.
+
+## Déjà dans la 0.26.608 (pas joué)
+
+- La case « Keep the mods of the game » (onglet « Client Settings ») pour ne plus voir Elin se relancer à chaque
+  soirée dans une partie avec mods.
+- Rejoindre avec un personnage monté ; l'erreur à chaque dialogue avec un mod de langue.
 
 ## Limites connues
 
@@ -33,7 +48,8 @@ zip.** Faites une copie de vos sauvegardes avant : `%USERPROFILE%\AppData\LocalL
 - Un joueur refusé par celui qui tient une carte reçoit encore le monde entier.
 - Chez l'hébergeur, les invités qui marchent avancent par à-coups de trois cases.
 - Quand l'hébergeur et un invité se retrouvent sur une carte, l'écran de l'invité recharge (le monde entier est renvoyé), sauf si l'hébergeur coche la case « No world reload when the host and a player meet again ».
-- Quand l'hébergeur part ou plante, aucun invité ne reprend le monde tout seul.
+- Quand l'hébergeur plante, aucun invité ne reprend le monde tout seul (la nouvelle case ne couvre que le départ
+  volontaire).
 - « Keep the mods of the game » : un mod retiré de la partie plus tard reste abonné chez vous ; les mods que vous avez
   en trop ne sont pas touchés.
 
@@ -41,7 +57,8 @@ zip.** Faites une copie de vos sauvegardes avant : `%USERPROFILE%\AppData\LocalL
 
 - L'hébergeur décoche la case en cause (Échap → Mods → Elin Together → Server Setting).
 - Un joueur désynchronisé tape `emp.reconnect_self` dans la console.
-- Envoyez les journaux de chacun : `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin\ElinMP\Logs`.
+- Envoyez les journaux de chacun : `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin\ElinMP\Logs`, et le fichier
+  `Player.log` du dossier `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
 
 ## Installer
 
@@ -55,30 +72,42 @@ Entrée. C'est le même mod ; `LISEZMOI-MAC.txt` explique le reste. **Pas encore
 
 ---
 
-# Elin Together "independence" 0.26.608
+# Elin Together "independence" 0.26.618
 
-Follows 0.26.605, with **a new option for games with mods**. It is **written and compiled, not played**, like the two
-fixes of 0.26.605 that it also holds. If this version goes wrong, 0.26.597 stays online. Built for Elin **EA 23.352
-Patch 1** (Nightly branch). **Every player must install this same zip.** Back up your saves first:
-`%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
+Follows 0.26.608: **two fixes that came from real games**, and **one new thing to try, off at first**. The fixes
+were played on the test bench (two windows on one PC), not between two PCs yet. If this version goes wrong, 0.26.608
+stays online. Built for Elin **EA 23.352 Patch 1** (Nightly branch). **Every player must install this same zip.**
+Back up your saves first: `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
 
-## New (not played)
+## Fixed
 
-- **Keep the mods of the game, so Elin no longer closes at every evening.** Since 0.26.590, when mods of the game are
-  missing, Elin closes and restarts with them; as your own list comes back at every start, this happened again at the
-  first join of every start (testers described it as "the game crashes on the first join, then connects on the
-  second"). New checkbox, unticked at first, "Client Settings" tab: **"Keep the mods of the game (subscribe on the
-  Workshop)"**.
-  - Ticked: your Steam account subscribes to the mods of the game and they stay on in your list. Elin restarts **once**
-    more, then never again for that game, even after closing Elin.
-  - To undo: unsubscribe on the Workshop, or switch these mods off in the Mod Viewer.
-  - Unticked: as before.
-- The message shown after a restart now says how to skip it next time.
+- **A player sent to the title screen when the Steam link drops ("Connection dropped").** Seen in a real game: the
+  link between two players dropped for half a minute, no game had crashed, yet the guest ended up on the title screen
+  and had to join again by hand. It now comes back into the game by itself, with the reconnection notice, as for the
+  other kinds of lost link.
+- **The settings a guest made on a chest were not kept.** Only the storage rules (priority, categories, filter,
+  shared or personal) reached the host. The name of the chest, its icon, the size, columns and colour of its grid,
+  the sort and "always sort" are now saved with the chest, for every player. Consequence: the size and sort of a
+  chest of the base are the same for everyone; only the place of the window on the screen stays each player's. The
+  bags each player carries stay personal.
 
-## Fixed in 0.26.605 (not played)
+## New, to try (unticked at first)
 
-- A mounted character could not join a game.
-- An error at every talk to a character, for a player with a language mod, after Elin restarted.
+- **"Another player takes over when the host leaves"** ("Server Setting" tab, needs "The other players keep a copy
+  of the world"). When the host leaves through the game's menu or the Disconnect button, it first sends its last
+  save, then another player opens the world on its own PC in under a minute, without a click, with its own
+  character; the former host's character waits for it, and it gets it back when it joins. The world taken over is
+  kept in a new save of the player who takes it; no existing save is touched.
+  - **Played with two windows on one PC only.** Not played: three players (the other guests do not follow the new
+    host by themselves yet), a crash of the host (nothing happens then, as before), two real PCs.
+  - **Known risk**: a host that opens its game again right after leaving ends up beside a second host of the same
+    world. Leave the box unticked if you do not want to try.
+
+## Already in 0.26.608 (not played)
+
+- The "Keep the mods of the game" checkbox ("Client Settings" tab), so Elin no longer restarts at every evening in
+  a game with mods.
+- Joining with a mounted character; the error at every talk with a language mod.
 
 ## Known limits
 
@@ -88,7 +117,8 @@ Patch 1** (Nightly branch). **Every player must install this same zip.** Back up
 - A player refused by the holder of a map still receives the whole world.
 - On the host, walking guests move in jumps of three tiles.
 - When the host and a guest meet on a map, the guest's screen reloads (the whole world is sent again), unless the host ticks "No world reload when the host and a player meet again".
-- When the host leaves or crashes, no guest takes the world over by itself.
+- When the host crashes, no guest takes the world over by itself (the new checkbox only covers a host that leaves
+  by choice).
 - "Keep the mods of the game": a mod removed from the game later stays subscribed on your side; the extra mods you
   have are not touched.
 
@@ -96,7 +126,8 @@ Patch 1** (Nightly branch). **Every player must install this same zip.** Back up
 
 - The host unticks the checkbox (Esc → Mods → Elin Together → Server Setting).
 - A desynced player types `emp.reconnect_self` in the console.
-- Send everyone's logs: `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin\ElinMP\Logs`.
+- Send everyone's logs: `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin\ElinMP\Logs`, and the `Player.log` file of
+  the folder `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
 
 ## Install
 
