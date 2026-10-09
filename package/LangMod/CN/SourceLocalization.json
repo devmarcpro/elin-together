@@ -306,5 +306,8 @@
     "LangGeneral.emp_ui_mods_session.text": "本次 Elin 以多人游戏的模组运行，下次启动会恢复你自己的模组列表。想让下次不再重启，请在客户端设置中勾选「保留游戏的模组」。",
     "LangGeneral.emp_ui_mods_session_locked.text": "本次会话期间不会保存模组列表：下次启动 Elin 时恢复你自己的列表。",
     "LangGeneral.emp_ui_cl_keep_mods.text": "保留游戏的模组（在创意工坊订阅）",
-    "LangGeneral.emp_ui_cl_desc_keep_mods.text": "开启：你的 Steam 账号会订阅所加入游戏的模组，并在你自己的模组列表中保持启用。第一次仍会重启一次；之后即使关闭 Elin，再次加入同一游戏也无需重启。想取消时，在创意工坊取消订阅即可。关闭：不订阅直接获取，每次启动 Elin 后第一次加入都会重启。"
+    "LangGeneral.emp_ui_cl_desc_keep_mods.text": "开启：你的 Steam 账号会订阅所加入游戏的模组，并在你自己的模组列表中保持启用。第一次仍会重启一次；之后即使关闭 Elin，再次加入同一游戏也无需重启。想取消时，在创意工坊取消订阅即可。关闭：不订阅直接获取，每次启动 Elin 后第一次加入都会重启。",
+    "LangGeneral.emp_ui_sv_cfg_takeover.text": "主机离开时由其他玩家接管",
+    "LangGeneral.emp_ui_sv_desc_takeover.text": "开启：主机离开时，一位玩家用自己的副本重新开放世界，游戏在那里继续（需要上面的“世界副本”）。关闭：主机离开游戏即结束。",
+    "LangGeneral.emp_takeover_begin.text": "主机已离开。由你接管世界，游戏稍后将在这里继续。"
 }

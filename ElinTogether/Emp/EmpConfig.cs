@@ -319,6 +319,14 @@ internal partial class EmpConfig
             "Sent in the background, a little at a time, only what changed. Otherwise the world is on the host's PC only\n" +
             "每次自动保存后，其他玩家的游戏会在自己的硬盘上保留一份世界副本（不在存档文件夹内）；在后台一点一点发送，只发送有变化的部分。关闭时世界只存在于主机的电脑上");
 
+        Server.Takeover = config.Bind(
+            "Server",
+            "Takeover",
+            false,
+            "When the host leaves, another player opens the world from the copy its game keeps, and the game goes on there\n" +
+            "Needs \"The other players keep a copy of the world\". New, off until it has been played more. Otherwise the game ends when its host leaves\n" +
+            "主机离开时，由另一位玩家用自己电脑上保留的世界副本重新开放世界，游戏在那里继续。需要开启“其他玩家保留一份世界副本”。新功能，默认关闭；关闭时主机离开游戏即结束");
+
         Server.AutoHost = config.Bind(
             "Server",
             "AutoHost",
@@ -451,6 +459,7 @@ internal partial class EmpConfig
         internal static ConfigEntry<bool> AutoResync { get; set; } = null!;
         internal static ConfigEntry<bool> AutoSave { get; set; } = null!;
         internal static ConfigEntry<bool> WorldCopy { get; set; } = null!;
+        internal static ConfigEntry<bool> Takeover { get; set; } = null!;
         internal static ConfigEntry<bool> SharedTax { get; set; } = null!;
         internal static ConfigEntry<bool> SoftRecall { get; set; } = null!;
         internal static ConfigEntry<bool> AutoHost { get; set; } = null!;

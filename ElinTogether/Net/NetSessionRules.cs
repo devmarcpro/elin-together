@@ -169,7 +169,15 @@ public class NetSessionRules
     [Key(23)]
     public bool SoftRecall { get; set; } = false;
 
+    /// <summary>
+    ///     Council 9, step 4: when the host leaves, a guest opens the world from the copy it keeps of it and the
+    ///     game goes on there (see WorldTakeover). Needs KeepWorldCopy. Off: the game ends with its host
+    /// </summary>
+    [Key(24)]
+    public bool AllowTakeover { get; set; } = false;
+
     public static NetSessionRules Default => new() {
+        AllowTakeover = EmpConfig.Server.Takeover.Value,
         SoftRecall = EmpConfig.Server.SoftRecall.Value,
         UseSharedTax = EmpConfig.Server.SharedTax.Value,
         KeepWorldCopy = EmpConfig.Server.WorldCopy.Value,

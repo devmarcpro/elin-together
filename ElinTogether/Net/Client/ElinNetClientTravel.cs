@@ -1196,6 +1196,7 @@ internal partial class ElinNetClient
             NetSessionRules or
             WorldCopyManifest or
             WorldCopyPiece or
+            HostLeaving or
             NetIntegrityRejected;
         // not SessionPlayersSnapshot: the players of a zone session are ours, the host list is about its map
     }

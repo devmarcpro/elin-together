@@ -64,6 +64,25 @@ internal static class WorldHandover
     }
 
     /// <summary>
+    ///     The host said it leaves, and who was playing then
+    /// </summary>
+    internal static void HostLeft(ulong[]? guests)
+    {
+        if (guests is { Length: > 0 }) {
+            _guests = guests;
+        }
+
+        if (_me == 0 && NetSession.Instance.Self is { } self) {
+            _me = (ulong)self.User;
+        }
+    }
+
+    internal static string Describe()
+    {
+        return $"mine: {Mine()?.ToString() ?? "none"}; me {_me}; guests {string.Join(",", _guests)}; first {Successor(_guests, 0f)}";
+    }
+
+    /// <summary>
     ///     "I have a whole copy of the world I was playing in, of that handover number, saved at that time",
     ///     null when there is none. Whole means every file was checked when the copy was closed; see
     ///     <see cref="Verify" /> to read them again
@@ -141,7 +160,6 @@ internal static class WorldHandover
     }
 
 #if DEBUG
-    internal static string State =>
-        $"mine: {Mine()?.ToString() ?? "none"}; me {_me}; guests {string.Join(",", _guests)}; first {Successor(_guests, 0f)}";
+    internal static string State => Describe();
 #endif
 }

@@ -132,3 +132,22 @@ entre deux PC » tant que ce n'est pas fait.
   décider en R6 : le monde repris a un nouvel identifiant de sauvegarde (`world_N`) et un nouvel host, donc ses
   copies sont rangées sous un autre nom ; reconnaître « le même monde » demandera un identifiant écrit dans le monde.
   Prochaine tranche : R3 (l'host qui quitte prévient, l'invité désigné fait R2 tout seul).
+- 2026-10-09, 11h30 : **R3 (première moitié) faite et jouée au banc : `takeover_suite.py --auto` 33/34.** Nouvelle
+  case de l'host, décochée au départ : « Another player takes over when the host leaves » (`Takeover`, règle
+  `AllowTakeover`, demande aussi la copie du monde). L'host qui cesse d'héberger (session fermée, écran titre, Elin
+  fermé) envoie `HostLeaving` avec la liste des joueurs avant de fermer ses liens (`ElinNetHost.AnnounceLeaving`,
+  appelé de `NetSession.RemoveComponent` et de `NetShutdown`) ; l'invité dont c'est le tour (`WorldHandover.IsMyTurn`)
+  lance `WorldTakeover.Begin` et lit « The host left. You are taking the world over… ». Mesuré : message reçu en
+  1 s, invité host du monde 38 s après le départ, sans un clic (case décochée : il met 26 s à seulement constater la
+  coupure, puis reste à l'écran titre). Tout le reste comme R2, T3 compris. T0 prouve la case décochée : personne ne
+  reprend, et l'invité revient seul quand l'host rouvre. Le seul rouge est de l'outil : « aucun dossier de sauvegarde
+  ajouté » comparait des ensembles égaux alors que la copie de travail de l'invité (`world_emp_2`) est effacée à
+  chaque coupure ; vérification corrigée (dossiers en plus seulement), **pas rejouée**. Journaux lus : 0 exception
+  dans les deux jeux, aucune pile dans celui du mod. Constat utile pour R5 : sur le banc, la fermeture du lien par
+  l'host n'arrive pas à l'invité (la prise d'écoute est jetée avec les liens), il ne l'apprend que par le délai.
+  **Reste de R3 : la dernière copie.** Aujourd'hui l'invité repart de la dernière sauvegarde automatique : jusqu'à
+  2 minutes perdues pour tous. Il faut que l'host qui part sauvegarde et envoie ce qui a changé avant de fermer.
+  **Pas joués** : départ par le menu du jeu (retour au titre) et par la fermeture d'Elin (même fonction appelée, pas
+  le même chemin), un invité parti sur une autre carte, deux invités (qui est désigné, que fait l'autre : R4), la
+  case cochée dans l'onglet. **Risque connu tant que R6 n'est pas fait** : un host qui recharge sa sauvegarde ou
+  rouvre sa partie juste après l'avoir fermée se retrouve avec un deuxième host du même monde.

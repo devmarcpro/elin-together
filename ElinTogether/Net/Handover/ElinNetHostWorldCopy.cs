@@ -118,6 +118,40 @@ internal partial class ElinNetHost
     }
 
     /// <summary>
+    ///     This game stops hosting (session closed, title screen, Elin closed): said to every guest before the
+    ///     links close, so that the one whose turn it is opens the world from its copy at once instead of
+    ///     finding out by a dead link (WorldTakeover). Said once
+    /// </summary>
+    internal void AnnounceLeaving()
+    {
+        if (_leavingTold || IsZoneSession || !Session.Rules.AllowTakeover || !Session.Rules.KeepWorldCopy) {
+            return;
+        }
+
+        _leavingTold = true;
+        var leaving = new HostLeaving {
+            Guests = Session.CurrentPlayers.Where(p => p is not null && p.Index != 0).Select(p => (ulong)p.User).ToArray(),
+        };
+
+        var told = 0;
+        foreach (var peer in Socket.Peers) {
+            if (!peer.IsConnected || !_handshakes.TryGetValue(peer.Id, out var shake) || shake.Phase != NetHandshakePhase.Joined) {
+                continue;
+            }
+
+            // on the wire now: the listen socket is discarded with the component, and its links with it
+            if (peer.Send(leaving) && peer is SteamNetPeer steam) {
+                SteamNetworkingSockets.FlushMessagesOnConnection(steam.Connection);
+                told++;
+            }
+        }
+
+        EmpLog.Information("Leaving: {Told} guest(s) told, {Guests} playing", told, leaving.Guests.Length);
+    }
+
+    private bool _leavingTold;
+
+    /// <summary>
     ///     A few times a second: the latest save is offered to who does not have it, one part goes to one guest
     ///     that asked for files (the first in line, the others wait their turn)
     /// </summary>

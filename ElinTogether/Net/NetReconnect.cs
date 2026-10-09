@@ -26,7 +26,7 @@ internal static class NetReconnect
         var session = NetSession.Instance;
 
         // only for a player who was in the game: a join that fails is not a link lost
-        if (Active || !session.Rules.AllowReconnect || !EClass.core.IsGameStarted ||
+        if (Active || WorldTakeover.Busy || !session.Rules.AllowReconnect || !EClass.core.IsGameStarted ||
             session.Transport is not ElinNetClient { IsZoneSession: false } client ||
             client.Rejoin is not { } rejoin) {
             return;

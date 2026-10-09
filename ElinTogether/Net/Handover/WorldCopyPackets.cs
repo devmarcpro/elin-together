@@ -62,6 +62,18 @@ public class WorldCopyFile
 }
 
 /// <summary>
+///     Net packet: Host -> Client <br />
+///     The host closes its game, the link closes right after. Who was playing, as the host knew them: every
+///     guest finds from this same list who takes the world over (WorldHandover.Successor)
+/// </summary>
+[MessagePackObject]
+public class HostLeaving
+{
+    [Key(0)]
+    public ulong[] Guests { get; set; } = [];
+}
+
+/// <summary>
 ///     Net packet: Client -> Host <br />
 ///     The files of that save the guest does not have yet, by their index in the manifest
 /// </summary>

@@ -139,6 +139,9 @@ public class NetSession : EClass
         IsGuest = false;
 
         if (Transport != null) {
+            // before the links close: the guests hear that this game ends from the host itself
+            (Transport as ElinNetHost)?.AnnounceLeaving();
+
             if (!Transport.IsHost && core.IsGameStarted) {
                 ui.hud?.SetDragImage(null);
                 ui.RemoveLayers();

@@ -8,6 +8,32 @@ internal partial class ElinNetClient
     {
         Router.RegisterHandler<WorldCopyManifest>(OnWorldCopyOffer);
         Router.RegisterHandler<WorldCopyPiece>(OnWorldCopyPiece);
+        Router.RegisterHandler<HostLeaving>(OnHostLeaving);
+    }
+
+    /// <summary>
+    ///     Net event: the host closes its game. The guest whose turn it is opens the world from its copy; for the
+    ///     others, and when nothing can be opened, the link closes right after this as it always did
+    /// </summary>
+    private void OnHostLeaving(HostLeaving leaving)
+    {
+        if (IsZoneSession || !Session.Rules.AllowTakeover) {
+            return;
+        }
+
+        WorldHandover.HostLeft(leaving.Guests);
+        if (!WorldHandover.IsMyTurn(0f)) {
+            EmpLog.Information("The host leaves, the world is not ours to take over: {State}", WorldHandover.Describe());
+            return;
+        }
+
+        var why = WorldTakeover.Begin();
+        if (why.Length > 0) {
+            EmpLog.Warning("The host leaves and the world is not taken over: {Why}", why);
+            return;
+        }
+
+        EmpPop.Information("emp_takeover_begin".lang());
     }
 
     /// <summary>

@@ -23,6 +23,11 @@ internal static class WorldTakeover
     private static bool _busy;
 
     /// <summary>
+    ///     The world is being opened here: nothing tries to join the host that is gone
+    /// </summary>
+    internal static bool Busy => _busy;
+
+    /// <summary>
     ///     What the last takeover did, for the log and the bench
     /// </summary>
     internal static string State { get; private set; } = "idle";

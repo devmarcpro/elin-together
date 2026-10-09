@@ -19,6 +19,14 @@ internal static class NetShutdown
             return;
         }
 
+        // (nothing is sent once IsQuitting is set)
+        try {
+            (NetSession.Instance.Transport as ElinNetHost)?.AnnounceLeaving();
+        } catch (Exception ex) {
+            EmpLog.Warning(ex, "Exception while telling the guests that the host leaves");
+            // noexcept
+        }
+
         IsQuitting = true;
 
         Helper.SaveDepot.OnQuit();

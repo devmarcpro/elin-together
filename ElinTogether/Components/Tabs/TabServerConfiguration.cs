@@ -27,6 +27,7 @@ internal class TabServerConfiguration : TabEmpBase
         Option(players, "auto_host", EmpConfig.Server.AutoHost);
         Option(players, "auto_save", EmpConfig.Server.AutoSave);
         Option(players, "world_copy", EmpConfig.Server.WorldCopy);
+        Option(players, "takeover", EmpConfig.Server.Takeover);
         Option(players, "same_game_version", EmpConfig.Server.SameGameVersion);
         Option(players, "publish_mods", EmpConfig.Server.PublishMods);
 

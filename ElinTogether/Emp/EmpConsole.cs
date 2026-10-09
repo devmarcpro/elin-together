@@ -186,6 +186,17 @@ internal class EmpConsole
         return WorldTakeover.Begin() is { Length: > 0 } why ? $"Not taken over: {why}" : "Taking the world over";
     }
 
+    /// <summary>
+    ///     Bench, host: the rule "another player takes the world over when the host leaves", told to the guests
+    /// </summary>
+    [ConsoleCommand("takeover_rule")]
+    internal static string TakeoverRule(int on = 1)
+    {
+        EmpConfig.Server.Takeover.Value = on != 0;
+        (NetSession.Instance.Transport as ElinNetHost)?.UpdateRemoteSessionRules();
+        return $"Takeover when the host leaves: {(on != 0 ? "on" : "off")}";
+    }
+
     private static void SetPacketLoss(float percent)
     {
         var value = Marshal.AllocHGlobal(sizeof(float));
