@@ -319,6 +319,11 @@ internal partial class ElinNetHost
             }
         }
 
+        // what our character rides or carries stands where it does (the game takes a mount off the tile it says)
+        foreach (var rider in new[] { mine.ride, mine.parasite, mine.host }) {
+            rider?.pos.Set(former.pos);
+        }
+
         mine.homeZone ??= former.homeZone ?? EClass.pc.homeZone;
 
         // the former character is now the one of an absent player

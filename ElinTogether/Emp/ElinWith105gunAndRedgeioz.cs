@@ -42,6 +42,9 @@ internal sealed class EmpMod : BaseUnityPlugin
 
         CommandRegistry.assemblies.Add(Assembly);
 
+        // session or not: a world whose mounts stand outside the map could not be loaded at all
+        Patches.RideOffMapPatch.Apply();
+
 #if DEBUG
         SharedHarmony.PatchAll(Assembly);
 
@@ -76,6 +79,8 @@ internal sealed class EmpMod : BaseUnityPlugin
     private void Update()
     {
         ModFetch.Update();
+        // (from the patches during a session; a server has to load its world before any session)
+        EmpServer.Update();
     }
 
     private void OnDestroy()

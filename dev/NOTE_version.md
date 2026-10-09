@@ -1,14 +1,19 @@
-# Elin Together « indépendance » 0.26.618
+# Elin Together « indépendance » 0.26.621
 
 (English below / version anglaise plus bas)
 
-Suite de la 0.26.608 : **deux corrections venues de vraies parties**, et **une nouveauté à l'essai, éteinte au
+Suite de la 0.26.608 : **trois corrections venues de vraies parties**, et **une nouveauté à l'essai, éteinte au
 départ**. Les corrections ont été jouées au banc de test (deux fenêtres sur un PC), pas encore entre deux PC. Si
 cette version se passe mal, la 0.26.608 reste en ligne. Compilé pour Elin **EA 23.352 Patch 1** (canal Nightly).
 **Tous les joueurs doivent installer ce même zip.** Faites une copie de vos sauvegardes avant :
 `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
 
 ## Corrigé
+
+- **Le monde du dépôt ne se chargeait plus, chez personne (nouveau dans la 0.26.621).** Quand les personnages de
+  joueurs étaient montés au moment de la sauvegarde, leur monture pouvait être enregistrée « hors de la carte » : le
+  chargement s'arrêtait sur une erreur et l'écran restait bloqué. Ces montures sont maintenant remises sur la case de
+  leur cavalier et le monde se charge. Vérifié sur une copie du monde en cause.
 
 - **Un joueur renvoyé à l'écran titre quand la liaison Steam tombe (« Connection dropped »).** Vu en vraie partie :
   la liaison entre deux joueurs est tombée une demi-minute, aucun jeu n'avait planté, mais le joueur invité se
@@ -72,14 +77,19 @@ Entrée. C'est le même mod ; `LISEZMOI-MAC.txt` explique le reste. **Pas encore
 
 ---
 
-# Elin Together "independence" 0.26.618
+# Elin Together "independence" 0.26.621
 
-Follows 0.26.608: **two fixes that came from real games**, and **one new thing to try, off at first**. The fixes
+Follows 0.26.608: **three fixes that came from real games**, and **one new thing to try, off at first**. The fixes
 were played on the test bench (two windows on one PC), not between two PCs yet. If this version goes wrong, 0.26.608
 stays online. Built for Elin **EA 23.352 Patch 1** (Nightly branch). **Every player must install this same zip.**
 Back up your saves first: `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
 
 ## Fixed
+
+- **The depot's world could not be loaded any more, by anyone (new in 0.26.621).** When players' characters were
+  mounted as the world was saved, their mount could be saved "outside the map": the load stopped on an error and the
+  screen stayed stuck. These mounts are now put back on their rider's tile and the world loads. Checked on a copy of
+  the world it happened to.
 
 - **A player sent to the title screen when the Steam link drops ("Connection dropped").** Seen in a real game: the
   link between two players dropped for half a minute, no game had crashed, yet the guest ended up on the title screen
