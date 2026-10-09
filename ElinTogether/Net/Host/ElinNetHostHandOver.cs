@@ -84,6 +84,12 @@ internal partial class ElinNetHost
     internal static bool IsSharedWorld =>
         SavedRemoteCharas.Count > 0 || PcOrphans.Count > 0 || (PcOwner() is var owner && owner != 0 && owner != LocalUser);
 
+#if DEBUG
+    internal static string WhoPlaysWhom =>
+        $"me {LocalUser}; pc {player.uidChara} of {PcOwner()}; " +
+        string.Join(",", SavedRemoteCharas.Select(p => $"{p.Key}={p.Value}"));
+#endif
+
     private static void SetPcOwner(ulong user)
     {
         PcOwners.Clear();

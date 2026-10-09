@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using ElinTogether.Models;
 
@@ -100,8 +101,19 @@ internal static class WorldHandover
     /// </summary>
     internal static bool Verify(Copy copy)
     {
-        return WorldCopyStore.Copies(System.IO.Path.GetDirectoryName(copy.Dir)!)
-            .Any(c => c.Dir == copy.Dir && WorldCopyStore.Verify(c.Dir, c.Manifest));
+        var (dir, manifest) = Read(copy);
+        return manifest is not null && WorldCopyStore.Verify(dir, manifest);
+    }
+
+    /// <summary>
+    ///     The copy as it is on the disk now, a null manifest when it is gone
+    /// </summary>
+    internal static (string Dir, WorldCopyManifest? Manifest) Read(Copy copy)
+    {
+        // (the folder of a copy is written with both kinds of slashes, and GetDirectoryName changes them)
+        var wanted = Path.GetFullPath(copy.Dir);
+        return WorldCopyStore.Copies(Path.GetDirectoryName(wanted)!)
+            .FirstOrDefault(c => string.Equals(Path.GetFullPath(c.Dir), wanted, StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>

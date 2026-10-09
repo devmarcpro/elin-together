@@ -412,7 +412,20 @@ internal partial class ElinNetHost
                     return;
                 }
 
+                // opened from the copy a guest kept of it: one handover more than that copy, written by the save
+                // below, or by the first save of the session when no character is exchanged
+                var takenOver = WorldTakeover.Opened(out var handover);
+                if (takenOver) {
+                    WorldHandoverCount[0] = System.Math.Max(HandoverNumber, handover) + 1;
+                    EmpLog.Information("World taken over from a copy: handover {Handover}", HandoverNumber);
+                }
+
                 if (!TakeOverPc()) {
+                    // (not when the creation screen of a new player just took the place of the game)
+                    if (takenOver && scene.mode != Scene.Mode.Title) {
+                        game.Save(false, true);
+                    }
+
                     // the right character is in place: the session opens without a click on "Start Server"
                     EmpAutoHost.OpenSession();
                     return;

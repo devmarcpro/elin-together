@@ -43,8 +43,8 @@ internal partial class ElinNetHost
 
     /// <summary>
     ///     How many times this world was taken over by another player after its host was lost, kept in the save.
-    ///     Two games that went on with the same world are told apart by it: the highest wins. Nothing raises it
-    ///     yet (council 9, step 4)
+    ///     Two games that went on with the same world are told apart by it: the highest wins. Raised when a guest
+    ///     opens the world from its copy (WorldTakeover)
     /// </summary>
     [ElinGameIOProperty("world_handover")]
     private static int[] WorldHandoverCount
@@ -384,5 +384,17 @@ public static class WorldCopyBench
     public static string Root => WorldCopyStore.Root;
 
     public static string State => WorldCopyReceiver.State + "; " + WorldHandover.State;
+
+    /// <summary>
+    ///     Guest that takes the world over, then host: what the takeover did, and the handover number of the world
+    /// </summary>
+    public static string Takeover => WorldTakeover.State;
+
+    public static int Handover => ElinNetHost.HandoverNumber;
+
+    /// <summary>
+    ///     Who plays whom in the world loaded: the local character and its owner, then player -> character
+    /// </summary>
+    public static string Who => ElinNetHost.WhoPlaysWhom;
 }
 #endif

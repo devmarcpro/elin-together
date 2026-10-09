@@ -177,6 +177,15 @@ internal class EmpConsole
         return $"Session opened by itself at load: {(on != 0 ? "on" : "off")}";
     }
 
+    /// <summary>
+    ///     Bench: this guest opens the world it was playing in from the copy it keeps of it (see WorldTakeover)
+    /// </summary>
+    [ConsoleCommand("take_over")]
+    internal static string TakeOver()
+    {
+        return WorldTakeover.Begin() is { Length: > 0 } why ? $"Not taken over: {why}" : "Taking the world over";
+    }
+
     private static void SetPacketLoss(float percent)
     {
         var value = Marshal.AllocHGlobal(sizeof(float));

@@ -115,3 +115,20 @@ entre deux PC » tant que ce n'est pas fait.
   déconnexion, tous pendant la coupure voulue de C3. Reste pour finir R1 : rejouer fenêtres non réduites, la copie pour
   un invité parti seul sur une autre carte, puis cocher `WorldCopy` par défaut. Vu en passant : les `world_6`…
   `world_emp_2` qui traînent dans les sauvegardes sont les sauvegardes locales de l'invité de test.
+- 2026-10-09, 11h : **R2 faite et jouée au banc : `takeover_suite.py` 29/29.** Un invité rouvre le monde depuis sa
+  copie par `emp.take_over` (`Net/Handover/WorldTakeover.cs`) : la copie est relue en entier, posée dans un dossier
+  de sauvegarde neuf (`world_N`, écrit à côté puis renommé d'un coup), chargée comme une sauvegarde ; la suite est le
+  chemin du dépôt (`TakeOverPc` : il joue SON personnage, celui de l'ancien host attend son joueur ; `EmpAutoHost`
+  ouvre la partie). Le numéro de reprise passe à 1 et est sauvegardé. Mesuré : 42 s entre la commande et la partie
+  ouverte (petit monde, PC lent, deux chargements). Vérifié : son personnage, son or, le personnage de l'ancien host
+  gardé et hors de la carte, aucune fenêtre ouverte, la sauvegarde de l'host inchangée à l'octet, aucune autre
+  sauvegarde touchée, un seul dossier ajouté, la copie toujours là. **T3 (avant-goût de R6) : l'ancien host rejoint
+  le nouvel host et retrouve son personnage, sans écran de création.** Rouge de la première passe : « the copy is not
+  whole » alors qu'elle l'était ; le dossier d'une copie est écrit avec les deux sortes de barres et
+  `Path.GetDirectoryName` les change, la comparaison de chemins ratait (`WorldHandover.Verify` avait le même défaut,
+  jamais appelé jusque-là). Journaux lus : 0 exception dans les deux jeux, aucune pile dans celui du mod, fenêtres
+  hors écran sans l'erreur d'affichage. Vu en passant : la ligne de `ShouldReceiveWhileAway` pour la copie existe
+  déjà, il ne manque que le test de l'invité parti seul. Pas joués : voir l'en-tête de `takeover_suite.py`. À
+  décider en R6 : le monde repris a un nouvel identifiant de sauvegarde (`world_N`) et un nouvel host, donc ses
+  copies sont rangées sous un autre nom ; reconnaître « le même monde » demandera un identifiant écrit dans le monde.
+  Prochaine tranche : R3 (l'host qui quitte prévient, l'invité désigné fait R2 tout seul).
