@@ -14,15 +14,28 @@ Le mod d'origine garde tout le groupe sur la carte de l'host et traite les autre
 Ses auteurs ne prévoient pas les cartes séparées ; cette version est l'endroit où on l'essaie. Tout le mérite du
 mod lui-même leur revient (voir [Crédits](#crédits)).
 
-> **État : expérimental.** Chaque version est une préversion, compilée pour le canal Nightly d'Elin. L'essentiel
-> est vérifié par des tests automatiques en jeu, sur un seul PC (deux à cinq fenêtres du jeu). Un seul petit groupe
-> y a joué pour de vrai : deux ou trois joueurs par Steam, quelques soirées, et chacune a trouvé des bugs que les
-> tests n'avaient pas vus. Chaque note de version dit ce qui a été joué et ce qui ne l'a pas été. Faites d'abord
-> une copie de vos sauvegardes : `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
+> **État : expérimental, pas prêt pour une vraie sortie.** Chaque version est une préversion, compilée pour le canal
+> Nightly d'Elin. L'essentiel est vérifié par des tests automatiques en jeu, sur un seul PC (deux à cinq fenêtres
+> du jeu). Un seul petit groupe y a joué pour de vrai, et chaque soirée a trouvé des défauts que les tests n'avaient
+> pas vus. Plusieurs corrections récentes ont été publiées **sans avoir été jouées du tout**. Ce qui manque avant une
+> vraie sortie est listé dans [Ce qu'il reste avant une vraie sortie](#ce-quil-reste-avant-une-vraie-sortie).
+> Faites d'abord une copie de vos sauvegardes : `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
 
-[Ce que ça change](#ce-que-ça-change) · [Installer](#installer) · [Jouer](#jouer) ·
-[Le dépôt](#garder-le-monde-en-ligne--le-dépôt) · [Mods](#mods) · [Réglages de l'host](#réglages-de-lhost) ·
-[Limites connues](#limites-connues) · [Compiler](#compiler)
+**Sommaire**
+
+1. [Ce que ça change](#ce-que-ça-change)
+2. [Installer](#installer)
+3. [Votre première partie ensemble](#votre-première-partie-ensemble)
+4. [Garder le monde en ligne : le dépôt](#garder-le-monde-en-ligne--le-dépôt)
+5. [Les parties avec mods](#les-parties-avec-mods)
+6. [Réglages](#réglages)
+7. [Comment ça marche](#comment-ça-marche)
+8. [Limites connues](#limites-connues)
+9. [Ce qu'il reste avant une vraie sortie](#ce-quil-reste-avant-une-vraie-sortie)
+10. [Comment c'est testé](#comment-cest-testé)
+11. [En cas de problème](#en-cas-de-problème)
+12. [Compiler](#compiler)
+13. [Crédits](#crédits)
 
 ## Ce que ça change
 
@@ -81,7 +94,7 @@ liste est dans [`dev/DOCUMENTATION.md`](dev/DOCUMENTATION.md).
 
 - **Un dépôt garde le monde** : un dépôt GitHub privé, un dossier partagé, ou un petit logiciel serveur. Le
   premier arrivé prend le monde et l'héberge, chaque sauvegarde y retourne, et quand il part le suivant prend la
-  suite. Voir [le dépôt](#garder-le-monde-en-ligne--le-dépôt).
+  suite.
 - **Un monde qui change de main.** Celui qui reprend le monde joue son propre personnage ; l'ancien host retrouve
   le sien quand il rejoint. Si quelqu'un héberge déjà, vous êtes envoyé dans sa partie au lieu d'en ouvrir une
   copie.
@@ -93,29 +106,15 @@ liste est dans [`dev/DOCUMENTATION.md`](dev/DOCUMENTATION.md).
   jeux comparent quelques nombres par carte, et une carte dont l'écart dure est rechargée sur place.
 - **Un serveur dédié**, comme un serveur Minecraft : un Elin que personne ne joue fait tourner le monde.
 
-### Les mêmes mods pour tous, sans s'abonner
+### Les mêmes mods pour tous
 
-- **Les mods de la partie arrivent tout seuls.** S'il vous manque des mods du Workshop en rejoignant, ils sont
-  téléchargés sans abonnement, Elin se relance une fois avec exactement les mods de la partie et vous y ramène.
-  Votre propre liste de mods revient au lancement suivant. Voir [Mods](#mods).
+- **Les mods de la partie arrivent tout seuls** quand vous rejoignez, et Elin se relance une fois avec eux. Un
+  joueur peut choisir de les garder : cette relance n'arrive alors qu'une fois, et plus jamais pour cette partie.
 - **Des versions d'Elin différentes peuvent jouer ensemble.** Seule la version du mod doit être la même pour
   tous ; un joueur sur une autre version d'Elin entre avec un avertissement.
 
 Presque tout cela est une **case à cocher côté host** : décochée, le mod se comporte comme l'original. Voir
-[Réglages de l'host](#réglages-de-lhost).
-
-## En images
-
-| | |
-|---|---|
-| ![Règles de l'host : chaque fonction est une case à cocher](assets/screens/host-options.jpg) | ![Réglages du joueur : le dépôt, sa clé, les mods récupérés tout seuls](assets/screens/client-settings.jpg) |
-| Règles de l'host : chaque fonction est une case à cocher | Réglages du joueur : le dépôt, sa clé, et les mods récupérés tout seuls |
-| ![L'host part en quête : l'invité choisit de l'accompagner](assets/screens/quest-ask-guest.jpg) | ![Les deux joueurs dans la même zone de quête](assets/screens/quest-together.jpg) |
-| L'host part en quête : l'invité choisit de l'accompagner | Les deux joueurs dans la même zone de quête |
-| ![L'invité part en quête : la même question pour l'host](assets/screens/quest-ask-host.jpg) | ![Échange entre joueurs](assets/screens/trade.jpg) |
-| L'invité part en quête : la même question pour l'host | Échange entre joueurs |
-| ![Chaque joueur a sa renommée et son karma](assets/screens/own-fame-karma.jpg) | ![Une coupure : l'invité est ramené dans la partie](assets/screens/reconnect.jpg) |
-| Chaque joueur a sa renommée et son karma | Une coupure : l'invité est ramené tout seul dans la partie |
+[Réglages](#réglages).
 
 ## Installer
 
@@ -126,30 +125,55 @@ lui. Lancez Elin une fois après l'abonnement, puis fermez-le.
 
 1. Téléchargez `ElinTogether-independance.zip` sur la
    [page des versions](https://github.com/devmarcpro/elin-together/releases).
-2. Décompressez tout le dossier et lancez `Installer.bat`. Il trouve Elin, copie le mod et remplace la version
-   Workshop par celle-ci.
+2. Décompressez tout le dossier et lancez `Installer.bat`. Il trouve Elin, copie le mod dans
+   `Elin\Package\Mod_ElinTogether` et remplace la version Workshop par celle-ci dans la liste de mods du jeu.
 3. Lancez Elin par Steam.
 
-`Desinstaller.bat` remet la version Workshop ; rien n'est supprimé. La notice `LISEZMOI.txt` du zip explique tout.
+`Desinstaller.bat` remet la version Workshop ; rien n'est supprimé, l'ancien état est gardé dans
+`Elin\_ElinTogether_sauvegarde`. La notice `LISEZMOI.txt` du zip explique tout.
 
 **Sur Mac** (Elin dans CrossOver, Whisky ou Wine) : téléchargez `ElinTogether-independance-mac.zip`,
 décompressez-le, ouvrez le Terminal, tapez `bash` puis un espace, faites glisser `Installer-Mac.command` dans la
 fenêtre et appuyez sur Entrée. C'est le même mod. Pas encore essayé sur un vrai Mac.
 
 **Tous les joueurs doivent installer la même version.** Ce fork ne se connecte pas à la version du Workshop, ni à
-une autre version de lui-même. Chaque version est compilée pour une version d'Elin, écrite dans son titre.
+une autre version de lui-même : un joueur sur une autre version est refusé, avec un message qui nomme les deux
+versions. Chaque version est compilée pour une version d'Elin, écrite dans son titre.
 
-## Jouer
+**Mettre à jour** : téléchargez le nouveau zip et relancez `Installer.bat`. Vos réglages sont gardés.
+
+## Votre première partie ensemble
 
 Le panneau du mod s'ouvre par le bouton *Elin Together* de l'écran titre, ou par Échap → Mods → Elin Together en
 jeu. Ses onglets : *Lobby*, *Server Setting* (les règles de l'host) et *Client Settings*, plus *Session Info* une
-fois la partie ouverte.
+fois la partie ouverte. Le panneau est en anglais, japonais ou chinois, pas en français.
 
-- **Héberger.** Chargez une partie qui a un terrain revendiqué, puis *Start Server* dans l'onglet Lobby. Un monde
-  déjà partagé s'ouvre tout seul à vos amis Steam.
-- **Rejoindre.** Acceptez une invitation Steam, utilisez *Rejoindre la partie* sur le nom de votre ami dans la
-  liste d'amis Steam, ou choisissez la partie dans l'onglet Lobby. *Join by address* sert pour un serveur.
-- **Les règles.** L'host les règle dans *Server Setting* ; un changement s'applique tout de suite, pour tous.
+**L'host**
+
+1. Commence une nouvelle partie ou charge une sauvegarde. Une partie ne peut être ouverte aux autres que si le
+   monde a un **terrain revendiqué** : dans une partie neuve, parlez à Ashland, ramassez l'acte qu'il laisse,
+   lisez-le et répondez oui.
+2. Ouvre la partie : *Start Server* dans l'onglet Lobby. Un monde déjà partagé s'ouvre tout seul aux amis Steam
+   quand il est chargé.
+3. Invite : *Invite Friend* dans l'onglet Lobby, ou laisse ses amis utiliser *Rejoindre la partie* sur son nom
+   dans la liste d'amis Steam.
+
+**Un invité**
+
+1. Rejoint depuis l'écran titre : accepte une invitation Steam, utilise *Rejoindre la partie* dans la liste d'amis
+   Steam, ou choisit la partie dans l'onglet Lobby. *Join by address* sert pour un serveur.
+2. La première fois dans ce monde, crée un personnage sur l'écran de création du jeu. Ensuite il le retrouve sans
+   aucune question.
+3. Si la partie a des mods du Workshop que l'invité n'a pas, Elin se ferme et se relance une fois avec eux, puis
+   revient tout seul dans la partie : voir [Les parties avec mods](#les-parties-avec-mods). **Ce n'est pas un
+   plantage.**
+
+**Ensuite**
+
+- Chacun joue comme en solo : sortir seul de la carte, prendre des quêtes au tableau, construire dans la base,
+  dormir quand il veut.
+- Les règles de l'host sont dans *Server Setting* ; un changement s'applique tout de suite, pour tous.
+- Quand l'host part, la partie s'arrête pour tout le monde, sauf si le monde est dans un dépôt (section suivante).
 
 ## Garder le monde en ligne : le dépôt
 
@@ -167,59 +191,70 @@ de l'autre.
 Ensuite, dans l'onglet Lobby :
 
 - **Put this save on the server**, une partie chargée et pas encore ouverte aux autres : cette partie devient le
-  monde du dépôt.
+  monde du dépôt. Le jeu revient à l'écran titre et recharge le monde depuis le dépôt : à partir de là, c'est ce
+  monde-là que vous jouez.
 - **Take the world from the server and host it**, depuis l'écran titre : vous prenez le dernier monde et vous
   l'hébergez ; les autres vous rejoignent par Steam. Si quelqu'un héberge déjà, le bouton donne son nom et vous
   fait entrer dans sa partie.
 - Chaque sauvegarde retourne au dépôt, au plus toutes les 5 minutes et une dernière fois en quittant. Quand l'host
-  part, n'importe qui peut prendre le monde. Si l'host plante, le monde se libère tout seul au bout de 3 minutes.
+  part, n'importe qui peut prendre le monde. Si l'host plante, le monde se libère tout seul au bout de 3 minutes,
+  et jusqu'à 5 minutes de jeu peuvent être perdues.
 
 **Avec GitHub**, le joueur qui possède le dépôt :
 
 1. crée sur github.com un dépôt vide et **privé**, uniquement pour ce monde (le mod refuse un dépôt public) ;
-2. crée une clé d'accès (« fine-grained token ») limitée à ce dépôt, avec *Contents : Read and write* ;
+2. crée une clé d'accès (Settings → Developer settings → Fine-grained tokens) limitée à ce dépôt, avec
+   *Contents : Read and write* ;
 3. écrit `github:proprietaire/depot` dans **Depot** et colle la clé dans **Depot key** ;
 4. donne les deux aux amis qui peuvent héberger. Ils n'ont pas besoin de compte GitHub.
 
 La clé reste en clair dans le fichier de réglages du mod sur chaque PC ; elle n'ouvre que ce dépôt et se révoque
 d'un clic. Un monde de plus de 20 Mo en zip est refusé. GitHub garde chaque version du monde : c'est une
-sauvegarde de secours gratuite, et cela veut aussi dire que le dépôt grossit à chaque envoi. Quand il devient
-gros, supprimez-le et créez-en un nouveau. Le dépôt garde aussi `modlist.txt`, les mods du monde.
+sauvegarde de secours gratuite, et cela veut aussi dire que le dépôt grossit à chaque envoi, d'environ un petit
+commit par minute tant que quelqu'un héberge et d'une copie du monde toutes les 5 minutes. Quand il devient gros,
+supprimez-le et créez-en un nouveau. Le dépôt garde aussi `modlist.txt`, les mods du monde.
 
 **Serveur dédié.** `ElinTogetherServer.exe` a un second mode, « With Elin on this PC: the world runs all the
 time » : Elin tourne derrière, sans fenêtre, et les joueurs utilisent *Join by address* (`adresse:55556`, UDP).
 `Serveur.bat` fait la même chose avec une fenêtre de jeu. Windows seulement.
 
-## Mods
+## Les parties avec mods
 
-Quand vous rejoignez une partie, ou prenez un monde dans un dépôt, et qu'il vous manque des mods du Workshop : ils
-sont téléchargés sans que votre compte Steam s'abonne à quoi que ce soit, Elin se ferme et se relance **une fois**
-avec exactement les mods de la partie, puis vous y ramène. Si des mods à vous bloquent l'entrée, Elin se relance
-une fois sans eux. Au lancement suivant d'Elin, vous retrouvez votre propre liste de mods, intacte. Rien n'est
-jamais supprimé ni désabonné.
+Elin charge ses mods au démarrage : un joueur ne peut donc pas recevoir un mod en cours de route. Voici ce que le
+mod fait à la place.
 
-- La liste de référence est le `modlist.txt` du dépôt quand le monde en vient, sinon les mods de l'host.
-- Si Elin ne se relance pas tout seul, relancez-le à la main dans la demi-heure : il vous ramène dans la partie.
+**Quand vous rejoignez** (ou prenez un monde dans un dépôt), le mod compare vos mods à la liste de référence : le
+`modlist.txt` du dépôt quand le monde en vient, sinon les mods de l'host. S'il vous manque des mods du Workshop :
+
+1. Steam les télécharge, sans que votre compte s'abonne à quoi que ce soit ;
+2. Elin se ferme et se relance **une fois** avec exactement les mods de la partie ;
+3. il vous ramène tout seul dans la partie. S'il ne se relance pas, relancez Elin à la main dans la demi-heure.
+
+Au départ, votre propre liste de mods revient au lancement suivant d'Elin. Le prix : Elin se relance de nouveau à
+la première connexion de **chaque** lancement. Deux façons de l'éviter :
+
+- **Cochez « Keep the mods of the game (subscribe on the Workshop) »** dans *Client Settings*. Votre compte Steam
+  s'abonne aux mods de la partie et ils restent allumés dans votre liste. Elin se relance encore une fois, puis
+  plus jamais pour cette partie, même après avoir fermé le jeu. Pour revenir en arrière, désabonnez-vous sur le
+  Workshop ou éteignez ces mods dans le Mod Viewer.
+- Ou abonnez-vous vous-même à ces mods sur le Workshop.
+
+Pour garder vos mods et seulement être prévenu des différences, décochez « Fetch the mods of the game by itself ».
+
+À savoir :
+
 - Un mod installé à la main, hors Workshop, ne peut pas être téléchargé : son nom est affiché.
-- Votre propre liste revient à chaque lancement d'Elin, donc Elin se relance à la première connexion de chaque
-  lancement. Pour l'éviter, cochez « Keep the mods of the game (subscribe on the Workshop) » dans *Client Settings* :
-  votre compte Steam s'y abonne, Elin se relance encore une fois, puis plus jamais pour cette partie. Pour revenir en
-  arrière, désabonnez-vous sur le Workshop.
-- Pour garder vos mods et seulement être prévenu des différences, décochez « Fetch the mods of the game by
-  itself » dans *Client Settings*.
+- Le mod qui apporte la langue dans laquelle vous lisez le jeu n'est jamais éteint.
+- Un refus pour cause de mods les nomme : ceux qui manquent, ceux à installer à la main, ceux en trop.
+- **Ces mods sont choisis par l'host et leur code tourne sur votre PC : à utiliser avec des gens de confiance.**
+- AutoAct et Dynamic Riding sont pris en charge. Pour les autres mods, la compatibilité est celle de l'original.
 
-**Ces mods sont choisis par l'host et leur code tourne sur votre PC : à utiliser avec des gens de confiance.**
+## Réglages
 
-AutoAct et Dynamic Riding sont pris en charge. Pour les autres mods, la compatibilité est celle de l'original.
+### Host : l'onglet *Server Setting*
 
-## Réglages de l'host
-
-Échap → Mods → Elin Together → *Server Setting*. Chaque nouveau comportement a sa case, avec une ligne
-d'explication en jeu. Les règles sont celles de l'host et s'appliquent à tous dès qu'elles changent. Les noms des
-cases sont en anglais dans le jeu.
-
-<details>
-<summary>Toutes les cases et leur réglage de départ</summary>
+Chaque nouveau comportement a sa case, avec une ligne d'explication en jeu. Les règles sont celles de l'host et
+s'appliquent à tous dès qu'elles changent. Les noms des cases sont en anglais dans le jeu.
 
 | Case | Au départ | Cochée |
 |---|---|---|
@@ -253,12 +288,135 @@ cases sont en anglais dans le jeu.
 | Turn-Based Combat | cochée | Règle du mod d'origine. Sans effet tant que « Combat on each player's time » est cochée. |
 | Shared Average Speed | décochée | Règle du mod d'origine : une seule vitesse pour tous les joueurs, la moyenne. |
 
-</details>
+### Joueur : l'onglet *Client Settings*
+
+| Réglage | Au départ | Ce qu'il fait |
+|---|---|---|
+| Bind Ping Key | P | La touche qui montre un endroit de la carte aux autres. |
+| Depot | vide | Où le monde commun est gardé : `github:proprietaire/depot`, `adresse:55557` ou un dossier. |
+| Depot key | vide | Le mot de passe du serveur, ou la clé d'accès GitHub. Jamais réaffichée une fois saisie. |
+| Fetch the mods of the game by itself | cochée | Les mods du Workshop qui manquent sont téléchargés et Elin se relance une fois avec les mods de la partie. |
+| Keep the mods of the game (subscribe on the Workshop) | décochée | Votre compte Steam s'y abonne et ils restent allumés : plus de relance la fois suivante. |
+
+Ces réglages sont dans `Elin\BepInEx\config\dk.elinplugins.elintogether.cfg`. Ce fichier contient la clé du dépôt
+en clair : ne le partagez pas.
+
+## Comment ça marche
+
+### Le principe d'origine
+
+Un seul jeu, celui de l'host, simule le monde. Chaque changement (un pas, un coup, un objet ramassé) en part sous
+la forme d'un petit message, un **delta**, que les autres jeux appliquent. Les autres jeux envoient leurs actions
+à l'host comme des demandes. L'host est la référence : quand deux jeux ne sont pas d'accord, c'est sa version qui
+gagne.
+
+Ce fork garde cela et ajoute ce qui suit.
+
+### Quitter la carte de l'host : les baux de zone
+
+Un joueur qui sort de la carte de l'host lui demande un **bail** sur la carte où il va. Avec le bail, son propre
+jeu charge sa copie du monde et simule cette carte lui-même : monstres, temps, objets. Son lien avec l'host reste
+ouvert pour le chat, les quêtes et la mémoire des dialogues.
+
+- Chaque minute (un **point de sauvegarde**), et à son retour, il envoie la carte et son personnage à l'host, qui
+  reste la référence. Un plantage perd ce qui s'est passé depuis le dernier point de sauvegarde.
+- Une quête à donjon marche de la même façon, sur une zone neuve créée pour l'occasion et détruite ensuite.
+- Chaque bail réserve une plage de numéros pour les quêtes créées sur cette carte : deux jeux ne donnent jamais
+  le même numéro à deux quêtes différentes.
+
+### Se retrouver sur une carte : les sessions de zone
+
+Celui qui tient un bail peut ouvrir cette carte aux autres : il devient l'host **de cette carte**, et les autres
+s'y connectent comme invités, en plus de leur lien avec le vrai host. Quand il part, le bail est **passé** à un
+joueur qui reste, et les autres se reconnectent à celui-là. Le même mécanisme sert quand c'est l'host qui quitte
+sa carte : le premier joueur resté reçoit le bail.
+
+Quand un joueur entre sur une carte que quelqu'un d'autre tient, il reçoit cette carte de celui qui la tient. Sans
+la case « No world reload when the host and a player meet again », il reçoit d'abord une copie fraîche du monde
+entier : c'est pour cela que l'écran recharge.
+
+### À chaque joueur le sien
+
+- **Les compagnons** portent le numéro de leur joueur. Ils le suivent, voyagent avec lui et ne comptent que dans
+  sa limite d'alliés.
+- **Les quêtes aléatoires** : chaque jeu ne garde dans son journal que les quêtes aléatoires de son joueur. L'host
+  conserve celles de tout le monde dans la sauvegarde, avec la renommée et le karma de chacun, et les redonne au
+  joueur quand il arrive.
+- **L'expédition** : chaque objet mis dans la caisse est marqué du numéro de celui qui l'a déposé. À 5 h, l'host
+  vend tout, tient les comptes par joueur et envoie à chacun son argent, ou le lui garde s'il est absent.
+- **Karma et crime** : le jeu retire du karma « au joueur » là où l'action se règle. Le mod retrouve le joueur
+  derrière le tueur ou derrière la tâche et lui envoie la sanction. Quand un garde regarde quelqu'un, la question
+  « le joueur est-il criminel ? » est posée pour le joueur regardé.
+- **Combat et rythme** : un monstre lié à un joueur n'avance que quand ce joueur joue un tour. Chaque jeu tourne
+  sur sa propre horloge, donc les pas d'un invité n'attendent pas le réseau.
+
+### Un seul monde pour tous
+
+- **Les quêtes d'histoire** : l'host tient le seul journal. Un dialogue joué par un invité se déroule dans le jeu
+  de l'invité ; ce qu'il change dans le monde (une quête qui avance, un terrain revendiqué, un personnage qui
+  rejoint) est envoyé à l'host, qui le fait pour tout le monde. Ce que le dialogue offre est créé par l'host aux
+  pieds de l'invité, une seule fois.
+- **La base** : recherche, compétences du foyer, politiques et réglages des résidents sont des demandes à l'host,
+  qui vérifie, paie une fois et envoie le résultat à tous. En mode construction, le jeu de l'invité prépare la
+  tâche (poser, miner, couper) et l'envoie au jeu qui tient la carte, qui la réalise avec l'or et les matériaux de
+  l'invité. Le jeu qui simule une carte envoie, à la fin de chaque image, l'état de chaque case qui a changé.
+- **Affinité, guildes, codex** : le jeu du joueur qui agit calcule, l'host garde la valeur et la renvoie à tous.
+- **L'échange** : le jeu qui simule la carte tient la « table ». Il reçoit les intentions (inviter, accepter,
+  offrir, confirmer), renvoie l'état aux deux joueurs et fait le transfert d'un seul coup, après avoir revérifié
+  que chaque objet et chaque pièce existe encore.
+- **Joueur contre joueur** : un coup qui tuerait le personnage d'un autre joueur le laisse à 0 point de vie, sauf
+  en duel, où le combat s'arrête à ce plancher et où les deux sont soignés.
+
+### Le temps
+
+Il y a une seule date pour le monde : la plus avancée. Ce que le temps fait au monde (météo, impôts, salaires,
+quêtes expirées) est fait une seule fois, par un seul jeu. Ce que le temps fait à un joueur (faim, nourriture qui
+pourrit, délais de quête) est compté par joueur : le voyage ou la nuit d'un autre ne vous coûte rien. Celui qui se
+couche dort sa propre nuit en quelques secondes ; la nuit du monde ne passe que si tous dorment en même temps.
+
+### Rejoindre, et rester d'accord
+
+1. **Poignée de main** : les deux jeux comparent la version du mod (obligatoirement la même), celle d'Elin (un
+   avertissement) et la liste des mods.
+2. **Personnage** : l'host dit quels personnages de ce monde sont les vôtres ; un nouveau joueur crée le sien.
+3. **Copie du monde** : l'host envoie sa sauvegarde ; votre jeu la charge.
+4. **Carte** : l'host envoie l'état de sa carte, puis la case où se tient votre personnage. Ce que les autres ont
+   fait pendant votre chargement est gardé et rejoué ensuite.
+
+Ensuite, toutes les 2 secondes, les jeux comparent quelques nombres par carte (combien d'objets, combien de
+personnages, une somme de contrôle). Un écart qui dure est écrit dans les journaux, et la carte est rechargée sur
+place, au plus une fois toutes les 30 secondes et jamais pendant un combat ou avec un menu ouvert. Un invité dont
+le lien tombe retente la même partie toutes les 5 secondes pendant 3 minutes.
+
+### Le dépôt
+
+Un dépôt, c'est le monde en une seule archive (`world.zip`), plus un verrou qui dit qui héberge (`lock.json`).
+L'host renouvelle le verrou chaque minute ; un verrou qui n'a pas été renouvelé depuis 3 minutes est libre. Avec
+GitHub, chaque écriture nomme la version qu'elle remplace : de deux joueurs qui écrivent en même temps, GitHub n'en
+accepte qu'un, et ce refus **est** le verrou. Rien n'est jamais forcé, et l'historique garde tous les mondes.
+
+La sauvegarde d'un monde retient à qui est son personnage local. Chargée par un autre joueur qui a un personnage
+dedans, les deux sont échangés avant que quoi que ce soit soit joué : celui qui prend le monde joue le sien,
+l'ancien attend son joueur.
+
+### Où sont les choses sur votre PC
+
+| Quoi | Où |
+|---|---|
+| Le mod | `Elin\Package\Mod_ElinTogether` |
+| Ses réglages | `Elin\BepInEx\config\dk.elinplugins.elintogether.cfg` |
+| Ses journaux | `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin\ElinMP\Logs\Session_<date>.log` |
+| Le journal du jeu | `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin\Player.log` |
+| Les sauvegardes | `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin\Save` |
+| Le monde pris dans un dépôt | `…\Save\world_depot` (remplacé chaque fois que le monde est pris) |
+
+Le code est décrit fichier par fichier dans [`dev/DOCUMENTATION.md`](dev/DOCUMENTATION.md), section 4.
 
 ## Limites connues
 
-- **Un seul petit groupe y a joué pour de vrai.** Une bonne part du travail récent n'a tourné qu'au banc de test.
-  « Pas joué » dans une note de version ou un message de commit veut dire exactement cela.
+- **Un seul petit groupe y a joué pour de vrai.** Une bonne part du travail récent n'a tourné qu'au banc de test,
+  et une partie pas du tout. « Pas joué » dans une note de version ou un message de commit veut dire exactement
+  cela.
 - **Quand l'host part ou plante, aucun invité ne reprend le monde tout seul.** Quelqu'un le prend dans le dépôt, à
   la main.
 - **Une seule date pour le monde**, celle du joueur le plus avancé ; seuls ses effets (faim, pourriture, délais)
@@ -269,22 +427,95 @@ cases sont en anglais dans le jeu.
   when the host and a player meet again » l'évite ; elle est nouvelle et décochée au départ.
 - Sur l'écran de l'host, les invités qui marchent peuvent avancer par à-coups de trois cases.
 - Un joueur refusé par celui qui tient une carte reçoit encore le monde entier.
-- **Plus de trois joueurs** : cinq fenêtres du jeu ont été testées sur un seul PC, jamais cinq vrais PC. Attendez-vous
-  à ce que le jeu ralentisse quand le nombre de joueurs augmente.
+- **Plus de trois joueurs** : cinq fenêtres du jeu ont été testées sur un seul PC, jamais cinq vrais PC.
+  Attendez-vous à ce que le jeu ralentisse quand le nombre de joueurs augmente.
 - Quêtes à donjon à deux, quand c'est l'invité qui a la quête : « subjuguer », récolte et musique. La défense se
   fait seul.
 - Les duels n'ont ni arène, ni pari, ni bouton pour abandonner. Un objet équipé ne peut pas être échangé.
-- Mods récupérés tout seuls : ceux du Workshop seulement. Pas essayé avec Elin relancé par Steam, par un salon
-  Steam, sur Steam Deck ou Linux, ni sur Mac.
+- Mods : Elin se relance une fois à la première connexion (voir [Les parties avec mods](#les-parties-avec-mods)).
+  Un mod retiré de la partie plus tard reste abonné chez un joueur qui a choisi de garder les mods. Pas essayé sur
+  Steam Deck, Linux ni Mac.
 - Quelques conflits rares sont connus et pas corrigés : deux joueurs qui construisent sur la même case, une
   monture qui existe en double après un voyage.
 
-La liste complète, et ce qui est prévu : [`dev/DOCUMENTATION.md`](dev/DOCUMENTATION.md).
+La liste complète : [`dev/DOCUMENTATION.md`](dev/DOCUMENTATION.md), section 6.
+
+## Ce qu'il reste avant une vraie sortie
+
+Ce fork est publié en préversions pour un groupe d'amis. Voici ce qui sépare cela d'une version qu'on pourrait
+recommander à n'importe qui.
+
+**1. Jouer ce qui a été publié sans être joué**
+
+- Rejoindre avec un personnage monté, et les dialogues chez un joueur qui a un mod de langue (0.26.605).
+- « Keep the mods of the game » (0.26.608) : l'abonnement réel, puis un deuxième lancement sans relance.
+- L'histoire au-delà de ses premières étapes : la correction qui a permis à la quête principale d'avancer de
+  nouveau (0.26.597) a été jouée jusqu'à la hache et l'or, pas plus loin.
+- L'installateur Mac, sur un vrai Mac. Steam Deck et Linux.
+
+**2. Pistes ouvertes**
+
+- Sur un monde tout neuf, un invité qui dort seul a été vu se réveiller toujours épuisé et incapable d'agir. C'est
+  peut-être un dialogue de tutoriel du jeu que le test ne clique pas ; pas tranché.
+- Trois avertissements du mod quand une partie sauvegardée est rechargée avec un invité (« Removing quest from
+  player chara ») : pas regardé.
+- La suite de tests du sommeil donne des échecs différents d'un passage à l'autre sur un PC lent : la suite ou le
+  mod, pas tranché.
+
+**3. Ce qui manque**
+
+- **Le monde qui continue quand l'host part ou plante** : un invité qui reprend tout seul, sans rien cliquer.
+  Conçu, pas commencé. Aujourd'hui la partie s'arrête et quelqu'un prend le monde dans le dépôt à la main.
+- **Une copie du monde sur le PC de chaque joueur, par défaut**, pour qu'un groupe sans dépôt ne perde rien quand
+  l'host est absent. La case existe et elle est décochée ; la reprise à partir d'une telle copie n'est pas faite.
+- **Mods** : la relance à la première connexion est toujours là la première fois. Une partie dont la liste de mods
+  change n'est pas traitée pour les joueurs qui ont gardé les mods.
+- **Duels** : arène, pari, bouton pour abandonner.
+- **Quêtes de défense à deux** quand c'est l'invité qui a la quête.
+
+**4. Preuve sur de vrais PC**
+
+- Presque tout est prouvé sur un seul PC, par le réseau local. Les salons Steam, les invitations et les relais
+  entre vrais PC ne sont couverts que par les quelques vraies soirées.
+- Plus de trois joueurs sur de vrais PC, et à quel point ça ralentit.
+- Une longue partie : des heures de jeu, un grand monde, une base pleine.
+
+**5. Avant de le recommander**
+
+- Suivre les mises à jour d'Elin : chaque version est compilée pour une version précise du canal Nightly.
+- Un installateur et une notice en anglais (ils sont en français).
+- Les README chinois et japonais sont plus courts que celui-ci et n'ont pas été relus par quelqu'un dont c'est la
+  langue.
+- Décider ce qu'on fait avec le projet d'origine : ce fork change le cœur du mod et n'est pas fait pour y être
+  fusionné tel quel.
+
+## Comment c'est testé
+
+Un changement est censé venir avec un test en jeu, cité dans le message de son commit ; quand il a été publié sans,
+le commit et la note de version disent « pas joué ». Les tests pilotent de vraies fenêtres du jeu par un pont de
+test (versions Debug seulement) : une fenêtre host et une à quatre fenêtres invitées sur un seul PC.
+
+- **Des suites par sujet** (`dev/_tools/*_suite.py`) : voyage, cartes partagées, quêtes, échange, base,
+  construction, duels, sommeil, mort, dépôt, mods… Chacune écrit ce qu'elle vérifie et ce qu'elle ne joue **pas**
+  comme un joueur.
+- **`first_time_suite.py`** : deux joueurs qui jouent ensemble pour la première fois sur un monde tout neuf, par
+  les écrans du jeu : création du personnage, texte d'ouverture, acte de propriété, ouverture de la partie, arrivée
+  de l'invité, cadeaux d'Ashland, puis sauvegarde, fermeture des deux jeux, relance et retour.
+- **`dialog_walk_suite.py`** : une chasse. Chaque joueur marche jusqu'à chaque personnage de la carte et essaie
+  chaque choix de ses menus ; une boucle, une erreur du jeu, deux jeux qui ne sont plus d'accord ensuite ou un
+  objet en double est un défaut.
+- **Le bot** (`dev/_tools/bot.py`) : joue au hasard sur une fenêtre et vérifie que les jeux restent d'accord.
+
+Ce que le banc ne peut pas prouver : Steam entre deux vrais PC, une vraie souris, et tout ce que personne n'a pensé
+à tester. Ce sont les vraies soirées qui l'ont trouvé. La règle du projet : lire les journaux avant de conclure,
+et dire ce qui n'a pas été joué.
 
 ## En cas de problème
 
 - L'host décoche la case en cause : sur ce point, le mod se comporte de nouveau comme l'original.
 - Un joueur dont le jeu ne correspond plus à celui des autres tape `emp.reconnect_self` dans la console.
+- Elin s'est fermé tout seul à la première connexion : c'est la relance pour les mods, voir
+  [Les parties avec mods](#les-parties-avec-mods).
 - Signalez-le dans [les tickets de ce dépôt](https://github.com/devmarcpro/elin-together/issues), avec les
   fichiers `Player.log` et `ElinMP/Logs/Session_<date>.log` de chaque joueur
   (`%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`). Merci de ne pas signaler au projet d'origine les problèmes
@@ -304,17 +535,7 @@ dotnet build ./ElinTogether -c ReleaseNightly
 
 `dev/make_release.ps1` fabrique les deux zips d'une version, Windows et Mac. Le poste de développement (plusieurs
 fenêtres du jeu sur un PC, suites de tests en jeu, pont de test) est décrit dans [`dev/SETUP.md`](dev/SETUP.md).
-
-## Comment ça marche, en bref
-
-Le principe d'origine : l'host simule le monde, chaque changement part vers les clients, les clients envoient
-leurs actions à l'host. Cette version ajoute des **baux de zone** : un joueur qui quitte la carte de l'host lui
-demande un bail sur la carte où il va, charge sa propre copie du monde et simule cette carte lui-même. Il la
-renvoie à son retour et à chaque point de sauvegarde ; l'host reste la référence. Celui qui tient un bail peut
-accueillir d'autres joueurs sur cette carte, et le passe à l'un d'eux quand il part.
-
-Un dépôt, c'est le monde en une seule archive, plus un verrou qui dit qui héberge. L'host renouvelle le verrou
-chaque minute ; un verrou qui n'a pas été renouvelé depuis 3 minutes est libre.
+Le journal du fork, jour par jour : [`dev/MODLOG.md`](dev/MODLOG.md).
 
 ## Crédits
 
@@ -324,5 +545,4 @@ Le mod est l'œuvre de l'équipe Elin Together : [DK](https://github.com/gottydu
 [Drakeny](https://github.com/Drakeny) (tests), noa (Elin). Licence MIT, voir [LICENSE](LICENSE).
 
 Les changements de ce fork ont été écrits avec un assistant de programmation (Claude Code), dirigé par le
-propriétaire du fork ; chaque changement a son test en jeu, cité dans le message du commit. Aucun fichier du jeu
-ni code décompilé du jeu n'est dans ce dépôt.
+propriétaire du fork. Aucun fichier du jeu ni code décompilé du jeu n'est dans ce dépôt.

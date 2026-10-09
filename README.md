@@ -13,15 +13,28 @@ The original mod keeps the whole party on the host's map and treats the other pl
 Its authors consider separate maps out of scope; this fork is where that is tried. All credit for the mod itself
 goes to them (see [Credits](#credits)).
 
-> **Status: experimental.** Every version is a pre-release, built for Elin's Nightly branch. Most of it is checked
-> by automated in-game tests on one PC (two to five game windows). It has been played for real by one small group
-> only: two or three players over Steam, for a few evenings, each of which found bugs the tests had missed. Every
-> release note says what was played and what was not. Back up your saves first:
+> **Status: experimental, not ready for a real release.** Every version is a pre-release, built for Elin's Nightly
+> branch. Most of it is checked by automated in-game tests on one PC (two to five game windows). It has been played
+> for real by one small group only, and each evening found defects the tests had missed. Several recent fixes were
+> published **without having been played at all**. What is missing before a real release is listed in
+> [What is left before a real release](#what-is-left-before-a-real-release). Back up your saves first:
 > `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
 
-[What it changes](#what-it-changes) · [Install](#install) · [Play](#play) ·
-[The depot](#keeping-the-world-online-the-depot) · [Mods](#mods) · [Host settings](#host-settings) ·
-[Known limits](#known-limits) · [Build](#build)
+**Contents**
+
+1. [What it changes](#what-it-changes)
+2. [Install](#install)
+3. [Your first game together](#your-first-game-together)
+4. [Keeping the world online: the depot](#keeping-the-world-online-the-depot)
+5. [Games with mods](#games-with-mods)
+6. [Settings](#settings)
+7. [How it works](#how-it-works)
+8. [Known limits](#known-limits)
+9. [What is left before a real release](#what-is-left-before-a-real-release)
+10. [How it is tested](#how-it-is-tested)
+11. [If something goes wrong](#if-something-goes-wrong)
+12. [Build](#build)
+13. [Credits](#credits)
 
 ## What it changes
 
@@ -77,7 +90,7 @@ companion back at the barman's, windows that used to open on the host's screen�
 
 - **A depot keeps the world**: a private GitHub repository, a shared folder, or a small server application. The
   first player there takes the world and hosts it, every save goes back, and when they leave the next one takes
-  over. See [the depot](#keeping-the-world-online-the-depot).
+  over.
 - **A world that changes hands.** Whoever takes the world over plays their own character; the former host gets
   theirs back when joining. If someone already hosts, you are sent into their game instead of opening a copy.
 - **Nothing left for the host to do.** The world saves itself every 2 minutes while others play, and a world
@@ -88,29 +101,15 @@ companion back at the barman's, windows that used to open on the host's screen�
   compare a few numbers per map, and a map that keeps differing is reloaded in place.
 - **A dedicated server**, like a Minecraft server: an Elin nobody plays keeps the world running.
 
-### The same mods for everyone, without subscribing
+### The same mods for everyone
 
-- **The mods of the game are fetched by themselves.** If Workshop mods are missing when you join, they are
-  downloaded without subscribing, Elin restarts once with exactly the mods of that game and brings you back into
-  it. Your own mod list is back at the next start. See [Mods](#mods).
+- **The mods of the game are fetched by themselves** when you join, and Elin restarts once with them. A player can
+  choose to keep them, so that this restart happens once and never again for that game.
 - **Different Elin versions can play together.** Only the mod's version must be the same for everyone; players on
   another Elin version are let in with a warning.
 
 Almost all of this is a **checkbox on the host's side**: unticked, the mod behaves like the original. See
-[Host settings](#host-settings).
-
-## Screenshots
-
-| | |
-|---|---|
-| ![Host rules: every feature is a checkbox](assets/screens/host-options.jpg) | ![Player settings: the depot, its key, the mods fetched by themselves](assets/screens/client-settings.jpg) |
-| Host rules: every feature is a checkbox | Player settings: the depot, its key, and the mods fetched by themselves |
-| ![The host leaves on a quest: the guest chooses to go along](assets/screens/quest-ask-guest.jpg) | ![Both players in the same quest zone](assets/screens/quest-together.jpg) |
-| The host leaves on a quest: the guest chooses to go along | Both players in the same quest zone |
-| ![The guest leaves on a quest: the same question for the host](assets/screens/quest-ask-host.jpg) | ![Trading between players](assets/screens/trade.jpg) |
-| The guest leaves on a quest: the same question for the host | Trading between players |
-| ![Each player has its own fame and karma](assets/screens/own-fame-karma.jpg) | ![A dropped link: the guest is brought back into the game](assets/screens/reconnect.jpg) |
-| Each player has its own fame and karma | A dropped link: the guest is brought back into the game |
+[Settings](#settings).
 
 ## Install
 
@@ -121,31 +120,54 @@ Launch Elin once after subscribing, then close it.
 
 1. Download `ElinTogether-independance.zip` from the
    [Releases page](https://github.com/devmarcpro/elin-together/releases).
-2. Unzip the whole folder and run `Installer.bat`. It finds Elin, copies the mod and switches from the Workshop
-   version to this one.
+2. Unzip the whole folder and run `Installer.bat`. It finds Elin, copies the mod into `Elin\Package\Mod_ElinTogether`
+   and switches from the Workshop version to this one in the game's mod list.
 3. Launch Elin through Steam.
 
-`Desinstaller.bat` switches back to the Workshop version; nothing is deleted. The installer and its notes
-(`LISEZMOI.txt`) are in French; the steps are also on each release page.
+`Desinstaller.bat` switches back to the Workshop version; nothing is deleted, the former state is kept in
+`Elin\_ElinTogether_sauvegarde`. The installer and its notes (`LISEZMOI.txt`) are in French; the steps are also on
+each release page.
 
 **On a Mac** (Elin in CrossOver, Whisky or Wine): download `ElinTogether-independance-mac.zip`, unzip it, open
 Terminal, type `bash` and a space, drag `Installer-Mac.command` into the window and press Enter. It is the same
 mod. Not tried on a real Mac yet.
 
 **Every player must install the same release.** This fork does not talk to the Workshop version, nor to another
-version of itself. Each release is built for one Elin build, named in its title.
+version of itself: a player on another version is refused with a message that names both versions. Each release is
+built for one Elin build, named in its title.
 
-## Play
+**Updating**: download the new zip and run `Installer.bat` again. Your settings are kept.
 
-Open the mod's panel with the *Elin Together* button on the title screen, or Esc → Mods → Elin Together in game.
-Its tabs are *Lobby*, *Server Setting* (the host's rules) and *Client Settings*, plus *Session Info* once a game
-is open.
+## Your first game together
 
-- **Host.** Load a save that has a claimed land, then *Start Server* in the Lobby tab. A world that was already
-  shared opens to your Steam friends by itself.
-- **Join.** Accept a Steam invite, use *Join Game* on your friend's name in the Steam friends list, or pick the
-  game in the Lobby tab. *Join by address* is for a server.
-- **Rules.** The host sets them in *Server Setting*; a change applies at once, for everyone.
+The mod's panel opens with the *Elin Together* button on the title screen, or Esc → Mods → Elin Together in game.
+Its tabs are *Lobby*, *Server Setting* (the host's rules) and *Client Settings*, plus *Session Info* once a game is
+open.
+
+**The host**
+
+1. Starts a new game or loads a save. A game can only be opened to others once the world has a **claimed land**:
+   in a new game, talk to Ashland, pick up the deed he drops, read it and answer yes.
+2. Opens the game: *Start Server* in the Lobby tab. A world that was already shared opens to Steam friends by
+   itself when it is loaded.
+3. Invites: *Invite Friend* in the Lobby tab, or lets friends use *Join Game* on their name in the Steam friends
+   list.
+
+**A guest**
+
+1. Joins from the title screen: accepts a Steam invite, uses *Join Game* in the Steam friends list, or picks the
+   game in the Lobby tab. *Join by address* is for a server.
+2. The first time in that world, makes a character on the game's own creation screen. Later it gets that character
+   back with no question.
+3. If the game has Workshop mods the guest does not have, Elin closes and restarts once with them, then comes back
+   into the game by itself: see [Games with mods](#games-with-mods). **This is not a crash.**
+
+**Then**
+
+- Everyone plays as in a solo game: walk out of the map alone, take quests at the board, build in the base, sleep
+  when you want.
+- The host's rules are in *Server Setting*; a change applies at once, for everyone.
+- When the host leaves, the session ends for everyone unless the world is in a depot (next section).
 
 ## Keeping the world online: the depot
 
@@ -162,55 +184,68 @@ password or a key. A friend who only joins needs neither.
 Then, in the Lobby tab:
 
 - **Put this save on the server**, with a save loaded and the game not yet open to others: that save becomes the
-  world of the depot.
+  world of the depot. The game goes back to the title screen and loads the world again from the depot: from then on
+  it is that world you play.
 - **Take the world from the server and host it**, from the title screen: you get the latest world and host it;
   the others join you through Steam. If someone already hosts, the button names them and lets you join their game.
 - Every save goes back to the depot, at most every 5 minutes and once more when quitting. When the host leaves,
-  anyone can take the world. If the host crashes, the world frees itself after 3 minutes.
+  anyone can take the world. If the host crashes, the world frees itself after 3 minutes, and up to 5 minutes of
+  play can be lost.
 
 **With GitHub**, the player who owns the repository:
 
 1. creates an empty **private** repository on github.com, only for this world (the mod refuses a public one);
-2. creates a fine-grained access token limited to that repository, with *Contents: Read and write*;
+2. creates a fine-grained access token (Settings → Developer settings → Fine-grained tokens) limited to that
+   repository, with *Contents: Read and write*;
 3. sets **Depot** to `github:owner/repository` and pastes the token into **Depot key**;
 4. gives both to the friends who may host. They need no GitHub account.
 
 The key stays in plain text in the mod's settings file on each PC; it only opens that repository and is revoked in
 one click. A world over 20 MB zipped is refused. GitHub keeps every version of the world, which is a free backup
-and also means the repository grows with each save: delete it and create a new one when it gets large. The depot
-also holds `modlist.txt`, the mods of the world.
+and also means the repository grows with each save: about one small commit a minute while someone hosts, and a
+copy of the world every 5 minutes. Delete it and create a new one when it gets large. The depot also holds
+`modlist.txt`, the mods of the world.
 
 **Dedicated server.** `ElinTogetherServer.exe` has a second mode, "With Elin on this PC: the world runs all the
 time": Elin runs behind without a window and the players use *Join by address* (`host:55556`, UDP). `Serveur.bat`
 does the same with a game window. Windows only.
 
-## Mods
+## Games with mods
 
-When you join a game, or take a world from a depot, and Workshop mods are missing on your PC: they are downloaded
-without your Steam account subscribing to anything, Elin closes and restarts **once** with exactly the mods of
-that game, then brings you back into it. If mods of yours block the join, Elin restarts once without them. At the
-next start of Elin your own mod list is back, untouched. Nothing is ever deleted or unsubscribed.
+Elin loads its mods when it starts, so a player cannot receive a mod in the middle of a run. This is what the mod
+does about it.
 
-- The reference list is the `modlist.txt` of the depot when the world comes from one, else the host's mods.
-- If Elin does not restart by itself, start it by hand within half an hour: it brings you back into the game.
+**When you join** (or take a world from a depot), the mod compares your mods with the reference list: the
+`modlist.txt` of the depot when the world comes from one, else the host's mods. If Workshop mods are missing:
+
+1. they are downloaded by Steam, without your account subscribing to anything;
+2. Elin closes and restarts **once** with exactly the mods of that game;
+3. it brings you back into the game by itself. If it does not restart, start Elin by hand within half an hour.
+
+By default your own mod list is back at the next start of Elin. The price: Elin restarts again at the first join
+of **every** start. Two ways to avoid that:
+
+- **Tick "Keep the mods of the game (subscribe on the Workshop)"** in *Client Settings*. Your Steam account
+  subscribes to the mods of the game and they stay on in your own list. Elin restarts once more, then no longer for
+  that game, even after closing Elin. To undo, unsubscribe on the Workshop or switch them off in the Mod Viewer.
+- Or subscribe to those mods yourself on the Workshop.
+
+To keep your own mods and only be told what differs, untick "Fetch the mods of the game by itself".
+
+Good to know:
+
 - A mod installed by hand, outside the Workshop, cannot be downloaded: its name is shown.
-- Your own list is back at every start of Elin, so Elin restarts at the first join of every start. To skip that,
-  tick "Keep the mods of the game (subscribe on the Workshop)" in *Client Settings*: your Steam account subscribes
-  to them, Elin restarts once more, then no longer for that game. To undo, unsubscribe on the Workshop.
-- To keep your own mods and only be told what differs, untick "Fetch the mods of the game by itself" in
-  *Client Settings*.
+- The mod that brings the language you read the game in is never switched off.
+- A join refused because of mods names them: missing, to install by hand, extra.
+- **These mods are chosen by the host and their code runs on your PC: use this with people you trust.**
+- AutoAct and Dynamic Riding are supported. For other mods, compatibility is the original's.
 
-**These mods are chosen by the host and their code runs on your PC: use this with people you trust.**
+## Settings
 
-AutoAct and Dynamic Riding are supported. For other mods, compatibility is the original's.
+### Host: the *Server Setting* tab
 
-## Host settings
-
-Esc → Mods → Elin Together → *Server Setting*. Each new behaviour has its own checkbox and a line of explanation
-in game. The rules are the host's and apply to everyone as soon as they change.
-
-<details>
-<summary>All the checkboxes and their default</summary>
+Each new behaviour has its own checkbox and a line of explanation in game. The rules are the host's and apply to
+everyone as soon as they change.
 
 | Checkbox | Default | Ticked |
 |---|---|---|
@@ -244,12 +279,132 @@ in game. The rules are the host's and apply to everyone as soon as they change.
 | Turn-Based Combat | on | The original's rule. No effect while "Combat on each player's time" is on. |
 | Shared Average Speed | off | The original's rule: one speed for all players, the average. |
 
-</details>
+### Player: the *Client Settings* tab
+
+| Setting | Default | What it does |
+|---|---|---|
+| Bind Ping Key | P | The key that pings a place on the map for the others. |
+| Depot | empty | Where the shared world is kept: `github:owner/repository`, `host:55557` or a folder. |
+| Depot key | empty | The password of the server, or the GitHub access key. Never shown again once typed. |
+| Fetch the mods of the game by itself | on | Missing Workshop mods are downloaded and Elin restarts once with the mods of the game. |
+| Keep the mods of the game (subscribe on the Workshop) | off | Your Steam account subscribes to them and they stay on: no restart the next time. |
+
+These settings are in `Elin\BepInEx\config\dk.elinplugins.elintogether.cfg`. That file holds the depot key in plain
+text: do not share it.
+
+## How it works
+
+### The original design
+
+One game, the host's, simulates the world. Every change (a step, a strike, an item picked up) leaves it as a small
+message, a **delta**, that the other games apply. The other games send their actions to the host as requests. The
+host is the reference: when two games disagree, its version wins.
+
+The fork keeps that and adds the following.
+
+### Leaving the host's map: zone leases
+
+A player who walks out of the host's map asks the host for a **lease** on the map it goes to. With the lease, its
+own game loads its copy of the world and simulates that map itself: monsters, time, items. Its link with the host
+stays open for chat, quests and dialog memory.
+
+- Every minute (a **checkpoint**), and when it comes back, it sends the map and its character to the host, which
+  stays the reference. A crash loses what happened since the last checkpoint.
+- A dungeon quest works the same way, on a new zone created for the occasion and destroyed afterwards.
+- Each lease reserves a range of numbers for the quests created on that map, so two games never give the same
+  number to two different quests.
+
+### Meeting on a map: zone sessions
+
+The holder of a lease can open that map to others: it becomes the host **for that map**, and the others connect to
+it as guests, on top of their link with the real host. When the holder leaves, the lease is **handed over** to a
+player who stays, and the others reconnect to that one. The same mechanism is used when the host itself leaves its
+map: the first player who stays receives the lease.
+
+When a player walks into a map someone else holds, it receives that map from its holder. Without the checkbox "No
+world reload when the host and a player meet again", it first receives a fresh copy of the whole world, which is
+why the screen reloads.
+
+### To each player their own
+
+- **Companions** carry the number of their player. They follow that player, travel with it and count in its ally
+  limit only.
+- **Random quests**: each game keeps in its journal only the random quests of its own player. The host stores
+  everyone's in the save, with each player's fame and karma, and gives them back when the player arrives.
+- **Shipping**: every item put in the chest is marked with the number of whoever put it. At 5 a.m. the host sells
+  everything, keeps the accounts per player and sends each one its money, or keeps it for an absent player.
+- **Karma and crime**: the game removes karma "from the player" where the action is settled. The mod finds the
+  player behind the killer or behind the task and sends the penalty to that one. When a guard looks at someone,
+  "is the player a criminal?" is asked about the player it looks at.
+- **Combat and pace**: a monster bound to a player only moves when that player takes a turn. Each game runs on its
+  own clock, so a guest's steps do not wait for the network.
+
+### One world for everyone
+
+- **Story quests**: the host holds the only journal. A dialog played by a guest runs in the guest's game; what it
+  changes in the world (a quest that moves on, a land claimed, a character who joins) is sent to the host, which
+  does it for everyone. What the dialog gives is created by the host at the guest's feet, once.
+- **Base**: research, hearth skills, policies and resident settings are requests to the host, which checks, pays
+  once and sends the result to everyone. In build mode, the guest's game prepares the task (place, mine, cut) and
+  sends it to the game that holds the map, which carries it out with the guest's gold and materials. The game that
+  simulates a map sends, at the end of each frame, the state of every tile that changed.
+- **Affinity, guilds, codex**: the game of the player who acts computes, the host keeps the value and sends it to
+  all.
+- **Trade**: the game that simulates the map holds the "table". It receives the intentions (invite, accept, offer,
+  confirm), sends the state to both players and makes the transfer in one go, after checking again that every item
+  and every coin still exists.
+- **Players against players**: a strike that would kill another player's character leaves it at 0 hit points,
+  unless both are in a duel, where the fight ends at that floor and both are healed.
+
+### Time
+
+There is one date for the world: the furthest ahead. What time does to the world (weather, taxes, salaries,
+expired quests) is done once, by one game. What time does to a player (hunger, food that rots, quest deadlines)
+is counted per player, so another player's trip or night costs you nothing. A player who goes to bed sleeps its own
+night in a few seconds; the world's night only passes when everyone sleeps at the same time.
+
+### Joining, and staying in agreement
+
+1. **Handshake**: the two games compare the mod's version (must be the same), Elin's version (a warning) and the
+   list of mods.
+2. **Character**: the host says which characters of this world are yours; a new player makes one.
+3. **World copy**: the host sends its save; your game loads it.
+4. **Map**: the host sends the state of its map, then the tile where your character stands. What the others did
+   while you were loading is kept and replayed afterwards.
+
+After that, every 2 seconds the games compare a few numbers per map (how many things, how many characters, a
+checksum). A difference that lasts is written in the logs, and the map is loaded again in place, at most once every
+30 seconds and never during a fight or with a menu open. A guest whose link drops tries the same game again every
+5 seconds for 3 minutes.
+
+### The depot
+
+A depot is the world as one archive (`world.zip`) plus a lock that says who hosts (`lock.json`). The host renews
+the lock every minute; a lock that has not been renewed for 3 minutes is free. With GitHub, every write names the
+version it replaces: of two players writing at once, GitHub accepts one, and that refusal **is** the lock. Nothing
+is ever forced, and the history keeps every world.
+
+The save of a world remembers whose its local character is. Loaded by another player who has a character in it,
+the two are exchanged before anything is played: the one who takes the world plays its own, the former one waits
+for its player.
+
+### Where things are on your PC
+
+| What | Where |
+|---|---|
+| The mod | `Elin\Package\Mod_ElinTogether` |
+| Its settings | `Elin\BepInEx\config\dk.elinplugins.elintogether.cfg` |
+| Its logs | `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin\ElinMP\Logs\Session_<date>.log` |
+| The game's log | `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin\Player.log` |
+| Saves | `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin\Save` |
+| The world taken from a depot | `…\Save\world_depot` (replaced each time the world is taken) |
+
+The code is described file by file in [`dev/DOCUMENTATION.md`](dev/DOCUMENTATION.md), section 4 (French).
 
 ## Known limits
 
-- **Played for real by one small group only.** Much of the newest work has only run on the test bench. "Not
-  played" in a release note or a commit message means exactly that.
+- **Played for real by one small group only.** Much of the newest work has only run on the test bench, and some of
+  it not at all. "Not played" in a release note or a commit message means exactly that.
 - **When the host leaves or crashes, no guest takes the world over by itself.** Someone takes it from the depot by
   hand.
 - **One date for the world**, that of the player furthest ahead; only its effects (hunger, rot, deadlines) are per
@@ -265,17 +420,85 @@ in game. The rules are the host's and apply to everyone as soon as they change.
 - Dungeon quests for two, when the guest took the quest: subdue, harvest and music quests. Defense quests are
   settled alone.
 - Duels have no arena, betting or give-up button. Equipped items cannot be traded.
-- Mods fetched by themselves: Workshop mods only. Not tried with Elin restarted by Steam, through a Steam lobby,
-  on Steam Deck or Linux, or on a Mac.
+- Mods: Elin restarts once at the first join (see [Games with mods](#games-with-mods)). A mod removed from the game
+  later stays subscribed for a player who chose to keep the mods. Not tried on Steam Deck, Linux or a Mac.
 - A few rare conflicts are known and not fixed: two players building on the same tile, a mount existing twice
   after a trip.
 
-The full list, and what is planned, is in [`dev/DOCUMENTATION.md`](dev/DOCUMENTATION.md) (French).
+The full list is in [`dev/DOCUMENTATION.md`](dev/DOCUMENTATION.md), section 6 (French).
+
+## What is left before a real release
+
+This fork is published as pre-releases for a group of friends. Here is what stands between that and a version one
+could recommend to anyone.
+
+**1. Play what was published without being played**
+
+- Joining with a mounted character, and dialogs for a player with a language mod (0.26.605).
+- "Keep the mods of the game" (0.26.608): the real subscription, then a second start with no restart.
+- The story beyond its first steps: the fix that let the main quest move on again (0.26.597) was played up to the
+  axe and the gold, not further.
+- The Mac installer, on a real Mac. Steam Deck and Linux.
+
+**2. Open leads**
+
+- On a brand-new world, a guest who sleeps alone was seen waking up still exhausted and unable to act. It may be a
+  tutorial dialog of the game that the test does not click; not settled.
+- Three warnings of the mod when a saved game is loaded again with a guest ("Removing quest from player chara"):
+  not looked at.
+- The sleep test suite gives different failures from one run to the next on a slow PC: the suite or the mod, not
+  settled.
+
+**3. Missing pieces**
+
+- **The world going on when the host leaves or crashes**: a guest taking over by itself, with no click. Designed,
+  not started. Today the session ends and someone takes the world from the depot by hand.
+- **A copy of the world on every player's PC by default**, so that a group with no depot loses nothing when the
+  host is away. The checkbox exists and is off; the hand-over from such a copy is not done.
+- **Mods**: the restart at the first join is still there the first time. A game whose mod list changes is not
+  handled for players who kept the mods.
+- **Duels**: arena, betting, give-up button.
+- **Defense quests for two** when the guest took the quest.
+
+**4. Proof on real PCs**
+
+- Almost everything is proven on one PC, over the local network. Steam lobbies, invitations and relays between
+  real PCs are only covered by the few real evenings.
+- More than three players on real PCs, and how slow it gets.
+- A long game: hours of play, a big world, a full base.
+
+**5. Before recommending it**
+
+- Follow Elin's updates: each release is built for one Nightly build.
+- An installer and notes in English (they are in French).
+- The Chinese and Japanese READMEs are shorter than this one and were not proofread by a native speaker.
+- Decide what happens with the original project: this fork changes the heart of the mod and is not meant to be
+  merged as it is.
+
+## How it is tested
+
+A change is meant to come with an in-game test, named in its commit message; when it was published without one,
+the commit and the release note say "not played". The tests drive real game windows through a debug bridge (Debug
+builds only): a host window and one to four guest windows on one PC.
+
+- **Suites by subject** (`dev/_tools/*_suite.py`): travel, shared maps, quests, trade, base, building, duels,
+  sleep, death, the depot, mods… Each prints what it checks and what it does **not** play like a player.
+- **`first_time_suite.py`**: two players playing together for the first time on a brand-new world, through the
+  game's own screens: character creation, the opening text, the deed, opening the game, the guest joining, Ashland's
+  gifts, then save, both games closed, started again and joined again.
+- **`dialog_walk_suite.py`**: a hunt. Each player walks to every character of the map and tries every choice of
+  its menus; a loop, a game error, two games that no longer agree afterwards or a doubled item is a defect.
+- **The bot** (`dev/_tools/bot.py`): plays at random on one window and checks that the games still agree.
+
+What the bench cannot prove: Steam between two real PCs, a real mouse, and anything nobody thought of testing.
+The real evenings found those. The rule of the project: read the logs before concluding, and say what was not
+played.
 
 ## If something goes wrong
 
 - The host unticks the checkbox involved: for that point the mod behaves like the original again.
 - A player whose game no longer matches the others' types `emp.reconnect_self` in the console.
+- Elin closed by itself at the first join: it is the restart for the mods, see [Games with mods](#games-with-mods).
 - Report it [here](https://github.com/devmarcpro/elin-together/issues), with every player's `Player.log` and
   `ElinMP/Logs/Session_<date>.log` from `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`. Please do not report
   fork problems to the original project.
@@ -294,18 +517,7 @@ dotnet build ./ElinTogether -c ReleaseNightly
 
 `dev/make_release.ps1` builds the two zips of a release, Windows and Mac. The development setup (several game
 windows on one PC, the in-game test suites, the debug bridge) is described in [`dev/SETUP.md`](dev/SETUP.md)
-(French).
-
-## How it works, in short
-
-The original design: the host simulates the world, every change goes to the clients as a delta, clients send
-their actions to the host. The fork adds **zone leases**: a player leaving the host's map asks the host for a lease
-on the map it goes to, loads its own copy of the world and simulates that map itself. It sends the map back when it
-returns and at regular checkpoints; the host stays the reference. The holder of a lease can host that map for
-other players, and hands it over when leaving.
-
-A depot is the world as one archive, plus a lock that says who hosts. The host renews the lock every minute; a
-lock that has not been renewed for 3 minutes is free.
+(French). The day-by-day journal of the fork is [`dev/MODLOG.md`](dev/MODLOG.md) (French).
 
 ## Credits
 
@@ -314,6 +526,5 @@ The mod is the work of the Elin Together team: [DK](https://github.com/gottyduke
 [Han](https://github.com/chuahan), Omega, [InuiDame](https://github.com/InuiDame),
 [Drakeny](https://github.com/Drakeny) (testing), noa (Elin). MIT license, see [LICENSE](LICENSE).
 
-The fork's changes were written with an AI coding assistant (Claude Code), directed by the fork's owner; each
-change comes with an in-game test, listed in its commit message. No game file and no decompiled game code is in
-this repository.
+The fork's changes were written with an AI coding assistant (Claude Code), directed by the fork's owner. No game
+file and no decompiled game code is in this repository.
