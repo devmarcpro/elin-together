@@ -704,6 +704,11 @@ internal class SleepSynchronizationContext : SynchronizationContext
         if (__instance.slept && NetSession.Instance is { Connection: ElinNetHost host, Rules.UseOwnSleep: false }) {
             foreach (var guest in host.ActiveRemoteCharas.Values) {
                 BringBeside(guest);
+
+                // the game only clears these for the local player: the guests get the same, their game is told
+                guest.RemoveCondition<ConBleed>();
+                guest.RemoveCondition<ConPoison>();
+                guest.RemoveCondition<ConMiasma>();
             }
         }
     }
