@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using ElinTogether.API.SourceValidation;
 using ElinTogether.Elements;
 using ElinTogether.Models;
@@ -113,7 +114,7 @@ internal partial class ElinNetHost
         foreach (var delta in response.DeltaList) {
             // an away player is not on the host map, only what it shares with the world is relevant here:
             // its chat and the quest log
-            if (away && !OwnGrowth(delta, peer) && delta is not (MsgSayDelta or QuestStartDelta or QuestCompleteDelta or QuestChangePhaseDelta or DialogFlagDelta or StoryOutcomeDelta or QuestFailDelta or QuestUpdateDelta or PersonalQuestDelta or PlayerStandingDelta or BillPayDelta or WorldTimeReportDelta or QuestFollowDelta or CharaSleepDelta or SleepStateDelta or CodexDelta)) {
+            if (away && !OwnGrowth(delta, peer) && delta is not (MsgSayDelta or QuestStartDelta or QuestCompleteDelta or QuestChangePhaseDelta or DialogFlagDelta or StoryOutcomeDelta or QuestFailDelta or QuestUpdateDelta or PersonalQuestDelta or PlayerStandingDelta or BillPayDelta or WorldTimeReportDelta or QuestFollowDelta or CharaSleepDelta or SleepStateDelta or CodexDelta or AddRecipeDelta)) {
                 continue;
             }
 
@@ -134,8 +135,20 @@ internal partial class ElinNetHost
             CharaLevelDelta level => level.Owner,
             _ => null,
         };
-        return owner is not null && (ActiveRemoteCharas.GetValueOrDefault(peer.Id) ?? KeptChara(peer)) is { } own &&
-               owner.Uid == own.uid;
+        return owner is not null && IsOwnChara(peer, owner.Uid);
+    }
+
+    /// <summary>
+    ///     That character is the one this player plays: on this map, or kept for it while it is away or arriving
+    /// </summary>
+    internal bool IsOwnChara(int peerId, int uid)
+    {
+        return IsOwnChara(Socket.Peers.FirstOrDefault(p => p.Id == peerId), uid);
+    }
+
+    private bool IsOwnChara(ISteamNetPeer? peer, int uid)
+    {
+        return peer is not null && (ActiveRemoteCharas.GetValueOrDefault(peer.Id) ?? KeptChara(peer))?.uid == uid;
     }
 
     /// <summary>

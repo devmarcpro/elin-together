@@ -31,7 +31,7 @@ internal class AddRecipeEvent
     {
         // a variant learnt inside another Add: the other games learn it the same way from the outer one, and
         // told apart they counted the block twice
-        if (_depth > 1 || NetSession.Instance.Connection is not { } connection || AddRecipeDelta.IsLanding) {
+        if (_depth > 1 || AddRecipeDelta.IsLanding) {
             return;
         }
 
@@ -42,7 +42,13 @@ internal class AddRecipeEvent
             return;
         }
 
-        connection.Delta.AddRemote(new AddRecipeDelta {
+        // travelling alone, or keeping a map for visitors: the recipes are the world's, the host tells the others
+        // (not our visitors again, they hear it from us below)
+        QuestAwaySync.Send(new AddRecipeDelta {
+            RecipeId = id,
+            Relayed = NetSession.Instance.Connection is ElinNetHost { IsZoneSession: true },
+        });
+        NetSession.Instance.Connection?.Delta.AddRemote(new AddRecipeDelta {
             RecipeId = id,
         });
     }

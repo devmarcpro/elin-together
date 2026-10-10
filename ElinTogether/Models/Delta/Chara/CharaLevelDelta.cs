@@ -27,7 +27,9 @@ public class CharaLevelDelta : ElinDelta
             return;
         }
 
-        if (host.ActiveRemoteCharas.TryGetValue(OriginPeer, pc) != chara) {
+        // (also while its player is away or arriving: the level gained there was refused here, and lost for
+        // good when that player left before coming back)
+        if (!host.IsOwnChara(OriginPeer, chara.uid)) {
             return;
         }
 
