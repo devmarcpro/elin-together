@@ -310,5 +310,6 @@
     "LangGeneral.emp_ui_sv_cfg_takeover.text": "主机离开时由其他玩家接管",
     "LangGeneral.emp_ui_sv_desc_takeover.text": "开启：主机离开时，一位玩家用自己的副本重新开放世界，游戏在那里继续（需要上面的“世界副本”）。关闭：主机离开游戏即结束。",
     "LangGeneral.emp_takeover_begin.text": "主机已离开。由你接管世界，游戏稍后将在这里继续。",
-    "LangGeneral.emp_takeover_leaving.text": "正在离开：正在把最后的存档交给其他玩家…"
+    "LangGeneral.emp_takeover_leaving.text": "正在离开：正在把最后的存档交给其他玩家…",
+    "LangGeneral.emp_ui_limited_bought.text": "你已经买过这个了。"
 }

@@ -21,6 +21,10 @@ H1  l'invite pose un sort sur une barre de raccourcis, ses reglages sont notes d
     lien et revient en ne se servant que du fichier (ce que fait une nouvelle session) : le sort est toujours la
     (avant : les barres de l'host a la place).
 
+L1  boutique a stock limite (Fiama) : l'invite achete un objet « stock limite » par la fenetre du marchand ; l'objet
+    est de nouveau dans la boutique pour l'host, avec l'invite note comme acheteur ; l'invite ne peut pas le
+    racheter ; l'host l'achete a son tour ; un reassort ne le double pas ; retire a la main (monde d'avant, ou il
+    etait deja vendu), il revient au reassort. La fenetre est ouverte par la fonction du jeu, pas par le dialogue.
 F2  (trois fenetres : mp_test.py --clients 2) la meme chose que F1 sur une carte tenue par un invite, frappe par
     un autre invite.
 F1  un monstre vise l'host, qui ne fait rien ; l'invite le frappe dix fois : le monstre joue ses tours (avant : fige,
@@ -182,6 +186,84 @@ def f2():
         move(A, HOME)
         time.sleep(15)
 
+SHOP = 'var f = EClass._map.charas.Find(c => c.trait is TraitFiama); var chest = f == null ? null : f.things.Find("chest_merchant"); '
+LIMITED = SHOP + ('if (chest == null) return ""; return string.Join(";", chest.things.Where(t => t.GetInt(101) != 0)'
+                  '.Select(t => t.uid + "|" + t.id + "|" + t.trait.IdNoRestock + "|" + t.GetStr("emp_limited_buyers") + "|" + t.Num));')
+RESTOCK = SHOP + 'if (f == null) return "pas de Fiama"; f.c_dateStockExpire = 0; f.isRestocking = false; f.trait.OnBarter(); return "ok";'
+OPEN = SHOP + ('f.trait.OnBarter(); if (!LayerInventory.listInv.Any(q => q.mainInv)) EClass.ui.OpenFloatInv(true); '
+               'EClass.ui.AddLayer(LayerInventory.CreateBuy(f, f.trait.CurrencyType, f.trait.PriceType)); return "ok";')
+BUY = ('var b = LayerInventory.listInv.SelectMany(q => q.GetComponentsInChildren<ButtonGrid>(true))'
+       '.FirstOrDefault(x => x.card != null && x.card.uid == {uid}); if (b == null) return "bouton absent"; '
+       # (Process(true) est le clic : il paie puis tient l'objet en main, a poser ; sans argument c'est maj+clic, droit au sac)
+       'return new InvOwner.Transaction(b, 1).Process().ToString();')
+CLOSE = ('var l = LayerInventory.listInv.FirstOrDefault(q => q.invs.Count > 0 && q.invs[0].owner is InvOwnerShop); '
+         'if (l == null) return "pas de boutique"; l.Close(); return "ok";')
+
+
+def limited(port=H):
+    """Objets « stock limite » de la boutique : cle -> (numero, {joueur: combien achetes}, taille de la pile), vus par ce jeu."""
+    out = {}
+    for row in filter(None, str(ev(port, LIMITED)).split(";")):
+        uid, tid, key, buyers, num = row.split("|")
+        out[f"{tid}/{key}"] = (int(uid), dict(b.split(":") for b in buyers.split(",") if ":" in b), int(num))
+    return out
+
+
+def buys(port, key, who):
+    """Ce joueur ouvre la boutique, achete cet objet, ferme. Renvoie ce que rend l'achat."""
+    ev(port, OPEN)
+    time.sleep(2)
+    # dans la monnaie du marchand (Fiama se paie en lingots, pas en orens) ; la monnaie d'un joueur est a lui
+    ev(port, 'var id = InvOwner.Trader.currency.ToString().ToLowerInvariant(); if (EClass.pc.GetCurrency(id) < 100) EClass.pc.ModCurrency(100, id); return "ok";')
+    time.sleep(1)
+    uid = limited(port).get(key, (0, ""))[0]
+    if not check(f"{who} voit l'objet dans la boutique ({uid})", uid):
+        ev(port, CLOSE)
+        return "absent"
+    r = str(ev(port, BUY.replace("{uid}", str(uid))))
+    time.sleep(3)
+    ev(port, CLOSE)
+    time.sleep(3)
+    return r
+
+
+def l1():
+    guest, host = str(state(A)["pc"]["uid"]), str(state(H)["pc"]["uid"])
+    if not check(f"Fiama est sur la carte et son stock est fait ({ev(H, RESTOCK)})", limited()):
+        return
+    none = (0, {}, 0)
+    n0 = len(limited())
+    key = next((k for k, v in sorted(limited().items()) if v[2] == 1), None)
+    pile = next((k for k, v in sorted(limited().items()) if v[2] > 1), None)
+    if not check(f"un objet a stock limite a l'unite ({key}) et une pile ({pile})", key and pile):
+        return
+    r = buys(A, key, "l'invite")
+    check(f"l'invite achete « {key} » ({r}) : l'objet est de nouveau dans la boutique, note pour lui ({limited().get(key)})",
+          eventually(lambda: limited().get(key, none)[1].get(guest) == "1" and limited()[key][2] == 1, timeout=15))
+    check(f"autant d'objets a stock limite qu'avant ({n0} -> {len(limited())})", len(limited()) == n0)
+    check("l'invite voit le meme objet que l'host dans la boutique",
+          eventually(lambda: limited(A).get(key, none)[0] == limited().get(key, (-1,))[0], timeout=20))
+    r = buys(A, key, "l'invite, une seconde fois,")
+    time.sleep(2)
+    check(f"l'invite ne peut pas le racheter ({r} ; {limited().get(key)})", limited().get(key, none)[1] == {guest: "1"})
+    r = buys(H, key, "l'host")
+    check(f"l'host l'achete a son tour ({r}) : l'objet reste, note pour les deux ({limited().get(key)})",
+          eventually(lambda: limited().get(key, none)[1] == {guest: "1", host: "1"} and limited()[key][2] == 1, timeout=15))
+    size, had = limited()[pile][2], int(limited()[pile][1].get(guest, 0))
+    r = buys(A, pile, "l'invite, pour la pile,")
+    check(f"l'invite achete un exemplaire d'une pile de {size} ({r}) : la pile est entiere pour les autres, un de plus note pour lui ({limited().get(pile)})",
+          eventually(lambda: limited().get(pile, none)[1].get(guest) == str(had + 1) and limited()[pile][2] == size, timeout=15))
+    ev(H, RESTOCK)
+    time.sleep(2)
+    after = limited()
+    check(f"un reassort ne double rien et garde les acheteurs ({len(after)} objets, {after.get(key)})",
+          len(after) == n0 and after.get(key, none)[1] == {guest: "1", host: "1"})
+    ev(H, SHOP + f'var t = chest.things.Find(x => x.uid == {after[key][0]}); if (t != null) t.Destroy(); return "ok";')
+    check("retire a la main (monde d'avant : deja vendu, plus rien dans la boutique)", key not in limited())
+    ev(H, RESTOCK)
+    time.sleep(2)
+    check(f"il revient au reassort suivant, pour tous ({limited().get(key)})", key in limited() and not limited()[key][1])
+
 
 def c1():
     rid = str(ev(A, LEARN))
@@ -214,7 +296,7 @@ def main():
             continue
         check(f"{name} : pas de deuxieme ajout, lien remis ({r})", r == "0/0/True")
     check("au moins un jeu avait un autre membre dans l'equipe", RESULTS)
-    steps = (b1, c1, h1, f1, q1, f2)
+    steps = (b1, c1, h1, f1, l1, q1, f2)
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(',')]
     for step in steps:

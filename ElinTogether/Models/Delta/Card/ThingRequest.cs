@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using ElinTogether.Net;
+using ElinTogether.Patches;
 using MessagePack;
 
 namespace ElinTogether.Models;
@@ -69,7 +70,14 @@ public class ThingRequest : ElinDelta
             return;
         }
 
-        if (Num <= 0) {
+        // a limited item of a shop: no more than what is left of it for that player (its own game says no first,
+        // when it knows; see LimitedStockPatch)
+        var num = Math.Min(Num, thing.Num);
+        if (net is ElinNetHost shop && shop.ActiveRemoteCharas.TryGetValue(OriginPeer, out var asker)) {
+            num = LimitedStockPatch.Left(thing, asker, num);
+        }
+
+        if (num <= 0) {
             Respond(net, null);
             return;
         }
@@ -77,8 +85,19 @@ public class ThingRequest : ElinDelta
         var origin = thing.parent as Card;
         // the stack may have shrunk since the requester counted it: asking for more than is left would make
         // a copy of what was asked for
-        var result = thing.Split(Math.Min(Num, thing.Num));
+        // (before it leaves: a limited item of a shop is laid again whole for the other players)
+        var whole = net is ElinNetHost keeper && keeper.ActiveRemoteCharas.TryGetValue(OriginPeer, out var buyer)
+            ? LimitedStockPatch.Whole(thing, num, buyer)
+            : null;
+
+        var result = thing.Split(num);
         result.parent?.RemoveCard(result);
+        if (whole is not null) {
+            // as this game's own gesture, so that the stack reaches the players like any change made here
+            using var _ = Simulate();
+            LimitedStockPatch.Lay(result == thing ? null : thing, whole);
+        }
+
         CardCache.KeepAlive(result);
         RecordDangling(result, origin);
 
