@@ -415,7 +415,8 @@ def forged_paid(port, amount, gift):
 
 
 def p4(ctx):
-    """un message « payee » truque (montant et cadeau enormes, repete) : borne au montant de l'impot, un par 10 s"""
+    """un message « payee » truque (montant et cadeau enormes) : borne au montant de l'impot ; trois factures payees
+    de suite comptent toutes les trois (vraie partie du 2026-10-10 : une seule comptait), une quatrieme ne compte pas"""
     port, uid = ctx["a"]
     base = counters()
     reset(base)
@@ -433,11 +434,12 @@ def p4(ctx):
         gift = coins() - c0
         check(f"le cadeau n'est pas de 1000000 pieces mais au plus {tax // 1000} (recu : {gift})", gift <= tax // 1000)
         forged_paid(port, 100, 0)
-        time.sleep(2)
-        check(f"un deuxieme message dans les 10 s est ignore (compteur {counters()[0]})", counters()[0] == 2)
-        time.sleep(10)
         forged_paid(port, 100, 0)
-        check(f"un message apres 10 s passe (compteur {counters()[0]})", eventually(lambda: counters()[0] == 1, timeout=15))
+        check(f"les deux factures suivantes, payees aussitot, comptent aussi (compteur {counters()[0]})",
+              eventually(lambda: counters()[0] == 0, timeout=15))
+        forged_paid(port, 100, 0)
+        time.sleep(3)
+        check(f"une quatrieme, sans facture en retard, ne compte pas (compteur {counters()[0]})", counters()[0] == 0)
     finally:
         home()
         reset(base)

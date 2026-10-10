@@ -216,23 +216,16 @@ public class BillPayDelta : ElinDelta
         }
     }
 
-    // the last accepted Paid of each player (peer id -> time)
-    private static readonly Dictionary<int, float> LastPaid = [];
-
-    private const float PaidEverySeconds = 10f;
-
     // a player away from this map paid with its own gold: only the counter is left to lower, and only while
     // it says there is something to pay (a repeated word of the same player finds it at 0). The bill is in the
-    // sender's hands, so its words are kept within what this game knows: at most one a player every 10 s, the
-    // amount within the tax of the moment (or the delivery bills owed), the gift within what the bill can hold
+    // sender's hands, so its words are kept within what this game knows: the amount within the tax of the
+    // moment (or the delivery bills owed), the gift within what the bill can hold <br />
+    // No more "one a player every 10 s": a player who paid three late bills in a row at the tax chest of
+    // Palmia had only the first one counted, the host stayed in debt (real game, 2026-10-10)
     private void SettleAway(ElinNetHost host)
     {
         var tax = Id == "bill_tax";
         if (Id is not ("bill_tax" or "bill") || Amount <= 0 || (tax && player.taxBills <= 0)) {
-            return;
-        }
-
-        if (LastPaid.TryGetValue(OriginPeer, out var last) && UnityEngine.Time.unscaledTime - last < PaidEverySeconds) {
             return;
         }
 
@@ -241,7 +234,6 @@ public class BillPayDelta : ElinDelta
             return;
         }
 
-        LastPaid[OriginPeer] = UnityEngine.Time.unscaledTime;
         // the gift is the extra tax of the bill / 1000, and the extra tax is a part of the bill's amount
         LowerCounters(tax, amount, Math.Clamp(Gift, 0, amount / 1000));
         Tell(host, Payer ?? "", Id!, amount);
