@@ -51,6 +51,11 @@ internal partial class ElinNetHost
             return;
         }
 
+        // what is already done on this map is in the copy below: it goes out before the copy, not after it
+        // (it was played a second time on top of the map)
+        Delta.RefreshBuffer();
+        WorldStateDeltaUpdate();
+
         var packet = ZoneDataResponse.Create(zone);
 
         if (peer is not null) {
