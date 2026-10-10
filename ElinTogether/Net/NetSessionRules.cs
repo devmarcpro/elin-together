@@ -180,7 +180,9 @@ public class NetSessionRules
         AllowTakeover = EmpConfig.Server.Takeover.Value,
         SoftRecall = EmpConfig.Server.SoftRecall.Value,
         UseSharedTax = EmpConfig.Server.SharedTax.Value,
-        KeepWorldCopy = EmpConfig.Server.WorldCopy.Value,
+        // (a takeover is made from that copy: asking for one asks for the other, a host that ticked only
+        // "another player takes over" got nothing)
+        KeepWorldCopy = EmpConfig.Server.WorldCopy.Value || EmpConfig.Server.Takeover.Value,
         AutoResync = EmpConfig.Server.AutoResync.Value,
         UseOwnSleep = EmpConfig.Server.OwnSleep.Value,
         TimeJumpsTogether = EmpConfig.Server.TimeJumpsTogether.Value,
