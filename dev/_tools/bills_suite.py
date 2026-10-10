@@ -408,10 +408,17 @@ def p3(ctx):
 
 
 def forged_paid(port, amount, gift):
-    """Le message « payee » d'un invite seul, tel qu'il part de SendAway, mais avec des chiffres choisis."""
-    ev(port, 'var m = ElinTogether.Net.NetSession.Instance.Transport as ElinTogether.Net.ElinNetClient; '
-             'm.SendWhileAway(new ElinTogether.Models.BillPayDelta { Answer = ElinTogether.Models.BillAnswer.Paid, Payer = "forge", '
-             f'Id = "bill_tax", Amount = {amount}, Gift = {gift} }}); return "ok";')
+    """Le message « payee » d'un invite seul, tel qu'il part de SendAway, mais avec des chiffres choisis.
+    (par reflexion : les classes du mod ne sont pas visibles du pont)"""
+    ev(port, 'var A = HarmonyLib.AccessTools.TypeByName("ElinTogether.Net.NetSession"); '
+             'var session = HarmonyLib.AccessTools.Property(A, "Instance").GetValue(null); '
+             'var main = HarmonyLib.AccessTools.Property(A, "Transport").GetValue(session); '
+             'var D = HarmonyLib.AccessTools.TypeByName("ElinTogether.Models.BillPayDelta"); var d = System.Activator.CreateInstance(D); '
+             'var E = HarmonyLib.AccessTools.TypeByName("ElinTogether.Models.BillAnswer"); '
+             'HarmonyLib.AccessTools.Property(D, "Answer").SetValue(d, System.Enum.Parse(E, "Paid")); '
+             'HarmonyLib.AccessTools.Property(D, "Payer").SetValue(d, "forge"); HarmonyLib.AccessTools.Property(D, "Id").SetValue(d, "bill_tax"); '
+             f'HarmonyLib.AccessTools.Property(D, "Amount").SetValue(d, {amount}); HarmonyLib.AccessTools.Property(D, "Gift").SetValue(d, {gift}); '
+             'HarmonyLib.AccessTools.Method(main.GetType(), "SendWhileAway").Invoke(main, new object[] { d }); return "ok";')
 
 
 def p4(ctx):
