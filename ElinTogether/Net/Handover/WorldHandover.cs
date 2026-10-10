@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using ElinTogether.Models;
+using Steamworks;
 
 namespace ElinTogether.Net;
 
@@ -22,6 +23,60 @@ internal static class WorldHandover
     private static WorldCopyManifest? _last;
     private static ulong _me;
     private static ulong[] _guests = [];
+
+    // the host said it leaves and another guest takes the world over: the lobby left then, the one found since
+    private static ulong _oldLobby;
+    private static ulong _newLobby;
+
+    /// <summary>
+    ///     The host said it leaves and it is another guest's turn to open the world: this game joins that guest
+    ///     once its game is open (NetReconnect), instead of going back to the title screen
+    /// </summary>
+    internal static bool Following { get; private set; }
+
+    internal static void Followed()
+    {
+        Following = false;
+    }
+
+    /// <summary>
+    ///     That player may be the one who took over the world this game waits for
+    /// </summary>
+    internal static bool IsTaker(ulong user)
+    {
+        return Following && user != _me && Array.IndexOf(_guests, user) >= 0;
+    }
+
+    /// <summary>
+    ///     The lobby opened by the guest that took the world over, 0 while there is none. A friend's is read at
+    ///     once; anyone else's comes from the list of lobbies, asked here and read at the next call <br />
+    ///     Steam only: not to call for a game joined by a port or an address
+    /// </summary>
+    // ponytail: any former guest that hosts now counts as the taker, the lobby does not say which world it is.
+    // Write the world and its handover number in the lobby when the crash case (R5) needs to tell them apart
+    internal static ulong NewHostLobby()
+    {
+        if (!Following) {
+            return 0;
+        }
+
+        foreach (var guest in _guests) {
+            if (guest != _me && SteamFriends.GetFriendGamePlayed(new(guest), out var played) &&
+                played.m_steamIDLobby.IsValid() && played.m_steamIDLobby.m_SteamID != _oldLobby) {
+                return played.m_steamIDLobby.m_SteamID;
+            }
+        }
+
+        var found = _newLobby;
+        NetSession.Instance.Lobby.GetOnlineLobbies(lobbies => {
+            foreach (var lobby in lobbies) {
+                if (IsTaker(lobby.GameServer.id.m_SteamID)) {
+                    _newLobby = lobby;
+                }
+            }
+        });
+        return found;
+    }
 
     /// <summary>
     ///     A whole copy of a world kept on this disk
@@ -75,6 +130,11 @@ internal static class WorldHandover
         if (_me == 0 && NetSession.Instance.Self is { } self) {
             _me = (ulong)self.User;
         }
+
+        var next = Successor(_guests, 0f);
+        Following = next != 0 && next != _me;
+        _oldLobby = NetSession.Instance.Lobby.Current;
+        _newLobby = 0;
     }
 
     internal static string Describe()

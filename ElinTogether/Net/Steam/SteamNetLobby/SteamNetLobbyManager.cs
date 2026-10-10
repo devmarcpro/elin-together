@@ -475,7 +475,8 @@ public class SteamNetLobbyManager : EClass
             // (the lobby a world opens by itself is not for strangers)
             if (!lobby.IsValid || lobby.MemberCount == 0 ||
                 (lobby[HiddenKey] == "1" && SteamFriends.GetFriendRelationship(lobby.GameServer.id) !=
-                    EFriendRelationship.k_EFriendRelationshipFriend)) {
+                    EFriendRelationship.k_EFriendRelationshipFriend &&
+                    !WorldHandover.IsTaker(lobby.GameServer.id.m_SteamID))) {
                 continue;
             }
 

@@ -247,7 +247,8 @@ internal partial class ElinNetClient : ElinNetBase
         }
 
         var reason = Router.DisconnectReason;
-        if (EmpDisconnectInfo.IsLinkLost(reason)) {
+        // (the host said it leaves and another guest takes the world over: that game is the one joined again)
+        if (EmpDisconnectInfo.IsLinkLost(reason) || WorldHandover.Following) {
             NetReconnect.Begin();
         } else if (reason != EmpDisconnectInfo.HostShutdown) {
             // turned away, kicked, or the player's own way out: no coming back by itself.

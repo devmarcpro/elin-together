@@ -34,7 +34,7 @@ internal static class NetReconnect
 
         EmpLog.Information("Link with the host lost, joining the same game again");
 
-        _routine = EmpMod.Instance.StartCoroutine(Retry(rejoin));
+        _routine = EmpMod.Instance.StartCoroutine(Retry(rejoin, !client.IsLocalConnection && !client.IsDirectConnection));
     }
 
     /// <summary>
@@ -52,6 +52,7 @@ internal static class NetReconnect
     private static void Clear()
     {
         _routine = null;
+        WorldHandover.Followed();
 
         var notice = _notice;
         _notice = null;
@@ -60,7 +61,7 @@ internal static class NetReconnect
         }
     }
 
-    private static IEnumerator Retry(Action rejoin)
+    private static IEnumerator Retry(Action rejoin, bool byLobby)
     {
         var session = NetSession.Instance;
         var giveUp = Time.realtimeSinceStartup + GiveUpSeconds;
@@ -103,7 +104,7 @@ internal static class NetReconnect
                 }
 
                 tried = Time.realtimeSinceStartup;
-                Attempt(rejoin);
+                Attempt(rejoin, byLobby);
             }
         } finally {
             Clear();
@@ -119,9 +120,20 @@ internal static class NetReconnect
         Dialog.Ok("emp_ui_reconnect_failed");
     }
 
-    private static void Attempt(Action rejoin)
+    private static void Attempt(Action rejoin, bool byLobby)
     {
         try {
+            // the host said it left and another guest opens the world: its lobby is the one to join, the old one
+            // is gone. By a port or an address the new host listens where the old one did
+            if (byLobby && WorldHandover.Following) {
+                if (WorldHandover.NewHostLobby() is var lobby and not 0) {
+                    EmpLog.Information("Joining the game of the player that took the world over, lobby {LobbyId}", lobby);
+                    NetSession.Instance.Lobby.ConnectLobby(lobby);
+                }
+
+                return;
+            }
+
             rejoin();
         } catch (Exception ex) {
             EmpLog.Warning(ex, "Could not start joining the game again");
