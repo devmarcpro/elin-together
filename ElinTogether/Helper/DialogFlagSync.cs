@@ -41,7 +41,49 @@ internal static class DialogFlagSync
         // counted by each game on its own clock: the host's count is the one that matters
         nameof(Player.Flags.daysAfterQuestExploration),
         nameof(Player.Flags.magicChestSent),
+        // counted for each player: see _own
+        nameof(Player.Flags.landDeedBought),
+        nameof(Player.Flags.garokkHammerBought),
+        nameof(Player.Flags.reward_killkill),
+        nameof(Player.Flags.reward_gould),
+        nameof(Player.Flags.canComupWithFoodRecipe),
     ];
+
+    /// <summary>
+    ///     Each player's own count, where the game counts "the player": the price of a land deed and of Garokk's
+    ///     hammer doubles with each one bought, the prizes of a musician get rarer with each one won, a cook may come
+    ///     up with a recipe once. Common, the second player paid double and won half as often for what the first
+    ///     did. A guest's game gets the host's Player with every copy of the world: its own values are kept aside
+    ///     and put back (OwnSettings), and start at zero the first time
+    /// </summary>
+    // ponytail: kept in the player's own settings file, on its machine: another machine starts at zero again, and
+    // a guest that takes the world over starts from the former host's counts. Keep them on the character if it matters
+    private static readonly PropertyInfo[] _own = new[] {
+        nameof(Player.Flags.landDeedBought),
+        nameof(Player.Flags.garokkHammerBought),
+        nameof(Player.Flags.reward_killkill),
+        nameof(Player.Flags.reward_gould),
+        nameof(Player.Flags.canComupWithFoodRecipe),
+        nameof(Player.Flags.gotMelilithCurse),
+        nameof(Player.Flags.gotEtherDisease),
+    }.Select(name => typeof(Player.Flags).GetProperty(name)!).ToArray();
+
+    internal static Dictionary<string, int> OwnFlags(Player player)
+    {
+        return _own.ToDictionary(flag => flag.Name, flag => flag.GetValue(player.flags) switch {
+            bool set => set ? 1 : 0,
+            int number => number,
+            _ => 0,
+        });
+    }
+
+    internal static void SetOwnFlags(Player player, Dictionary<string, int>? values)
+    {
+        foreach (var flag in _own) {
+            var value = values?.GetValueOrDefault(flag.Name) ?? 0;
+            flag.SetValue(player.flags, flag.PropertyType == typeof(bool) ? value != 0 : value);
+        }
+    }
 
     private static readonly PropertyInfo[] _storyFlags = typeof(Player.Flags)
         .GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)

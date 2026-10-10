@@ -81,6 +81,10 @@ def b1():
 
 
 def h1():
+    # les compteurs « du joueur » qui sont a chacun (prix du titre de terrain qui double a chaque achat) : 3 chez
+    # l'invite, 5 chez l'host, chacun garde le sien a travers une copie du monde
+    ev(A, 'EClass.player.flags.landDeedBought = 3; return "ok";')
+    ev(H, 'EClass.player.flags.landDeedBought = 5; return "ok";')
     laid = str(ev(A, LAY))
     check(f"l'invite pose un sort sur une barre ({laid})", laid == str(ev(A, READ)) and not laid.endswith(":0"))
     # le fichier seul : ce qui est note en memoire est oublie, comme apres une fermeture du jeu
@@ -93,6 +97,10 @@ def h1():
         return
     time.sleep(3)
     check(f"le sort est toujours sur sa barre ({ev(A, READ)})", str(ev(A, READ)) == laid)
+    deeds = ev(A, 'EClass.player.flags.landDeedBought.ToString()'), ev(H, 'EClass.player.flags.landDeedBought.ToString()')
+    check(f"titres de terrain achetes : chacun son compte apres la copie du monde (invite {deeds[0]}, host {deeds[1]})", deeds == ("3", "5"))
+    ev(H, 'EClass.player.flags.landDeedBought = 0; return "ok";')
+    ev(A, 'EClass.player.flags.landDeedBought = 0; return "ok";')
     ok(emp.call(A, "command", {"cmd": "emp.link_timeout 0"}))
 
 MON = "EClass._map.charas.Find(x => x.uid == {m})"

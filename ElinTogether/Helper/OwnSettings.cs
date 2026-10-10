@@ -76,6 +76,7 @@ internal static class OwnSettings
                 Memo = player.memo,
                 Memo2 = player.memo2,
                 Hotbars = player.hotbars,
+                Flags = DialogFlagSync.OwnFlags(player),
                 Ability = EClass.game.altAbility && EClass.ui.IsAbilityOpen,
                 ZoomOut = ActionMode.Adv?.zoomOut2 ?? false,
             };
@@ -155,6 +156,9 @@ internal static class OwnSettings
                 ? noted
                 : Read(EClass.game.seed, chara.uid);
             _kept = kept;
+
+            // (nothing noted: a first time in this world, its own counts start at zero, not at the host's)
+            DialogFlagSync.SetOwnFlags(player, kept?.Flags);
             if (kept is null) {
                 return;
             }
@@ -365,6 +369,9 @@ internal static class OwnSettings
         // the cards and zones the items of the hotbars point at, by number: bar, page, slot, number
         public HotbarManager? Hotbars;
         public List<int[]> HotRefs = [];
+
+        // the counts the game keeps for "the player" that are this player's own, see DialogFlagSync
+        public Dictionary<string, int>? Flags;
 
         // the game these were noted from: not noted twice
         [JsonIgnore]
