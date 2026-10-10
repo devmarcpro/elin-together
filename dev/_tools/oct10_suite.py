@@ -12,7 +12,7 @@ R1  dans chaque jeu : un membre de l'equipe (pas le joueur) recoit une autre « 
 
 C1  l'invite apprend une recette de bloc qui a une variante pilier (-p) : comptee 1 fois dans les deux jeux, la
     variante aussi (avant : 2 chez l'host).
-Q1  a Vernis, l'host retire au sort les offres de quetes (Zone.UpdateQuests(true), ce que fait le bouton « Reroll
+Q1  a Mysilia, l'host retire au sort les offres de quetes (Zone.UpdateQuests(true), ce que fait le bouton « Reroll
     Quests ») : memes offres dans les deux jeux (avant : l'invite gardait les anciennes en plus).
 
 Ce que le banc ne joue pas comme un joueur : la recette est apprise par la fonction du jeu, pas par un livre ; le
@@ -23,10 +23,11 @@ partie de l'utilisateur n'est pas connu. JAMAIS LANCEE a l'ecriture.
 """
 import sys
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from travel_suite import RESULTS, VERNIS, check, ev, eventually, host_goto, scan_logs  # noqa: E402
+from travel_suite import RESULTS, check, ev, eventually, host_goto, scan_logs  # noqa: E402
 
 TWICE = ('var p = EClass.pc.party; var c = p.members.FirstOrDefault(x => x != EClass.pc); if (c == null) return "seul"; '
          'var n = p.members.Count; var u = p.uidMembers.Count; c.party = new Party(); p.AddMemeber(c); '
@@ -34,6 +35,7 @@ TWICE = ('var p = EClass.pc.party; var c = p.members.FirstOrDefault(x => x != EC
          'return (p.members.Count - n) + "/" + (p.uidMembers.Count - u) + "/" + (c.party == p);')
 
 H, A = 27551, 27552
+MYSILIA = 25  # une vraie ville (Zone_Town) : Vernis n'en est pas une, aucune offre n'y est tiree
 LEARN = ('var known = EClass.player.recipes.knownRecipes; '
          'var id = RecipeManager.dict.Keys.FirstOrDefault(k => !k.EndsWith("-p") && !k.EndsWith("-b") && '
          'RecipeManager.dict.ContainsKey(k + "-p") && !known.ContainsKey(k) && !known.ContainsKey(k + "-p")); '
@@ -55,9 +57,9 @@ def c1():
 
 
 def q1():
-    host_goto(H, A, VERNIS)
+    host_goto(H, A, MYSILIA)
     before = str(ev(H, OFFERS))
-    check(f"depart : memes offres a Vernis ({before.count(',') + 1 if before else 0})",
+    check(f"depart : memes offres a Mysilia ({before.count(',') + 1 if before else 0})",
           eventually(lambda: str(ev(A, OFFERS)) == str(ev(H, OFFERS)), timeout=30))
     ev(H, 'EClass._zone.UpdateQuests(true); "ok"')
     after = str(ev(H, OFFERS))
@@ -67,7 +69,7 @@ def q1():
 
 
 def main():
-    start = time.time()
+    start = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
     for name, port in (("host", 27551), ("invite", 27552)):
         r = str(ev(port, TWICE))
         if r == "seul":
