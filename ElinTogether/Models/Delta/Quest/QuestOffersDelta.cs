@@ -42,5 +42,10 @@ public class QuestOffersDelta : ElinDelta
 
             chara.quest = null;
         }
+
+        // a board open here shows the offers as they are now
+        foreach (var board in ui.layers.OfType<LayerQuestBoard>().ToArray()) {
+            board.RefreshQuest();
+        }
     }
 }

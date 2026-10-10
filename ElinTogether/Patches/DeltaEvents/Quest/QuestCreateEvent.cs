@@ -11,7 +11,7 @@ internal static class QuestCreateEvent
 {
     [HarmonyPrefix]
     [HarmonyPatch(typeof(Zone), nameof(Zone.UpdateQuests))]
-    internal static bool OnUpdateQuests(Zone __instance, out HashSet<int>? __state)
+    internal static bool OnUpdateQuests(Zone __instance, bool force, out HashSet<int>? __state)
     {
         // before: which offers the residents hold, to see afterwards whether the draw took some away
         // (at the activation of a map nothing is said: the map is sent whole then)
@@ -20,6 +20,14 @@ internal static class QuestCreateEvent
                   !ZoneActivateEvent.IsHappening && __instance == EClass._zone && __instance.map is not null
             ? Offers(__instance).ToHashSet()
             : null;
+        // the "Reroll Quests" button of the board in a client's game: the game that keeps the map draws them
+        // (the button spent the influence here and drew nothing)
+        if (force && !ElinDelta.IsApplying && session.Connection is ElinNetClient client && __instance == EClass._zone) {
+            client.Delta.AddRemote(new QuestRerollDelta {
+                ZoneUid = __instance.uid,
+            });
+        }
+
         return session.IsHost;
     }
 

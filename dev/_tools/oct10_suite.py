@@ -54,7 +54,7 @@ TWICE = ('var p = EClass.pc.party; var c = p.members.FirstOrDefault(x => x != EC
          'return (p.members.Count - n) + "/" + (p.uidMembers.Count - u) + "/" + (c.party == p);')
 
 H, A = 27551, 27552
-MYSILIA = 25  # une vraie ville (Zone_Town) : Vernis n'en est pas une, aucune offre n'y est tiree
+HOME, MYSILIA = 7, 25  # une vraie ville (Zone_Town) : Vernis n'en est pas une, aucune offre n'y est tiree
 LEARN = ('var known = EClass.player.recipes.knownRecipes; '
          'var id = RecipeManager.dict.Keys.FirstOrDefault(k => !k.EndsWith("-p") && !k.EndsWith("-b") && '
          'RecipeManager.dict.ContainsKey(k + "-p") && !known.ContainsKey(k) && !known.ContainsKey(k + "-p")); '
@@ -285,6 +285,14 @@ def c1():
 
 def q1():
     host_goto(H, A, MYSILIA)
+    try:
+        offers()
+    finally:
+        # (retour : les suites lancees ensuite sur ces fenetres partent de la carte de depart)
+        host_goto(H, A, HOME)
+
+
+def offers():
     before = str(ev(H, OFFERS))
     check(f"depart : memes offres a Mysilia ({before.count(',') + 1 if before else 0})",
           eventually(lambda: str(ev(A, OFFERS)) == str(ev(H, OFFERS)), timeout=30))
@@ -293,6 +301,14 @@ def q1():
     check("le tirage a change les offres de l'host", after != before)
     check(f"apres le tirage : memes offres chez l'invite (host {after} ; invite {ev(A, OFFERS)})",
           eventually(lambda: str(ev(A, OFFERS)) == str(ev(H, OFFERS)), timeout=30))
+    # le bouton « Reroll Quests » du tableau chez l'INVITE (ce que fait son clic : UpdateQuests(true) dans son jeu,
+    # puis l'influence en moins) : c'est le jeu qui tient la carte qui tire
+    ev(H, 'EClass._zone.influence = 5; "ok"')
+    ev(A, 'EClass._zone.UpdateQuests(true); "ok"')
+    check(f"l'invite demande un nouveau tirage : les offres de l'host changent ({after} -> {ev(H, OFFERS)})",
+          eventually(lambda: str(ev(H, OFFERS)) != after, timeout=20))
+    check("et ce sont les memes chez l'invite", eventually(lambda: str(ev(A, OFFERS)) == str(ev(H, OFFERS)), timeout=30))
+    check(f"l'host a paye l'influence ({ev(H, 'EClass._zone.influence.ToString()')})", ev(H, 'EClass._zone.influence.ToString()') == "4")
 
 
 def main():

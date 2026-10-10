@@ -136,9 +136,18 @@ internal static class GuestLeash
         }
 
         foreach (var member in CompanionHelper.CompanionsOf(player)) {
-            if (member.GetInt(Key) != 0 && member.host == null && !member.IsDisabled &&
-                !member.HasCondition<ConEntangle>() && !member.IsInCombat && member.Dist(player) > 1) {
-                member.TryMoveTowards(player.pos);
+            if (member.GetInt(Key) == 0 || member.host != null || member.IsDisabled ||
+                member.HasCondition<ConEntangle>() || member.IsInCombat) {
+                continue;
+            }
+
+            // one tug a step in the game, where every step of the player is seen. Here the steps of a guest come as
+            // they come (two tiles in one message, a step whose tug was blocked): the leash pulls until the
+            // companion is beside it again, a few tiles at most (it was left three tiles behind after five steps)
+            for (var tug = 0; tug < 4 && member.Dist(player) > 1; tug++) {
+                if (member.TryMoveTowards(player.pos) != Card.MoveResult.Success) {
+                    break;
+                }
             }
         }
     }
