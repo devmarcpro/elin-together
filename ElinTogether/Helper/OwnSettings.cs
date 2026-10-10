@@ -100,8 +100,39 @@ internal static class OwnSettings
 
             _kept = kept;
 
-            Directory.CreateDirectory(Root);
-            File.WriteAllBytes(PathOf(kept.Seed, kept.Chara), LZ4Bytes.Create(kept).Bytes);
+            // the file: the hotbars too (the spells laid on the belt were lost at each new session), without the
+            // cards and zones their items point at, which would be written whole: only their numbers
+            var held = new List<(HotItem Item, Card? Thing, Zone? Zone)>();
+            Hot(kept.Hotbars, (item, bar, page, slot) => {
+                switch (item) {
+                    case HotItemThing { thing: not null } hot:
+                        kept.HotRefs.Add([bar, page, slot, hot.thing.uid]);
+                        held.Add((hot, hot.thing, null));
+                        hot.thing = null;
+                        break;
+                    case HotItemFocusPos { zone: not null } focus:
+                        kept.HotRefs.Add([bar, page, slot, focus.zone.uid]);
+                        held.Add((focus, null, focus.zone));
+                        focus.zone = null;
+                        break;
+                }
+            });
+
+            try {
+                Directory.CreateDirectory(Root);
+                File.WriteAllBytes(PathOf(kept.Seed, kept.Chara), LZ4Bytes.Create(kept).Bytes);
+            } finally {
+                foreach (var (item, thing, zone) in held) {
+                    switch (item) {
+                        case HotItemThing hot:
+                            hot.thing = thing as Thing;
+                            break;
+                        case HotItemFocusPos focus:
+                            focus.zone = zone;
+                            break;
+                    }
+                }
+            }
         } catch (Exception ex) {
             EmpLog.Warning(ex, "Could not note this player's own settings before its game goes away");
         }
@@ -167,36 +198,33 @@ internal static class OwnSettings
 
             _reopen = true;
 
-            // hotbars hold cards: only from one game to the next, not in the file
             if (kept.Hotbars is not { } hotbars) {
                 return;
             }
 
+            // hotbars hold cards and zones, other objects in this copy of the world: found again by number
+            // (read from the file they are not there at all, only their numbers are)
             player.hotbars = hotbars;
             foreach (var bar in hotbars.bars) {
-                if (bar is null) {
-                    continue;
-                }
-
                 // its widget went with the old game
-                bar.actor = null;
-                foreach (var page in bar.pages) {
-                    for (var i = 0; i < page.items.Count; i++) {
-                        switch (page.items[i]) {
-                            case HotItemThing hot:
-                                hot.thing = things.Find(t => t.uid == hot.thing?.uid);
-                                if (hot.thing is null) {
-                                    page.items[i] = null;
-                                }
-
-                                break;
-                            case HotItemFocusPos { zone: not null } focus:
-                                focus.zone = EClass.game.spatials.Find(focus.zone.uid);
-                                break;
-                        }
-                    }
-                }
+                bar?.actor = null;
             }
+
+            Hot(hotbars, (item, bar, page, slot) => {
+                var noted = kept.HotRefs.Find(r => r[0] == bar && r[1] == page && r[2] == slot)?[3] ?? 0;
+                switch (item) {
+                    case HotItemThing hot:
+                        hot.thing = things.Find(t => t.uid == (hot.thing?.uid ?? noted));
+                        if (hot.thing is null) {
+                            hotbars.bars[bar].pages[page].items[slot] = null;
+                        }
+
+                        break;
+                    case HotItemFocusPos focus when (focus.zone?.uid ?? noted) is var zone and not 0:
+                        focus.zone = EClass.game.spatials.Find(zone);
+                        break;
+                }
+            });
         } catch (Exception ex) {
             EmpLog.Warning(ex, "Could not carry this player's own settings over to the world received");
         }
@@ -250,6 +278,26 @@ internal static class OwnSettings
             EmpLog.Warning(ex, "Could not open the windows again after the world was replaced");
         } finally {
             SoundManager.ignoreSounds = false;
+        }
+    }
+
+    /// <summary>
+    ///     Every item of the hotbars, with its bar, page and slot
+    /// </summary>
+    private static void Hot(HotbarManager? hotbars, Action<HotItem, int, int, int> each)
+    {
+        for (var b = 0; b < (hotbars?.bars?.Length ?? 0); b++) {
+            if (hotbars!.bars[b] is not { pages: not null } bar) {
+                continue;
+            }
+
+            for (var p = 0; p < bar.pages.Count; p++) {
+                for (var i = 0; i < (bar.pages[p]?.items?.Count ?? 0); i++) {
+                    if (bar.pages[p].items[i] is { } item) {
+                        each(item, b, p, i);
+                    }
+                }
+            }
         }
     }
 
@@ -314,8 +362,9 @@ internal static class OwnSettings
         public bool Ability;
         public bool ZoomOut;
 
-        [JsonIgnore]
+        // the cards and zones the items of the hotbars point at, by number: bar, page, slot, number
         public HotbarManager? Hotbars;
+        public List<int[]> HotRefs = [];
 
         // the game these were noted from: not noted twice
         [JsonIgnore]
