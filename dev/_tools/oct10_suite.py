@@ -21,6 +21,8 @@ H1  l'invite pose un sort sur une barre de raccourcis, ses reglages sont notes d
     lien et revient en ne se servant que du fichier (ce que fait une nouvelle session) : le sort est toujours la
     (avant : les barres de l'host a la place).
 
+F2  (trois fenetres : mp_test.py --clients 2) la meme chose que F1 sur une carte tenue par un invite, frappe par
+    un autre invite.
 F1  un monstre vise l'host, qui ne fait rien ; l'invite le frappe dix fois : le monstre joue ses tours (avant : fige,
     0 tour, tue sans risque) ; puis plus personne ne joue : le monstre s'arrete (le temps s'arrete, comme en solo).
     Le coup de l'invite est ACT.Melee puis la fin de tour du jeu, pas le clic ; le monstre est soigne par le banc
@@ -92,43 +94,93 @@ def h1():
 MON = "EClass._map.charas.Find(x => x.uid == {m})"
 
 
-def f1():
-    from guest_suite import seen, spawn  # noqa: PLC0415
-    guest = state(A)["pc"]["uid"]
-    m = spawn(guest, "putty")
-    if not check(f"un monstre apparait a cote de l'invite ({m})", m and eventually(lambda: seen(A, m), timeout=15)):
+def fight(K, B, who):
+    """Le jeu du port K simule la carte et son personnage est la cible du monstre ; le joueur du port B frappe."""
+    from guest_suite import seen  # noqa: PLC0415
+    b = state(B)["pc"]["uid"]
+    # sur une case voisine de celui qui frappe (a deux cases le coup de melee n'a pas lieu du tout)
+    m = int(ev(K, f'var b = EClass._map.charas.Find(x => x.uid == {b}); var p = b.pos.GetNearestPoint(false, false, true, true); '
+                  'if (p == null || p.Distance(b.pos) != 1) return "0"; '
+                  'var m = CharaGen.Create("putty"); EClass._zone.AddCard(m, p); m.c_originalHostility = Hostility.Enemy; '
+                  'm.hostility = Hostility.Enemy; m.SetEnemy(EClass.pc); m.SetLv(60); m.elements.SetBase(60, 400); m.hp = m.MaxHP; '
+                  'return m.uid.ToString();'))
+    if not check(f"{who} : une case libre voisine de celui qui frappe", m):
+        return
+    if not check(f"{who} : un monstre apparait a cote de celui qui frappe ({m})", eventually(lambda: seen(B, m), timeout=15)):
         return
     mon = MON.replace("{m}", str(m))
+    # (les habitants d'une carte s'en melent et le monstre se retourne contre eux : il est garde sur sa cible)
+    keep = f'var m = {mon}; if (m != null) {{ m.hp = m.MaxHP; m.enemy = EClass.pc; }} '
+    blow = f'var m = {mon}; if (m != null) {{ ACT.Melee.Perform(EClass.pc, m, m.pos); EClass.player.EndTurn(false); }} return "ok";'
     try:
-        ev(H, f'var m = {mon}; m.RemoveCondition<ConParalyze>(); m.c_originalHostility = Hostility.Enemy; '
-              'm.hostility = Hostility.Enemy; m.SetEnemy(EClass.pc); m.SetLv(60); m.elements.SetBase(60, 400); m.hp = m.MaxHP; return m.MaxHP.ToString();')
         time.sleep(2)
-        turns = lambda: int(ev(H, f'var m = {mon}; return (m == null ? -1 : m.turn).ToString();'))  # noqa: E731
-        owner = ev(H, f'var m = {mon}; return (m.enemy == EClass.pc).ToString();')
-        check(f"le monstre vise l'host, qui ne fait rien ({owner})", owner == "True")
-        t0 = turns()
-        check(f"le monstre est la avant les coups (tour {t0})", t0 >= 0)
+        turns = lambda: int(ev(K, f'var m = {mon}; return (m == null ? -1 : m.turn).ToString();'))  # noqa: E731
+        played = lambda p: int(ev(p, 'EClass.player.stats.turns.ToString()'))  # noqa: E731
+        t0, s0 = turns(), played(B)
+        check(f"{who} : le monstre est la avant les coups (tour {t0})", t0 >= 0)
         for _ in range(10):
-            # (les habitants de la carte de test s'en melent et le monstre se retourne contre eux : il est garde sur l'host)
-            ev(H, f'var m = {mon}; if (m != null) {{ m.hp = m.MaxHP; m.enemy = EClass.pc; }} return "ok";')
-            ev(A, f'var m = {mon}; if (m != null) {{ ACT.Melee.Perform(EClass.pc, m, m.pos); EClass.player.EndTurn(false); }} return "ok";')
+            ev(K, keep + 'return "ok";')
+            ev(B, blow)
             time.sleep(0.7)
         time.sleep(1)
         t1 = turns()
-        check(f"frappe dix fois par l'invite, le monstre est en vie et a joue ses tours ({t0} -> {t1})", t1 >= 0 and t1 - t0 >= 4)
+        # ce qu'un tour de celui qui frappe donne au monstre, mesure ici (la vitesse d'un joueur lue dans la copie
+        # d'un autre jeu n'est pas la sienne)
+        rate = (t1 - t0) / max(1, played(B) - s0)
+        check(f"{who} : frappe dix fois par l'autre joueur, sa cible ne faisant rien, le monstre joue ses tours ({t0} -> {t1})",
+              t1 >= 0 and t1 - t0 >= 4)
         time.sleep(5)
         t2 = turns()
-        check(f"plus personne ne joue : le monstre s'arrete ({t2 - t1} tour en 5 s)", t2 - t1 <= 1)
+        check(f"{who} : plus personne ne joue, le monstre s'arrete ({t2 - t1} tour en 5 s)", t2 - t1 <= 1)
+        # les deux jouent : le monstre doit suivre le plus rapide des deux, pas la somme. Compte en tours reels de
+        # chacun (une fin de tour demandee par le pont ne fait pas toujours exactement un tour)
+        pace = lambda p, uid: float(ev(K, f'var m = {mon}; var c = EClass._map.charas.Find(x => x.uid == {uid}); '  # noqa: E731
+                                          'return ((float)m.Speed / System.Math.Max(1, c.Speed)).ToString(System.Globalization.CultureInfo.InvariantCulture);'))
+        k = state(K)["pc"]["uid"]
+        a0, b0 = played(K), played(B)
         for _ in range(10):
-            ev(H, f'var m = {mon}; if (m != null) {{ m.hp = m.MaxHP; m.enemy = EClass.pc; }} EClass.player.EndTurn(false); return "ok";')
-            ev(A, f'var m = {mon}; if (m != null) {{ ACT.Melee.Perform(EClass.pc, m, m.pos); EClass.player.EndTurn(false); }} return "ok";')
+            ev(K, keep + 'EClass.player.EndTurn(false); return "ok";')
+            ev(B, blow)
             time.sleep(0.7)
         time.sleep(1)
         t3 = turns()
-        check(f"les deux jouent dix tours chacun : le monstre va a sa vitesse, pas au double ({t3 - t2} tours, {t1 - t0} avec un seul)",
-              t3 >= 0 and 4 <= t3 - t2 <= (t1 - t0) + 3)
+        da, db = (played(K) - a0) * pace(K, k), (played(B) - b0) * rate
+        check(f"{who} : les deux jouent, le monstre suit le plus rapide des deux ({t3 - t2} tours ; attendu {max(da, db):.1f}, "
+              f"la somme ferait {da + db:.1f})", t3 >= 0 and max(da, db) - 2.5 <= t3 - t2 <= max(da, db) + 2.5)
     finally:
-        ev(H, f'var m = {mon}; if (m != null) m.Destroy(); return "ok";')
+        ev(K, f'var m = {mon}; if (m != null) m.Destroy(); return "ok";')
+
+
+def f1():
+    fight(H, A, "carte de l'host")
+
+
+def f2():
+    """a trois fenetres : la meme chose sur une carte tenue par un INVITE, le troisieme joueur frappe"""
+    from travel_suite import HOME, VERNIS, client_settled, move, wait  # noqa: PLC0415
+    B = 27553
+    try:
+        state(B)
+    except Exception:  # noqa: BLE001
+        print("    f2 : pas de troisieme fenetre (mp_test.py --clients 2), etape sautee")
+        return
+    move(A, VERNIS)
+    wait(client_settled(A, VERNIS, True), "le premier invite seul a Vernis, il tient la carte", timeout=180)
+    time.sleep(3)
+    move(B, VERNIS)
+    b = state(B)["pc"]["uid"]
+    there = eventually(lambda: (state(B).get("zone") or {}).get("uid") == VERNIS and state(B).get("sceneMode") == "Zone"
+                       and ev(A, f'(EClass._map.charas.Find(x => x.uid == {b}) != null).ToString()') == "True", timeout=180)
+    if not check("le second invite arrive sur la carte tenue par le premier, qui le voit", there):
+        return
+    time.sleep(3)
+    try:
+        fight(A, B, "carte tenue par un invite")
+    finally:
+        move(B, HOME)
+        time.sleep(8)
+        move(A, HOME)
+        time.sleep(15)
 
 
 def c1():
@@ -162,7 +214,7 @@ def main():
             continue
         check(f"{name} : pas de deuxieme ajout, lien remis ({r})", r == "0/0/True")
     check("au moins un jeu avait un autre membre dans l'equipe", RESULTS)
-    steps = (b1, c1, h1, f1, q1)
+    steps = (b1, c1, h1, f1, q1, f2)
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(',')]
     for step in steps:

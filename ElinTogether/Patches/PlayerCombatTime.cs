@@ -35,6 +35,9 @@ internal static class PlayerCombatTime
     private static readonly Dictionary<(int Monster, int Player), int> _struck = [];
     private static Map? _map;
 
+    // in a client's game: what its player attacked since its last turn, told with that turn
+    private static int _attacked;
+
     /// <summary>
     ///     A hostile act (melee, shot, throw, spell; hit or miss) in the game that simulates the map: its player,
     ///     or the player of the companion that did it, is engaged with the target. Without
@@ -43,12 +46,31 @@ internal static class PlayerCombatTime
     /// </summary>
     internal static void Struck(Card target, Card? origin)
     {
+        if (origin is Chara { IsPC: true } && NetSession.Instance.Connection is ElinNetClient) {
+            _attacked = target.uid;
+            return;
+        }
+
         if (!HostActive || target is not Chara { IsPC: false, isDead: false } monster || monster.ai is GoalRemote ||
             PlayerOf(origin as Chara) is not { } player || PlayerOf(monster) == player) {
             return;
         }
 
+        OnMap(EClass._map);
         _struck[(monster.uid, player.uid)] = StruckTurns;
+    }
+
+    // another map: what was noted is about monsters that are not here
+    private static void OnMap(Map map)
+    {
+        if (ReferenceEquals(_map, map)) {
+            return;
+        }
+
+        _map = map;
+        _given.Clear();
+        _stream.Clear();
+        _struck.Clear();
     }
 
     internal static bool Enabled => NetSession.Instance.Rules.UsePlayerCombatTime;
@@ -112,13 +134,7 @@ internal static class PlayerCombatTime
         var grant = EClass.player.baseActTime *
                     Mathf.Max(0.1f, (float)SynchronizationContext.RefSpeed / Mathf.Max(1, speed));
 
-        // another map: what was noted is about monsters that are not here
-        if (!ReferenceEquals(_map, map)) {
-            _map = map;
-            _given.Clear();
-            _stream.Clear();
-            _struck.Clear();
-        }
+        OnMap(map);
 
         var granted = false;
         foreach (var chara in map.charas) {
@@ -172,7 +188,8 @@ internal static class PlayerCombatTime
                 OnPlayerTurn(__instance);
                 break;
             case ElinNetClient client:
-                client.Delta.AddRemote(new PlayerTurnDelta());
+                client.Delta.AddRemote(new PlayerTurnDelta { Attacked = _attacked });
+                _attacked = 0;
                 break;
         }
     }
