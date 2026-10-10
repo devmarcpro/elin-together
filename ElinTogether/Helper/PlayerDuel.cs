@@ -324,7 +324,13 @@ public static class PlayerDuel
         };
 
         Show(state);
-        host.SendDeltaToAllExcept(-1, state);
+        if (state.Phase == Won) {
+            // behind the blow that ended it, which leaves one flush later: sent at once, the loser's game was
+            // healed first and then given the hit points of that blow
+            host.Delta.DeferRemote(state);
+        } else {
+            host.SendDeltaToAllExcept(-1, state);
+        }
     }
 
     private static void TellOne(ElinNetHost host, Chara chara, DuelStateDelta state)
