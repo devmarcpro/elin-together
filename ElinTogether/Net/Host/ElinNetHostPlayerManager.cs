@@ -354,8 +354,9 @@ internal partial class ElinNetHost
             chara.stamina.Set(chara.stamina.max / 2);
             chara.Refresh();
 
+            // as a new game does, and nothing more: a purse was added here, which a player who starts a world
+            // does not have
             player.CreateEquip();
-            chara.AddThing("purse");
         } finally {
             chara.SetBool("emp_creating", false);
             player.chara = host;
