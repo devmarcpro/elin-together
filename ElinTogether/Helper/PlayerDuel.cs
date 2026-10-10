@@ -38,6 +38,24 @@ public static class PlayerDuel
 
     private static readonly List<Session> _sessions = [];
     private static readonly List<DuelStateDelta> _fights = [];
+
+    // duels that just ended, in every game: the two duellists and until when
+    private static readonly List<(int A, int B, float Until)> _over = [];
+    private const float OverSeconds = 3f;
+
+    /// <summary>
+    ///     A blow between two players whose duel just ended: it was still on its way (dealt in one game, told to
+    ///     the other) and landed after both were healed, the loser was left wounded. It does not count
+    /// </summary>
+    internal static bool JustEnded(Card target, Card? origin)
+    {
+        if (_over.Count == 0 || origin is null) {
+            return false;
+        }
+
+        _over.RemoveAll(o => Time.unscaledTime > o.Until);
+        return _over.Exists(o => (o.A == target.uid && o.B == origin.uid) || (o.B == target.uid && o.A == origin.uid));
+    }
     private static int _nextId = 1;
     private static Dialog? _box;
 
@@ -143,6 +161,7 @@ public static class PlayerDuel
                 EmpPop.Information("emp_duel_fight".lang());
                 break;
             case Won:
+                _over.Add((state.UidA, state.UidB, Time.unscaledTime + OverSeconds));
                 // mana and stamina are each player's own, its game gives them back
                 var pc = EClass.pc;
                 pc.hp = pc.MaxHP;

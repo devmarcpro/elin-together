@@ -23,6 +23,10 @@ internal static class RemoteHostilePatch
     internal static void OnDoHostileAction(Chara __instance, Card _tg, out ScopeExit? __state)
     {
         __state = null;
+
+        // a blow that misses is still a fight: whoever attacks a monster is engaged with it, see PlayerCombatTime
+        PlayerCombatTime.Struck(_tg, __instance);
+
         if (NetSession.Instance.Connection is not ElinNetHost || __instance is not { IsPC: false, IsRemotePlayer: true } ||
             __instance.party is not { } party || _tg is not Chara { IsPlayer: false } target) {
             return;

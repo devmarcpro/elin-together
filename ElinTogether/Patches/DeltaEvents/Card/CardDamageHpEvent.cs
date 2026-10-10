@@ -1,4 +1,5 @@
 using System;
+using ElinTogether.Helper;
 using ElinTogether.Models;
 using ElinTogether.Net;
 using HarmonyLib;
@@ -25,6 +26,10 @@ internal static class CardDamageHpEvent
     {
         __state = null;
         Depth++;
+
+        if (PlayerDuel.JustEnded(__instance, origin)) {
+            return false;
+        }
 
         // simply drop the update as clients and wait for delta
         if (NetSession.Instance.Connection is not { } connection) {

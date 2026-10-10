@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using ElinTogether.Elements;
 using ElinTogether.Helper;
 using ElinTogether.Models;
@@ -22,6 +23,33 @@ internal static class PlayerCombatTime
     private const float HoldSeconds = 0.3f;
 
     private static float _lastGrant = -1f;
+
+    // Council 13: the clock of a monster in a fight is the clock of the fastest player engaged with it, never the
+    // sum of theirs. Engaged: the player it fights (TimeOwner), and any player who struck it within its own last
+    // few turns. Counted in turns, never in seconds: a player who thinks stops nothing but its own stream
+    //   _given: the act time handed to a monster so far; _stream: what each engaged player's turns add up to for it
+    //   _struck: how many of its own turns a player still counts as engaged with a monster it struck
+    private const int StruckTurns = 5;
+    private static readonly Dictionary<int, float> _given = [];
+    private static readonly Dictionary<(int Monster, int Player), float> _stream = [];
+    private static readonly Dictionary<(int Monster, int Player), int> _struck = [];
+    private static Map? _map;
+
+    /// <summary>
+    ///     A hostile act (melee, shot, throw, spell; hit or miss) in the game that simulates the map: its player,
+    ///     or the player of the companion that did it, is engaged with the target. Without
+    ///     this, a monster that fights one player was frozen for the other players who attacked it while the
+    ///     first one stood still, and died without a fight (real games, 2026-10-10)
+    /// </summary>
+    internal static void Struck(Card target, Card? origin)
+    {
+        if (!HostActive || target is not Chara { IsPC: false, isDead: false } monster || monster.ai is GoalRemote ||
+            PlayerOf(origin as Chara) is not { } player || PlayerOf(monster) == player) {
+            return;
+        }
+
+        _struck[(monster.uid, player.uid)] = StruckTurns;
+    }
 
     internal static bool Enabled => NetSession.Instance.Rules.UsePlayerCombatTime;
 
@@ -84,10 +112,36 @@ internal static class PlayerCombatTime
         var grant = EClass.player.baseActTime *
                     Mathf.Max(0.1f, (float)SynchronizationContext.RefSpeed / Mathf.Max(1, speed));
 
+        // another map: what was noted is about monsters that are not here
+        if (!ReferenceEquals(_map, map)) {
+            _map = map;
+            _given.Clear();
+            _stream.Clear();
+            _struck.Clear();
+        }
+
         var granted = false;
         foreach (var chara in map.charas) {
-            if (TimeOwner(chara) == player) {
-                chara.roundTimer += grant;
+            var key = (chara.uid, player.uid);
+            var struck = _struck.TryGetValue(key, out var left) && left > 0;
+            if (struck) {
+                _struck[key] = left - 1;
+            }
+
+            // (a monster that fights nobody anymore is on world time again: nothing to hand out)
+            if (TimeOwner(chara) is not { } owner || (owner != player && !struck)) {
+                continue;
+            }
+
+            // the fastest engaged player sets the pace: this player's turns only count beyond what the monster
+            // already got from the others. A player back after a pause starts one turn behind, not at zero: its
+            // first turn gives nothing while someone else is playing, and everything if nobody is
+            var given = _given.GetValueOrDefault(chara.uid);
+            var stream = Mathf.Max(_stream.GetValueOrDefault(key), given - grant) + grant;
+            _stream[key] = stream;
+            if (stream > given) {
+                chara.roundTimer += stream - given;
+                _given[chara.uid] = stream;
                 granted = true;
             }
         }

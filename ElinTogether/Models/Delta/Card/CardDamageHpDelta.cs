@@ -1,3 +1,4 @@
+using ElinTogether.Helper;
 using ElinTogether.Net;
 using ElinTogether.Patches;
 using MessagePack;
@@ -50,6 +51,10 @@ public class CardDamageHpDelta : ElinDelta
         // simulating game decided, and here when a client reports the blow its own game dealt to its player
         // (the stub is the game's own code, without the prefix that shields)
         var origin = Origin?.Find();
+        if (PlayerDuel.JustEnded(card, origin)) {
+            return;
+        }
+
         var shield = RemotePlayerKillPatch.Shield(card, origin);
         try {
             using (Simulate(net.IsHost)) {

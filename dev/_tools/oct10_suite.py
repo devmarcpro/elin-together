@@ -15,6 +15,17 @@ C1  l'invite apprend une recette de bloc qui a une variante pilier (-p) : compte
 Q1  a Mysilia, l'host retire au sort les offres de quetes (Zone.UpdateQuests(true), ce que fait le bouton « Reroll
     Quests ») : memes offres dans les deux jeux (avant : l'invite gardait les anciennes en plus).
 
+B1  le personnage de l'invite (cree par le banc a la connexion) a UNE bourse, celle de la ceinture a outils, comme
+    l'host (avant : une deuxieme dans le sac).
+H1  l'invite pose un sort sur une barre de raccourcis, ses reglages sont notes dans son fichier, puis il perd son
+    lien et revient en ne se servant que du fichier (ce que fait une nouvelle session) : le sort est toujours la
+    (avant : les barres de l'host a la place).
+
+F1  un monstre vise l'host, qui ne fait rien ; l'invite le frappe dix fois : le monstre joue ses tours (avant : fige,
+    0 tour, tue sans risque) ; puis plus personne ne joue : le monstre s'arrete (le temps s'arrete, comme en solo).
+    Le coup de l'invite est ACT.Melee puis la fin de tour du jeu, pas le clic ; le monstre est soigne par le banc
+    entre les coups pour ne pas mourir.
+
 Ce que le banc ne joue pas comme un joueur : la recette est apprise par la fonction du jeu, pas par un livre ; le
 tirage des quetes est appele par le pont, pas par le bouton du panneau ; nuit commune (saignement, poison) et copie
 de carte precedee de ses changements en attente : pas de test ici.
@@ -27,7 +38,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from travel_suite import RESULTS, check, ev, eventually, host_goto, scan_logs  # noqa: E402
+import emp  # noqa: E402
+from mp_test import ok, state  # noqa: E402
+from travel_suite import RESULTS, check, ev, eventually, host_goto, players, scan_logs  # noqa: E402
 
 TWICE = ('var p = EClass.pc.party; var c = p.members.FirstOrDefault(x => x != EClass.pc); if (c == null) return "seul"; '
          'var n = p.members.Count; var u = p.uidMembers.Count; c.party = new Party(); p.AddMemeber(c); '
@@ -44,6 +57,78 @@ COUNT = ('var known = EClass.player.recipes.knownRecipes; int a, b; known.TryGet
          'known.TryGetValue("{id}-p", out b); return a + "/" + b;')
 OFFERS = ('string.Join(",", EClass._map.charas.Concat(EClass._map.deadCharas).Where(c => c.quest != null && '
           '!EClass.game.quests.list.Contains(c.quest)).Select(c => c.quest.uid).OrderBy(x => x))')
+
+PURSES = ('var l = new System.Collections.Generic.List<string>(); System.Action<Card, string> walk = null; '
+          'walk = (c, path) => { foreach (var t in c.things) { if (t.id == "purse") l.Add(path); walk(t, path + "/" + t.id); } }; '
+          'walk(EClass.pc, "pc"); return string.Join(",", l);')
+OWN = 'var own = HarmonyLib.AccessTools.TypeByName("ElinTogether.Helper.OwnSettings"); '
+SPELL = ('var bars = EClass.player.hotbars.bars; var b = System.Array.FindIndex(bars, x => x != null && x.pages.Count > 0); '
+         'var id = EClass.sources.elements.alias["ActPray"].id; ')
+LAY = SPELL + 'bars[b].pages[0].SetItem(bars[b], new HotItemAct { id = id }, 0); return b + ":" + id;'
+READ = SPELL + 'var a = bars[b].pages[0].GetItem(0) as HotItemAct; return b + ":" + (a == null ? 0 : a.id);'
+
+
+def b1():
+    for name, port in (("host", H), ("invite", A)):
+        got = str(ev(port, PURSES))
+        check(f"{name} : une seule bourse, dans la ceinture ({got})", got == "pc/toolbelt")
+
+
+def h1():
+    laid = str(ev(A, LAY))
+    check(f"l'invite pose un sort sur une barre ({laid})", laid == str(ev(A, READ)) and not laid.endswith(":0"))
+    # le fichier seul : ce qui est note en memoire est oublie, comme apres une fermeture du jeu
+    ev(A, OWN + 'HarmonyLib.AccessTools.Method(own, "Keep").Invoke(null, null); '
+                'HarmonyLib.AccessTools.Field(own, "_kept").SetValue(null, null); return "ok";')
+    ok(emp.call(A, "command", {"cmd": "emp.cut_link 20"}))
+    time.sleep(25)
+    back = eventually(lambda: state(A).get("sceneMode") != "Title" and players(A) == 2 and players(H) == 2, timeout=120)
+    if not check("l'invite a perdu son lien et est revenu seul", back):
+        return
+    time.sleep(3)
+    check(f"le sort est toujours sur sa barre ({ev(A, READ)})", str(ev(A, READ)) == laid)
+    ok(emp.call(A, "command", {"cmd": "emp.link_timeout 0"}))
+
+MON = "EClass._map.charas.Find(x => x.uid == {m})"
+
+
+def f1():
+    from guest_suite import seen, spawn  # noqa: PLC0415
+    guest = state(A)["pc"]["uid"]
+    m = spawn(guest, "putty")
+    if not check(f"un monstre apparait a cote de l'invite ({m})", m and eventually(lambda: seen(A, m), timeout=15)):
+        return
+    mon = MON.replace("{m}", str(m))
+    try:
+        ev(H, f'var m = {mon}; m.RemoveCondition<ConParalyze>(); m.c_originalHostility = Hostility.Enemy; '
+              'm.hostility = Hostility.Enemy; m.SetEnemy(EClass.pc); m.SetLv(60); m.elements.SetBase(60, 400); m.hp = m.MaxHP; return m.MaxHP.ToString();')
+        time.sleep(2)
+        turns = lambda: int(ev(H, f'var m = {mon}; return (m == null ? -1 : m.turn).ToString();'))  # noqa: E731
+        owner = ev(H, f'var m = {mon}; return (m.enemy == EClass.pc).ToString();')
+        check(f"le monstre vise l'host, qui ne fait rien ({owner})", owner == "True")
+        t0 = turns()
+        check(f"le monstre est la avant les coups (tour {t0})", t0 >= 0)
+        for _ in range(10):
+            # (les habitants de la carte de test s'en melent et le monstre se retourne contre eux : il est garde sur l'host)
+            ev(H, f'var m = {mon}; if (m != null) {{ m.hp = m.MaxHP; m.enemy = EClass.pc; }} return "ok";')
+            ev(A, f'var m = {mon}; if (m != null) {{ ACT.Melee.Perform(EClass.pc, m, m.pos); EClass.player.EndTurn(false); }} return "ok";')
+            time.sleep(0.7)
+        time.sleep(1)
+        t1 = turns()
+        check(f"frappe dix fois par l'invite, le monstre est en vie et a joue ses tours ({t0} -> {t1})", t1 >= 0 and t1 - t0 >= 4)
+        time.sleep(5)
+        t2 = turns()
+        check(f"plus personne ne joue : le monstre s'arrete ({t2 - t1} tour en 5 s)", t2 - t1 <= 1)
+        for _ in range(10):
+            ev(H, f'var m = {mon}; if (m != null) {{ m.hp = m.MaxHP; m.enemy = EClass.pc; }} EClass.player.EndTurn(false); return "ok";')
+            ev(A, f'var m = {mon}; if (m != null) {{ ACT.Melee.Perform(EClass.pc, m, m.pos); EClass.player.EndTurn(false); }} return "ok";')
+            time.sleep(0.7)
+        time.sleep(1)
+        t3 = turns()
+        check(f"les deux jouent dix tours chacun : le monstre va a sa vitesse, pas au double ({t3 - t2} tours, {t1 - t0} avec un seul)",
+              t3 >= 0 and 4 <= t3 - t2 <= (t1 - t0) + 3)
+    finally:
+        ev(H, f'var m = {mon}; if (m != null) m.Destroy(); return "ok";')
 
 
 def c1():
@@ -77,7 +162,10 @@ def main():
             continue
         check(f"{name} : pas de deuxieme ajout, lien remis ({r})", r == "0/0/True")
     check("au moins un jeu avait un autre membre dans l'equipe", RESULTS)
-    for step in (c1, q1):
+    steps = (b1, c1, h1, f1, q1)
+    if len(sys.argv) > 1:
+        steps = [x for x in steps if x.__name__ in sys.argv[1].split(',')]
+    for step in steps:
         try:
             step()
         except Exception as ex:  # noqa: BLE001
