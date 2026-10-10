@@ -54,8 +54,16 @@ internal partial class ElinNetHost
                 continue;
             }
 
+            // its mount, and what rides it, stand on the player's own tile, as the game keeps them
+            var carried = companion == player.ride || companion == player.parasite;
             var near = keepSpot && companion.pos is { IsValid: true, IsInBounds: true } ? companion.pos : player.pos;
-            var pos = near.GetNearestPoint(allowChara: false, allowInstalled: false) ?? near.Copy();
+            var pos = carried ? player.pos.Copy() : near.GetNearestPoint(allowChara: false, allowInstalled: false) ?? near.Copy();
+
+            // the game may already have laid it on the player's tile (Chara.SyncRide, when the player was put on the
+            // map): laid a second time beside it, it stayed in the cell of the first for good
+            if (companion.pos is { IsValid: true, IsInBounds: true }) {
+                _map._RemoveCard(companion);
+            }
 
             Delta.AddRemote(CardGenDelta.Create(companion));
             _zone.AddCard(companion, pos);
@@ -82,7 +90,12 @@ internal partial class ElinNetHost
     /// <param name="rebound">filled with the numbers given to their cards that waited for one: old -> new</param>
     private void ReplaceCompanions(List<LZ4Bytes>? companions, int ownerUid, Dictionary<int, int>? rebound = null)
     {
-        if (companions is null || ownerUid == 0) {
+        if (ownerUid == 0) {
+            return;
+        }
+
+        if (companions is null) {
+            RebindRide(ownerUid);
             return;
         }
 
@@ -157,6 +170,15 @@ internal partial class ElinNetHost
             if (gone.homeZone is { } home) {
                 gone.MoveZone(home);
             }
+        }
+
+        RebindRide(ownerUid);
+    }
+
+    private static void RebindRide(int ownerUid)
+    {
+        if (game.cards.globalCharas.Find(ownerUid) is { } player) {
+            CompanionHelper.RebindRide(player);
         }
     }
 }

@@ -531,6 +531,11 @@ internal partial class ElinNetClient
             adopted.Add(fresh);
         }
 
+        // (each came written apart: a rider and its mount are tied to each other's card of this world again)
+        foreach (var chara in adopted) {
+            CompanionHelper.RebindRide(chara);
+        }
+
         return adopted;
     }
 }

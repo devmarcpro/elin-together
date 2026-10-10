@@ -25,6 +25,10 @@ L1  boutique a stock limite (Fiama) : l'invite achete un objet Â« stock limite Â
     est de nouveau dans la boutique pour l'host, avec l'invite note comme acheteur ; l'invite ne peut pas le
     racheter ; l'host l'achete a son tour ; un reassort ne le double pas ; retire a la main (monde d'avant, ou il
     etait deja vendu), il revient au reassort. La fenetre est ouverte par la fonction du jeu, pas par le dialogue.
+M1  l'invite monte un cheval, part seul a Vernis, y marche, revient et marche : chez l'host la monture est LA monture
+    du monde (pas une copie), sur la case de son cavalier, une seule fois sur la carte (avant : le cavalier montait
+    une copie, la vraie monture gardait une case de Vernis : monde inchargeable le 9 octobre). Le banc fait monter
+    par l'acte du jeu (ActRide), pas par le menu.
 F2  (trois fenetres : mp_test.py --clients 2) la meme chose que F1 sur une carte tenue par un invite, frappe par
     un autre invite.
 F1  un monstre vise l'host, qui ne fait rien ; l'invite le frappe dix fois : le monstre joue ses tours (avant : fige,
@@ -272,6 +276,43 @@ def l1():
     time.sleep(2)
     check(f"il revient au reassort suivant, pour tous ({limited().get(key)})", key in limited() and not limited()[key][1])
 
+def m1():
+    import guest_suite as g  # noqa: PLC0415
+    from travel_suite import VERNIS, both_joined, client_settled, move, wait  # noqa: PLC0415
+    ctx = {"a": (A, state(A)["pc"]["uid"]), "h": (H, state(H)["pc"]["uid"])}
+    uid = ctx["a"][1]
+    m = g.tame(ctx, "horse", "a")
+    if not check(f"l'invite a un cheval ({m})", m):
+        return
+    g.clear_conditions(m)
+    rides = ev(A, f'var m = EClass._map.charas.Find(x => x.uid == {m}); ACT.Create(6018).Perform(EClass.pc, m, m.pos); return (EClass.pc.ride == m).ToString();')
+    check(f"l'invite le monte, par l'acte du jeu ({rides})", rides == "True")
+    known = eventually(lambda: ev(H, f'var r = EClass.game.cards.globalCharas.Find({uid}); return (r.ride != null && r.ride.uid == {m}).ToString();') == "True", timeout=15)
+    check("l'host sait que l'invite est monte", known)
+    look = (f'var r = EClass.game.cards.globalCharas.Find({uid}); var w = EClass.game.cards.globalCharas.Find({m}); '
+            f'var cells = 0; EClass._map.ForeachCell(c => {{ if (c.detail != null && c.detail.charas != null) cells += c.detail.charas.Count(x => x.uid == {m}); }}); '
+            'return (r.ride != null && ReferenceEquals(r.ride, w)) + "|" + (w.host != null && ReferenceEquals(w.host, r)) + "|" + w.pos.Equals(r.pos) + "|" + '
+            f'EClass._map.charas.Count(x => x.uid == {m}) + "|" + cells + "|" + r.pos + "|" + w.pos;')
+    try:
+        move(A, VERNIS)
+        wait(client_settled(A, VERNIS, True), "l'invite seul a Vernis, sur son cheval", timeout=180)
+        time.sleep(3)
+        ev(A, 'for (var i = 0; i < 4; i++) EClass.pc.TryMoveTowards(new Point(EClass.pc.pos.x + 6, EClass.pc.pos.z)); return "ok";')
+        time.sleep(2)
+    finally:
+        move(A, HOME)
+        both_joined(H, A, HOME)
+    time.sleep(4)
+    for _ in range(3):
+        ev(A, 'EClass.pc.TryMoveTowards(new Point(EClass.pc.pos.x - 6, EClass.pc.pos.z)); return "ok";')
+        time.sleep(1.2)
+    for who, port in (("chez l'host", H), ("chez l'invite", A)):
+        same, back, tile, listed, cells, at, mount = str(ev(port, look)).split("|")
+        check(f"{who} : le cavalier monte la monture du monde, qui le porte ({same}, {back})", same == "True" and back == "True")
+        check(f"{who} : la monture est sur la case du cavalier ({mount} / {at})", tile == "True")
+        check(f"{who} : une seule fois sur la carte et dans ses cases ({listed}, {cells})", listed == "1" and cells == "1")
+    ev(A, 'if (EClass.pc.ride != null) ActRide.Unride(EClass.pc, false, false); return "ok";')
+
 
 def c1():
     rid = str(ev(A, LEARN))
@@ -320,7 +361,7 @@ def main():
             continue
         check(f"{name} : pas de deuxieme ajout, lien remis ({r})", r == "0/0/True")
     check("au moins un jeu avait un autre membre dans l'equipe", RESULTS)
-    steps = (b1, c1, h1, f1, l1, q1, f2)
+    steps = (b1, c1, h1, f1, l1, m1, q1, f2)
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(',')]
     for step in steps:

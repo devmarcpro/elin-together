@@ -102,4 +102,40 @@ internal static class CompanionHelper
         var party = player.party ?? EClass.pc?.party;
         return party?.members.Where(c => c is not null && c.IsCompanionOf(player)).ToList() ?? [];
     }
+
+    /// <summary>
+    ///     A player and its companions come one by one, each written apart: a rider carries its own copy of its
+    ///     mount, and the mount its own copy of its rider. Left that way the rider rode a copy nobody else knew
+    ///     (it followed it from tile to tile, on no list of the map), and the real mount stood where it was last
+    ///     put, then kept the tile of another map: the world could not be loaded any more (2026-10-09). Each is
+    ///     tied to the one of this world again. The same for what rides the player (parasite)
+    /// </summary>
+    internal static void RebindRide(Chara player)
+    {
+        var game = EClass.game;
+        if (player.ride is { } ride && game.cards.globalCharas.Find(ride.uid) is { } mount && !ReferenceEquals(mount, ride)) {
+            player.ride = mount;
+        }
+
+        if (player.parasite is { } parasite && game.cards.globalCharas.Find(parasite.uid) is { } rider &&
+            !ReferenceEquals(rider, parasite)) {
+            player.parasite = rider;
+        }
+
+        foreach (var carried in new[] { player.ride, player.parasite }) {
+            if (carried is not null && !ReferenceEquals(carried.host, player)) {
+                carried.host = player;
+            }
+        }
+
+        // (a companion that still says it carries a copy of this player, which no longer rides it)
+        foreach (var companion in CompanionHelper.CompanionsOf(player)) {
+            if (companion.host is { } host && host.uid == player.uid && !ReferenceEquals(host, player)) {
+                companion.host = companion == player.ride || companion == player.parasite ? player : null;
+            }
+        }
+
+        EmpLog.Debug("Ride of player {Uid}: mount {Ride}, rider on it {Parasite}",
+            player.uid, player.ride?.uid ?? 0, player.parasite?.uid ?? 0);
+    }
 }
