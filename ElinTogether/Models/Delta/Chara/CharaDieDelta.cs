@@ -37,6 +37,14 @@ public class CharaDieDelta : ElinDelta
 
         var wasDead = chara.isDead;
 
+        // already taken off its zone here (the removal came first): the game's death code reads the zone and
+        // throws, the death itself is just marked
+        if (!chara.IsPC && !chara.IsPCFaction && chara.currentZone is null) {
+            chara.hp = -1;
+            chara.isDead = true;
+            return;
+        }
+
         var element = ElementId is null ? null : Element.Create(ElementId.Value);
         chara.Stub_Die(element, Origin, AttackSource, OriginalTarget);
 
