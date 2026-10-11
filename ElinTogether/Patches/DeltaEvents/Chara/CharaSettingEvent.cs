@@ -15,10 +15,14 @@ internal static class CharaSettingEvent
     private static Chara? _talkedTo;
     private static int[] _before = [];
 
+    // the extra tax of the month, chosen in the same menus (ExtraTaxDelta)
+    private static int _extraTax = -1;
+
     [HarmonyPrefix]
     [HarmonyPatch(typeof(DramaCustomSequence), nameof(DramaCustomSequence.Build))]
     internal static void OnDialogBuilt(Chara c)
     {
+        _extraTax = EClass.player?.extraTax ?? -1;
         if (c is null || c.IsPlayer) {
             return;
         }
@@ -31,6 +35,11 @@ internal static class CharaSettingEvent
     [HarmonyPatch(typeof(LayerDrama), nameof(LayerDrama.OnKill))]
     internal static void OnDialogClosed()
     {
+        if (_extraTax >= 0 && EClass.player is { } player && player.extraTax != _extraTax) {
+            ExtraTaxDelta.Emit();
+        }
+
+        _extraTax = -1;
         if (_talkedTo is not { } chara) {
             return;
         }

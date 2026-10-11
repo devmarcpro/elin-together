@@ -66,6 +66,9 @@ D1  un invite renvoie un habitant qui porte un artefact de dieu : l'artefact va 
 W1  un service paye dans un dialogue (la tache AI_Fuck lancee par le dialogue apres le paiement) : a la fin, l'or de
     l'invite ne bouge plus chez l'host (avant : il touchait une moitie du prix puis payait le prix une seconde fois).
     Le banc lance la tache par SetAI chez l'invite, comme le fait le dialogue, sans le dialogue ni son paiement.
+I1  l'impot supplementaire choisi aupres de la servante : choisi par l'invite, l'host l'a (c'est lui qui fait la
+    facture), et l'inverse. Le banc ouvre un vrai dialogue (ShowDialog), ecrit player.extraTax par eval a la place
+    du choix du menu, puis ferme le dialogue. La facture du mois n'est pas faite.
 F2  (trois fenetres : mp_test.py --clients 2) la meme chose que F1 sur une carte tenue par un invite, frappe par
     un autre invite.
 F1  un monstre vise l'host, qui ne fait rien ; l'invite le frappe dix fois : le monstre joue ses tours (avant : fige,
@@ -380,6 +383,21 @@ def w1():
     ev(H, f'var c = EClass._map.charas.Find(x => x.uid == {npc}); if (c != null) c.Destroy(); return "ok";')
 
 
+def i1():
+    npc = int(ev(H, 'var c = EClass._map.charas.FirstOrDefault(x => !x.IsPC && !x.IsPCParty && x.IsGlobal && !x.isDead '
+                    '&& x.hostility >= Hostility.Neutral); return c == null ? "0" : c.uid.ToString();'))
+    if not check(f"un personnage a qui parler est sur la carte ({npc})", npc > 0):
+        return
+    tax = lambda p: int(ev(p, 'EClass.player.extraTax.ToString()'))  # noqa: E731
+    for port, other, who, value in ((A, H, "l'invite", 300), (H, A, "l'host", 0)):
+        before = tax(other)
+        ev(port, f'var c = EClass._map.charas.Find(x => x.uid == {npc}); c.ShowDialog(); return "ok";')
+        time.sleep(2)
+        ev(port, f'EClass.player.extraTax = {value}; if (LayerDrama.Instance != null) LayerDrama.Instance.Close(); return "ok";')
+        check(f"{who} choisit {value} d'impot supplementaire : l'autre jeu l'a ({before} -> {tax(other)})",
+              eventually(lambda: tax(other) == value, timeout=10))
+
+
 def f2():
     """a trois fenetres : la meme chose sur une carte tenue par un INVITE, le troisieme joueur frappe"""
     from travel_suite import HOME, VERNIS, client_settled, move, wait  # noqa: PLC0415
@@ -686,7 +704,7 @@ def main():
             continue
         check(f"{name} : pas de deuxieme ajout, lien remis ({r})", r == "0/0/True")
     check("au moins un jeu avait un autre membre dans l'equipe", RESULTS)
-    steps = (o1, b1, c1, h1, f1, l1, m1, s1, g1, e1, r1, p1, x1, a1, d1, w1, t1, q1, f2)
+    steps = (o1, b1, c1, h1, f1, l1, m1, s1, g1, e1, r1, p1, x1, a1, d1, w1, i1, t1, q1, f2)
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(',')]
     for step in steps:
