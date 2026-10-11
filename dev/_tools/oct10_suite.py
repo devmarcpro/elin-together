@@ -35,6 +35,10 @@ S1  « une part pour chacun » (conseil 14) : l'host termine une quete d'histoir
     Un joueur arrive « plus tard » (le banc l'efface du registre du monde) recoit un colis de rattrapage, une fois.
     La quete est creee et terminee par le pont (Quest.Create, Complete), pas jouee ; le cas ou c'est l'INVITE qui
     termine n'est pas joue ici (il faut une vraie quete du journal).
+T1  tresor du manoir maudit (Melilith) : chaque joueur peut prendre UN tresor sans etre maudit (avant : le second
+    joueur etait maudit pour son premier), la quete du groupe n'avance qu'une fois, un second tresor du meme joueur
+    le maudit toujours. Les tresors sont des seaux marques par le banc, pris par l'action « prendre » du jeu ; pas
+    dans le vrai manoir (contenu additionnel).
 F2  (trois fenetres : mp_test.py --clients 2) la meme chose que F1 sur une carte tenue par un invite, frappe par
     un autre invite.
 F1  un monstre vise l'host, qui ne fait rien ; l'invite le frappe dix fois : le monstre joue ses tours (avant : fige,
@@ -55,7 +59,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 import emp  # noqa: E402
-from mp_test import ok, state  # noqa: E402
+from mp_test import log, ok, state  # noqa: E402
 from travel_suite import RESULTS, check, ev, eventually, host_goto, players, scan_logs  # noqa: E402
 
 TWICE = ('var p = EClass.pc.party; var c = p.members.FirstOrDefault(x => x != EClass.pc); if (c == null) return "seul"; '
@@ -393,6 +397,51 @@ def s1():
     inside = ev(H, 'var p = EClass.game.cards.listPackage.Last(x => x.c_idRefName != null); return string.Join(",", p.things.Select(t => t.id + "x" + t.Num));')
     check(f"le colis contient les recompenses du registre ({inside})", "seed" in inside)
 
+TAKE = ('var t = EClass._map.things.Find(x => x.uid == {uid}); if (t == null) return "tresor absent"; '
+        'var p = new ActPlan { input = ActInput.RightMouse }; p.pos.Set(t.pos); p.dist = EClass.pc.pos.Distance(p.pos); '
+        'HarmonyLib.AccessTools.Field(typeof(ActPlan), "_canInteractNeighbor").SetValue(p, p.dist <= 1); '
+        'HotItemNoItem._TrySetAct(p); var item = p.list.FirstOrDefault(i => i.act is DynamicAct d && d.id == "actHold"); '
+        'if (item == null) return "action absente : " + string.Join(",", p.list.Select(i => i.act is DynamicAct d ? d.id : i.act.GetType().Name)); '
+        'item.Perform(); return "pris";')
+MINE = ('EClass.player.flags.pickedMelilithTreasure + "/" + EClass.player.flags.gotMelilithCurse + "/" + EClass.pc.Evalue(1206) + "/" + '
+        '(EClass.player.dialogFlags.ContainsKey("emp_melilith_taken") ? EClass.player.dialogFlags["emp_melilith_taken"] : 0)')
+PHASE = 'var q = EClass.game.quests.Get<QuestCursedManor>(); return q == null ? "aucune" : q.phase.ToString();'
+
+
+def t1():
+    def treasure(port_of):
+        uid = state(port_of)["pc"]["uid"]
+        return int(ev(H, f'var c = EClass.game.cards.globalCharas.Find({uid}); var t = ThingGen.Create("bucket"); '
+                         't.c_editorTags = "TreasureMelilith"; EClass._zone.AddCard(t, c.pos); return t.uid.ToString();'))
+    started = ev(H, 'var row = EClass.sources.quests.rows.FirstOrDefault(r => r.type == "QuestCursedManor"); if (row == null) return "pas de ligne"; '
+                    'if (EClass.game.quests.Get<QuestCursedManor>() == null) EClass.game.quests.Start(row.id); return row.id;')
+    time.sleep(3)
+    p0 = str(ev(H, PHASE))
+    log(f"quete du manoir : {started}, phase {p0} chez l'host, {ev(A, PHASE)} chez l'invite")
+    first = treasure(A)
+    eventually(lambda: ev(A, f'(EClass._map.things.Find(x => x.uid == {first}) != null).ToString()') == "True", timeout=10)
+    r = ev(A, TAKE.replace("{uid}", str(first)))
+    time.sleep(3)
+    check(f"l'invite prend un tresor ({r}) : note pour lui, pas maudit ({ev(A, MINE)})", str(ev(A, MINE)).startswith("True/False/0"))
+    check(f"le monde sait qu'un tresor a ete pris, chez l'host ({ev(H, MINE)})", eventually(lambda: str(ev(H, MINE)).endswith("/1"), timeout=15)
+          if p0 != "aucune" else True)
+    check(f"l'host n'est pas note comme ayant pris le sien ({ev(H, MINE)})", str(ev(H, MINE)).startswith("False/False/0"))
+    p1 = str(ev(H, PHASE))
+    second = treasure(H)
+    r = ev(H, TAKE.replace("{uid}", str(second)))
+    time.sleep(3)
+    check(f"l'host prend le sien ({r}) : pas maudit ({ev(H, MINE)})", str(ev(H, MINE)).startswith("True/False/0"))
+    if p0 != "aucune":
+        check(f"la quete du groupe a avance une seule fois ({p0} -> {p1} -> {ev(H, PHASE)})",
+              p1 != p0 and str(ev(H, PHASE)) == p1 and eventually(lambda: str(ev(A, PHASE)) == p1, timeout=15))
+    third = treasure(A)
+    eventually(lambda: ev(A, f'(EClass._map.things.Find(x => x.uid == {third}) != null).ToString()') == "True", timeout=10)
+    r = ev(A, TAKE.replace("{uid}", str(third)))
+    time.sleep(3)
+    check(f"un second tresor pour l'invite ({r}) : maudit, comme le veut le jeu ({ev(A, MINE)})", str(ev(A, MINE)).startswith("True/True/1"))
+    # (le banc retire la malediction de son personnage de test)
+    ev(A, 'EClass.pc.SetFeat(1206, 0); EClass.player.flags.gotMelilithCurse = false; return "ok";')
+
 
 def c1():
     rid = str(ev(A, LEARN))
@@ -441,7 +490,7 @@ def main():
             continue
         check(f"{name} : pas de deuxieme ajout, lien remis ({r})", r == "0/0/True")
     check("au moins un jeu avait un autre membre dans l'equipe", RESULTS)
-    steps = (b1, c1, h1, f1, l1, m1, s1, q1, f2)
+    steps = (b1, c1, h1, f1, l1, m1, s1, t1, q1, f2)
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(',')]
     for step in steps:

@@ -47,6 +47,7 @@ internal static class DialogFlagSync
         nameof(Player.Flags.reward_killkill),
         nameof(Player.Flags.reward_gould),
         nameof(Player.Flags.canComupWithFoodRecipe),
+        nameof(Player.Flags.pickedMelilithTreasure),
     ];
 
     /// <summary>
@@ -66,6 +67,8 @@ internal static class DialogFlagSync
         nameof(Player.Flags.canComupWithFoodRecipe),
         nameof(Player.Flags.gotMelilithCurse),
         nameof(Player.Flags.gotEtherDisease),
+        // (the first treasure of the cursed manor is allowed to each player, see MelilithTreasurePatch)
+        nameof(Player.Flags.pickedMelilithTreasure),
     }.Select(name => typeof(Player.Flags).GetProperty(name)!).ToArray();
 
     internal static Dictionary<string, int> OwnFlags(Player player)
@@ -116,6 +119,8 @@ internal static class DialogFlagSync
         if (!EClass.core.IsGameStarted || EClass.player is not { } player) {
             return;
         }
+
+        MelilithTreasurePatch.MarkOldWorld(player);
 
         var current = Read(player);
 
