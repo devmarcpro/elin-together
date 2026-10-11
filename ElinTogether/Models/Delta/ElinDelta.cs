@@ -133,6 +133,7 @@ namespace ElinTogether.Models;
 [Union(848, typeof(CharaSettingDelta))]
 [Union(849, typeof(ExtraTaxDelta))]
 [Union(850, typeof(BossWinDelta))]
+[Union(851, typeof(PartyExpDelta))]
 // Act
 [Union(900, typeof(ActThrowDelta))]
 // Element

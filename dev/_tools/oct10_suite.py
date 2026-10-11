@@ -72,6 +72,9 @@ I1  l'impot supplementaire choisi aupres de la servante : choisi par l'invite, l
 K1  le boss d'une zone tombe sur la carte de l'host : l'invite present a aussi la victoire (message « boss_win »,
     renommee) et sa copie de la zone n'a plus de boss. Le banc fait un boss d'un monstre cree par eval (uidBoss pose
     dans les deux jeux) et le tue par DamageHP chez l'host ; la Prairie n'est pas un donjon : ni fanfare ni « conquis ».
+J1  l'experience donnee « a toute l'equipe » (une recolte apprend le jardinage a tous) : gagnee dans le jeu de
+    l'host, l'invite l'a aussi, et l'inverse. Le banc appelle Card.ModExpParty sur la force (un personnage neuf n a pas le jardinage), sans
+    recolte. Pas couvert : l'experience de voyage a l'arrivee, les compagnons des autres joueurs.
 F2  (trois fenetres : mp_test.py --clients 2) la meme chose que F1 sur une carte tenue par un invite, frappe par
     un autre invite.
 F1  un monstre vise l'host, qui ne fait rien ; l'invite le frappe dix fois : le monstre joue ses tours (avant : fige,
@@ -417,6 +420,15 @@ def k1():
               after[p][1] == "0" and int(after[p][0]) > int(before[p][0]))
 
 
+def j1():
+    exp = lambda p: int(ev(p, 'var e = EClass.pc.elements.GetOrCreateElement(70); return (e.vBase * 1000 + e.vExp).ToString();'))  # noqa: E731
+    for port, other, who in ((H, A, "l'host"), (A, H, "l'invite")):
+        before = exp(other)
+        ev(port, 'EClass.pc.ModExpParty(70, 300); return "ok";')
+        check(f"{who} recolte : l'autre joueur gagne aussi l'experience d'equipe, dans son jeu ({before} -> {exp(other)})",
+              eventually(lambda: exp(other) > before, timeout=15))
+
+
 def f2():
     """a trois fenetres : la meme chose sur une carte tenue par un INVITE, le troisieme joueur frappe"""
     from travel_suite import HOME, VERNIS, client_settled, move, wait  # noqa: PLC0415
@@ -723,7 +735,7 @@ def main():
             continue
         check(f"{name} : pas de deuxieme ajout, lien remis ({r})", r == "0/0/True")
     check("au moins un jeu avait un autre membre dans l'equipe", RESULTS)
-    steps = (o1, b1, c1, h1, f1, l1, m1, s1, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, t1, q1, f2)
+    steps = (o1, b1, c1, h1, f1, l1, m1, s1, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, t1, q1, f2)
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(',')]
     for step in steps:
