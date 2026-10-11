@@ -615,7 +615,7 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
 ### Liste à jour du 2026-10-11, midi (passe avant tout ce qui suit ; le reste de cette section est plus ancien)
 
 Publiée : **0.26.691** (12 octobre, Elin EA 23.355). Après elle, rien de neuf.
-Le jeu Steam et le banc sont sur G depuis le 11 octobre (`G:\SteamLibrary`, `G:\ElinMods\_lab`). Prochains numéros libres : delta **850**, règle de session **26**.
+Le jeu Steam et le banc sont sur G depuis le 11 octobre (`G:\SteamLibrary`, `G:\ElinMods\_lab`). Prochains numéros libres : delta **851**, règle de session **26**.
 Cette liste vient d'une relecture de toute la documentation, de `HANDOFF.md`, de la fin de `MODLOG.md` et des plans.
 
 **1. Demandé par l'utilisateur, pas fait**
@@ -645,7 +645,7 @@ Cette liste vient d'une relecture de toute la documentation, de `HANDOFF.md`, de
 - Expérience « de groupe » de l'host (jardinage, voyage) jamais donnée à l'invité ; fin de tâche arrivée après
   l'arrêt de la tâche.
 - Chasse aux différences 3, lignes 38 à 52 (marche sur la carte du monde, duel d'aventurier, réunion de la base, génération des zones) ; restes des chasses 1 et 2.
-- Boss de donjon : la victoire d'un invité n'est pas transmise ; pas de fanfare chez l'invité.
+- Boss de donjon : victoire transmise depuis le 12 octobre (`BossWinDelta`) ; reste à jouer un vrai donjon et l'invité seul.
 - Philtre d'amour lâché dans le sac d'un PNJ, objet non identifié vendu ; fenêtre de perte de la banque.
 - Lenteurs à trois joueurs et plus (copie de carte à chaque étage), sacs en écart non réparés.
 

@@ -69,6 +69,9 @@ W1  un service paye dans un dialogue (la tache AI_Fuck lancee par le dialogue ap
 I1  l'impot supplementaire choisi aupres de la servante : choisi par l'invite, l'host l'a (c'est lui qui fait la
     facture), et l'inverse. Le banc ouvre un vrai dialogue (ShowDialog), ecrit player.extraTax par eval a la place
     du choix du menu, puis ferme le dialogue. La facture du mois n'est pas faite.
+K1  le boss d'une zone tombe sur la carte de l'host : l'invite present a aussi la victoire (message « boss_win »,
+    renommee) et sa copie de la zone n'a plus de boss. Le banc fait un boss d'un monstre cree par eval (uidBoss pose
+    dans les deux jeux) et le tue par DamageHP chez l'host ; la Prairie n'est pas un donjon : ni fanfare ni « conquis ».
 F2  (trois fenetres : mp_test.py --clients 2) la meme chose que F1 sur une carte tenue par un invite, frappe par
     un autre invite.
 F1  un monstre vise l'host, qui ne fait rien ; l'invite le frappe dix fois : le monstre joue ses tours (avant : fige,
@@ -398,6 +401,22 @@ def i1():
               eventually(lambda: tax(other) == value, timeout=10))
 
 
+def k1():
+    boss = int(ev(H, 'var m = CharaGen.Create("putit"); m.hostility = m.c_originalHostility = Hostility.Neutral; '
+                     'EClass._zone.AddCard(m, EClass.pc.pos.GetNearestPoint(false, false)); m.noMove = true; EClass._zone.uidBoss = m.uid; return m.uid.ToString();'))
+    eventually(lambda: ev(A, f'(EClass._map.charas.Find(x => x.uid == {boss}) != null).ToString()') == "True", timeout=10)
+    ev(A, f'EClass._zone.uidBoss = {boss}; return "ok";')
+    seen = lambda p: str(ev(p, 'return EClass.player.fame + "|" + EClass._zone.uidBoss + "|" + EClass.game.log.dict.Values.Count(x => x.text != null && x.text.Contains(Lang.Game.Get("boss_win").Split((char)35)[0].Trim()));'))  # noqa: E731
+    before = {p: seen(p).split("|") for p in (H, A)}
+    ev(H, f'var m = EClass._map.charas.Find(x => x.uid == {boss}); m.DamageHP(99999, AttackSource.None, EClass.pc); return "ok";')
+    eventually(lambda: seen(A).split("|")[1] == "0", timeout=20)
+    time.sleep(1)
+    after = {p: seen(p).split("|") for p in (H, A)}
+    for who, p in (("l'host", H), ("l'invite", A)):
+        check(f"{who} : le boss est tombe, plus de boss dans la zone, renommee gagnee (renommee|boss|messages : {before[p]} -> {after[p]})",
+              after[p][1] == "0" and int(after[p][0]) > int(before[p][0]))
+
+
 def f2():
     """a trois fenetres : la meme chose sur une carte tenue par un INVITE, le troisieme joueur frappe"""
     from travel_suite import HOME, VERNIS, client_settled, move, wait  # noqa: PLC0415
@@ -704,7 +723,7 @@ def main():
             continue
         check(f"{name} : pas de deuxieme ajout, lien remis ({r})", r == "0/0/True")
     check("au moins un jeu avait un autre membre dans l'equipe", RESULTS)
-    steps = (o1, b1, c1, h1, f1, l1, m1, s1, g1, e1, r1, p1, x1, a1, d1, w1, i1, t1, q1, f2)
+    steps = (o1, b1, c1, h1, f1, l1, m1, s1, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, t1, q1, f2)
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(',')]
     for step in steps:
