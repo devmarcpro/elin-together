@@ -3,7 +3,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using ElinTogether.Models;
+using ElinTogether.Common;
+using ElinTogether.LangMod;
 using Steamworks;
+using UnityEngine;
 
 namespace ElinTogether.Net;
 
@@ -152,6 +155,148 @@ internal static class WorldHandover
         Following = next != 0 && next != _me;
         _oldLobby = NetSession.Instance.Lobby.Current;
         _newLobby = 0;
+    }
+
+    // ---- the former host comes back (council 9, slice R6) ----
+
+    private const float WatchSeconds = 20f;
+    private static float _nextWatch;
+
+    /// <summary>
+    ///     Which world the game loaded here is, the same in every copy of it
+    /// </summary>
+    internal static string WorldKey => EClass.game is { } game ? game.seed.ToString() : "";
+
+    // games of this machine that host on a local port (the bench, a second window): world|handover|port|process
+    // (not in the folder of the copies: on the bench each window has its own, and they must all read this one)
+    private static string LocalFile => Path.Combine(Application.persistentDataPath, "ElinMP", "local-host.txt");
+
+    /// <summary>
+    ///     This game hosts on a local port: said for the other games of this machine
+    /// </summary>
+    internal static void AnnounceLocal(int port)
+    {
+        try {
+            Directory.CreateDirectory(Path.GetDirectoryName(LocalFile)!);
+            var process = System.Diagnostics.Process.GetCurrentProcess().Id;
+            File.WriteAllText(LocalFile, string.Join("|", WorldKey, ElinNetHost.HandoverNumber, port, process));
+        } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) {
+            // noexcept
+        }
+    }
+
+    /// <summary>
+    ///     The local port of another game of this machine that hosts this same world, taken over since: 0 for none
+    /// </summary>
+    internal static int NewerLocalHost()
+    {
+        try {
+            if (!File.Exists(LocalFile)) {
+                return 0;
+            }
+
+            var parts = File.ReadAllText(LocalFile).Split((char)124);
+            if (parts.Length != 4 || parts[0] != WorldKey || !int.TryParse(parts[1], out var handover) ||
+                !int.TryParse(parts[2], out var port) || !int.TryParse(parts[3], out var process) ||
+                handover <= ElinNetHost.HandoverNumber || process == System.Diagnostics.Process.GetCurrentProcess().Id) {
+                return 0;
+            }
+
+            // (a game that crashed leaves its line behind)
+            System.Diagnostics.Process.GetProcessById(process);
+            return port;
+        } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or InvalidOperationException) {
+            return 0;
+        }
+    }
+
+    /// <summary>
+    ///     Every frame. This game hosts a world alone, and another player took that world over since (it left by a
+    ///     crash, its line was cut, or it loaded its own save again): the game that goes on is the other one. It is
+    ///     joined as a guest, without a question; the save played here is left as it is, nothing is deleted
+    /// </summary>
+    internal static void Watch()
+    {
+        if (Time.unscaledTime < _nextWatch) {
+            return;
+        }
+
+        _nextWatch = Time.unscaledTime + WatchSeconds;
+
+        var session = NetSession.Instance;
+        if (!EmpConfig.Server.Takeover.Value || !EClass.core.IsGameStarted ||
+            session.Transport is not ElinNetHost { IsZoneSession: false } host || session.CurrentPlayers.Count > 1 ||
+            WorldTakeover.Busy) {
+            return;
+        }
+
+        if (TryJoinNewerLocal()) {
+            return;
+        }
+
+        // by Steam: the games that say they host this world, kept by a player of this world, taken over since
+        if (host.IsLocalServer || session.Lobby.IsListing) {
+            return;
+        }
+
+        var world = WorldKey;
+        var mine = ElinNetHost.HandoverNumber;
+        try {
+            session.Lobby.GetOnlineLobbies(lobbies => {
+                foreach (var lobby in lobbies) {
+                    if (lobby == session.Lobby.Current || lobby[EmpLobbyData.World] != world ||
+                        !int.TryParse(lobby[EmpLobbyData.Handover], out var handover) || handover <= mine ||
+                        !ElinNetHost.IsPlayerOfWorld(lobby.GameServer.id.m_SteamID)) {
+                        continue;
+                    }
+
+                    var found = lobby;
+                    Rejoin(() => session.Lobby.ConnectLobby(found));
+                    return;
+                }
+            }, world);
+        } catch (Exception ex) {
+            EmpLog.Debug(ex, "The games that host this world could not be listed");
+            // noexcept
+        }
+    }
+
+    /// <summary>
+    ///     Another game of this machine hosts this world, taken over since: joined instead of hosting (also before
+    ///     a session opens by itself at load: its port is the one this game would ask for)
+    /// </summary>
+    internal static bool TryJoinNewerLocal()
+    {
+        if (!EmpConfig.Server.Takeover.Value || NewerLocalHost() is not (var port and > 0)) {
+            return false;
+        }
+
+        var session = NetSession.Instance;
+        Rejoin(() => session.InitializeComponent<ElinNetClient>().ConnectLocalPort((ushort)port));
+        return true;
+    }
+
+    private static void Rejoin(Action join)
+    {
+        var session = NetSession.Instance;
+        // (asked a moment ago: a player may have come in meanwhile, this game is then the one that goes on)
+        if (session.Transport is ElinNetClient || session.CurrentPlayers.Count > 1) {
+            return;
+        }
+
+        EmpLog.Information("Another player took this world over since: joining its game instead of hosting a second one");
+        EmpPop.Information("emp_takeover_rejoin".lang());
+
+        session.ResetSession();
+        if (EClass.core.IsGameStarted) {
+            EClass.scene.Init(Scene.Mode.Title);
+        }
+
+        try {
+            join();
+        } catch (Exception ex) {
+            EmpLog.Warning(ex, "Could not join the game that took this world over");
+        }
     }
 
     internal static string Describe()

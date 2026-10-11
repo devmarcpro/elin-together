@@ -314,5 +314,6 @@
     "LangGeneral.emp_ui_limited_bought.text": "你已经买过这个了。",
     "LangGeneral.emp_story_share.text": "{0}的份",
     "LangGeneral.emp_ui_sv_cfg_once_per_player.text": "一次性的东西每位玩家一份",
-    "LangGeneral.emp_ui_sv_desc_once_per_player.text": "开：商店的限量商品和剧情给的东西（任务奖励、对话礼物）每位玩家各得一次。关：只有第一个玩家（与原版相同）。"
+    "LangGeneral.emp_ui_sv_desc_once_per_player.text": "开：商店的限量商品和剧情给的东西（任务奖励、对话礼物）每位玩家各得一次。关：只有第一个玩家（与原版相同）。",
+    "LangGeneral.emp_takeover_rejoin.text": "另一位玩家已接管这个世界。正在加入其游戏…"
 }

@@ -42,6 +42,7 @@ internal partial class ElinNetHost : ElinNetBase
         try {
             if (localUdp) {
                 Socket.StartServerUdp();
+                WorldHandover.AnnounceLocal(Common.EmpConstants.LocalPort);
             } else {
                 Socket.StartServerSdr();
             }

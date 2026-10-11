@@ -23,6 +23,14 @@ public class SteamNetLobbyManager : EClass
 
     public LobbyData Current;
     private Action<LobbyData[]>? _deferOnComplete;
+
+    // the world the list under way was asked for, null for every game
+    private string? _listWorld;
+
+    /// <summary>
+    ///     A list of games was asked and has not come yet
+    /// </summary>
+    internal bool IsListing => _deferOnComplete is not null;
     private bool _shutdown;
     private bool _quiet;
     private bool _invisible;
@@ -185,9 +193,15 @@ public class SteamNetLobbyManager : EClass
     /// <summary>
     ///     Fetch all current online lobbies
     /// </summary>
-    public void GetOnlineLobbies(Action<LobbyData[]> onComplete)
+    /// <param name="world">only the games that host that world (EmpLobbyData.World), the hidden ones included</param>
+    public void GetOnlineLobbies(Action<LobbyData[]> onComplete, string? world = null)
     {
         _deferOnComplete = onComplete;
+        _listWorld = world;
+        if (world is not null) {
+            SteamMatchmaking.AddRequestLobbyListStringFilter(EmpLobbyData.World, world, ELobbyComparison.k_ELobbyComparisonEqual);
+        }
+
 #if !DEBUG
         SteamMatchmaking.AddRequestLobbyListStringFilter(
             EmpLobbyData.EmpVersion, ModInfo.BuildVersion, ELobbyComparison.k_ELobbyComparisonEqual);
@@ -294,6 +308,8 @@ public class SteamNetLobbyManager : EClass
         Current[EmpLobbyData.EmpVersion] = ModInfo.BuildVersion;
         Current[EmpLobbyData.GameBuild] = BuildVersionIntegrity.GameVersion;
         Current[EmpLobbyData.CurrentZone] = core.game?.activeZone?.NameWithLevel ?? "";
+        Current[EmpLobbyData.World] = WorldHandover.WorldKey;
+        Current[EmpLobbyData.Handover] = ElinNetHost.HandoverNumber.ToString();
 
         // the mods of the game, for who looks at the list of games before joining
         if (EmpConfig.Server.PublishMods.Value) {
@@ -476,7 +492,8 @@ public class SteamNetLobbyManager : EClass
             if (!lobby.IsValid || lobby.MemberCount == 0 ||
                 (lobby[HiddenKey] == "1" && SteamFriends.GetFriendRelationship(lobby.GameServer.id) !=
                     EFriendRelationship.k_EFriendRelationshipFriend &&
-                    !WorldHandover.IsTaker(lobby.GameServer.id.m_SteamID))) {
+                    !WorldHandover.IsTaker(lobby.GameServer.id.m_SteamID) &&
+                    (_listWorld is null || lobby[EmpLobbyData.World] != _listWorld))) {
                 continue;
             }
 

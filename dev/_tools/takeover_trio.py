@@ -39,6 +39,7 @@ def main():
     if not check("depart : trois joueurs dans la partie", all(players(p) == 3 for p in (H, A, B))):
         return finish(start)
     me = {p: state(p)["pc"] for p in (A, B)}
+    old_host = state(H)["pc"]
     command(H, "emp.takeover_rule 1")
     for p in (A, B):
         command(p, "emp.auto_open 1")
@@ -100,7 +101,32 @@ def main():
           and ev(other, f'(EClass._map.charas.Any(c => c.uid == {me[new]["uid"]})).ToString()') == "True")
     check("un seul personnage de chacun sur la carte du repreneur",
           ev(new, f'EClass._map.charas.Count(c => c.uid == {me[other]["uid"]}).ToString()') == "1")
+    if "--crash" not in sys.argv:
+        returns(new, old_host)
     finish(start)
+
+
+def returns(new, old_host):
+    """R6 : l'ancien host recharge SON monde (ce que fait « Continue ») : un autre joueur l'a repris depuis, il le
+    rejoint en invite sans question au lieu d'ouvrir un second monde, et retrouve son personnage."""
+    command(H, "emp.auto_open 1")
+    if state(H).get("sceneMode") != "Title":
+        ev(H, 'EClass.ui.RemoveLayers(); EClass.game.Kill(); EClass.scene.Init(Scene.Mode.Title); "ok"')
+        time.sleep(3)
+    t = time.time()
+    ev(H, 'Game.Load("world_lab", false); "ok"', timeout=300)
+
+    def back():
+        s = state(H)
+        return s.get("sceneMode") == "Zone" and s.get("role") == "Client" and s.get("connected") and players(new) == 3
+    if not check("l'ancien host recharge son monde : il rejoint le repreneur en invite, sans un clic", eventually(back, timeout=240)):
+        log(f"ancien host : {state(H).get('role')} {state(H).get('sceneMode')} connecte {state(H).get('connected')} ; joueurs chez le repreneur {players(new)}")
+        return
+    log(f"ancien host de retour en invite {time.time() - t:.0f} s apres avoir recharge son monde")
+    time.sleep(4)
+    now = state(H)["pc"]
+    check(f"il joue son personnage ({now.get('name')}, {now.get('uid')})", now.get("uid") == old_host["uid"] and now.get("name") == old_host["name"])
+    check("un seul monde est heberge : le repreneur est toujours l'host, trois joueurs", state(new).get("role") == "Host" and players(new) == 3)
 
 
 def finish(start):

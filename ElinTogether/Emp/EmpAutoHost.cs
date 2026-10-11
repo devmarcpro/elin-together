@@ -84,6 +84,11 @@ internal static class EmpAutoHost
             return;
         }
 
+        // another player took this world over since it was last hosted here: its game is the one that goes on
+        if (WorldHandover.TryJoinNewerLocal()) {
+            return;
+        }
+
         try {
             NetSession.Instance.InitializeComponent<ElinNetHost>().StartServer(local, true);
         } catch (Exception ex) {

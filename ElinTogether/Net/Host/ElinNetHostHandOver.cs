@@ -78,6 +78,14 @@ internal partial class ElinNetHost
     }
 
     /// <summary>
+    ///     That Steam account plays a character in this world
+    /// </summary>
+    internal static bool IsPlayerOfWorld(ulong user)
+    {
+        return SavedRemoteCharas.ContainsKey(user) || PcOwners.ContainsKey(user);
+    }
+
+    /// <summary>
     ///     This world is one other players play in: one of them has a character in it, or it was another player's.
     ///     A world played alone opens no session by itself, nothing changes for a solo player (EmpAutoHost)
     /// </summary>
