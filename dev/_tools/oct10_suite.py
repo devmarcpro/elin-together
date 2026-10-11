@@ -29,6 +29,11 @@ M1  l'invite monte un cheval, part seul a Vernis, y marche, revient et marche : 
     du monde (pas une copie), sur la case de son cavalier, une seule fois sur la carte (avant : le cavalier montait
     une copie, la vraie monture gardait une case de Vernis : monde inchargeable le 9 octobre). Le banc fait monter
     par l'acte du jeu (ActRide), pas par le menu.
+S1  « une part pour chacun » (conseil 14) : l'host termine une quete d'histoire (celle du curry : une cassette et
+    trois graines) ; l'invite present trouve la meme chose a ses pieds, dans les deux jeux ; l'invite parti a
+    Vernis recoit un colis a son nom dans le courrier de la base ; ce que le jeu lache hors d'une quete d'histoire ne donne de part a personne.
+    La quete est creee et terminee par le pont (Quest.Create, Complete), pas jouee ; le cas ou c'est l'INVITE qui
+    termine n'est pas joue ici (il faut une vraie quete du journal).
 F2  (trois fenetres : mp_test.py --clients 2) la meme chose que F1 sur une carte tenue par un invite, frappe par
     un autre invite.
 F1  un monstre vise l'host, qui ne fait rien ; l'invite le frappe dix fois : le monstre joue ses tours (avant : fige,
@@ -319,6 +324,54 @@ def m1():
         check(f"{who} : une seule fois sur la carte et dans ses cases ({listed}, {cells})", listed == "1" and cells == "1")
     ev(A, 'if (EClass.pc.ride != null) ActRide.Unride(EClass.pc, false, false); return "ok";')
 
+NEAR = ('var c = EClass.game.cards.globalCharas.Find({uid}); return string.Join(",", EClass._map.things'
+        '.Where(t => t.pos.Equals(c.pos) && (t.trait is TraitSeed || t.id == "bucket"))'
+        '.Select(t => t.id + "x" + t.Num).OrderBy(x => x));')
+MAIL = ('string.Join(";", EClass.game.cards.listPackage.Where(p => p.c_idRefName != null && p.c_idRefName.Contains("{name}"))'
+        '.Select(p => string.Join(",", p.things.Select(t => t.id + "x" + t.Num).OrderBy(x => x))))')
+
+
+def s1():
+    from travel_suite import VERNIS, both_joined, client_settled, move, wait  # noqa: PLC0415
+    host, guest = state(H)["pc"]["uid"], state(A)["pc"]
+    near = lambda p, uid: str(ev(p, NEAR.replace("{uid}", str(uid))))  # noqa: E731
+    before = near(H, guest["uid"])
+    ev(H, 'var q = Quest.Create("curry"); q.Complete(); return "ok";')
+    time.sleep(3)
+    mine = near(H, host)
+    check(f"l'host termine la quete du curry : sa recompense est a ses pieds ({mine})", "seed" in mine)
+    check(f"l'invite present trouve la meme chose a ses pieds, chez l'host ({near(H, guest['uid'])})",
+          eventually(lambda: near(H, guest["uid"]) == mine and near(H, guest["uid"]) != before, timeout=15))
+    check(f"et dans son propre jeu ({near(A, guest['uid'])})", eventually(lambda: near(A, guest["uid"]) == mine, timeout=15))
+    ev(H, 'EClass.player.DropReward(ThingGen.Create("bucket")); return "ok";')
+    time.sleep(3)
+    check(f"une recompense hors de l'histoire (un seau lache par le jeu) ne donne pas de part ({near(H, guest['uid'])})",
+          "bucket" in near(H, host) and "bucket" not in near(H, guest["uid"]))
+    # la case de l'host « une fois par monde = une fois par joueur » decochee : comme le jeu, rien pour l'invite
+    from combat_suite import set_option  # noqa: PLC0415
+    set_option("OncePerPlayer", False)
+    try:
+        time.sleep(2)
+        seen = near(H, guest["uid"])
+        ev(H, 'var q = Quest.Create("curry"); q.Complete(); return "ok";')
+        time.sleep(4)
+        check(f"case decochee : pas de part pour l'invite ({near(H, guest['uid'])})", near(H, guest["uid"]) == seen)
+    finally:
+        set_option("OncePerPlayer", True)
+        time.sleep(2)
+    mail = lambda: str(ev(H, MAIL.replace("{name}", guest["name"].split(" ")[-1].strip("「」"))))  # noqa: E731
+    m0 = mail()
+    try:
+        move(A, VERNIS)
+        wait(client_settled(A, VERNIS, True), "l'invite seul a Vernis", timeout=180)
+        time.sleep(3)
+        ev(H, 'var q = Quest.Create("curry"); q.Complete(); return "ok";')
+        check(f"l'invite ailleurs : un colis a son nom part au courrier de la base ({mail()})",
+              eventually(lambda: mail() != m0 and "seed" in mail(), timeout=15))
+    finally:
+        move(A, HOME)
+        both_joined(H, A, HOME)
+
 
 def c1():
     rid = str(ev(A, LEARN))
@@ -367,7 +420,7 @@ def main():
             continue
         check(f"{name} : pas de deuxieme ajout, lien remis ({r})", r == "0/0/True")
     check("au moins un jeu avait un autre membre dans l'equipe", RESULTS)
-    steps = (b1, c1, h1, f1, l1, m1, q1, f2)
+    steps = (b1, c1, h1, f1, l1, m1, s1, q1, f2)
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(',')]
     for step in steps:

@@ -176,10 +176,19 @@ public class NetSessionRules
     [Key(24)]
     public bool AllowTakeover { get; set; } = false;
 
+    /// <summary>
+    ///     Council 14: what the game gives once per world, each player gets once: the limited stock of a shop
+    ///     (LimitedStockPatch) and what the story gives (ElinNetHost.NoteStoryReward). Off: the game's own rule,
+    ///     the first player is the only one
+    /// </summary>
+    [Key(25)]
+    public bool OncePerPlayer { get; set; } = true;
+
     public static NetSessionRules Default => new() {
         AllowTakeover = EmpConfig.Server.Takeover.Value,
         SoftRecall = EmpConfig.Server.SoftRecall.Value,
         UseSharedTax = EmpConfig.Server.SharedTax.Value,
+        OncePerPlayer = EmpConfig.Server.OncePerPlayer.Value,
         // (a takeover is made from that copy: asking for one asks for the other, a host that ticked only
         // "another player takes over" got nothing)
         KeepWorldCopy = EmpConfig.Server.WorldCopy.Value || EmpConfig.Server.Takeover.Value,

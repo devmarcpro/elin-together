@@ -141,6 +141,15 @@ internal partial class ElinNetHost
     /// <summary>
     ///     That character is the one this player plays: on this map, or kept for it while it is away or arriving
     /// </summary>
+    /// <summary>
+    ///     The character that player plays, on this map or kept for it while it is away
+    /// </summary>
+    internal Chara? PlayerChara(int peerId)
+    {
+        return ActiveRemoteCharas.GetValueOrDefault(peerId) ??
+               (Socket.Peers.FirstOrDefault(p => p.Id == peerId) is { } peer ? KeptChara(peer) : null);
+    }
+
     internal bool IsOwnChara(int peerId, int uid)
     {
         return IsOwnChara(Socket.Peers.FirstOrDefault(p => p.Id == peerId), uid);

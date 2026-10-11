@@ -38,6 +38,7 @@ internal class CoreSynchronizationContext : SynchronizationContext
         CardAddThingEvent.FlushPendingAbilityFakeCard();
         ThingRequest.InvalidateDangling();
         StoryGifts.Flush();
+        ElinNetHost.GiveStoryShares();
         TileStateDelta.Flush();
         PlayerTrade.Update();
         PlayerDuel.Update();

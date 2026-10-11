@@ -303,6 +303,14 @@ internal partial class EmpConfig
             "Otherwise on the host's fame, as the game does\n" +
             "每月税金按在线玩家中最高的名声计算，而不总是按主机的名声。关闭时按主机的名声计算（与原版相同）");
 
+        Server.OncePerPlayer = config.Bind(
+            "Server",
+            "OncePerPlayer",
+            true,
+            "What the game gives once per world is given once to each player: what a shop sells only once, and the rewards of story quests and dialogs (a share for every player)\n" +
+            "Otherwise the first player who buys it or earns it is the only one who has it, as the game does\n" +
+            "游戏每个世界只给一次的东西，每位玩家都能得到一次：商店的限量商品，以及剧情任务和对话的奖励（每位玩家一份）。关闭时只有第一个购买或获得的玩家拥有（与原版相同）");
+
         Server.SoftRecall = config.Bind(
             "Server",
             "SoftRecall",
@@ -461,6 +469,7 @@ internal partial class EmpConfig
         internal static ConfigEntry<bool> WorldCopy { get; set; } = null!;
         internal static ConfigEntry<bool> Takeover { get; set; } = null!;
         internal static ConfigEntry<bool> SharedTax { get; set; } = null!;
+        internal static ConfigEntry<bool> OncePerPlayer { get; set; } = null!;
         internal static ConfigEntry<bool> SoftRecall { get; set; } = null!;
         internal static ConfigEntry<bool> AutoHost { get; set; } = null!;
         internal static ConfigEntry<bool> OwnSleep { get; set; } = null!;

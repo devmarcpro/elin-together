@@ -37,7 +37,7 @@ public class StoryOutcomeDelta : ElinDelta
         var target = FindTarget();
 
         // travelling alone, the player ran it in its copy of the world and got what it gives there
-        using (away ? QuestRewardPatch.GiveNothing() : QuestRewardPatch.GiveTo(host, OriginPeer)) {
+        using (away ? QuestRewardPatch.GiveNothing(host.PlayerChara(OriginPeer)) : QuestRewardPatch.GiveTo(host, OriginPeer)) {
             using (Simulate()) {
                 try {
                     Run(target, away);

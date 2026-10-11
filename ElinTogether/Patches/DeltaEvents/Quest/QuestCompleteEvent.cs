@@ -126,12 +126,34 @@ internal static class QuestRewardPatch
     /// <summary>
     ///     While the host repeats a quest step a player made in its own copy of the world, where it got the rewards
     /// </summary>
-    internal static ScopeExit GiveNothing()
+    /// <param name="earner">the player who made that step, and has what it gives: the others get their share</param>
+    internal static ScopeExit GiveNothing(Chara? earner = null)
     {
         _nothing = true;
+        _earner = earner;
         return new() {
-            OnExit = () => _nothing = false,
+            OnExit = () => {
+                _nothing = false;
+                _earner = null;
+            },
         };
+    }
+
+    // the player who earned what the host drops "for nothing" (it has it already, in its own copy of the world)
+    private static Chara? _earner;
+
+    /// <summary>
+    ///     Whatever was done with it above: a reward of the story is the group's, every other player gets its share
+    ///     (ElinNetHost.NoteStoryReward; not in a client's game, the host's hears of it)
+    /// </summary>
+    [HarmonyPostfix]
+    internal static void OnRewardDropped(Thing __result)
+    {
+        if (NetSession.Instance.Connection is ElinNetClient && !ElinDelta.IsApplying) {
+            return;
+        }
+
+        ElinNetHost.NoteStoryReward(__result, _nothing ? _earner : _receiver);
     }
 
     [HarmonyPrefix]

@@ -52,7 +52,7 @@ public class QuestCompleteDelta : ElinDelta
             if (host.IsAwayPeer(OriginPeer)) {
                 // completed by a player travelling alone, in its copy of the world: it got the rewards there,
                 // the quest log, fame and karma are the world's
-                if (!quest.IsRandomQuest && TryCompleteForWorld(host, quest)) {
+                if (!quest.IsRandomQuest && TryCompleteForWorld(host, quest, host.PlayerChara(OriginPeer))) {
                     return;
                 }
 
@@ -81,10 +81,10 @@ public class QuestCompleteDelta : ElinDelta
     ///     A story quest completed by a player travelling alone: what completing it opens up (the next quests,
     ///     who moves where) is the world's, so the host completes it too, without the rewards
     /// </summary>
-    private static bool TryCompleteForWorld(ElinNetHost host, Quest quest)
+    private static bool TryCompleteForWorld(ElinNetHost host, Quest quest, Chara? earner)
     {
         try {
-            using (QuestRewardPatch.GiveNothing()) {
+            using (QuestRewardPatch.GiveNothing(earner)) {
                 using (Simulate()) {
                     quest.Complete();
                 }

@@ -65,7 +65,7 @@ public class QuestChangePhaseDelta : ElinDelta
         try {
             // what the phase triggers in the world happens here, for everyone; what it gives goes to the player
             // who made the step, who already has it when travelling alone
-            using (away ? QuestRewardPatch.GiveNothing() : QuestRewardPatch.GiveTo(host, OriginPeer)) {
+            using (away ? QuestRewardPatch.GiveNothing(host.PlayerChara(OriginPeer)) : QuestRewardPatch.GiveTo(host, OriginPeer)) {
                 using (Simulate()) {
                     quest.ChangePhase(Modifier);
                 }

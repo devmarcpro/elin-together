@@ -31,7 +31,11 @@ internal static class LimitedStockPatch
     // CINT.noRestock: "limited stock"
     private const int Limited = 101;
 
-    private static bool Shared => NetSession.Instance.Transport is not null || ElinNetHost.IsSharedWorld;
+    // (the host's checkbox: its own setting when no session is open, else the rule it told the players)
+    private static bool Shared => (NetSession.Instance.Transport is not null || ElinNetHost.IsSharedWorld) &&
+                                  (NetSession.Instance.Transport is null
+                                      ? EmpConfig.Server.OncePerPlayer.Value
+                                      : NetSession.Instance.Rules.OncePerPlayer);
 
     // "uid:how many,uid:how many"
     private static Dictionary<string, int> Buyers(Thing thing)
