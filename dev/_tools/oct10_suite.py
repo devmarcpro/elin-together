@@ -51,6 +51,9 @@ E1  la terre achetee a la servante de la base (daBuyLand) agrandit la zone const
 R1  les reglages d'un habitant faits dans son dialogue (« reste ici », equipement partage) : l'invite les regle,
     l'host les a, et l'inverse. Le banc ouvre le vrai dialogue (ShowDialog) et le ferme, mais ecrit les valeurs par
     eval a la place du choix du menu (noMove, orgPos, SetInt 113 : ce que fait le choix).
+P1  la peche d'un invite : ses prises du jour sont comptees pour LUI chez l'host (la « fievre » du don de pecheur
+    dure ses cinq premieres prises), et le compte de l'host ne bouge pas. Le banc appelle AI_Fish.Makefish chez
+    l'host pour le personnage de l'invite (ce que fait la fin d'une peche), sans canne ni eau.
 F2  (trois fenetres : mp_test.py --clients 2) la meme chose que F1 sur une carte tenue par un invite, frappe par
     un autre invite.
 F1  un monstre vise l'host, qui ne fait rien ; l'invite le frappe dix fois : le monstre joue ses tours (avant : fige,
@@ -274,6 +277,21 @@ def r1():
         mine = got(port)
         check(f"{who} regle l'habitant dans son dialogue ({mine})", mine.startswith(str(bool(value))))
         check(f"l'autre joueur a les memes reglages ({before} -> {got(other)})", eventually(lambda: got(other) == mine, timeout=10))
+
+
+FISH = ('var c = EClass._map.charas.Find(x => x.uid == {uid}); var mine = EClass.player.fished; '
+        'for (var i = 0; i < 3; i++) { var t = AI_Fish.Makefish(c); if (t != null) t.Destroy(); } '
+        'var m = System.AppDomain.CurrentDomain.GetAssemblies().First(a => a.GetName().Name == "ElinTogether").GetType("ElinTogether.Patches.AIFishPatch").GetMethod("FishedToday", '
+        'System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic); '
+        'return m.Invoke(null, new object[] { {uid} }) + "|" + (EClass.player.fished - mine);')
+
+
+def p1():
+    guest = state(A)["pc"]["uid"]
+    first = str(ev(H, FISH.replace("{uid}", str(guest))))
+    second = str(ev(H, FISH.replace("{uid}", str(guest))))
+    check(f"trois prises de l'invite puis trois autres : comptees pour lui, pas pour l'host ({first} puis {second})",
+          first.endswith("|0") and second.endswith("|0") and int(second.split("|")[0]) == int(first.split("|")[0]) + 3)
 
 
 def f2():
@@ -582,7 +600,7 @@ def main():
             continue
         check(f"{name} : pas de deuxieme ajout, lien remis ({r})", r == "0/0/True")
     check("au moins un jeu avait un autre membre dans l'equipe", RESULTS)
-    steps = (o1, b1, c1, h1, f1, l1, m1, s1, g1, e1, r1, t1, q1, f2)
+    steps = (o1, b1, c1, h1, f1, l1, m1, s1, g1, e1, r1, p1, t1, q1, f2)
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(',')]
     for step in steps:

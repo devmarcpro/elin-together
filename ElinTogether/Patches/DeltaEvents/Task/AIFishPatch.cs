@@ -94,15 +94,30 @@ internal static class AIFishPatch
             return;
         }
 
-        // the catches of the day counted by the game are the host's own
+        // the catches of the day counted by the game are the host's own: that player's count stands in for the
+        // roll (the fisher's fever is the first five catches of ITS day), and is noted back after it
         var fished = EClass.player.fished;
+        var day = EClass.player.stats.days;
+        EClass.player.fished = _fished.TryGetValue(c.uid, out var its) && its.Day == day ? its.Fished : 0;
         var standIn = RemoteCraft.AsCrafter(c);
         __state = new() {
             OnExit = () => {
                 standIn.Dispose();
+                _fished[c.uid] = (day, EClass.player.fished);
                 EClass.player.fished = fished;
             },
         };
+    }
+
+    // ponytail: kept while this game runs, not saved: a host that restarts gives each guest its fever again that day
+    private static readonly Dictionary<int, (int Day, int Fished)> _fished = [];
+
+    /// <summary>
+    ///     The catches of today counted for that player's character (the bench reads it)
+    /// </summary>
+    internal static int FishedToday(int uid)
+    {
+        return _fished.TryGetValue(uid, out var its) && its.Day == EClass.player.stats.days ? its.Fished : 0;
     }
 
     [HarmonyFinalizer]
