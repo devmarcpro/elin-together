@@ -177,9 +177,23 @@ internal partial class ElinNetHost
                     world.SendPackage(parcel);
                 }
 
+                TellShare(host, other, (here ? "emp_story_share_got" : "emp_story_share_mail").Loc(share.Name));
                 EmpLog.Information("Story reward {Id} x{Num}: a share for player {Uid} ({Where})",
                     reward.id, reward.Num, other.uid, here ? "in its bag" : "by mail");
             }
+        }
+    }
+
+    // ponytail: in the language of the game that hosts; a text id read by each game if players complain
+    private static void TellShare(ElinNetHost? host, Chara player, string text)
+    {
+        if (player.IsPC) {
+            Msg.SayRaw(text);
+            return;
+        }
+
+        if (host?.Socket.Peers.FirstOrDefault(p => SavedRemoteCharas.TryGetValue(p.User, out var uid) && uid == player.uid) is { } peer) {
+            host.SendDeltaTo(peer.Id, new MsgSayDelta { Text = text, R = 1f, G = 1f, B = 1f, A = 1f });
         }
     }
 

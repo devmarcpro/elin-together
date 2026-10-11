@@ -367,6 +367,9 @@ def s1():
     check(f"l'invite present a la meme chose (dans son sac), chez l'host ({near(H, guest['uid'])})",
           eventually(lambda: near(H, guest["uid"]) == mine and near(H, guest["uid"]) != before, timeout=15))
     check(f"et dans son propre jeu ({near(A, guest['uid'])})", eventually(lambda: near(A, guest["uid"]) == mine, timeout=15))
+    told = str(ev(H, 'return "emp_story_share_got".lang().Split((char)123)[0];'))
+    check(f"l'invite lit qu'il recoit sa part (« {told}... » dans son journal)", told.strip() != "emp_story_share_got" and eventually(
+        lambda: str(ev(A, 'return EClass.game.log.dict.Values.Any(x => x.text != null && x.text.Contains("' + told + '")).ToString();')) == "True", timeout=10))
     ev(H, 'EClass.player.DropReward(ThingGen.Create("bucket")); return "ok";')
     time.sleep(3)
     check(f"une recompense hors de l'histoire (un seau lache par le jeu) ne donne pas de part ({near(H, guest['uid'])})",

@@ -614,13 +614,13 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
 
 ### Liste à jour du 2026-10-11, midi (passe avant tout ce qui suit ; le reste de cette section est plus ancien)
 
-Publiée : **0.26.652** (11 octobre, Elin EA 23.355). Après elle, pas publié : « une part pour chacun », tranche 1
-(conseil 14, case `OncePerPlayer`, règle 25). Prochains numéros libres : delta **847**, règle de session **26**.
+Publiée : **0.26.662** (11 octobre, Elin EA 23.355). Après elle, pas publié : la ligne « tu reçois ta part ».
+Le jeu Steam et le banc sont sur G depuis le 11 octobre (`G:\SteamLibrary`, `G:\ElinMods\_lab`). Prochains numéros libres : delta **847**, règle de session **26**.
 Cette liste vient d'une relecture de toute la documentation, de `HANDOFF.md`, de la fin de `MODLOG.md` et des plans.
 
 **1. Demandé par l'utilisateur, pas fait**
 - Suite de « chaque joueur doit pouvoir tout faire » (`PLAN_une_fois_par_monde.md`) : rattraper un joueur arrivé
-  plus tard et les mondes déjà joués ; une ligne « tu reçois ta part » chez l'invité ; cadeaux donnés au début d'une
+  plus tard et les mondes déjà joués ; cadeaux donnés au début d'une
   quête ; trésor de Melilith (le second joueur est maudit à tort) ; guildes (conseil) ; petits cas (Père Noël, livre
   de Fiama, cadeau de Jure, esquisses de Felmera, objets de soutien, lettres).
 - « Beaucoup de bugs autour des compagnons » : pas d'exemple donné. Trouvé et corrigé : la monture. Reste : un
@@ -637,7 +637,7 @@ Cette liste vient d'une relecture de toute la documentation, de `HANDOFF.md`, de
 - « Une part pour chacun » : un invité qui termine une quête d'histoire sur la carte de l'host (joué pour un cadeau
   de dialogue seulement), trois joueurs.
 - Retour sur place (`SoftRecall`, décochée) : tranche 6 à écrire, banc des 21 points à finir.
-- Tests périmés ou cassés : `hunt2_suite` E3, `sleep_suite` (l'invité de test meurt), `council_suite` C5,
+- Tests périmés ou cassés : `hunt2_suite` E3, `sleep_suite` (103/117 depuis le 11 octobre : n5, n6 et la date de l'host seul), `council_suite` C5,
   `resync_suite` R3, `five_suite` f6 à f8, `travel_suite` et `companion_suite` dans `run_short.sh` (`--reuse`).
 
 **3. Défauts connus, pas corrigés**
