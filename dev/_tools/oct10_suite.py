@@ -118,7 +118,10 @@ def fight(K, B, who):
     m = int(ev(K, f'var b = EClass._map.charas.Find(x => x.uid == {b}); var p = b.pos.GetNearestPoint(false, false, true, true); '
                   'if (p == null || p.Distance(b.pos) != 1) return "0"; '
                   'var m = CharaGen.Create("putty"); EClass._zone.AddCard(m, p); m.c_originalHostility = Hostility.Enemy; '
+                  # (paralyse : il vit ses tours, que le test compte, sans frapper ; libre, a ce niveau, il tue les deux joueurs
+                  # de test et tout le reste de la suite echoue sur des morts)
                   'm.hostility = Hostility.Enemy; m.SetEnemy(EClass.pc); m.SetLv(60); m.elements.SetBase(60, 400); m.hp = m.MaxHP; '
+                  'm.AddCondition<ConParalyze>(5000, true); '
                   'return m.uid.ToString();'))
     if not check(f"{who} : une case libre voisine de celui qui frappe", m):
         return
@@ -126,7 +129,9 @@ def fight(K, B, who):
         return
     mon = MON.replace("{m}", str(m))
     # (les habitants d'une carte s'en melent et le monstre se retourne contre eux : il est garde sur sa cible)
-    keep = f'var m = {mon}; if (m != null) {{ m.hp = m.MaxHP; m.enemy = EClass.pc; }} '
+    # (et sa cible est soignee : un monstre de niveau 60 qui joue enfin ses tours tue un personnage de test,
+    # et tout ce qui suit dans la suite echoue sur un joueur mort)
+    keep = f'var m = {mon}; if (m != null) {{ m.hp = m.MaxHP; m.enemy = EClass.pc; }} EClass.pc.hp = EClass.pc.MaxHP; '
     blow = f'var m = {mon}; if (m != null) {{ ACT.Melee.Perform(EClass.pc, m, m.pos); EClass.player.EndTurn(false); }} return "ok";'
     try:
         time.sleep(2)
@@ -139,6 +144,7 @@ def fight(K, B, who):
             ev(B, blow)
             time.sleep(0.7)
         time.sleep(1)
+        ev(K, keep + 'return "ok";')
         t1 = turns()
         # ce qu'un tour de celui qui frappe donne au monstre, mesure ici (la vitesse d'un joueur lue dans la copie
         # d'un autre jeu n'est pas la sienne)
