@@ -374,6 +374,7 @@ def k1(ctx):
         for port in (H, A):
             ev(port, 'EClass.player.stats.slept = 0; "ok"')
         ev(A, 'EClass.debug.godMode = true; EClass.pc.elements.SetBase(1653, 1); EClass.pc.hp = 1; EClass.pc.SAN.Set(EClass.pc.SAN.max); '
+              'EClass.pc.sleepiness.Set(EClass.pc.sleepiness.max); '
               'EClass.pc.things.Find<TraitBed>().elements.SetBase(750, 100); "ok"')
         ev(H, 'EClass.pc.sleepiness.Set(EClass.pc.sleepiness.max); "ok"')
         dismiss_dialogs(H)
