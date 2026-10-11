@@ -31,6 +31,10 @@ internal static class CardDamageHpEvent
             return false;
         }
 
+        if (SleepSynchronizationContext.Sheltered(__instance)) {
+            return false;
+        }
+
         // simply drop the update as clients and wait for delta
         if (NetSession.Instance.Connection is not { } connection) {
             return true;

@@ -973,6 +973,27 @@ internal class SleepSynchronizationContext : SynchronizationContext
     }
 
     /// <summary>
+    ///     Own sleep: a solo game is paused while its night screen shows, nothing touches the sleeper. Here the
+    ///     world goes on for the others, and the monsters with it: a player was beaten, even killed, during the
+    ///     few seconds of a night of its own. A player takes no damage while its own night plays (this game's
+    ///     player during its night screen, a guest asleep on this map)
+    /// </summary>
+    internal static bool Sheltered(Card target)
+    {
+        if (target is not Chara { conSleep: not null } chara || !NetSession.Instance.Rules.UseOwnSleep ||
+            NetSession.Instance.Transport is null) {
+            return false;
+        }
+
+        if (chara.IsPC) {
+            return _ownNight && ui.GetLayer<LayerSleep>() is not null;
+        }
+
+        return NetSession.Instance.Connection is ElinNetHost host &&
+               host.ActiveRemoteCharas.Any(p => p.Value == chara && _guestBeds.ContainsKey(p.Key));
+    }
+
+    /// <summary>
     ///     The clock of the world runs in the game that keeps it. A solo game is paused while its night screen
     ///     shows; a session is not, and a night of the host's own cost the world the forty minutes its screen
     ///     lasts, when a guest's costs nothing. The minutes of the clock are not counted meanwhile

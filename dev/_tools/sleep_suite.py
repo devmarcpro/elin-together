@@ -659,6 +659,29 @@ def n6(ctx):
     check(f"the guest copy rested once, not twice (+{hp - hp0}, one rest is {bound})", 0 < hp - hp0 <= bound + 10)
 
 
+def n7(ctx):
+    """pendant sa nuit a lui, l'invite ne prend pas de coups (un jeu solo est fige pendant l'ecran de nuit) ; reveille, si
+    Ce que le banc ne joue pas comme un joueur : le coup est Card.DamageHP appele chez l'host sur le personnage de
+    l'invite (pas un monstre qui frappe) ; la nuit de l'host lui-meme n'est pas jouee ici"""
+    if not check("la regle « chacun dort pour soi » est active des deux cotes", own_rule()):
+        return
+    me = state(A)["pc"]["uid"]
+    hit = lambda: str(ev(H, f'var c = EClass._map.charas.Find(x => x.uid == {me}); c.hp = c.MaxHP; var a = c.hp; '  # noqa: E731
+                            'c.DamageHP(5, AttackSource.None, null); return (a - c.hp) + "|" + (c.conSleep != null);'))
+    ready_for_bed(H, tired=False)
+    if not check("l'invite est epuise et a un lit", ready_for_bed(A, tired=True)):
+        return
+    time.sleep(2)
+    to_bed(A)
+    asleep = eventually(lambda: ev(H, f'(EClass._map.charas.Find(x => x.uid == {me}).conSleep != null).ToString()') == "True", timeout=20)
+    got = hit()
+    check(f"l'invite dort ; un coup de 5 pendant sa nuit ne lui enleve rien (degats|endormi : {got})", asleep and got == "0|True")
+    check("l'invite se reveille", eventually(lambda: awake(A), timeout=60))
+    time.sleep(3)
+    got = hit()
+    check(f"reveille, le meme coup porte ({got})", got.split("|")[0] not in ("0",) and got.endswith("False"))
+
+
 def z3(ctx):
     """panne provoquee : la fin de la nuit plante chez l'host. Personne ne doit rester dans l'ecran de sommeil
     (a lancer seul : --only z3 ; les exceptions des journaux sont voulues, elles ne sont pas comptees)"""
@@ -769,9 +792,9 @@ def main():
     t0 = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
 
     ctx = {}
-    steps = [z0, p1, z1, p2, z2, n1, n2, n3, n4, n5, n6, b1, b2, b3, k1, y1, y2]
+    steps = [z0, p1, z1, p2, z2, n1, n2, n3, n4, n5, n6, n7, b1, b2, b3, k1, y1, y2]
     if a.only:
-        steps = [s for s in (w0, z0, p1, z1, p2, z2, n1, n2, n3, n4, n5, n6, b1, b2, b3, k1, y1, y2, z3) if s.__name__ in a.only.split(",")]
+        steps = [s for s in (w0, z0, p1, z1, p2, z2, n1, n2, n3, n4, n5, n6, n7, b1, b2, b3, k1, y1, y2, z3) if s.__name__ in a.only.split(",")]
     for step in steps:
         log(f"--- {step.__name__.upper()} : {step.__doc__}")
         try:
