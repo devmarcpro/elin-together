@@ -86,6 +86,11 @@ joueurs**. Chacun va où il veut, avec ses compagnons, et le monde (quêtes, bas
 | Host seul = jeu solo (`PLAN_joueur_seul.md`, `NetCompany.HasCompany`) | Seul dans sa session, l'host retrouve les règles du jeu (dressage, pause des menus, tours de combat, réserve des alliés, perf). | `solo_suite.py` (jamais lancée) |
 | Le dépôt ouvre la partie ; les joueurs connus entrent sans être amis Steam (`PLAN_salon_joueurs_connus.md`) | Prendre le monde du dépôt ouvre la session tout seul ; le salon ouvert tout seul est « Invisible » et filtré par l'host : ami, invité ou compte connu du monde. | `depot_suite.py` D8 ; deux comptes Steam pour le reste (jamais lancés) |
 | Moins de lenteurs à plusieurs (`PLAN_lenteurs_corrections.md`) | Réseau lu jusqu'au bout (4 ms au plus par image), ménage des cartes une fois par seconde, une seule sauvegarde pour tous les retours, la quête de l'host est proposée aussi aux visiteurs. Rien n'a été mesuré. | `perf_probe.py` (jamais lancé) |
+| **10-11 octobre, pas publié** : Boutiques à stock limité, une fois par joueur (`Patches/LimitedStockPatch.cs`) | Ce qu'un marchand ne vend qu'une fois par monde (livres de compétence, recettes, quelques armes) se vend une fois à chaque joueur ; un monde déjà joué retrouve ces objets au réassort suivant. | `oct10_suite.py l1` 21/21 |
+| **Pas publié** : Combat, un monstre attaqué par un autre joueur que sa cible n'est plus figé (conseil 13, `Patches/PlayerCombatTime.cs`) | L'horloge d'un monstre est celle du joueur engagé le plus rapide (sa cible, ou qui l'a attaqué dans ses 5 derniers tours, touché ou raté), jamais la somme ; vaut sur la carte de l'host et sur une carte tenue par un invité. | `oct10_suite.py f1,f2` 19/19 (trois fenêtres) |
+| **Pas publié** : Reprise quand l'host part ou plante (case `Takeover`, décochée ; `PLAN_reprise_automatique.md` R3 à R5) | L'host qui quitte donne sa dernière sauvegarde, l'invité désigné rouvre le monde, les autres le rejoignent seuls ; après un plantage, une minute d'attente puis la même chose. La case entraîne la copie du monde chez les invités. | `takeover_suite.py`, `takeover_trio.py` et `--crash` 13/13 |
+| **Pas publié** : Ce que le jeu compte « pour le joueur » est à chacun (`DialogFlagSync._own`) | Prix du titre de terrain et du marteau de Garokk (qui doublent), prix de musicien, recette de cuisine inventée, malédiction de Melilith, maladie de l'éther. | `oct10_suite.py h1` |
+| **Pas publié** : Petites égalités du 10 octobre | Une seule bourse pour un invité neuf ; sorts des barres gardés d'une session à l'autre ; offres de quêtes d'une ville identiques après un tirage, bouton « Reroll Quests » d'un invité ; factures payées de suite depuis une autre carte ; recette de bloc comptée une fois ; monture d'un invité reliée à son cavalier au retour. | `oct10_suite.py` (b1, h1, q1, c1, m1), `bills_suite.py p4` |
 
 Limite de quêtes aléatoires : **5 par joueur** avec l'option « par joueur » (décisions du 2026-10-01 : quêtes
 aléatoires, renommée et karma personnels ; histoire commune), 5 pour tout le groupe sans elle.
@@ -116,6 +121,7 @@ aléatoires, renommée et karma personnels ; histoire commune), 5 pour tout le g
 | **0.26.524, pas joué** : Réparer la carte tout seul (`AutoResync`, règle n° 20, cochée) | une carte en écart durable est rechargée (au plus une fois par 30 s, jamais en combat ni menu ouvert) | l'écart n'est qu'écrit dans le journal |
 
 Les options sont envoyées aux clients à la connexion (`NetSessionRules`). Toute nouvelle fonction doit avoir sa case.
+**État au 2026-10-11 : prochaine règle de session libre 24, prochain delta libre 847 (845 `QuestOffersDelta`, 846 `QuestRerollDelta`) ; les nombres ci-dessous datent du 6 octobre.**
 Règles de session prises jusqu'à la clé 20 (12 `AllowGuestBuild`, 13 `AllowPlayerKill`, 14 `HostManagesBase`, 15
 `AllowDuels`, 16 `AllowReconnect`, 17 `UseOwnSleep`, 18 `TimeJumpsTogether`, 19 `DumpSparesBelt`, 20 `AutoResync`) : la prochaine est la clé 21.
 Deltas pris jusqu'à 842 (839 `BillPayDelta`, 840 `SleepStateDelta`, 842 `DesyncReportDelta` ; 841 libre). Le dépôt GitHub n'a pas de case de l'host : c'est un réglage de chaque joueur (onglet « Client
@@ -605,6 +611,14 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
     `DOTNET_ROLL_FORWARD=LatestMajor` et `DOTNET_ROLL_FORWARD_TO_PRERELEASE=1`.
 
 ## 7. Reste à faire
+
+### Mise à jour du 2026-10-11 (passe avant tout ce qui suit)
+
+La liste à jour est en haut de `HANDOFF.md` (« État au 11 octobre 2026 »). En bref : rien n'est publié depuis la
+0.26.621 ; à faire : les autres « une fois par monde » (`PLAN_une_fois_par_monde.md` : récompenses des quêtes
+d'histoire, cadeaux de dialogue, guildes), les bugs de compagnons (pas de détail donné), le journal par joueur, les
+factures fantômes des mondes déjà touchés, l'ancien host qui revient (R6) et le dépôt en bonus (R7), le joueur refusé
+par le teneur d'une carte, l'expérience « de groupe » de l'host, le dépôt GitHub affiché comme un fork.
 
 ### Mise à jour du 2026-10-06, 22h30 (la 0.26.524 n'a JAMAIS été jouée)
 
