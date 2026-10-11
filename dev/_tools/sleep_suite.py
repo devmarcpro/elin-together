@@ -427,6 +427,8 @@ def ready_for_bed(port, tired):
     """ce joueur est epuise, ou au contraire repose (fatigue a zero, endurance pleine : le jeu refuse alors le lit) ;
     faim a 30 pour que +20 se lise ; un lit dans son sac (cree par l'host, qui tient la carte, s'il n'en a pas)"""
     dismiss_dialogs(port)
+    # un monstre de la Prairie tuait l'invite endormi une passe sur deux (2026-10-11) : la nuit se joue sans ennemi
+    ev(H, 'foreach (var c in EClass._map.charas.ToList()) if (c.IsHostile()) c.Destroy(); "ok"')
     ev(port, 'var p = EClass.pc; p.hunger.Set(30); p.stamina.Set(p.stamina.max); '
              + ('p.sleepiness.Set(p.sleepiness.max); ' if tired else 'p.sleepiness.Set(0); ') + '"ok"')
     has = lambda: ev(port, '(EClass.pc.things.Find<TraitBed>() != null).ToString()') == "True"  # noqa: E731
