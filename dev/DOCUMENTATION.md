@@ -620,8 +620,8 @@ Cette liste vient d'une relecture de toute la documentation, de `HANDOFF.md`, de
 
 **1. Demandé par l'utilisateur, pas fait**
 - Suite de « chaque joueur doit pouvoir tout faire » (`PLAN_une_fois_par_monde.md`) : rattraper un joueur arrivé
-  plus tard et les mondes déjà joués ; cadeaux donnés au début d'une
-  quête ; trésor de Melilith (le second joueur est maudit à tort) ; guildes (conseil) ; petits cas (Père Noël, livre
+  plus tard et les mondes déjà joués ; la cassette donnée au début de
+  la quête de la dette ; trésor de Melilith (le second joueur est maudit à tort) ; guildes (conseil) ; petits cas (Père Noël, livre
   de Fiama, cadeau de Jure, esquisses de Felmera, objets de soutien, lettres).
 - « Beaucoup de bugs autour des compagnons » : pas d'exemple donné. Trouvé et corrigé : la monture. Reste : un
   compagnon d'invité qui ne suit pas, intermittent (`companion_suite` K2, K6), la laisse (g36).

@@ -43,6 +43,8 @@ O1  un membre de l'equipe est sur une autre carte, plus grande (sa case n'existe
     l'equipe et la fin d'une nuit ne plantent plus (deux rapports du 2026-10-11, « Index was outside the bounds of
     the array » dans Point.get_cell). Le banc met la case du membre hors de la carte a la main, puis la remet ;
     priere et fin de nuit sont appelees par les fonctions du jeu (ActPray.Pray, Chara.OnSleep), pas jouees.
+G1  ce qu'une quete d'histoire donne quand elle COMMENCE (le crochet et le coffre verrouille de Fiama) : une part pour
+    l'autre joueur aussi. Le banc cree la quete et appelle Quest.Start (pas le dialogue de Fiama).
 F2  (trois fenetres : mp_test.py --clients 2) la meme chose que F1 sur une carte tenue par un invite, frappe par
     un autre invite.
 F1  un monstre vise l'host, qui ne fait rien ; l'invite le frappe dix fois : le monstre joue ses tours (avant : fige,
@@ -205,6 +207,22 @@ def fight(K, B, who):
 
 def f1():
     fight(H, A, "carte de l'host")
+
+
+GIFT = ('var c = EClass.game.cards.globalCharas.Find({uid}); var b = c.things.Find(t => t.id == "1171"); '
+        'return (c.things.Find(t => t.id == "lockpick") != null) + "|" + (b == null ? "pas de coffre" : '
+        'b.c_lockLv + "/" + string.Join(",", b.things.Select(t => t.id).OrderBy(x => x)));')
+
+
+def g1():
+    guest = state(A)["pc"]["uid"]
+    got = lambda p: str(ev(p, GIFT.replace("{uid}", str(guest))))  # noqa: E731
+    before = got(H)
+    ev(H, 'var q = Quest.Create("fiama_lock"); q.Start(); return "ok";')
+    want = "True|50/_meat,1172,amulet_begger"
+    check(f"l'host commence la quete de la serrure : l'invite a son crochet et son coffre verrouille, chez l'host ({before} -> {got(H)})",
+          eventually(lambda: got(H) == want, timeout=15))
+    check(f"et dans son propre jeu ({got(A)})", eventually(lambda: got(A) == want, timeout=15))
 
 
 def f2():
@@ -513,7 +531,7 @@ def main():
             continue
         check(f"{name} : pas de deuxieme ajout, lien remis ({r})", r == "0/0/True")
     check("au moins un jeu avait un autre membre dans l'equipe", RESULTS)
-    steps = (o1, b1, c1, h1, f1, l1, m1, s1, t1, q1, f2)
+    steps = (o1, b1, c1, h1, f1, l1, m1, s1, g1, t1, q1, f2)
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(',')]
     for step in steps:
