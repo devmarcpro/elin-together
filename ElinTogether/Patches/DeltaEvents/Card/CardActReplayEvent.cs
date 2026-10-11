@@ -136,8 +136,18 @@ internal static class GuestLeash
         }
 
         foreach (var member in CompanionHelper.CompanionsOf(player)) {
-            if (member.GetInt(Key) == 0 || member.host != null || member.IsDisabled ||
-                member.HasCondition<ConEntangle>() || member.IsInCombat) {
+            if (member.GetInt(Key) == 0) {
+                continue;
+            }
+
+            if (member.host != null || member.IsDisabled || member.HasCondition<ConEntangle>() || member.IsInCombat) {
+                // (a leashed companion left behind: which of the game's own reasons held it, 2026-10-11)
+                if (member.Dist(player) > 2) {
+                    EmpLog.Debug("Leash of {Uid} not pulled: carried {Carried}, disabled {Disabled}, entangled {Entangled}, in combat {Combat} (enemy {Enemy})",
+                        member.uid, member.host != null, member.IsDisabled, member.HasCondition<ConEntangle>(), member.IsInCombat,
+                        member.enemy?.uid ?? 0);
+                }
+
                 continue;
             }
 
@@ -145,7 +155,9 @@ internal static class GuestLeash
             // they come (two tiles in one message, a step whose tug was blocked): the leash pulls until the
             // companion is beside it again, a few tiles at most (it was left three tiles behind after five steps)
             for (var tug = 0; tug < 4 && member.Dist(player) > 1; tug++) {
-                if (member.TryMoveTowards(player.pos) != Card.MoveResult.Success) {
+                if (member.TryMoveTowards(player.pos) is var moved and not Card.MoveResult.Success) {
+                    EmpLog.Debug("Leash of {Uid} pulled in vain: {Result} from {@From} toward {@To}",
+                        member.uid, moved, (Position?)member.pos, (Position?)player.pos);
                     break;
                 }
             }
