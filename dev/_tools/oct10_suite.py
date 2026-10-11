@@ -39,6 +39,10 @@ T1  tresor du manoir maudit (Melilith) : chaque joueur peut prendre UN tresor sa
     joueur etait maudit pour son premier), la quete du groupe n'avance qu'une fois, un second tresor du meme joueur
     le maudit toujours. Les tresors sont des seaux marques par le banc, pris par l'action « prendre » du jeu ; pas
     dans le vrai manoir (contenu additionnel).
+O1  un membre de l'equipe est sur une autre carte, plus grande (sa case n'existe pas ici) : la priere qui soigne
+    l'equipe et la fin d'une nuit ne plantent plus (deux rapports du 2026-10-11, « Index was outside the bounds of
+    the array » dans Point.get_cell). Le banc met la case du membre hors de la carte a la main, puis la remet ;
+    priere et fin de nuit sont appelees par les fonctions du jeu (ActPray.Pray, Chara.OnSleep), pas jouees.
 F2  (trois fenetres : mp_test.py --clients 2) la meme chose que F1 sur une carte tenue par un invite, frappe par
     un autre invite.
 F1  un monstre vise l'host, qui ne fait rien ; l'invite le frappe dix fois : le monstre joue ses tours (avant : fige,
@@ -86,6 +90,22 @@ SPELL = ('var bars = EClass.player.hotbars.bars; var b = System.Array.FindIndex(
          'var id = EClass.sources.elements.alias["ActPray"].id; ')
 LAY = SPELL + 'bars[b].pages[0].SetItem(bars[b], new HotItemAct { id = id }, 0); return b + ":" + id;'
 READ = SPELL + 'var a = bars[b].pages[0].GetItem(0) as HotItemAct; return b + ":" + (a == null ? 0 : a.id);'
+
+
+OFFMAP = ('var c = EClass.pc.party.members.FirstOrDefault(x => x != EClass.pc); if (c == null) return "seul"; '
+          'var old = c.pos; c.pos = new Point(EClass._map.Size + 40, EClass._map.Size + 40); var hp = c.hp; c.hp = 1; '
+          'try { ActPray.Pray(EClass.pc, false); c.OnSleep(null, 1); c.PlayEffect(910); return "ok " + (c.hp > 1); } '
+          'catch (System.Exception ex) { return ex.GetType().Name + " " + ex.StackTrace.Split((char)10)[0]; } '
+          'finally { c.pos = old; if (c.hp < hp) c.hp = hp; }')
+
+
+def o1():
+    for name, port in (("host", H), ("invite", A)):
+        got = str(ev(port, OFFMAP))
+        if got == "seul":
+            print(f"    {name} : personne d'autre dans l'equipe, rien a prouver ici")
+            continue
+        check(f"{name} : priere et fin de nuit avec un membre hors de la carte, il est soigne ({got})", got == "ok True")
 
 
 def b1():
@@ -490,7 +510,7 @@ def main():
             continue
         check(f"{name} : pas de deuxieme ajout, lien remis ({r})", r == "0/0/True")
     check("au moins un jeu avait un autre membre dans l'equipe", RESULTS)
-    steps = (b1, c1, h1, f1, l1, m1, s1, t1, q1, f2)
+    steps = (o1, b1, c1, h1, f1, l1, m1, s1, t1, q1, f2)
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(',')]
     for step in steps:
