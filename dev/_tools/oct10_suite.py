@@ -48,6 +48,9 @@ G1  ce qu'une quete d'histoire donne quand elle COMMENCE (le crochet et le coffr
 E1  la terre achetee a la servante de la base (daBuyLand) agrandit la zone constructible pour tous : l'invite
     achete, l'host voit les memes limites, et l'inverse. Le banc appelle MapBounds.Expand(1), ce que fait le dialogue
     apres avoir pris la platine : ni le dialogue ni le paiement ne sont joues.
+R1  les reglages d'un habitant faits dans son dialogue (« reste ici », equipement partage) : l'invite les regle,
+    l'host les a, et l'inverse. Le banc ouvre le vrai dialogue (ShowDialog) et le ferme, mais ecrit les valeurs par
+    eval a la place du choix du menu (noMove, orgPos, SetInt 113 : ce que fait le choix).
 F2  (trois fenetres : mp_test.py --clients 2) la meme chose que F1 sur une carte tenue par un invite, frappe par
     un autre invite.
 F1  un monstre vise l'host, qui ne fait rien ; l'invite le frappe dix fois : le monstre joue ses tours (avant : fige,
@@ -248,6 +251,29 @@ def e1():
             continue
         check(f"l'autre joueur a les memes limites ({before} -> {bounds(other)})",
               eventually(lambda: bounds(other) == bought, timeout=10))
+
+
+SETTING = ('var c = EClass.game.cards.globalCharas.Find({uid}) ?? EClass._map.charas.Find(x => x.uid == {uid}); '
+           'return c.noMove + "|" + (c.orgPos == null ? "-" : c.orgPos.x + "," + c.orgPos.z) + "|" + c.GetInt(113);')
+WHO = 'var c = EClass._map.charas.Find(x => x.uid == {uid});'
+
+
+def r1():
+    uid = int(ev(H, 'var c = EClass._map.charas.FirstOrDefault(x => !x.IsPC && !x.IsPCParty && x.IsGlobal && !x.isDead '
+                    '&& x.hostility >= Hostility.Neutral); return c == null ? "0" : c.uid.ToString();'))
+    if not check(f"un personnage a qui parler est sur la carte ({uid})", uid > 0):
+        return
+    got = lambda p: str(ev(p, SETTING.replace("{uid}", str(uid))))  # noqa: E731
+    for port, other, who, value in ((A, H, "l'invite", 1), (H, A, "l'host", 0)):
+        before = got(other)
+        ev(port, WHO.replace("{uid}", str(uid)) + ' c.ShowDialog(); return "ok";')
+        time.sleep(2)
+        ev(port, WHO.replace("{uid}", str(uid)) + (' c.noMove = true; c.orgPos = new Point(c.pos); c.SetInt(113, 1);' if value else
+                                                   ' c.noMove = false; c.orgPos = null; c.SetInt(113, 0);') + ' return "ok";')
+        ev(port, 'if (LayerDrama.Instance != null) LayerDrama.Instance.Close(); return "ok";')
+        mine = got(port)
+        check(f"{who} regle l'habitant dans son dialogue ({mine})", mine.startswith(str(bool(value))))
+        check(f"l'autre joueur a les memes reglages ({before} -> {got(other)})", eventually(lambda: got(other) == mine, timeout=10))
 
 
 def f2():
@@ -556,7 +582,7 @@ def main():
             continue
         check(f"{name} : pas de deuxieme ajout, lien remis ({r})", r == "0/0/True")
     check("au moins un jeu avait un autre membre dans l'equipe", RESULTS)
-    steps = (o1, b1, c1, h1, f1, l1, m1, s1, g1, e1, t1, q1, f2)
+    steps = (o1, b1, c1, h1, f1, l1, m1, s1, g1, e1, r1, t1, q1, f2)
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(',')]
     for step in steps:
