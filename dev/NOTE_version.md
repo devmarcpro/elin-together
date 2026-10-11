@@ -1,36 +1,31 @@
-# Elin Together « indépendance » 0.26.662
+# Elin Together « indépendance » 0.26.678
 
 (English below / version anglaise plus bas)
 
-Suite de la 0.26.652 : **deux plantages remontés par un joueur le 11 octobre**, et **« une part pour chacun »** : ce
-que l'histoire donne une fois par monde, chaque joueur le reçoit. Joué au banc de test (deux ou trois fenêtres sur un
-PC), rien encore entre deux PC. Si cette version se passe mal, la 0.26.652 reste en ligne. Compilé pour Elin
-**EA 23.355**.
+Suite de la 0.26.662 : **sept différences entre l'hébergeur et les invités en moins**. Joué au banc de test (deux
+fenêtres sur un PC), rien encore entre deux PC ; la plupart des essais appellent la fonction du jeu sans passer par
+le dialogue ou le menu. Si cette version se passe mal, la 0.26.662 reste en ligne. Compilé pour Elin **EA 23.355**.
 **Tous les joueurs doivent installer ce même zip.** Faites une copie de vos sauvegardes avant :
 `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
 
 ## Corrigé (joué au banc)
 
-- **Erreur « Index was outside the bounds of the array » en priant, ou à la fin d'une nuit**, quand un autre joueur
-  (ou un de ses compagnons) était sur une autre carte, plus grande. Le jeu regardait la case de chaque membre de
-  l'équipe sur la carte affichée ; pour un membre parti ailleurs, cette case n'existe pas. La prière le soigne quand
-  même, la nuit le repose quand même, sans erreur ; son réveil non plus ne plante plus.
-- **Trésor du manoir maudit** : un pour chaque joueur. La quête du groupe avance une seule fois ; en prendre un second
-  maudit toujours celui qui le prend.
+- **Artefact de dieu.** Le second joueur qui prenait le sien détruisait celui du premier. Chaque joueur garde le
+  sien ; un même joueur qui en prend un second perd toujours son premier, comme dans le jeu.
+- **Terre achetée à la servante de la base.** Un invité payait sa platine et l'agrandissement ne se voyait que chez
+  lui. Il vaut maintenant pour tous les joueurs.
+- **Réglages d'un habitant par son dialogue** (« reste ici », « dors à côté », équipement partagé, les « pas de… »).
+  Réglés par un invité, ils restaient sans effet ; ils valent pour tous, d'où qu'ils viennent.
+- **Parchemin de reconstruction lu par un invité.** L'objet neuf lui était mis d'office à la place de ce qu'il
+  portait. Il va dans son sac. Pas corrigé : son niveau suit la progression de l'hébergeur.
+- **Pêche.** Les cinq prises « de qualité » du jour (don du pêcheur) sont comptées par joueur ; pour un invité elles
+  duraient sans fin ou n'arrivaient jamais. Le compte repart si l'hébergeur relance le jeu.
 
 ## Nouveau
 
-- **Une part pour chacun** (case de l'hébergeur « Une fois par monde = une fois par joueur », cochée). Ce qu'une quête
-  de l'histoire ou un dialogue donne est donné à chaque autre joueur du monde : dans son sac s'il est sur la carte,
-  sinon en colis à son nom dans le courrier de la base. Un joueur qui arrive plus tard dans le monde reçoit en un
-  colis ce qu'il n'a pas eu. Les recettes, les actes de propriété et les artefacts ne sont pas multipliés.
-  Pas fait : ce qu'un monde a donné **avant** cette version (rien ne l'avait noté).
-
-## À l'essai (case décochée au départ)
-
-- **Reprise du monde quand l'hébergeur part ou plante** (case « Takeover »). Nouveau : l'ancien hébergeur qui recharge
-  son monde rejoint tout seul, en invité, la partie de celui qui l'a repris, au lieu d'en ouvrir une seconde. Joué à
-  trois fenêtres sur un PC ; par Steam entre de vrais PC : écrit, pas joué.
+- **Une part pour chacun**, suite : le crochet et le coffre verrouillé de Fiama (donnés au début de sa quête) et son
+  livre d'histoire sont donnés à chaque joueur. Le joueur qui reçoit sa part d'une récompense le lit dans son journal
+  (dans la langue de l'hébergeur).
 
 ## Limites connues
 
@@ -62,35 +57,32 @@ Entrée. C'est le même mod ; `LISEZMOI-MAC.txt` explique le reste. **Pas encore
 
 ---
 
-# Elin Together "independence" 0.26.662
+# Elin Together "independence" 0.26.678
 
-Follows 0.26.652: **two crashes reported by a player on October 11**, and **"a share for everyone"**: what the story
-gives once per world, every player gets. Played on the test bench (two or three windows on one PC), nothing between two
-PCs yet. If this version goes wrong, 0.26.652 stays online. Built for Elin **EA 23.355**.
+Follows 0.26.662: **seven fewer differences between the host and the guests**. Played on the test bench (two windows
+on one PC), nothing between two PCs yet; most trials call the game's function without going through the dialog or the
+menu. If this version goes wrong, 0.26.662 stays online. Built for Elin **EA 23.355**.
 **Every player must install this same zip.** Back up your saves first:
 `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`.
 
 ## Fixed (played on the bench)
 
-- **"Index was outside the bounds of the array" when praying, or at the end of a night**, while another player (or one
-  of its companions) was on another, bigger map. The game looked at the tile of every party member on the map shown;
-  for a member gone elsewhere that tile does not exist. The prayer still heals it, the night still rests it, without
-  an error; its waking up does not throw either.
-- **Treasure of the cursed manor**: one for each player. The quest of the group moves on once; taking a second one
-  still curses whoever takes it.
+- **God artifact.** The second player to take its own destroyed the first player's. Each player keeps its own; one
+  player taking a second copy still loses its first, as in the game.
+- **Land bought from the maid of the base.** A guest paid its platinum and only its own game grew. It now counts for
+  every player.
+- **Settings of a resident from its dialog** ("stay here", "sleep beside me", shared equipment, the "no ..."
+  switches). Set by a guest, they had no effect; they now count for everyone, whoever sets them.
+- **Scroll of reconstruction read by a guest.** The new item was put on the guest in place of what it wore. It goes
+  to its bag. Not fixed: its level follows the host's progress.
+- **Fishing.** The five "quality" catches of the day (fisher's feat) are counted per player; for a guest they never
+  ended or never came. The count starts again if the host restarts the game.
 
 ## New
 
-- **A share for everyone** (host checkbox "Once per world = once per player", ticked). What a story quest or a dialog
-  gives is given to every other player of the world: into its bag when it is on the map, else as a parcel in its name
-  in the base's mail. A player who comes to the world later gets what it did not have as one parcel. Recipes, deeds and
-  artifacts are not multiplied. Not done: what a world gave **before** this version (nothing recorded it).
-
-## To try (unticked at first)
-
-- **Taking the world over when the host leaves or crashes** ("Takeover" checkbox). New: a former host that loads its
-  world again joins, on its own and as a guest, the game of the player who took it over, instead of opening a second
-  one. Played with three windows on one PC; through Steam between real PCs: written, not played.
+- **A share for everyone**, continued: Fiama's lockpick and locked chest (given when her quest starts) and her story
+  book are given to each player. A player who gets its share of a reward reads it in its log (in the host's
+  language).
 
 ## Known limits
 
