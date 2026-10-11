@@ -21,7 +21,7 @@ internal static class StoryGifts
     internal static void Offer(Thing thing)
     {
         if (!HostGives && !_offered.Exists(o => o.Thing == thing)) {
-            _offered.Add((thing, Patches.StoryScope.Active));
+            _offered.Add((thing, Patches.StoryScope.Gives(thing)));
         }
     }
 

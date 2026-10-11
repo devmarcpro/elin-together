@@ -87,11 +87,11 @@ internal partial class ElinNetHost
     private static readonly List<(Thing Reward, int Earner)> _storyRewards = [];
 
     // artifacts every player must have its own of
-    private static readonly HashSet<string> _ownArtifacts = ["backpack_holding"];
+    private static readonly HashSet<string> _ownArtifacts = ["backpack_holding", "book_story"];
 
     internal static void NoteStoryReward(Thing reward, Chara? earner)
     {
-        if (StoryScope.Active) {
+        if (reward is not null && StoryScope.Gives(reward)) {
             ShareStoryReward(reward, earner);
         }
     }

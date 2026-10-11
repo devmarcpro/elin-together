@@ -16,6 +16,17 @@ internal static class StoryScope
 
     internal static bool Active => _depth > 0;
 
+    // given once per world from code no scope above covers (Fiama's story book, when a dialog closes)
+    private static readonly HashSet<string> _storyGifts = ["book_story"];
+
+    /// <summary>
+    ///     That reward, dropped now, is one the story gives
+    /// </summary>
+    internal static bool Gives(Thing reward)
+    {
+        return Active || _storyGifts.Contains(reward.id);
+    }
+
     [HarmonyPatch(typeof(Quest), nameof(Quest.Complete))]
     internal static class OnQuestComplete
     {

@@ -223,6 +223,13 @@ def g1():
     check(f"l'host commence la quete de la serrure : l'invite a son crochet et son coffre verrouille, chez l'host ({before} -> {got(H)})",
           eventually(lambda: got(H) == want, timeout=15))
     check(f"et dans son propre jeu ({got(A)})", eventually(lambda: got(A) == want, timeout=15))
+    # le livre d'histoire de Fiama : donne quand son dialogue se ferme, hors de toute quete (le banc appelle DropReward)
+    book = lambda p: str(ev(p, f'return EClass.game.cards.globalCharas.Find({guest}).things.Count(t => t.id == "book_story").ToString();'))  # noqa: E731
+    had = int(book(H))
+    ev(H, 'EClass.player.DropReward(ThingGen.Create("book_story")); return "ok";')
+    check(f"le livre d'histoire de Fiama : l'invite a le sien, chez l'host ({had} -> {book(H)})",
+          eventually(lambda: int(book(H)) == had + 1, timeout=15))
+    check(f"et dans son propre jeu ({book(A)})", eventually(lambda: int(book(A)) == had + 1, timeout=15))
 
 
 def f2():
