@@ -46,4 +46,18 @@ internal class OffMapMemberPatch
         __instance.OnSleep(bed is null ? 20 : bed.Power + bed.Evalue(750) * 5, days);
         return false;
     }
+
+    // (waking up puts the sprite back on its tile: there is none to draw here)
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(ConSleep), nameof(ConSleep.OnRemoved))]
+    internal static bool OnWake(ConSleep __instance)
+    {
+        if (__instance.owner is not { IsPC: false } owner || !OffMap(owner)) {
+            return true;
+        }
+
+        owner.conSleep = null;
+        owner.sleepiness.Set(0);
+        return false;
+    }
 }

@@ -94,7 +94,7 @@ READ = SPELL + 'var a = bars[b].pages[0].GetItem(0) as HotItemAct; return b + ":
 
 OFFMAP = ('var c = EClass.pc.party.members.FirstOrDefault(x => x != EClass.pc); if (c == null) return "seul"; '
           'var old = c.pos; c.pos = new Point(EClass._map.Size + 40, EClass._map.Size + 40); var hp = c.hp; c.hp = 1; '
-          'try { ActPray.Pray(EClass.pc, false); c.OnSleep(null, 1); c.PlayEffect(910); return "ok " + (c.hp > 1); } '
+          'try { ActPray.Pray(EClass.pc, false); c.OnSleep(null, 1); c.PlayEffect(910); c.AddCondition<ConSleep>(5, true); c.RemoveCondition<ConSleep>(); return "ok " + (c.hp > 1); } '
           'catch (System.Exception ex) { return ex.GetType().Name + " " + ex.StackTrace.Split((char)10)[0]; } '
           'finally { c.pos = old; if (c.hp < hp) c.hp = hp; }')
 

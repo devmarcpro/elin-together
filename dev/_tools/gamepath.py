@@ -2,4 +2,5 @@
 import os
 from pathlib import Path
 
-GAME = Path(os.environ.get("ELIN_GAME_PATH") or r"C:\Program Files (x86)\Steam\steamapps\common\Elin")
+_USUAL = (r"G:\SteamLibrary\steamapps\common\Elin", r"C:\Program Files (x86)\Steam\steamapps\common\Elin")
+GAME = Path(os.environ.get("ELIN_GAME_PATH") or next((p for p in _USUAL if os.path.exists(p)), _USUAL[-1]))
