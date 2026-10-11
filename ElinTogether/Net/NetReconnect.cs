@@ -13,6 +13,12 @@ internal static class NetReconnect
     private const float RetrySeconds = 5f;
     private const float GiveUpSeconds = 180f;
 
+    /// <summary>
+    ///     Council 9: a host gone without a word is waited for that long before a guest takes the world over (a
+    ///     line cut for a moment comes back by itself, and nothing is lost)
+    /// </summary>
+    internal static float TakeoverSeconds = 60f;
+
     private static Coroutine? _routine;
     private static Dialog? _notice;
 
@@ -34,7 +40,8 @@ internal static class NetReconnect
 
         EmpLog.Information("Link with the host lost, joining the same game again");
 
-        _routine = EmpMod.Instance.StartCoroutine(Retry(rejoin, !client.IsLocalConnection && !client.IsDirectConnection));
+        _routine = EmpMod.Instance.StartCoroutine(Retry(rejoin, !client.IsLocalConnection && !client.IsDirectConnection,
+            session.Rules.AllowTakeover));
     }
 
     /// <summary>
@@ -61,10 +68,14 @@ internal static class NetReconnect
         }
     }
 
-    private static IEnumerator Retry(Action rejoin, bool byLobby)
+    private static IEnumerator Retry(Action rejoin, bool byLobby, bool takeover)
     {
         var session = NetSession.Instance;
-        var giveUp = Time.realtimeSinceStartup + GiveUpSeconds;
+        var lost = Time.realtimeSinceStartup;
+        // the host said it left: no wait for it, the turns run from now
+        var wait = WorldHandover.Following ? 0f : TakeoverSeconds;
+        // (with a takeover: the wait for the host, then a turn for each guest, then the time to join that game)
+        var giveUp = lost + GiveUpSeconds + (takeover ? wait + WorldHandover.TurnSeconds * WorldHandover.Turns : 0f);
         var tried = float.MinValue;
         var back = false;
 
@@ -88,6 +99,22 @@ internal static class NetReconnect
                 var now = Time.realtimeSinceStartup;
                 if (now - tried < RetrySeconds) {
                     continue;
+                }
+
+                // the host did not come back: the guest whose turn it is opens the world from its copy, the others
+                // look for that game (it said nothing before going: a crash, a line cut for good)
+                // (also when the guest whose turn it was did not open it in its time: the next one does)
+                if (takeover && now - lost >= wait && !WorldTakeover.Busy) {
+                    if (!WorldHandover.IsMyTurn(now - lost - wait)) {
+                        WorldHandover.Follow();
+                    } else if (WorldTakeover.Begin() is { Length: > 0 } why) {
+                        EmpLog.Warning("The host is gone and the world is not taken over: {Why}", why);
+                        takeover = false;
+                    } else {
+                        // (the takeover ends this routine itself, see WorldTakeover)
+                        EmpLog.Information("The host did not come back in {Seconds}s: taking the world over", now - lost);
+                        EmpPop.Information("emp_takeover_begin".lang());
+                    }
                 }
 
                 if (session.Transport is ElinNetClient client) {

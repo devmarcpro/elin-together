@@ -40,6 +40,23 @@ internal static class WorldHandover
     }
 
     /// <summary>
+    ///     The host is gone without a word (a crash, its line cut) and it is another guest's turn to open the
+    ///     world: its game is looked for from now on, as when the host said it left
+    /// </summary>
+    internal static void Follow()
+    {
+        if (!Following) {
+            Following = true;
+            _newLobby = 0;
+        }
+    }
+
+    /// <summary>
+    ///     How many guests may take their turn at opening the world
+    /// </summary>
+    internal static int Turns => System.Math.Max(1, _guests.Count(g => g != 0));
+
+    /// <summary>
     ///     That player may be the one who took over the world this game waits for
     /// </summary>
     internal static bool IsTaker(ulong user)

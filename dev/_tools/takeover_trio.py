@@ -2,12 +2,15 @@
 designe reprend le monde depuis sa copie, l'AUTRE invite le rejoint tout seul, avec son personnage.
 
     python _tools/mp_test.py --clients 2
-    python _tools/takeover_trio.py
+    python _tools/takeover_trio.py            # l'host ferme sa partie (il previent)
+    python _tools/takeover_trio.py --crash    # l'host est tue (R5) : rien n'est dit, les invites attendent son
+                                              # retour une minute, puis le designe reprend et l'autre le rejoint
 
 Ce que le banc ne joue pas comme un joueur : trois fenetres sur un PC, le nouvel host ouvre le meme port local que
 l'ancien (le chemin par Steam, salon du nouvel host retrouve chez l'ami ou dans la liste, ne se prouve qu'entre vrais
 PC) ; l'host « part » par emp.disconnect (ce que fait le bouton Disconnect) ; la regle est cochee par une commande.
 """
+import subprocess
 import sys
 import time
 from datetime import datetime, timezone
@@ -40,17 +43,32 @@ def main():
     for p in (A, B):
         command(p, "emp.auto_open 1")
         command(p, "emp.link_timeout 1")
+    # (le dossier des copies garde celles des mondes de test d'avant, qui portent le meme nom : il en faut une de
+    # CETTE partie, sinon la reprise ouvre un vieux monde)
+    mine = lambda p: str(ev(p, f"{BENCH}.State")).split("mine: ")[1].split(";")[0]  # noqa: E731
+    old = {p: mine(p) for p in (A, B)}
     check("l'host sauvegarde sans geste", save_once())
-    has = lambda p: "mine: none" not in str(ev(p, f"{BENCH}.State"))  # noqa: E731
-    if not check("les deux invites ont une copie entiere du monde", eventually(lambda: has(A) and has(B), timeout=180)):
+    has = lambda p: mine(p) not in ("none", old[p]) and str(ev(p, f"{BENCH}.State")).startswith("idle")  # noqa: E731
+    if not check("les deux invites ont une copie entiere de ce monde", eventually(lambda: has(A) and has(B), timeout=180)):
         for p in (A, B):
             log(f"{p} : " + str(ev(p, f"{BENCH}.State")))
         return finish(start)
     for p in (A, B):
         log(f"{p} : " + str(ev(p, f"{BENCH}.State")))
     t = time.time()
-    command(H, "emp.disconnect")
-    check("l'host a quitte sa partie", eventually(lambda: state(H).get("role") != "Host", timeout=60))
+    if "--crash" in sys.argv:
+        # le jeu de l'host est celui du dossier de Steam, les autres sont des copies de _lab
+        out = subprocess.run(["powershell", "-NoProfile", "-Command",
+                              "Get-CimInstance Win32_Process -Filter \"Name='Elin.exe'\" | ForEach-Object { \"$($_.ProcessId)|$($_.ExecutablePath)\" }"],
+                             capture_output=True, text=True).stdout
+        pids = [line.split("|")[0] for line in out.splitlines() if "|" in line and "_lab" not in line]
+        if not check(f"le processus de l'host est trouve ({pids})", len(pids) == 1):
+            return finish(start)
+        subprocess.run(["taskkill", "/PID", pids[0], "/F"], capture_output=True)
+        log(f"host tue (processus {pids[0]})")
+    else:
+        command(H, "emp.disconnect")
+        check("l'host a quitte sa partie", eventually(lambda: state(H).get("role") != "Host", timeout=60))
 
     def taker():
         for p in (A, B):
@@ -58,7 +76,7 @@ def main():
             if s.get("sceneMode") == "Zone" and s.get("role") == "Host":
                 return p
         return 0
-    if not check("un des deux invites devient host du monde, sans un clic", eventually(lambda: taker() != 0, timeout=300)):
+    if not check("un des deux invites devient host du monde, sans un clic", eventually(lambda: taker() != 0, timeout=420)):
         for p in (A, B):
             log(f"{p} : {state(p).get('role')} {state(p).get('sceneMode')} ; " + str(ev(p, f"{BENCH}.Takeover")))
         return finish(start)
