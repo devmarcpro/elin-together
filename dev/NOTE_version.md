@@ -30,7 +30,7 @@ le dialogue ou le menu. Si cette version se passe mal, la 0.26.662 reste en lign
 ## Limites connues
 
 - Pendant les quelques secondes de sa nuit « à soi », un joueur peut être attaqué : le monde continue pour les autres.
-- Quand l'hébergeur dort seul, la date avance d'environ 40 minutes.
+- Quand l'hébergeur dort seul, la date avance d'une dizaine de minutes (40 avant).
 - Sur la carte du monde, quand tous voyagent ensemble, seuls les pas de l'hébergeur font avancer la date.
 - Un joueur refusé par celui qui tient une carte reçoit encore le monde entier.
 - Quand l'hébergeur et un invité se retrouvent sur une carte, l'écran de l'invité recharge (le monde entier est renvoyé), sauf si l'hébergeur coche la case « No world reload when the host and a player meet again ».
@@ -87,7 +87,7 @@ menu. If this version goes wrong, 0.26.662 stays online. Built for Elin **EA 23.
 ## Known limits
 
 - During the few seconds of a night "of its own", a player can be attacked: the world goes on for the others.
-- When the host sleeps alone, the date moves by about 40 minutes.
+- When the host sleeps alone, the date moves by about ten minutes (40 before).
 - On the world map, when everyone travels together, only the host's steps move the date.
 - A player refused by the holder of a map still receives the whole world.
 - When the host and a guest meet on a map, the guest's screen reloads (the whole world is sent again), unless the host ticks "No world reload when the host and a player meet again".

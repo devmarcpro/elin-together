@@ -972,6 +972,19 @@ internal class SleepSynchronizationContext : SynchronizationContext
         return false;
     }
 
+    /// <summary>
+    ///     The clock of the world runs in the game that keeps it. A solo game is paused while its night screen
+    ///     shows; a session is not, and a night of the host's own cost the world the forty minutes its screen
+    ///     lasts, when a guest's costs nothing. The minutes of the clock are not counted meanwhile
+    /// </summary>
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(GameDate), nameof(GameDate.AdvanceMin))]
+    internal static bool OnClockMinute(int a)
+    {
+        return a != 1 || !_ownNight || NetSession.Instance.Connection is not ElinNetHost ||
+               ui.GetLayer<LayerSleep>() is null;
+    }
+
     [HarmonyFinalizer]
     [HarmonyPatch(typeof(LayerSleep), nameof(LayerSleep.Advance))]
     internal static void OnAdvanceEnd()
