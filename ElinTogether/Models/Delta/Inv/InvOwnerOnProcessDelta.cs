@@ -247,6 +247,11 @@ public class InvOwnerOnProcessDelta : ElinDelta
 
         var actRef = EffectRefId is null ? default : new ActRef { n1 = EffectRefId };
         var power = Mathf.Clamp(EffectPower, 1, 1000);
+
+        // the game puts the rebuilt item on whoever is not "the player", in place of what it wore
+        using var reader = effectId == EffectId.Reconstruction && thing.GetRootCard() is Chara { IsRemotePlayer: true } who
+            ? RemoteCraft.AsCrafter(who)
+            : null;
         ActEffect.Proc(effectId, power, (BlessedState)EffectState, thing.GetRootCard(), thing, actRef);
 
         // InvOwnerChangeMaterial._OnProcess

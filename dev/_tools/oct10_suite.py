@@ -54,6 +54,9 @@ R1  les reglages d'un habitant faits dans son dialogue (« reste ici », equipem
 P1  la peche d'un invite : ses prises du jour sont comptees pour LUI chez l'host (la « fievre » du don de pecheur
     dure ses cinq premieres prises), et le compte de l'host ne bouge pas. Le banc appelle AI_Fish.Makefish chez
     l'host pour le personnage de l'invite (ce que fait la fin d'une peche), sans canne ni eau.
+X1  le parchemin de reconstruction lu par l'invite : l'objet neuf va dans son sac, il n'est pas equipe d'office.
+    Le banc ouvre la fenetre de choix du jeu (LayerDragGrid.CreateReconstruction) et y designe l'objet par
+    OnProcess, sans lire un vrai parchemin. Pas corrige : le niveau de l'objet neuf suit le plus profond de l'host.
 F2  (trois fenetres : mp_test.py --clients 2) la meme chose que F1 sur une carte tenue par un invite, frappe par
     un autre invite.
 F1  un monstre vise l'host, qui ne fait rien ; l'invite le frappe dix fois : le monstre joue ses tours (avant : fige,
@@ -280,18 +283,41 @@ def r1():
 
 
 FISH = ('var c = EClass._map.charas.Find(x => x.uid == {uid}); var mine = EClass.player.fished; '
-        'for (var i = 0; i < 3; i++) { var t = AI_Fish.Makefish(c); if (t != null) t.Destroy(); } '
+        'var n = 0; for (var i = 0; i < 6; i++) { var t = AI_Fish.Makefish(c); if (t != null) { n++; t.Destroy(); } } '
         'var m = System.AppDomain.CurrentDomain.GetAssemblies().First(a => a.GetName().Name == "ElinTogether").GetType("ElinTogether.Patches.AIFishPatch").GetMethod("FishedToday", '
         'System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic); '
-        'return m.Invoke(null, new object[] { {uid} }) + "|" + (EClass.player.fished - mine);')
+        'return m.Invoke(null, new object[] { {uid} }) + "|" + (EClass.player.fished - mine) + "|" + n;')
 
 
 def p1():
     guest = state(A)["pc"]["uid"]
-    first = str(ev(H, FISH.replace("{uid}", str(guest))))
-    second = str(ev(H, FISH.replace("{uid}", str(guest))))
-    check(f"trois prises de l'invite puis trois autres : comptees pour lui, pas pour l'host ({first} puis {second})",
-          first.endswith("|0") and second.endswith("|0") and int(second.split("|")[0]) == int(first.split("|")[0]) + 3)
+    first = [int(x) for x in str(ev(H, FISH.replace("{uid}", str(guest)))).split("|")]
+    second = [int(x) for x in str(ev(H, FISH.replace("{uid}", str(guest)))).split("|")]
+    # (une peche peut ne rien prendre : le jeu ne compte que les prises)
+    check(f"les prises de l'invite sont comptees pour lui, pas pour l'host (compte|host|prises : {first} puis {second})",
+          first[1] == 0 and second[1] == 0 and first[2] > 0 and second[0] == first[0] + second[2])
+
+
+DAGGERS = ('var all = new System.Collections.Generic.List<string>(); var c = EClass._map.charas.Find(x => x.uid == {uid}); '
+           'c.things.Foreach(t => { if (t.id == "dagger") all.Add(t.isEquipped.ToString()); }, false); return string.Join(",", all);')
+
+
+def x1():
+    guest = state(A)["pc"]["uid"]
+    ev(H, f'var c = EClass._map.charas.Find(x => x.uid == {guest}); foreach (var t in c.things.List(t => t.id == "dagger", true)) t.Destroy(); '
+          'c.AddThing(ThingGen.Create("dagger")); return "ok";')
+    if not check("l'invite a une dague dans son sac, chez lui",
+                 eventually(lambda: str(ev(A, DAGGERS.replace("{uid}", str(guest)))) == "False", timeout=10)):
+        return
+    uid = lambda p: str(ev(p, f'var c = EClass._map.charas.Find(x => x.uid == {guest}); var t = c.things.Find(x => x.id == "dagger"); '  # noqa: E731
+                              'return t == null ? "0" : t.uid.ToString();'))
+    old = uid(H)
+    ev(A, 'var t = EClass.pc.things.Find(x => x.id == "dagger"); var l = LayerDragGrid.CreateReconstruction(EClass.pc); '
+          'l.owner.OnProcess(t); l.Close(); return "ok";')
+    check(f"l'objet est refait chez l'host ({old} -> {uid(H)})", eventually(lambda: uid(H) not in ("0", old), timeout=10))
+    for port, who in ((H, "chez l'host"), (A, "chez l'invite")):
+        check(f"{who}, la dague neuve est dans le sac de l'invite, pas equipee ({ev(port, DAGGERS.replace('{uid}', str(guest)))})",
+              eventually(lambda port=port: str(ev(port, DAGGERS.replace("{uid}", str(guest)))) == "False", timeout=10))
 
 
 def f2():
@@ -600,7 +626,7 @@ def main():
             continue
         check(f"{name} : pas de deuxieme ajout, lien remis ({r})", r == "0/0/True")
     check("au moins un jeu avait un autre membre dans l'equipe", RESULTS)
-    steps = (o1, b1, c1, h1, f1, l1, m1, s1, g1, e1, r1, p1, t1, q1, f2)
+    steps = (o1, b1, c1, h1, f1, l1, m1, s1, g1, e1, r1, p1, x1, t1, q1, f2)
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(',')]
     for step in steps:
