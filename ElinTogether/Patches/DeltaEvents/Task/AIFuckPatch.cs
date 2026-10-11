@@ -1,3 +1,6 @@
+using ElinTogether.Helper;
+using ElinTogether.Helper.Extensions;
+using ElinTogether.Models;
 using System.Collections.Generic;
 using ElinTogether.Net;
 using HarmonyLib;
@@ -19,6 +22,27 @@ internal static class AIFuckPatch
 
         __result = Run_Modified(__instance);
         return false;
+    }
+
+    /// <summary>
+    ///     The end of the act asks whether "the player" is the one who bought or sold: the player paid in the
+    ///     dialog, a resident pays here. Played by the host for another player, that player was taken for a
+    ///     resident and paid a second time (or paid when it was the one selling). It stands in as the player
+    /// </summary>
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(AI_Fuck), nameof(AI_Fuck.Finish))]
+    internal static void OnFinish(AI_Fuck __instance, out ScopeExit? __state)
+    {
+        __state = NetSession.Instance.Connection is ElinNetHost && __instance.owner is { IsRemotePlayer: true } player
+            ? RemoteCraft.AsCrafter(player)
+            : null;
+    }
+
+    [HarmonyFinalizer]
+    [HarmonyPatch(typeof(AI_Fuck), nameof(AI_Fuck.Finish))]
+    internal static void OnFinishEnd(ScopeExit? __state)
+    {
+        __state?.Dispose();
     }
 
     internal static IEnumerable<AIAct.Status> Run_Modified(AI_Fuck thiz)

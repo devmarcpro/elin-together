@@ -63,6 +63,9 @@ A1  l'artefact d'un dieu : chaque joueur a le sien. Le second joueur qui prend l
 D1  un invite renvoie un habitant qui porte un artefact de dieu : l'artefact va a l'invite, pas a l'host. Le banc
     cree l'habitant et l'artefact chez l'host, et envoie la demande de renvoi du mod (BaseRequestDelta.Send), sans le
     dialogue de l'habitant.
+W1  un service paye dans un dialogue (la tache AI_Fuck lancee par le dialogue apres le paiement) : a la fin, l'or de
+    l'invite ne bouge plus chez l'host (avant : il touchait une moitie du prix puis payait le prix une seconde fois).
+    Le banc lance la tache par SetAI chez l'invite, comme le fait le dialogue, sans le dialogue ni son paiement.
 F2  (trois fenetres : mp_test.py --clients 2) la meme chose que F1 sur une carte tenue par un invite, frappe par
     un autre invite.
 F1  un monstre vise l'host, qui ne fait rien ; l'invite le frappe dix fois : le monstre joue ses tours (avant : fige,
@@ -358,6 +361,23 @@ def d1():
     check(f"l'invite le renvoie : l'artefact est dans le sac de l'invite, chez l'host ({count(H, g)}), pas chez l'host ({count(H, 'EClass.pc')})",
           eventually(lambda: count(H, g) == "1" and count(H, "EClass.pc") == "0", timeout=15))
     check(f"et l'invite l'a dans son propre jeu ({count(A, 'EClass.pc')})", eventually(lambda: count(A, "EClass.pc") == "1", timeout=15))
+
+
+def w1():
+    guest = state(A)["pc"]["uid"]
+    npc = int(ev(H, 'var c = CharaGen.Create("farmer"); EClass._zone.AddCard(c, EClass._map.charas.Find(x => x.uid == %d).pos.GetNearestPoint(false, false)); '
+                    'c.noMove = true; return c.uid.ToString();' % guest))
+    gold = lambda: int(ev(H, f'EClass._map.charas.Find(x => x.uid == {guest}).GetCurrency().ToString()'))  # noqa: E731
+    ev(H, f'var g = EClass._map.charas.Find(x => x.uid == {guest}); g.ModCurrency(5000 - g.GetCurrency()); return "ok";')
+    eventually(lambda: ev(A, f'(EClass._map.charas.Find(x => x.uid == {npc}) != null).ToString()') == "True", timeout=10)
+    time.sleep(2)
+    before = gold()
+    ev(A, f'var c = EClass._map.charas.Find(x => x.uid == {npc}); EClass.pc.SetAI(new AI_Fuck {{ target = c }}); return "ok";')
+    time.sleep(2)
+    done = eventually(lambda: ev(A, '(EClass.pc.ai is AI_Fuck).ToString()') == "False", timeout=90)
+    time.sleep(3)
+    check(f"la tache finie, l'or de l'invite n'a pas bouge chez l'host ({before} -> {gold()})", done and gold() == before)
+    ev(H, f'var c = EClass._map.charas.Find(x => x.uid == {npc}); if (c != null) c.Destroy(); return "ok";')
 
 
 def f2():
@@ -666,7 +686,7 @@ def main():
             continue
         check(f"{name} : pas de deuxieme ajout, lien remis ({r})", r == "0/0/True")
     check("au moins un jeu avait un autre membre dans l'equipe", RESULTS)
-    steps = (o1, b1, c1, h1, f1, l1, m1, s1, g1, e1, r1, p1, x1, a1, d1, t1, q1, f2)
+    steps = (o1, b1, c1, h1, f1, l1, m1, s1, g1, e1, r1, p1, x1, a1, d1, w1, t1, q1, f2)
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(',')]
     for step in steps:
