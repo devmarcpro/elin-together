@@ -614,7 +614,7 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
 
 ### Liste à jour du 2026-10-11, midi (passe avant tout ce qui suit ; le reste de cette section est plus ancien)
 
-Publiée : **0.26.662** (11 octobre, Elin EA 23.355). Après elle, pas publié : la ligne « tu reçois ta part ».
+Publiée : **0.26.678** (11 octobre au soir, Elin EA 23.355). Après elle, rien de neuf.
 Le jeu Steam et le banc sont sur G depuis le 11 octobre (`G:\SteamLibrary`, `G:\ElinMods\_lab`). Prochains numéros libres : delta **849**, règle de session **26**.
 Cette liste vient d'une relecture de toute la documentation, de `HANDOFF.md`, de la fin de `MODLOG.md` et des plans.
 

@@ -2778,3 +2778,5 @@ Piège du banc : appeler `ActEffect.Proc` chez l'invité par eval détruit l'obj
 Chaîne avant : oct10 88/89 (le rouge = a1 avant la correction), quest 59/59, base 178/178, together 131/131, trade 122/122.
 Torche (ligne 52), précision : l'objet `torch` (trait `Torch`) existe et se tient en main ; c'est `TraitToolTorch` / `ConTorch` (allumer avec une bûche) que rien n'utilise dans le jeu 23.355. Pas vérifié : la torche tenue vue par l'autre joueur.
 Torche tenue, relevé à deux fenêtres (18h40) : l'invité prend une `torch` en main (`SetCurrentHotItem(HotItemHeld)`), l'host le sait (`held` = torch chez lui). La lumière à l'écran chez l'host n'a pas été regardée.
+
+Publié : 0.26.678 (commit c07856b, 2026-10-11 au soir, demande de l'utilisateur : « release »). Zip public identique au zip local (sha256 6108b1d8…), zip Mac joint. Dedans depuis la 0.26.662 : artefact de dieu, terre de la servante, réglages d'habitant, reconstruction, pêche, serrure et livre de Fiama, ligne « tu reçois ta part ». Avant : quest 59/59, base 178/178, together 131/131, trade 122/122, oct10 88/89 (a1 avant sa correction) puis a1 et x1 verts.
