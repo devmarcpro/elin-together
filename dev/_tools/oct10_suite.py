@@ -45,6 +45,9 @@ O1  un membre de l'equipe est sur une autre carte, plus grande (sa case n'existe
     priere et fin de nuit sont appelees par les fonctions du jeu (ActPray.Pray, Chara.OnSleep), pas jouees.
 G1  ce qu'une quete d'histoire donne quand elle COMMENCE (le crochet et le coffre verrouille de Fiama) : une part pour
     l'autre joueur aussi. Le banc cree la quete et appelle Quest.Start (pas le dialogue de Fiama).
+E1  la terre achetee a la servante de la base (daBuyLand) agrandit la zone constructible pour tous : l'invite
+    achete, l'host voit les memes limites, et l'inverse. Le banc appelle MapBounds.Expand(1), ce que fait le dialogue
+    apres avoir pris la platine : ni le dialogue ni le paiement ne sont joues.
 F2  (trois fenetres : mp_test.py --clients 2) la meme chose que F1 sur une carte tenue par un invite, frappe par
     un autre invite.
 F1  un monstre vise l'host, qui ne fait rien ; l'invite le frappe dix fois : le monstre joue ses tours (avant : fige,
@@ -230,6 +233,21 @@ def g1():
     check(f"le livre d'histoire de Fiama : l'invite a le sien, chez l'host ({had} -> {book(H)})",
           eventually(lambda: int(book(H)) == had + 1, timeout=15))
     check(f"et dans son propre jeu ({book(A)})", eventually(lambda: int(book(A)) == had + 1, timeout=15))
+
+
+BOUNDS = 'var b = EClass._map.bounds; return b.x + "," + b.z + "," + b.maxX + "," + b.maxZ;'
+
+
+def e1():
+    bounds = lambda p: str(ev(p, BOUNDS))  # noqa: E731
+    for buyer, other, who in ((A, H, "l'invite"), (H, A, "l'host")):
+        before = bounds(other)
+        ev(buyer, 'EClass._map.bounds.Expand(1); return "ok";')
+        bought = bounds(buyer)
+        if not check(f"{who} achete de la terre : ses limites grandissent ({before} -> {bought})", bought != before):
+            continue
+        check(f"l'autre joueur a les memes limites ({before} -> {bounds(other)})",
+              eventually(lambda: bounds(other) == bought, timeout=10))
 
 
 def f2():
@@ -538,7 +556,7 @@ def main():
             continue
         check(f"{name} : pas de deuxieme ajout, lien remis ({r})", r == "0/0/True")
     check("au moins un jeu avait un autre membre dans l'equipe", RESULTS)
-    steps = (o1, b1, c1, h1, f1, l1, m1, s1, g1, t1, q1, f2)
+    steps = (o1, b1, c1, h1, f1, l1, m1, s1, g1, e1, t1, q1, f2)
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(',')]
     for step in steps:

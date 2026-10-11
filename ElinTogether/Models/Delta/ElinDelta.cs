@@ -129,6 +129,7 @@ namespace ElinTogether.Models;
 [Union(844, typeof(CodexDelta))]
 [Union(845, typeof(QuestOffersDelta))]
 [Union(846, typeof(QuestRerollDelta))]
+[Union(847, typeof(MapBoundsDelta))]
 // Act
 [Union(900, typeof(ActThrowDelta))]
 // Element

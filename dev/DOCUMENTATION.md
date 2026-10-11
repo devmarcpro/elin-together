@@ -615,7 +615,7 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
 ### Liste à jour du 2026-10-11, midi (passe avant tout ce qui suit ; le reste de cette section est plus ancien)
 
 Publiée : **0.26.662** (11 octobre, Elin EA 23.355). Après elle, pas publié : la ligne « tu reçois ta part ».
-Le jeu Steam et le banc sont sur G depuis le 11 octobre (`G:\SteamLibrary`, `G:\ElinMods\_lab`). Prochains numéros libres : delta **847**, règle de session **26**.
+Le jeu Steam et le banc sont sur G depuis le 11 octobre (`G:\SteamLibrary`, `G:\ElinMods\_lab`). Prochains numéros libres : delta **848**, règle de session **26**.
 Cette liste vient d'une relecture de toute la documentation, de `HANDOFF.md`, de la fin de `MODLOG.md` et des plans.
 
 **1. Demandé par l'utilisateur, pas fait**
@@ -644,7 +644,7 @@ Cette liste vient d'une relecture de toute la documentation, de `HANDOFF.md`, de
 - Un joueur refusé par celui qui tient une carte reçoit encore le monde entier.
 - Expérience « de groupe » de l'host (jardinage, voyage) jamais donnée à l'invité ; fin de tâche arrivée après
   l'arrêt de la tâche.
-- Chasse aux différences 3, lignes 38 à 52 (services payés, terre achetée à la servante, artefact de dieu, réglages
+- Chasse aux différences 3, lignes 38 à 52 (services payés, artefact de dieu, réglages
   d'habitant, pêche, marche sur la carte du monde) ; restes des chasses 1 et 2.
 - Boss de donjon : la victoire d'un invité n'est pas transmise ; pas de fanfare chez l'invité.
 - Philtre d'amour lâché dans le sac d'un PNJ, objet non identifié vendu ; fenêtre de perte de la banque.
