@@ -57,6 +57,9 @@ P1  la peche d'un invite : ses prises du jour sont comptees pour LUI chez l'host
 X1  le parchemin de reconstruction lu par l'invite : l'objet neuf va dans son sac, il n'est pas equipe d'office.
     Le banc ouvre la fenetre de choix du jeu (LayerDragGrid.CreateReconstruction) et y designe l'objet par
     OnProcess, sans lire un vrai parchemin. Pas corrige : le niveau de l'objet neuf suit le plus profond de l'host.
+A1  l'artefact d'un dieu : chaque joueur a le sien. Le second joueur qui prend le sien ne detruit plus celui du
+    premier (le jeu detruit tout autre exemplaire tenu par « le camp du joueur »). Le banc cree les deux artefacts
+    chez l'host par AddThing (le chemin du ramassage), sans priere ni autel.
 F2  (trois fenetres : mp_test.py --clients 2) la meme chose que F1 sur une carte tenue par un invite, frappe par
     un autre invite.
 F1  un monstre vise l'host, qui ne fait rien ; l'invite le frappe dix fois : le monstre joue ses tours (avant : fige,
@@ -318,6 +321,20 @@ def x1():
     for port, who in ((H, "chez l'host"), (A, "chez l'invite")):
         check(f"{who}, la dague neuve est dans le sac de l'invite, pas equipee ({ev(port, DAGGERS.replace('{uid}', str(guest)))})",
               eventually(lambda port=port: str(ev(port, DAGGERS.replace("{uid}", str(guest)))) == "False", timeout=10))
+
+
+ARTIFACT = ('var row = EClass.sources.things.rows.First(r => r.tag != null && r.tag.Contains("godArtifact")); '
+            'var g = EClass._map.charas.Find(x => x.uid == {uid}); var count = new System.Func<Chara, int>(c => c.things.List(t => t.id == row.id, true).Count); '
+            'foreach (var c in new[] { EClass.pc, g }) foreach (var t in c.things.List(t => t.id == row.id, true)) t.Destroy(); '
+            'EClass.pc.AddThing(ThingGen.Create(row.id)); var first = count(EClass.pc); g.AddThing(ThingGen.Create(row.id)); '
+            'return row.id + "|" + first + "|" + count(EClass.pc) + "|" + count(g);')
+
+
+def a1():
+    guest = state(A)["pc"]["uid"]
+    got = str(ev(H, ARTIFACT.replace("{uid}", str(guest))))
+    check(f"l'host a son artefact, l'invite prend le sien : les deux existent (objet|host avant|host apres|invite : {got})",
+          got.split("|")[1:] == ["1", "1", "1"])
 
 
 def f2():
@@ -626,7 +643,7 @@ def main():
             continue
         check(f"{name} : pas de deuxieme ajout, lien remis ({r})", r == "0/0/True")
     check("au moins un jeu avait un autre membre dans l'equipe", RESULTS)
-    steps = (o1, b1, c1, h1, f1, l1, m1, s1, g1, e1, r1, p1, x1, t1, q1, f2)
+    steps = (o1, b1, c1, h1, f1, l1, m1, s1, g1, e1, r1, p1, x1, a1, t1, q1, f2)
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(',')]
     for step in steps:
