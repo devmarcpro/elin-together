@@ -33,7 +33,8 @@ if (Test-Path -LiteralPath $zip) { Remove-Item -LiteralPath $zip -Force }
 Compress-Archive -Path $out -DestinationPath $zip
 
 # le meme mod pour Mac (CrossOver, Whisky, Wine), avec son installateur
-python (Join-Path $root "_tools\make_mac_zip.py") $zip
+# (plus de zip Mac dans les versions : demande de l'utilisateur, 2026-10-12. Pour en refaire un a la main :
+# python _tools\make_mac_zip.py <zip>)
 
 $commit = git -C (Join-Path $root "..") rev-parse --short HEAD
 "Version prete : $zip"
