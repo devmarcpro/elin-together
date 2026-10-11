@@ -30,7 +30,7 @@ M1  l'invite monte un cheval, part seul a Vernis, y marche, revient et marche : 
     une copie, la vraie monture gardait une case de Vernis : monde inchargeable le 9 octobre). Le banc fait monter
     par l'acte du jeu (ActRide), pas par le menu.
 S1  « une part pour chacun » (conseil 14) : l'host termine une quete d'histoire (celle du curry : une cassette et
-    trois graines) ; l'invite present trouve la meme chose a ses pieds, dans les deux jeux ; l'invite parti a
+    trois graines) ; l'invite present trouve la meme chose dans son sac, dans les deux jeux ; l'invite parti a
     Vernis recoit un colis a son nom dans le courrier de la base ; ce que le jeu lache hors d'une quete d'histoire ne donne de part a personne.
     La quete est creee et terminee par le pont (Quest.Create, Complete), pas jouee ; le cas ou c'est l'INVITE qui
     termine n'est pas joue ici (il faut une vraie quete du journal).
@@ -324,9 +324,8 @@ def m1():
         check(f"{who} : une seule fois sur la carte et dans ses cases ({listed}, {cells})", listed == "1" and cells == "1")
     ev(A, 'if (EClass.pc.ride != null) ActRide.Unride(EClass.pc, false, false); return "ok";')
 
-NEAR = ('var c = EClass.game.cards.globalCharas.Find({uid}); return string.Join(",", EClass._map.things'
-        '.Where(t => t.pos.Equals(c.pos) && (t.trait is TraitSeed || t.id == "bucket"))'
-        '.Select(t => t.id + "x" + t.Num).OrderBy(x => x));')
+NEAR = ('var c = EClass.game.cards.globalCharas.Find({uid}); return string.Join(",", EClass._map.things.Where(t => t.pos.Equals(c.pos))'
+        '.Concat(c.things).Where(t => t.trait is TraitSeed || t.id == "bucket").Select(t => t.id + "x" + t.Num).OrderBy(x => x));')
 MAIL = ('string.Join(";", EClass.game.cards.listPackage.Where(p => p.c_idRefName != null && p.c_idRefName.Contains("{name}"))'
         '.Select(p => string.Join(",", p.things.Select(t => t.id + "x" + t.Num).OrderBy(x => x))))')
 
@@ -340,7 +339,7 @@ def s1():
     time.sleep(3)
     mine = near(H, host)
     check(f"l'host termine la quete du curry : sa recompense est a ses pieds ({mine})", "seed" in mine)
-    check(f"l'invite present trouve la meme chose a ses pieds, chez l'host ({near(H, guest['uid'])})",
+    check(f"l'invite present a la meme chose (dans son sac), chez l'host ({near(H, guest['uid'])})",
           eventually(lambda: near(H, guest["uid"]) == mine and near(H, guest["uid"]) != before, timeout=15))
     check(f"et dans son propre jeu ({near(A, guest['uid'])})", eventually(lambda: near(A, guest["uid"]) == mine, timeout=15))
     ev(H, 'EClass.player.DropReward(ThingGen.Create("bucket")); return "ok";')

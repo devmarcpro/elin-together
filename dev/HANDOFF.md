@@ -11,7 +11,8 @@
 - **Rouges connus du banc, pas des défauts** : `sleep_suite` (l'invité de test meurt pendant sa nuit, cascade) ; `hunt2_suite` E3 (test périmé : un seul joueur fait sauter trois heures) ; `guest_suite` baguette de l'host ; `bills_suite` politique 2705.
 - **Trouvé, pas corrigé** : joueur refusé par le teneur d'une carte qui reçoit le monde entier ; expérience « de groupe » donnée par l'host à sa copie d'un invité (jardinage, voyage) ; bouton « Reroll Quests » chez un invité (influence dépensée, rien de tiré) ; monture qui garde la case d'une autre carte (garde en place, cause pas trouvée).
 - **Ce PC (Steam Deck)** : le jeu contient le build de TEST (Debug) du dernier commit, pas une version publiée. `dev/_lab/Elin2` et `Elin3` refaits pour la 23.353 ; `dev/_decomp` date de la 23.352. L'utilisateur a donné l'accord pour lancer Elin le 10 au soir ; `run_short.sh` ferme TOUS les Elin entre deux suites.
-- **Prochains numéros** : delta 846, règle de session 24.
+- **Prochains numéros** : delta 847, règle de session 26 (24 `AllowTakeover`, 25 `OncePerPlayer`).
+- **Après la 0.26.652, pas publié** : « une part pour chacun », tranche 1 (conseil 14) : ce que l'histoire donne (quête d'histoire terminée, issue d'un dialogue, cadeau fabriqué pour le dialogue d'un client) va aussi à chaque autre joueur, dans son sac s'il est là, sinon en colis à son nom ; case host `OncePerPlayer` (cochée), qui couvre aussi les boutiques. `oct10_suite` 58/58, `first_time_suite` 20/20, `ashland_quests_suite` 21/21. **La liste à jour de tout ce qui reste est en tête de la section 7 de `DOCUMENTATION.md`.**
 
 ## État au 7 octobre 2026, 11h30 (à lire en premier)
 

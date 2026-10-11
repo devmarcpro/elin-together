@@ -5,7 +5,7 @@
 
 Q1  le tableau des quetes de l'invite et celui de l'host montrent les trois memes demandes d'Ashland
 Q2  l'invite clique « Essential Equipment » : le dialogue va au bout, la quete est au journal des deux jeux et n'est
-    plus proposee, le coffre offert tombe une fois
+    plus proposee, le coffre offert tombe une fois pour chaque joueur (conseil 14), avec le meme contenu
 Q3  l'invite clique « Way of Crafter » : pareil, sans cadeau en double
 Q4  l'host clique « Defense Training » : pareil
 Q5  les deux tableaux sont vides des trois demandes, les deux jeux sont d'accord sur tout ce que la chasse compare
@@ -77,7 +77,11 @@ def main():
                  len(bh) == 3 and bh == ba and ev(H, OFFERS) == "crafter,defense,sharedContainer"):
         return finish(t0)
     got = take(A, "Q2 l'invite", "Essential Equipment", "sharedContainer", world)
-    check(f"Q2 le coffre offert tombe une fois ({got})", got == 1)
+    # depuis le conseil 14 (« une part pour chacun », case OncePerPlayer cochee) : un coffre pour l'invite qui a
+    # parle, et le meme pour l'host, avec ce qu'il contient
+    check(f"Q2 le coffre offert tombe une fois pour chaque joueur ({got})", got == 2)
+    inside = ev(H, 'string.Join(" / ", EClass._map.things.Concat(EClass._map.charas.SelectMany(c => c.things)).Where(t => t.id == "chest6").Select(t => "[" + string.Join(",", t.things.Select(x => x.id).OrderBy(x => x)) + "]"))')
+    check(f"Q2 les deux coffres contiennent la meme chose ({inside})", len(set(inside.split(" / "))) == 1)
     got = take(A, "Q3 l'invite", "Way of Crafter", "crafter", world)
     check(f"Q3 pas de coffre en plus ({got})", got == 0)
     take(H, "Q4 l'host", "Defense Training", "defense", world)

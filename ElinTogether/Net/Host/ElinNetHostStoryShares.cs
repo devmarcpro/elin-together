@@ -13,7 +13,7 @@ namespace ElinTogether.Net;
 ///     completed the quest or played the dialog. Nobody plays anything again, nobody is asked anything. <br />
 ///     One place: the game's own <c>Player.DropReward</c>, while a story quest completes or a dialog outcome
 ///     runs (<see cref="StoryScope" />), in the game that hosts the world. A player on the map finds its share
-///     at its feet; a player elsewhere or not connected gets a parcel in its name in the mail of the base. <br />
+///     in its bag; a player elsewhere or not connected gets a parcel in its name in the mail of the base. <br />
 ///     Only goods a player carries are multiplied. What is the world's is not: recipes (known by all already),
 ///     deeds, and artifacts, except the few named here. What is not listed is not multiplied
 /// </summary>
@@ -30,12 +30,35 @@ internal partial class ElinNetHost
 
     internal static void NoteStoryReward(Thing reward, Chara? earner)
     {
-        if (reward is null || !StoryScope.Active || NetSession.Instance.Transport is ElinNetClient || !IsSharedWorld ||
+        if (StoryScope.Active) {
+            ShareStoryReward(reward, earner);
+        }
+    }
+
+    /// <summary>
+    ///     A reward of the story known as such by the caller (a gift a client's dialog asked this game to make)
+    /// </summary>
+    internal static void ShareStoryReward(Thing reward, Chara? earner)
+    {
+        if (reward is null || NetSession.Instance.Transport is ElinNetClient || !IsSharedWorld ||
             !EmpConfig.Server.OncePerPlayer.Value) {
             return;
         }
 
         _storyRewards.Add((reward, (earner ?? pc).uid));
+    }
+
+    // (the game's Duplicate makes a new thing of that kind: a chest comes with loot of its own drawn at random,
+    // and without what the reward holds)
+    private static Thing Whole(Thing reward)
+    {
+        var copy = reward.Duplicate(reward.Num);
+        copy.things.DestroyAll();
+        foreach (var held in reward.things) {
+            copy.AddCard(Whole(held));
+        }
+
+        return copy;
     }
 
     /// <summary>
@@ -66,14 +89,21 @@ internal partial class ElinNetHost
             }
 
             foreach (var other in players.Where(p => p!.uid != earner)) {
-                var share = reward.Duplicate(reward.Num);
+                var share = Whole(reward);
 
-                if (other!.IsAliveInCurrentZone && _map.charas.Contains(other)) {
-                    var at = other.pos.GetNearestPoint(allowChara: true, allowInstalled: true) ?? other.pos;
+                // in its bag when it is here: at its feet it piled up with the earner's own, one tile away, and the
+                // first to bend down had both (and nothing lands in water or in a wall). A full bag: at its feet
+                var here = other!.IsAliveInCurrentZone && _map.charas.Contains(other);
+                if (here && !other.things.IsFull(share)) {
+                    using (ElinDelta.Simulate()) {
+                        other.AddThing(share);
+                    }
+                } else if (here) {
                     CardCache.Add(share);
+                    CardCache.CacheContainer(share.things);
                     using (ElinDelta.Simulate()) {
                         host?.Delta.AddRemote(CardGenDelta.Create(share));
-                        _zone.AddCard(share, at);
+                        _zone.AddCard(share, other.pos);
                     }
                 } else {
                     var parcel = ThingGen.CreateParcel(null, share);
@@ -82,7 +112,7 @@ internal partial class ElinNetHost
                 }
 
                 EmpLog.Information("Story reward {Id} x{Num}: a share for player {Uid} ({Where})",
-                    reward.id, reward.Num, other.uid, other.IsAliveInCurrentZone ? "at its feet" : "by mail");
+                    reward.id, reward.Num, other.uid, here ? "in its bag" : "by mail");
             }
         }
     }

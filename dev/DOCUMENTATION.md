@@ -612,13 +612,64 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
 
 ## 7. Reste à faire
 
-### Mise à jour du 2026-10-11 (passe avant tout ce qui suit)
+### Liste à jour du 2026-10-11, midi (passe avant tout ce qui suit ; le reste de cette section est plus ancien)
 
-La liste à jour est en haut de `HANDOFF.md` (« État au 11 octobre 2026 »). En bref : rien n'est publié depuis la
-0.26.621 ; à faire : les autres « une fois par monde » (`PLAN_une_fois_par_monde.md` : récompenses des quêtes
-d'histoire, cadeaux de dialogue, guildes), les bugs de compagnons (pas de détail donné), le journal par joueur, les
-factures fantômes des mondes déjà touchés, l'ancien host qui revient (R6) et le dépôt en bonus (R7), le joueur refusé
-par le teneur d'une carte, l'expérience « de groupe » de l'host, le dépôt GitHub affiché comme un fork.
+Publiée : **0.26.652** (11 octobre, Elin EA 23.355). Après elle, pas publié : « une part pour chacun », tranche 1
+(conseil 14, case `OncePerPlayer`, règle 25). Prochains numéros libres : delta **847**, règle de session **26**.
+Cette liste vient d'une relecture de toute la documentation, de `HANDOFF.md`, de la fin de `MODLOG.md` et des plans.
+
+**1. Demandé par l'utilisateur, pas fait**
+- Suite de « chaque joueur doit pouvoir tout faire » (`PLAN_une_fois_par_monde.md`) : rattraper un joueur arrivé
+  plus tard et les mondes déjà joués ; une ligne « tu reçois ta part » chez l'invité ; cadeaux donnés au début d'une
+  quête ; trésor de Melilith (le second joueur est maudit à tort) ; guildes (conseil) ; petits cas (Père Noël, livre
+  de Fiama, cadeau de Jure, esquisses de Felmera, objets de soutien, lettres).
+- « Beaucoup de bugs autour des compagnons » : pas d'exemple donné. Trouvé et corrigé : la monture. Reste : un
+  compagnon d'invité qui ne suit pas, intermittent (`companion_suite` K2, K6), la laisse (g36).
+- Journal séparé par joueur. Factures fantômes des mondes déjà touchés (décision à prendre). Dépôt GitHub affiché
+  comme un fork. « Mes attributs ne montent pas » : il faut un journal de session. Duels : arène, pari, abandon.
+
+**2. Écrit, pas prouvé en jeu**
+- Reprise par Steam entre vrais PC (au banc : même port local). Départs non joués : Alt+F4, grand monde, invité
+  parti seul ailleurs.
+- Corrections relues sans test dédié : recettes d'un joueur seul ailleurs, niveau gagné ailleurs, nuit commune,
+  mort d'un personnage retiré de sa carte, laisse.
+- Boutiques à stock limité : marchand ambulant, marchands de mods, carte tenue par un invité, vrai glisser.
+- « Une part pour chacun » : un invité qui termine une quête d'histoire sur la carte de l'host (joué pour un cadeau
+  de dialogue seulement), trois joueurs.
+- Retour sur place (`SoftRecall`, décochée) : tranche 6 à écrire, banc des 21 points à finir.
+- Tests périmés ou cassés : `hunt2_suite` E3, `sleep_suite` (l'invité de test meurt), `council_suite` C5,
+  `resync_suite` R3, `five_suite` f6 à f8, `travel_suite` et `companion_suite` dans `run_short.sh` (`--reuse`).
+
+**3. Défauts connus, pas corrigés**
+- Un joueur refusé par celui qui tient une carte reçoit encore le monde entier.
+- Expérience « de groupe » de l'host (jardinage, voyage) jamais donnée à l'invité ; fin de tâche arrivée après
+  l'arrêt de la tâche.
+- Chasse aux différences 3, lignes 38 à 52 (services payés, terre achetée à la servante, artefact de dieu, réglages
+  d'habitant, pêche, marche sur la carte du monde) ; restes des chasses 1 et 2.
+- Boss de donjon : la victoire d'un invité n'est pas transmise ; pas de fanfare chez l'invité.
+- Philtre d'amour lâché dans le sac d'un PNJ, objet non identifié vendu ; fenêtre de perte de la banque.
+- Lenteurs à trois joueurs et plus (copie de carte à chaque étage), sacs en écart non réparés.
+
+**4. Inégalités host / invités encore ouvertes**
+- La date : un invité ne la fait jamais avancer ; l'avance rapide d'un joueur accélère les autres (horloge par
+  joueur : décision de conception à prendre). Jours et mois (anniversaires, colis, factions) restent chez l'host.
+- La nuit ne passe pas si l'host reste debout. Dons de l'host lus à la place de ceux de l'invité dans plusieurs
+  formules (génération des zones, butin, plats). Habitants qui ne remarquent que l'host.
+
+**5. Gros chantiers inachevés**
+- Reprise automatique : R6 (l'ancien host qui revient rejoint en invité ; sans lui, deux mondes possibles et la case
+  reste décochée), R7 (dépôt).
+- Mods de l'host : relancer Elin avec la liste de l'host (`ModProfile`), pas écrit.
+- Duels : arène, pari, abandon. Quêtes à donjon à deux : la défense, la déconnexion dans la zone.
+- Serveur sans Elin : relais sans coupure, version sans fenêtre.
+
+**6. Ce que seuls deux vrais PC prouvent**
+- Reprise par Steam, salon des joueurs connus (deux comptes), dépôt GitHub avec une vraie clé, serveur par Internet,
+  durée réelle des rechargements, zip Mac jamais essayé.
+
+**7. Ménage**
+- `dev/_decomp` date de la 23.352 (jeu en 23.355) ; les lanceurs `_lab` Elin4 et Elin5 sont à refaire pour cinq
+  joueurs ; bas de `HANDOFF.md` et sections 6 et 7 de ce fichier à résumer ; README à compléter.
 
 ### Mise à jour du 2026-10-06, 22h30 (la 0.26.524 n'a JAMAIS été jouée)
 

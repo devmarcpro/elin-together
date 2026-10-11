@@ -15,6 +15,13 @@ public class StoryGiftDelta : ElinDelta
     [Key(1)]
     public required Position Pos { get; init; }
 
+    /// <summary>
+    ///     The story gave it (a story quest that completes, the outcome of a dialog): the other players get their
+    ///     share, see ElinNetHost.ShareStoryReward
+    /// </summary>
+    [Key(2)]
+    public bool Story { get; init; }
+
     protected override void OnApply(ElinNetBase net)
     {
         // travelling alone, a player creates its own things
@@ -30,6 +37,10 @@ public class StoryGiftDelta : ElinDelta
         using (Simulate()) {
             host.Delta.AddRemote(CardGenDelta.Create(thing));
             _zone.AddCard(thing, new Point(Pos.X, Pos.Z));
+        }
+
+        if (Story) {
+            ElinNetHost.ShareStoryReward(thing, host.PlayerChara(OriginPeer));
         }
 
         EmpLog.Debug("Created story gift {ThingId} for peer {PeerIndex}", thing.id, OriginPeer);

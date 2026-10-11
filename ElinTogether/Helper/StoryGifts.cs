@@ -10,7 +10,8 @@ namespace ElinTogether.Helper;
 /// </summary>
 internal static class StoryGifts
 {
-    private static readonly List<Thing> _offered = [];
+    // (with whether the story gave it: a reward of a story quest or of a dialog, of which every player gets a share)
+    private static readonly List<(Thing Thing, bool Story)> _offered = [];
 
     /// <summary>
     ///     Set while the client only shows what the host does for real (a gacha pull)
@@ -19,8 +20,8 @@ internal static class StoryGifts
 
     internal static void Offer(Thing thing)
     {
-        if (!HostGives && !_offered.Contains(thing)) {
-            _offered.Add(thing);
+        if (!HostGives && !_offered.Exists(o => o.Thing == thing)) {
+            _offered.Add((thing, Patches.StoryScope.Active));
         }
     }
 
@@ -35,7 +36,7 @@ internal static class StoryGifts
         }
 
         if (NetSession.Instance.Connection is ElinNetClient client) {
-            foreach (var thing in _offered) {
+            foreach (var (thing, story) in _offered) {
                 Position? pos = thing.pos;
                 if (thing.isDestroyed || pos is null) {
                     continue;
@@ -44,6 +45,7 @@ internal static class StoryGifts
                 client.Delta.AddRemote(new StoryGiftDelta {
                     Data = LZ4Bytes.Create(thing),
                     Pos = pos,
+                    Story = story,
                 });
                 EmpLog.Debug("Asking the host for story gift {ThingId}", thing.id);
             }
