@@ -17,8 +17,7 @@ namespace ElinTogether.Net;
 ///     Only goods a player carries are multiplied. What is the world's is not: recipes (known by all already),
 ///     deeds, and artifacts, except the few named here. What is not listed is not multiplied
 /// </summary>
-// ponytail: what a world gave BEFORE this was written is not caught up (nothing recorded what each quest gave, nor
-// to whom). It needs a table of the rewards of each story quest, by hand
+// What a world gave BEFORE the ledger existed: see SeedOldWorld (council 15)
 internal partial class ElinNetHost
 {
     /// <summary>
@@ -39,6 +38,84 @@ internal partial class ElinNetHost
     {
         get => field ??= [];
         set;
+    }
+
+    /// <summary>
+    ///     Set once the rewards a world gave before the ledger existed were written in it, see SeedOldWorld
+    /// </summary>
+    [ElinGameIOProperty("story_seeded")]
+    private static int[] StorySeeded
+    {
+        get => field is { Length: 1 } ? field : field = new int[1];
+        set;
+    }
+
+    // (the goods only: recipes are known by all, the tickets of the debt depend on a stage nothing records,
+    // the gifts of the wedding are made from one person, the gifts of dialogs left no trace of having been given)
+    private static readonly (string Quest, System.Func<Thing[]> Rewards)[] _oldRewards = [
+        ("QuestCrafter", () => [ThingGen.Create("housePlate"), ThingGen.Create("343"), ThingGen.Create("432")]),
+        ("QuestDefense", () => [ThingGen.Create("plat").SetNum(10)]),
+        ("QuestPuppy", () => [ThingGen.Create("coolerbox")]),
+        ("QuestCompanion", () => [ThingGen.CreateScroll(9001)]),
+        ("QuestTax", () => [ThingGen.Create("mailpost")]),
+        ("QuestCurry", () => [TraitSeed.MakeSeed("redpepper").SetNum(3)]),
+        ("QuestLoytelFarm", () => [
+            TraitSeed.MakeSeed("pasture").SetNum(5), TraitSeed.MakeSeed("tomato").SetNum(5),
+            TraitSeed.MakeSeed("kinoko").SetNum(5),
+        ]),
+        ("QuestNasu", () => [
+            ThingGen.Create("697").SetNum(77), TraitSeed.MakeSeed("feywood").SetNum(10),
+            TraitSeed.MakeSeed("coralwood").SetNum(10),
+        ]),
+        ("ash1", () => [ThingGen.Create("crimAle")]),
+        ("fiama1", () => [ThingGen.Create("crimAle")]),
+    ];
+
+    /// <summary>
+    ///     Council 15: a world played before the ledger existed has story quests completed and nothing that says
+    ///     who had their rewards. They are written in the ledger as received by nobody: every player of the
+    ///     world, the host as the others, gets them once, in one parcel in its name (a spare of what it already
+    ///     had costs little between friends, a reward never had cannot be caught up). Once per world. In a world
+    ///     only its host ever played, the host is known to have had them: only who joins later gets them
+    /// </summary>
+    internal static void SeedOldWorld()
+    {
+        if (StorySeeded[0] != 0 || !EmpConfig.Server.OncePerPlayer.Value || NetSession.Instance.Transport is not ElinNetHost ||
+            !core.IsGameStarted || game?.quests is not { } quests) {
+            return;
+        }
+
+        StorySeeded[0] = 1;
+
+        // a world nobody else ever played in: its one player had them all
+        int[] had = SavedRemoteCharas.Count == 0 ? [player.uidChara] : [];
+        var added = 0;
+        foreach (var (quest, rewards) in _oldRewards) {
+            if (!quests.completedTypes.Contains(quest) && !quests.completedIDs.Contains(quest)) {
+                continue;
+            }
+
+            try {
+                foreach (var reward in rewards()) {
+                    var number = StoryRewards.Count == 0 ? 1 : StoryRewards.Keys.Max() + 1;
+                    StoryRewards[number] = LZ4Bytes.Create(reward).Bytes;
+                    StoryReceived[number] = had;
+                    reward.Destroy();
+                    added++;
+                }
+            } catch (System.Exception ex) {
+                EmpLog.Warning(ex, "Rewards of {Quest} could not be made for the ledger", quest);
+            }
+        }
+
+        if (added == 0) {
+            return;
+        }
+
+        EmpLog.Information("World played before the ledger: {Count} story rewards written for every player", added);
+        if (pc is { isDead: false } own) {
+            CatchUpStoryShares(own);
+        }
     }
 
     /// <summary>
@@ -127,6 +204,7 @@ internal partial class ElinNetHost
     /// </summary>
     internal static void GiveStoryShares()
     {
+        SeedOldWorld();
         if (_storyRewards.Count == 0) {
             return;
         }

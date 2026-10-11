@@ -81,6 +81,10 @@ S2  une part pour chacun, dans l'autre sens : l'INVITE termine la quete d'histoi
 U1  l'invite vend a une boutique un objet non identifie : la boutique l'identifie, chez l'host aussi (avant : il
     restait non identifie dans la boutique de l'host). Le banc cree un marchand, ouvre sa boutique et vend par la transaction
     du jeu (InvOwner.Transaction, le maj+clic), l'objet et son etat « non identifie » sont poses par eval chez l'host.
+S3  rattrapage d'un monde joue avant le registre (conseil 15) : des quetes d'histoire finies, pas de registre. A la
+    premiere image du jeu qui heberge, leurs recompenses sont ecrites une fois dans le registre ; chaque joueur du
+    monde, host compris, recoit un colis a son nom ; une seule fois. Le banc vide le registre, marque deux quetes
+    finies (QuestDefense, QuestPuppy) et remet la marque a zero par reflexion ; l'invite est ramene par un aller-retour.
 F2  (trois fenetres : mp_test.py --clients 2) la meme chose que F1 sur une carte tenue par un invite, frappe par
     un autre invite.
 F1  un monstre vise l'host, qui ne fait rien ; l'invite le frappe dix fois : le monstre joue ses tours (avant : fige,
@@ -488,6 +492,45 @@ def u1():
     ev(H, f'var m = EClass._map.charas.Find(x => x.uid == {shop}); if (m != null) m.Destroy(); return "ok";')
 
 
+LEDGER = ('var t = System.AppDomain.CurrentDomain.GetAssemblies().First(a => a.GetName().Name == "ElinTogether").GetType("ElinTogether.Net.ElinNetHost"); '
+          'var f = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic; '
+          'var rewards = (System.Collections.Generic.Dictionary<int, byte[]>)t.GetProperty("StoryRewards", f).GetValue(null); '
+          'var received = (System.Collections.Generic.Dictionary<int, int[]>)t.GetProperty("StoryReceived", f).GetValue(null); '
+          'var seeded = (int[])t.GetProperty("StorySeeded", f).GetValue(null); ')
+PARCELS = ('return string.Join(";", EClass.game.cards.listPackage.Where(p => p.c_idRefName != null && p.c_idRefName.Contains("{name}"))'
+           '.Select(p => string.Join(",", p.things.Select(t => t.id + "x" + t.Num).OrderBy(x => x))));')
+
+
+def s3():
+    from travel_suite import VERNIS, both_joined, client_settled, move, wait  # noqa: PLC0415
+    names = {"host": state(H)["pc"]["name"].split(" ")[-1].strip("「」"), "invite": state(A)["pc"]["name"].split(" ")[-1].strip("「」")}
+    parcels = lambda who: str(ev(H, PARCELS.replace("{name}", names[who])))  # noqa: E731
+    before = {w: parcels(w) for w in names}
+    ev(H, LEDGER + 'rewards.Clear(); received.Clear(); EClass.game.quests.completedTypes.Add("QuestDefense"); '
+                   'EClass.game.quests.completedTypes.Add("QuestPuppy"); seeded[0] = 0; return "ok";')
+    time.sleep(3)
+    got = str(ev(H, LEDGER + 'return seeded[0] + "|" + rewards.Count + "|" + string.Join(",", received.Values.Select(v => v.Length));'))
+    mark, count, had = got.split("|")
+    # (deux quetes marquees ici, plus celles que les etapes d'avant ont finies pour de bon : le curry)
+    check(f"le registre est rempli une fois : marque, au moins deux recompenses, recues par l'host seulement pour l'instant ({got})",
+          mark == "1" and int(count) >= 2 and set(had.split(",")) == {"1"})
+    check(f"l'host a son colis de rattrapage ({before['host']!r} -> {parcels('host')!r})",
+          "coolerbox" in parcels("host") and "plat" in parcels("host") and parcels("host") != before["host"])
+    try:
+        move(A, VERNIS)
+        wait(client_settled(A, VERNIS, True), "l'invite seul a Vernis", timeout=180)
+        time.sleep(3)
+    finally:
+        move(A, HOME)
+        both_joined(H, A, HOME)
+    check(f"l'invite, de retour chez l'host, a le sien ({before['invite']!r} -> {parcels('invite')!r})",
+          eventually(lambda: "coolerbox" in parcels("invite") and "plat" in parcels("invite"), timeout=20))
+    mine, its = parcels("host"), parcels("invite")
+    ev(H, LEDGER + 'var m = t.GetMethod("SeedOldWorld", f); m.Invoke(null, null); return "ok";')
+    time.sleep(3)
+    check("une seule fois : rien de plus apres un second appel", parcels("host") == mine and parcels("invite") == its)
+
+
 def f2():
     """a trois fenetres : la meme chose sur une carte tenue par un INVITE, le troisieme joueur frappe"""
     from travel_suite import HOME, VERNIS, client_settled, move, wait  # noqa: PLC0415
@@ -794,7 +837,7 @@ def main():
             continue
         check(f"{name} : pas de deuxieme ajout, lien remis ({r})", r == "0/0/True")
     check("au moins un jeu avait un autre membre dans l'equipe", RESULTS)
-    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, t1, q1, f2)
+    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, s3, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, t1, q1, f2)
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(',')]
     for step in steps:

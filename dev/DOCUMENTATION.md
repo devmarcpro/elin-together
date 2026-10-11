@@ -619,8 +619,7 @@ Le jeu Steam et le banc sont sur G depuis le 11 octobre (`G:\SteamLibrary`, `G:\
 Cette liste vient d'une relecture de toute la documentation, de `HANDOFF.md`, de la fin de `MODLOG.md` et des plans.
 
 **1. Demandé par l'utilisateur, pas fait**
-- Suite de « chaque joueur doit pouvoir tout faire » (`PLAN_une_fois_par_monde.md`) : rattraper un joueur arrivé
-  plus tard et les mondes déjà joués ; la cassette donnée au début de
+- Suite de « chaque joueur doit pouvoir tout faire » (`PLAN_une_fois_par_monde.md`) : la cassette donnée au début de
   la quête de la dette ; trésor de Melilith (le second joueur est maudit à tort) ; guildes (conseil) ; petits cas (Père Noël, livre
   de Fiama, cadeau de Jure, esquisses de Felmera, objets de soutien, lettres).
 - « Beaucoup de bugs autour des compagnons » : pas d'exemple donné. Trouvé et corrigé : la monture. Reste : un
