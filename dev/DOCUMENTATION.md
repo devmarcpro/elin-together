@@ -646,7 +646,7 @@ Cette liste vient d'une relecture de toute la documentation, de `HANDOFF.md`, de
   l'arrêt de la tâche.
 - Chasse aux différences 3, lignes 38 à 52 (marche sur la carte du monde, duel d'aventurier, réunion de la base, génération des zones) ; restes des chasses 1 et 2.
 - Boss de donjon : victoire transmise depuis le 12 octobre (`BossWinDelta`) ; reste à jouer un vrai donjon et l'invité seul.
-- Philtre d'amour lâché dans le sac d'un PNJ, objet non identifié vendu ; fenêtre de perte de la banque.
+- Philtre d'amour lâché dans le sac d'un PNJ ; fenêtre de perte de la banque.
 - Lenteurs à trois joueurs et plus (copie de carte à chaque étage), sacs en écart non réparés.
 
 **4. Inégalités host / invités encore ouvertes**

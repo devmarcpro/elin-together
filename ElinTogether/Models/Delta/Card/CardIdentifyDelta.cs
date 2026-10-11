@@ -1,3 +1,4 @@
+using ElinTogether.Helper;
 using System;
 using ElinTogether.Net;
 using MessagePack;
@@ -24,8 +25,12 @@ public class CardIdentifyDelta : ElinDelta
 
         if (net is ElinNetHost host) {
             // client wants to identify thingy
-            if (thing.GetRootCard() is not Chara root ||
-                !host.ActiveRemoteCharas.TryGetValue(OriginPeer, out var owner) || root != owner) {
+            // its own things, or the one it just sold: a shop identifies what it buys, in the seller's game, once
+            // the thing is already the merchant's (never another player's or a companion's)
+            // (in between, the thing sold is held by nobody for a moment)
+            if (!host.ActiveRemoteCharas.TryGetValue(OriginPeer, out var owner) ||
+                (thing.GetRootCard() is Chara root && root != owner &&
+                 (root.IsPlayer || CompanionHelper.OwnerOf(root) is not null))) {
                 EmpLog.Warning("Refusing identify of {Uid} from peer {PeerIndex}",
                     thing.uid, OriginPeer);
                 return;

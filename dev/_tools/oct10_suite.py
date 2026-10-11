@@ -78,6 +78,9 @@ J1  l'experience donnee « a toute l'equipe » (une recolte apprend le jardinage
 S2  une part pour chacun, dans l'autre sens : l'INVITE termine la quete d'histoire (le curry) sur la carte de l'host :
     l'invite a sa recompense, l'host recoit sa part (dans son sac), une fois. La quete est commencee chez l'host (QuestManager.Start), le banc
     appelle Quest.Complete chez l'invite sur cette quete, sans le dialogue.
+U1  l'invite vend a une boutique un objet non identifie : la boutique l'identifie, chez l'host aussi (avant : il
+    restait non identifie dans la boutique de l'host). Le banc cree un marchand, ouvre sa boutique et vend par la transaction
+    du jeu (InvOwner.Transaction, le maj+clic), l'objet et son etat « non identifie » sont poses par eval chez l'host.
 F2  (trois fenetres : mp_test.py --clients 2) la meme chose que F1 sur une carte tenue par un invite, frappe par
     un autre invite.
 F1  un monstre vise l'host, qui ne fait rien ; l'invite le frappe dix fois : le monstre joue ses tours (avant : fige,
@@ -460,6 +463,31 @@ def s2():
           eventually(lambda: seeds(A, guest) == seeds(H, guest), timeout=15))
 
 
+def u1():
+    guest = state(A)["pc"]["uid"]
+    shop = int(ev(H, f'var g = EClass._map.charas.Find(x => x.uid == {guest}); var m = CharaGen.Create("merchant"); '
+                     'EClass._zone.AddCard(m, g.pos.GetNearestPoint(false, false)); m.noMove = true; return m.uid.ToString();'))
+    uid = int(ev(H, f'var g = EClass._map.charas.Find(x => x.uid == {guest}); var t = ThingGen.Create("axe_battle"); t.c_IDTState = 5; g.AddThing(t); return t.uid.ToString();'))
+    # (par la table des cartes du mod : chez l'invite le coffre du marchand n'est pas parcouru par c.things.List)
+    idt = lambda p: str(ev(p, 'var asm = System.AppDomain.CurrentDomain.GetAssemblies().First(a => a.GetName().Name == "ElinTogether"); '  # noqa: E731
+                              'var t = HarmonyLib.AccessTools.Method(asm.GetType("ElinTogether.Models.CardCache"), "Find", new[] { typeof(int) })'
+                              '.Invoke(null, new object[] { %d }) as Thing; return t == null ? "introuvable" : t.c_IDTState + "|" + t.GetRootCard().uid;' % uid))
+    if not check(f"l'invite a une hache non identifiee, dans les deux jeux ({idt(H)} / {idt(A)}), et un marchand a cote ({shop})",
+                 eventually(lambda: idt(A).startswith("5|") and idt(H).startswith("5|")
+                            and ev(A, f'(EClass._map.charas.Find(x => x.uid == {shop}) != null).ToString()') == "True", timeout=10)):
+        return
+    ev(A, f'var f = EClass._map.charas.Find(x => x.uid == {shop}); f.trait.OnBarter(); if (!LayerInventory.listInv.Any(q => q.mainInv)) EClass.ui.OpenFloatInv(true); '
+          'EClass.ui.AddLayer(LayerInventory.CreateBuy(f, f.trait.CurrencyType, f.trait.PriceType)); return "ok";')
+    time.sleep(2)
+    sold = str(ev(A, BUY.replace("{uid}", str(uid))))
+    time.sleep(3)
+    ev(A, CLOSE)
+    check(f"l'invite la vend au marchand ({sold}) : chez lui elle est identifiee, chez le marchand ({idt(A)})",
+          eventually(lambda: idt(A) == f"0|{shop}", timeout=10))
+    check(f"chez l'host aussi ({idt(H)})", eventually(lambda: idt(H) == f"0|{shop}", timeout=10))
+    ev(H, f'var m = EClass._map.charas.Find(x => x.uid == {shop}); if (m != null) m.Destroy(); return "ok";')
+
+
 def f2():
     """a trois fenetres : la meme chose sur une carte tenue par un INVITE, le troisieme joueur frappe"""
     from travel_suite import HOME, VERNIS, client_settled, move, wait  # noqa: PLC0415
@@ -766,7 +794,7 @@ def main():
             continue
         check(f"{name} : pas de deuxieme ajout, lien remis ({r})", r == "0/0/True")
     check("au moins un jeu avait un autre membre dans l'equipe", RESULTS)
-    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, t1, q1, f2)
+    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, t1, q1, f2)
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(',')]
     for step in steps:
