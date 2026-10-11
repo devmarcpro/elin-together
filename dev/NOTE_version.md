@@ -85,7 +85,6 @@ menu. If this version goes wrong, 0.26.662 stays online. Built for Elin **EA 23.
 
 ## Known limits
 
-- During the few seconds of a night "of its own", a player can be attacked: the world goes on for the others.
 - When the host sleeps alone, the date moves by about ten minutes (40 before).
 - On the world map, when everyone travels together, only the host's steps move the date.
 - A player refused by the holder of a map still receives the whole world.
