@@ -657,8 +657,7 @@ Cette liste vient d'une relecture de toute la documentation, de `HANDOFF.md`, de
   formules (génération des zones, butin, plats). Habitants qui ne remarquent que l'host.
 
 **5. Gros chantiers inachevés**
-- Reprise automatique : R6 (l'ancien host qui revient rejoint en invité ; sans lui, deux mondes possibles et la case
-  reste décochée), R7 (dépôt).
+- Reprise automatique : R6 fait le 11 octobre (l'ancien host qui recharge son monde rejoint en invité celui qui l'a repris, sans un clic ; `takeover_trio` 16/16 sur un port local ; par Steam entre vrais PC : écrit, pas joué). La case `Takeover` reste décochée tant que ce n'est pas joué entre deux PC. Reste R7 (dépôt).
 - Mods de l'host : relancer Elin avec la liste de l'host (`ModProfile`), pas écrit.
 - Duels : arène, pari, abandon. Quêtes à donjon à deux : la défense, la déconnexion dans la zone.
 - Serveur sans Elin : relais sans coupure, version sans fenêtre.
