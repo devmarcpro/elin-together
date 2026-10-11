@@ -127,6 +127,57 @@ def play(kind, rider="a"):
         ev(P, f'if (EClass.pc.{field} != null) ActRide.Unride(EClass.pc, {"true" if kind == "parasite" else "false"}, false); return "ok";')
 
 
+def play_both():
+    """monture ET parasite en meme temps, ceux de l'invite : V1 a V3"""
+    import guest_suite as g  # noqa: PLC0415
+    log("--- BOTH : cheval et parasite de l'invite, ensemble")
+    uid = state(A)["pc"]["uid"]
+    ctx = {"a": (A, uid), "h": (H, state(H)["pc"]["uid"])}
+    pets = []
+    for species, act, field, what in (("horse", "ActRide", "ride", "cheval"), ("putit", "ActParasite", "parasite", "parasite")):
+        m = g.tame(ctx, species, "a")
+        g.clear_conditions(m)
+        on = ev(A, f'var m = EClass._map.charas.Find(x => x.uid == {m}); ACT.Create(EClass.sources.elements.alias["{act}"].id).Perform(EClass.pc, m, m.pos); '
+                   f'return (EClass.pc.{field} == m).ToString();')
+        if not check(f"l'invite prend son {what} sur lui ({on})", on == "True"):
+            return
+        pets.append((m, field, what))
+    time.sleep(4)
+
+    def all_together(step):
+        for m, field, what in pets:
+            together(step, uid, m, field, what)
+
+    try:
+        move(A, VERNIS)
+        wait(client_settled(A, VERNIS, True), "l'invite seul a Vernis", timeout=180)
+        time.sleep(3)
+        walk(A, 6)
+        move(A, HOME)
+        both_joined(H, A, HOME)
+        walk(A, -6)
+        all_together("B1 (l'invite revient chez l'host)")
+        move(A, VERNIS)
+        wait(client_settled(A, VERNIS, True), "l'invite seul a Vernis", timeout=180)
+        time.sleep(3)
+        move(H, VERNIS)
+        wait(lambda: zone_uid(H) == VERNIS, "host a Vernis", timeout=180)
+        both_joined(H, A, VERNIS)
+        walk(A, -6)
+        all_together("B2 (l'host rejoint l'invite a Vernis)")
+        move(H, HOME)
+        wait(lambda: zone_uid(H) == HOME, "host a la Prairie", timeout=180)
+        time.sleep(4)
+        s = state(A)
+        if s.get("awayZone") or (s.get("zone") or {}).get("uid") != HOME:
+            move(A, HOME)
+        both_joined(H, A, HOME)
+        walk(A, 6)
+        all_together("B3 (l'host rentre, l'invite le suit)")
+    finally:
+        ev(A, 'if (EClass.pc.parasite != null) ActRide.Unride(EClass.pc, true, false); if (EClass.pc.ride != null) ActRide.Unride(EClass.pc, false, false); return "ok";')
+
+
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
     start = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
@@ -137,9 +188,12 @@ def main():
         set_option("SoftRecall", True)
         time.sleep(2)
         log("case SoftRecall cochee")
-    kinds = [k for k in ("ride", "parasite", "hride", "hparasite") if len(sys.argv) < 2 or k in sys.argv[1].split(",")]
+    kinds = [k for k in ("ride", "parasite", "hride", "hparasite", "both") if len(sys.argv) < 2 or k in sys.argv[1].split(",")]
     for kind in kinds:
         try:
+            if kind == "both":
+                play_both()
+                continue
             play(kind.lstrip("h"), "h" if kind.startswith("h") else "a")
         except Exception as ex:  # noqa: BLE001
             check(f"{kind} interrompu : {type(ex).__name__}: {str(ex)[:300]}", False)
