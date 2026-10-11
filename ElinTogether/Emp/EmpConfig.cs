@@ -314,10 +314,18 @@ internal partial class EmpConfig
         Server.SoftRecall = config.Bind(
             "Server",
             "SoftRecall",
-            false,
+            true,
             "When the host walks onto the map a player holds alone, that player stays on its map without loading the whole world again; when that player walks into the map the host is on, it loads that one map only\n" +
-            "New, off until it has been played more. Should anything not match, the world is loaded as before. Otherwise the world is loaded at each such meeting\n" +
-            "主机走进某位玩家独自所在的地图时，该玩家留在原地图上，不再重新载入整个世界；该玩家走进主机所在的地图时，只载入那一张地图。新功能，默认关闭；如有任何不一致，仍会像以前一样载入世界。关闭时每次这样相遇都会重新载入世界");
+            "On since 0.26.690 (off before). Should anything not match, the world is loaded as before. Otherwise the world is loaded at each such meeting\n" +
+            "主机走进某位玩家独自所在的地图时，该玩家留在原地图上，不再重新载入整个世界；该玩家走进主机所在的地图时，只载入那一张地图。自 0.26.690 起默认开启；如有任何不一致，仍会像以前一样载入世界。关闭时每次这样相遇都会重新载入世界");
+
+        // (off was the default while it was new: a host who never chose gets it once, then its own choice stays)
+        var softOnce = config.Bind("Server", "SoftRecallSwitchedOn", false,
+            "Internal: the mod turned SoftRecall on once when it became the default");
+        if (!softOnce.Value) {
+            softOnce.Value = true;
+            Server.SoftRecall.Value = true;
+        }
 
         Server.WorldCopy = config.Bind(
             "Server",

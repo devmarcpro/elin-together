@@ -6,6 +6,8 @@ cd "$(dirname "$0")/.."
 tag=$1; shift
 kill_all() {
     for p in $(tasklist //FI "IMAGENAME eq Elin.exe" //FO CSV //NH | cut -d, -f2 | tr -d '"' | grep -E '^[0-9]+$'); do taskkill //PID $p //F >/dev/null; done
+    # (une fenetre met parfois plus de 15 s a se fermer : la suite d'apres disait « Elin tourne deja »)
+    for i in $(seq 1 30); do tasklist //FI "IMAGENAME eq Elin.exe" //FO CSV //NH | grep -q Elin.exe || break; sleep 2; done
 }
 for suite in "$@"; do
     kill_all

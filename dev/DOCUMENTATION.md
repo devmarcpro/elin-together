@@ -636,7 +636,7 @@ Cette liste vient d'une relecture de toute la documentation, de `HANDOFF.md`, de
 - Boutiques à stock limité : marchand ambulant, marchands de mods, carte tenue par un invité, vrai glisser.
 - « Une part pour chacun » : un invité qui termine une quête d'histoire sur la carte de l'host (joué pour un cadeau
   de dialogue seulement), trois joueurs.
-- Retour sur place (`SoftRecall`, décochée) : tranche 6 à écrire, banc des 21 points à finir.
+- Retour sur place (`SoftRecall`) : **cochée d'office depuis le 12 octobre** (allumée une fois chez les hosts existants, `SoftRecallSwitchedOn`), après 13 séries vertes case cochée (dont `shared_suite` à trois fenêtres). Reste : tranche 6, quatre joueurs, deux vrais PC.
 - Tests périmés ou cassés : `hunt2_suite` E3, `sleep_suite` (103/117 depuis le 11 octobre : n5, n6 et la date de l'host seul), `council_suite` C5,
   `resync_suite` R3, `five_suite` f6 à f8, `travel_suite` et `companion_suite` dans `run_short.sh` (`--reuse`).
 
