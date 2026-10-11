@@ -149,7 +149,7 @@ public class BaseRequestDelta : ElinDelta
         using var simulate = Simulate();
 
         if (Kind is not (BaseRequestKind.Research or BaseRequestKind.HomeSkill)) {
-            return ExecuteResident(branch);
+            return ExecuteResident(branch, sender);
         }
 
         if (Kind == BaseRequestKind.Research) {
@@ -193,7 +193,16 @@ public class BaseRequestDelta : ElinDelta
     ///     game would offer it. The game's own functions make it (the host tells the others from them, see
     ///     <see cref="RemoteResidentPatch" />), the maid is the one field they do not touch
     /// </summary>
-    private bool ExecuteResident(FactionBranch branch)
+    // the game hands the god artifacts of whoever is sent away to "the player", the host here: they go to the
+    // player who sends it away, before the game looks for them
+    private static void HandArtifacts(Chara from, Chara to)
+    {
+        foreach (var artifact in from.things.List(a => a.HasTag(CTAG.godArtifact)).ToList()) {
+            to.PickOrDrop(to.pos, artifact);
+        }
+    }
+
+    private bool ExecuteResident(FactionBranch branch, Chara sender)
     {
         if (!int.TryParse(Id, out var uid)) {
             return false;
@@ -220,6 +229,7 @@ public class BaseRequestDelta : ElinDelta
             } else if (reserved.trait.CanBeBanished) {
                 // what the trash button does; OnBanish tells the others, see RemoteResidentPatch
                 Home.RemoveReserve(reserved);
+                HandArtifacts(reserved, sender);
                 reserved.OnBanish();
             } else {
                 return false;
@@ -262,6 +272,7 @@ public class BaseRequestDelta : ElinDelta
                     return false;
                 }
 
+                HandArtifacts(chara, sender);
                 branch.BanishMember(chara);
                 break;
             default:

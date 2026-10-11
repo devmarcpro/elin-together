@@ -60,6 +60,9 @@ X1  le parchemin de reconstruction lu par l'invite : l'objet neuf va dans son sa
 A1  l'artefact d'un dieu : chaque joueur a le sien. Le second joueur qui prend le sien ne detruit plus celui du
     premier (le jeu detruit tout autre exemplaire tenu par « le camp du joueur »). Le banc cree les deux artefacts
     chez l'host par AddThing (le chemin du ramassage), sans priere ni autel.
+D1  un invite renvoie un habitant qui porte un artefact de dieu : l'artefact va a l'invite, pas a l'host. Le banc
+    cree l'habitant et l'artefact chez l'host, et envoie la demande de renvoi du mod (BaseRequestDelta.Send), sans le
+    dialogue de l'habitant.
 F2  (trois fenetres : mp_test.py --clients 2) la meme chose que F1 sur une carte tenue par un invite, frappe par
     un autre invite.
 F1  un monstre vise l'host, qui ne fait rien ; l'invite le frappe dix fois : le monstre joue ses tours (avant : fige,
@@ -335,6 +338,26 @@ def a1():
     got = str(ev(H, ARTIFACT.replace("{uid}", str(guest))))
     check(f"l'host a son artefact, l'invite prend le sien : les deux existent (objet|host avant|host apres|invite : {got})",
           got.split("|")[1:] == ["1", "1", "1"])
+
+
+def d1():
+    guest = state(A)["pc"]["uid"]
+    made = str(ev(H, 'var c = CharaGen.Create("farmer"); c.SetGlobal(); EClass._zone.AddCard(c, EClass.pc.pos.GetNearestPoint(false, false)); EClass.Branch.AddMemeber(c); '
+                     f'var g = EClass._map.charas.Find(x => x.uid == {guest}); foreach (var who in new[] {{ EClass.pc, g }}) '
+                     'foreach (var t in who.things.List(t => t.id == "luckydagger", true)) t.Destroy(); '
+                     'c.AddThing(ThingGen.Create("luckydagger")); return c.uid + "|" + c.things.List(t => t.id == "luckydagger", true).Count;'))
+    uid, has = made.split("|")
+    if not check(f"un habitant de la base porte un artefact de dieu ({made})", has == "1"):
+        return
+    eventually(lambda: ev(A, f'(EClass._map.charas.Find(x => x.uid == {uid}) != null).ToString()') == "True", timeout=10)
+    ev(A, 'var asm = System.AppDomain.CurrentDomain.GetAssemblies().First(a => a.GetName().Name == "ElinTogether"); '
+          'var kind = asm.GetTypes().First(t => t.Name == "BaseRequestKind"); var delta = asm.GetTypes().First(t => t.Name == "BaseRequestDelta"); '
+          'HarmonyLib.AccessTools.Method(delta, "Send").Invoke(null, new object[] { System.Enum.Parse(kind, "Banish"), "' + uid + '", 0 }); return "ok";')
+    count = lambda p, who: str(ev(p, f'{who}.things.List(t => t.id == "luckydagger", true).Count.ToString()'))  # noqa: E731
+    g = f'EClass._map.charas.Find(x => x.uid == {guest})'
+    check(f"l'invite le renvoie : l'artefact est dans le sac de l'invite, chez l'host ({count(H, g)}), pas chez l'host ({count(H, 'EClass.pc')})",
+          eventually(lambda: count(H, g) == "1" and count(H, "EClass.pc") == "0", timeout=15))
+    check(f"et l'invite l'a dans son propre jeu ({count(A, 'EClass.pc')})", eventually(lambda: count(A, "EClass.pc") == "1", timeout=15))
 
 
 def f2():
@@ -643,7 +666,7 @@ def main():
             continue
         check(f"{name} : pas de deuxieme ajout, lien remis ({r})", r == "0/0/True")
     check("au moins un jeu avait un autre membre dans l'equipe", RESULTS)
-    steps = (o1, b1, c1, h1, f1, l1, m1, s1, g1, e1, r1, p1, x1, a1, t1, q1, f2)
+    steps = (o1, b1, c1, h1, f1, l1, m1, s1, g1, e1, r1, p1, x1, a1, d1, t1, q1, f2)
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(',')]
     for step in steps:
