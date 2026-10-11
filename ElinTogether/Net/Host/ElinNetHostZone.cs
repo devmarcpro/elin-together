@@ -209,6 +209,8 @@ internal partial class ElinNetHost
             BringCompanions(chara, keepSpot);
             // sales made while it was a guest somewhere or offline
             PayShipping(chara.uid);
+            // what the story gave before this player was of the world
+            CatchUpStoryShares(chara);
             SweepStaleCellEntries();
         } catch (Exception ex) {
             // the player is answered whatever happens here: without the answer it waits on its loading screen

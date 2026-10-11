@@ -17,10 +17,71 @@ namespace ElinTogether.Net;
 ///     Only goods a player carries are multiplied. What is the world's is not: recipes (known by all already),
 ///     deeds, and artifacts, except the few named here. What is not listed is not multiplied
 /// </summary>
-// ponytail: given when the reward is given. A player who joins the world later, and the rewards of a world
-// played before this, are not caught up (it needs a list of what each quest gave, per player). Next slice
+// ponytail: what a world gave BEFORE this was written is not caught up (nothing recorded what each quest gave, nor
+// to whom). It needs a table of the rewards of each story quest, by hand
 internal partial class ElinNetHost
 {
+    /// <summary>
+    ///     The ledger of the world: each reward of the story that was shared, as given (number -> the thing)
+    /// </summary>
+    [ElinGameIOProperty("story_rewards")]
+    private static Dictionary<int, byte[]> StoryRewards
+    {
+        get => field ??= [];
+        set;
+    }
+
+    /// <summary>
+    ///     Reward number -> the characters of the players who have it: who earned it, who got a share
+    /// </summary>
+    [ElinGameIOProperty("story_received")]
+    private static Dictionary<int, int[]> StoryReceived
+    {
+        get => field ??= [];
+        set;
+    }
+
+    /// <summary>
+    ///     A player stands on the host's map: what the story gave before it played in this world, or while
+    ///     nothing knew it, comes to it as one parcel in its name in the mail of the base (not a flood in its
+    ///     bag). Each reward once: the ledger notes it
+    /// </summary>
+    internal static void CatchUpStoryShares(Chara player)
+    {
+        if (!EmpConfig.Server.OncePerPlayer.Value || StoryRewards.Count == 0) {
+            return;
+        }
+
+        var owed = new List<Thing>();
+        foreach (var (number, data) in StoryRewards.ToArray()) {
+            var received = StoryReceived.GetValueOrDefault(number) ?? [];
+            if (received.Contains(player.uid)) {
+                continue;
+            }
+
+            try {
+                var share = new LZ4Bytes { Bytes = data }.Decompress<Thing>();
+                game.cards.AssignUIDRecursive(share);
+                owed.Add(share);
+            } catch (System.Exception ex) {
+                EmpLog.Warning(ex, "Story reward {Number} of the ledger could not be read", number);
+            }
+
+            // (noted even when it could not be read: not tried again at every arrival)
+            StoryReceived[number] = received.Append(player.uid).ToArray();
+        }
+
+        if (owed.Count == 0) {
+            return;
+        }
+
+        var parcel = ThingGen.CreateParcel(null, owed.ToArray());
+        parcel.c_idRefName = "emp_story_share".Loc(player.NameSimple);
+        world.SendPackage(parcel);
+        EmpLog.Information("Story rewards given before player {Uid} knew of them: {Count} in a parcel in its name",
+            player.uid, owed.Count);
+    }
+
     // rewards dropped this frame and who earned them: copied at the end of the frame, once the story code is
     // done with them (charges, material, what a chest holds are set after the drop)
     private static readonly List<(Thing Reward, int Earner)> _storyRewards = [];
@@ -87,6 +148,11 @@ internal partial class ElinNetHost
             if (reward.isDestroyed || !Multiplied(reward)) {
                 continue;
             }
+
+            // in the ledger, for who plays in this world later
+            var number = StoryRewards.Count == 0 ? 1 : StoryRewards.Keys.Max() + 1;
+            StoryRewards[number] = LZ4Bytes.Create(Whole(reward)).Bytes;
+            StoryReceived[number] = players.Select(p => p!.uid).Append(earner).Distinct().ToArray();
 
             foreach (var other in players.Where(p => p!.uid != earner)) {
                 var share = Whole(reward);

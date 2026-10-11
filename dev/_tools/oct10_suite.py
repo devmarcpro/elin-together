@@ -32,6 +32,7 @@ M1  l'invite monte un cheval, part seul a Vernis, y marche, revient et marche : 
 S1  « une part pour chacun » (conseil 14) : l'host termine une quete d'histoire (celle du curry : une cassette et
     trois graines) ; l'invite present trouve la meme chose dans son sac, dans les deux jeux ; l'invite parti a
     Vernis recoit un colis a son nom dans le courrier de la base ; ce que le jeu lache hors d'une quete d'histoire ne donne de part a personne.
+    Un joueur arrive « plus tard » (le banc l'efface du registre du monde) recoit un colis de rattrapage, une fois.
     La quete est creee et terminee par le pont (Quest.Create, Complete), pas jouee ; le cas ou c'est l'INVITE qui
     termine n'est pas joue ici (il faut une vraie quete du journal).
 F2  (trois fenetres : mp_test.py --clients 2) la meme chose que F1 sur une carte tenue par un invite, frappe par
@@ -370,6 +371,27 @@ def s1():
     finally:
         move(A, HOME)
         both_joined(H, A, HOME)
+    # un joueur arrive plus tard dans le monde : le registre du monde ne le connait pas pour ces recompenses (ici le
+    # banc efface l'invite du registre), il recoit a son arrivee UN colis a son nom avec ce qu'il n'a pas eu, une fois
+    time.sleep(3)
+    parcels = lambda: int(ev(H, 'EClass.game.cards.listPackage.Count(p => p.c_idRefName != null && p.c_idRefName.Contains("{name}")).ToString()'  # noqa: E731
+                                .replace("{name}", guest["name"].split(" ")[-1].strip("「」"))))
+    p0 = parcels()
+    forgot = ev(H, 'var t = HarmonyLib.AccessTools.TypeByName("ElinTogether.Net.ElinNetHost"); '
+                   'var d = (System.Collections.Generic.Dictionary<int, int[]>)HarmonyLib.AccessTools.Property(t, "StoryReceived").GetValue(null); '
+                   f'foreach (var k in d.Keys.ToList()) d[k] = d[k].Where(u => u != {guest["uid"]}).ToArray(); return d.Count.ToString();')
+    check(f"le registre du monde garde les recompenses d'histoire donnees ({forgot})", int(forgot) >= 2)
+    for turn, want in ((1, p0 + 1), (2, p0 + 1)):
+        move(A, VERNIS)
+        wait(client_settled(A, VERNIS, True), "l'invite repart a Vernis", timeout=180)
+        time.sleep(3)
+        move(A, HOME)
+        both_joined(H, A, HOME)
+        time.sleep(3)
+        label = "arrive « plus tard » : un colis a son nom avec ce qu'il n'avait pas eu" if turn == 1 else "revient encore : pas de second colis"
+        check(f"l'invite {label} ({p0} -> {parcels()})", parcels() == want)
+    inside = ev(H, 'var p = EClass.game.cards.listPackage.Last(x => x.c_idRefName != null); return string.Join(",", p.things.Select(t => t.id + "x" + t.Num));')
+    check(f"le colis contient les recompenses du registre ({inside})", "seed" in inside)
 
 
 def c1():
