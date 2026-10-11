@@ -75,6 +75,9 @@ K1  le boss d'une zone tombe sur la carte de l'host : l'invite present a aussi l
 J1  l'experience donnee « a toute l'equipe » (une recolte apprend le jardinage a tous) : gagnee dans le jeu de
     l'host, l'invite l'a aussi, et l'inverse. Le banc appelle Card.ModExpParty sur la force (un personnage neuf n a pas le jardinage), sans
     recolte. Pas couvert : l'experience de voyage a l'arrivee, les compagnons des autres joueurs.
+S2  une part pour chacun, dans l'autre sens : l'INVITE termine la quete d'histoire (le curry) sur la carte de l'host :
+    l'invite a sa recompense, l'host recoit sa part (dans son sac), une fois. La quete est commencee chez l'host (QuestManager.Start), le banc
+    appelle Quest.Complete chez l'invite sur cette quete, sans le dialogue.
 F2  (trois fenetres : mp_test.py --clients 2) la meme chose que F1 sur une carte tenue par un invite, frappe par
     un autre invite.
 F1  un monstre vise l'host, qui ne fait rien ; l'invite le frappe dix fois : le monstre joue ses tours (avant : fige,
@@ -429,6 +432,34 @@ def j1():
               eventually(lambda: exp(other) > before, timeout=15))
 
 
+SEEDS = ('var c = EClass.game.cards.globalCharas.Find({uid}); return (EClass._map.things.Where(t => t.pos.Equals(c.pos))'
+         '.Concat(c.things.List(t => true, true)).Where(t => t.trait is TraitSeed).Sum(t => t.Num)).ToString();')
+
+
+def s2():
+    host, guest = state(H)["pc"]["uid"], state(A)["pc"]["uid"]
+    seeds = lambda p, uid: int(ev(p, SEEDS.replace("{uid}", str(uid))))  # noqa: E731
+    before = {"host": seeds(H, host), "guest": seeds(H, guest)}
+    # la quete est celle du monde : commencee chez l'host, connue de l'invite, terminee par l'invite
+    ev(H, 'foreach (var old in EClass.game.quests.list.Where(x => x.id == "curry").ToList()) EClass.game.quests.Remove(old); '
+          'EClass.game.quests.Start(Quest.Create("curry")); return "ok";')
+    if not check("l'invite connait la quete du curry commencee dans le monde",
+                 eventually(lambda: ev(A, '(EClass.game.quests.list.Find(x => x.id == "curry") != null).ToString()') == "True", timeout=15)):
+        return
+    before = {"host": seeds(H, host), "guest": seeds(H, guest)}
+    ev(A, 'EClass.game.quests.list.Find(x => x.id == "curry").Complete(); return "ok";')
+    check(f"l'invite termine la quete du curry : il a ses graines, chez l'host ({before['guest']} -> {seeds(H, guest)})",
+          eventually(lambda: seeds(H, guest) > before["guest"], timeout=20))
+    gained = seeds(H, guest) - before["guest"]
+    check(f"l'host recoit sa part, autant ({before['host']} -> {seeds(H, host)}, l'invite en a gagne {gained})",
+          eventually(lambda: seeds(H, host) - before["host"] == gained, timeout=20))
+    time.sleep(5)
+    check(f"et une seule fois, 5 s plus tard (host +{seeds(H, host) - before['host']}, invite +{seeds(H, guest) - before['guest']})",
+          seeds(H, host) - before["host"] == gained and seeds(H, guest) - before["guest"] == gained)
+    check(f"l'invite voit la meme chose dans son jeu (lui +?, compte {seeds(A, guest)} contre {seeds(H, guest)} chez l'host)",
+          eventually(lambda: seeds(A, guest) == seeds(H, guest), timeout=15))
+
+
 def f2():
     """a trois fenetres : la meme chose sur une carte tenue par un INVITE, le troisieme joueur frappe"""
     from travel_suite import HOME, VERNIS, client_settled, move, wait  # noqa: PLC0415
@@ -735,7 +766,7 @@ def main():
             continue
         check(f"{name} : pas de deuxieme ajout, lien remis ({r})", r == "0/0/True")
     check("au moins un jeu avait un autre membre dans l'equipe", RESULTS)
-    steps = (o1, b1, c1, h1, f1, l1, m1, s1, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, t1, q1, f2)
+    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, t1, q1, f2)
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(',')]
     for step in steps:

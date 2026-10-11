@@ -642,7 +642,7 @@ Cette liste vient d'une relecture de toute la documentation, de `HANDOFF.md`, de
 
 **3. Défauts connus, pas corrigés**
 - Un joueur refusé par celui qui tient une carte reçoit encore le monde entier.
-- Expérience de voyage de l'host jamais donnée à l'invité (celle d'équipe : faite le 12 octobre) ; fin de tâche arrivée après
+- Fin de tâche arrivée après
   l'arrêt de la tâche.
 - Chasse aux différences 3, lignes 38 à 52 (marche sur la carte du monde, duel d'aventurier, réunion de la base, génération des zones) ; restes des chasses 1 et 2.
 - Boss de donjon : victoire transmise depuis le 12 octobre (`BossWinDelta`) ; reste à jouer un vrai donjon et l'invité seul.
