@@ -64,6 +64,19 @@ internal static class BugReport
         }
 
         try {
+            // (who the ally count on screen is made of: "one too many" was reported with nothing to tell which)
+            if (EClass.pc?.party is { } party) {
+                text.AppendLine($"Party of {EClass.pc.uid}: count {party.Count()}, leader {party.uidLeader}, own slots {CompanionHelper.UsedAllySlots(EClass.pc)}");
+                foreach (var member in party.members.Where(c => c is not null)) {
+                    text.AppendLine($"  {member.uid} {member.id}: owner {member.CompanionOwnerUid}, player {member.IsPC || member.GetBool("remote_chara")}, " +
+                                    $"dead {member.isDead}, zone {member.currentZone?.id}, slots {1 + member.Evalue(1431)}");
+                }
+            }
+        } catch (Exception) {
+            // noexcept
+        }
+
+        try {
             text.AppendLine("Mods: " + string.Join(", ", EClass.core.mods.packages.Where(p => p.activated).Select(p => p.id)));
         } catch (Exception) {
             // (the list of mods is not worth losing the report for)

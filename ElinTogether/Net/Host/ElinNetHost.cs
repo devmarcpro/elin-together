@@ -66,6 +66,7 @@ internal partial class ElinNetHost : ElinNetBase
 
         BackupBeforeNewVersion();
         RepairBillCount();
+        Patches.QuestVernisRepair.Repair();
 
         // nobody asked for this session: never one a stranger can find, but the players of this world come in
         // without being Steam friends of whoever hosts it today

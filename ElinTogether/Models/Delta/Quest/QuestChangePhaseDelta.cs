@@ -52,7 +52,10 @@ public class QuestChangePhaseDelta : ElinDelta
         }
 
         var away = host.IsAwayPeer(OriginPeer);
-        if (!away && From >= 0 && quest.phase != From) {
+        // a player alone on its map moves on with a copy of the journal that can be late: its steps forward are
+        // the world's, but a step to a phase the world already passed took everyone back (the Vernis quest back to
+        // phase 3 after the boss, 2026-10-12: the mine boss does not come back, the quest could not be finished)
+        if (From >= 0 && quest.phase != From && (!away || Modifier <= quest.phase)) {
             // someone else moved the quest on in the meantime
             EmpLog.Debug("Ignoring stale quest phase {QuestId} {From}->{Phase}, at {Current}", quest.id, From, Modifier, quest.phase);
             host.SendDeltaTo(OriginPeer, new QuestChangePhaseDelta {
