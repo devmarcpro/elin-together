@@ -19,11 +19,17 @@ kill_all() {
     for p in $(tasklist //FI "IMAGENAME eq Elin.exe" //FO CSV //NH | cut -d, -f2 | tr -d '"' | grep -E '^[0-9]+$'); do taskkill //PID $p //F >/dev/null; done
     for i in $(seq 1 30); do tasklist //FI "IMAGENAME eq Elin.exe" //FO CSV //NH | grep -q Elin.exe || break; sleep 2; done
 }
+# une seule barriere a la fois : la derniere lancee prend le verrou, une plus ancienne (arretee a moitie : seul son
+# « tail » meurt) s'arrete d'elle-meme a la serie suivante au lieu de fermer les fenetres de la nouvelle
+lock=_shots/gate.lock
+me="$$-$RANDOM"
+echo "$me" > $lock
 echo "code $code" > $out
 echo "debut $(date '+%Y-%m-%d %H:%M')" >> $out
 [ "$dirty" != "0" ] && echo "ATTENTION : $dirty fichier(s) du mod pas dans git : ce n'est pas le code d'un commit" | tee -a $out
 bad=0
 for suite in $suites; do
+    [ "$(cat $lock 2>/dev/null)" != "$me" ] && { echo "une autre barriere a pris la main, arret"; exit 3; }
     kill_all
     sleep 10
     log=_shots/${suite}-gate.log
