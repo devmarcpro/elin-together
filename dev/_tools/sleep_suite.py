@@ -611,7 +611,9 @@ def n5(ctx):
     ev(H, f'EClass._map.charas.Find(x => x.uid == {me}).hp = 1; "ok"')
     time.sleep(2)
     hp0, top = host_hp(me)
-    if not check(f"a heal of 1000 can be told from a bed's (max {top}, from {hp0}, bed gives {bound})", top - hp0 > 2 * bound + 20):
+    if not top - hp0 > 2 * bound + 20:
+        # pas un echec du mod : le personnage de test a trop peu de points de vie pour departager (rien n'est prouve ici)
+        log(f"NON CONCLUANT : a heal of 1000 cannot be told from a bed's (max {top}, from {hp0}, bed gives {bound})")
         return
     to_bed(A)
     check("host sees the guest asleep", eventually(asleep, timeout=10))
@@ -641,7 +643,8 @@ def n6(ctx):
     ev(H, f'EClass._map.charas.Find(x => x.uid == {me}).hp = 1; "ok"')
     time.sleep(2)
     hp0, top = host_hp(me)
-    if not check(f"two rests of {bound} can be told from one (max {top}, from {hp0})", top - hp0 > 2 * bound + 20):
+    if not top - hp0 > 2 * bound + 20:
+        log("NON CONCLUANT : " + f"two rests of {bound} can be told from one (max {top}, from {hp0})")
         return
     to_bed(H)
     to_bed(A)

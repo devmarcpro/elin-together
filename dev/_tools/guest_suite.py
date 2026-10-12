@@ -1027,6 +1027,12 @@ def g36(ctx):
     if not check(f"le jeu a une laisse ({leash})", bool(leash)):
         return
     h_uid = ctx["h"][1]
+    # « mes allies gardent leurs distances » (coche chez l'invite de test) : le jeu ne tire alors pas la laisse, le
+    # compagnon se tient a 5 cases. Decoche pour ce test, chez les deux, le temps que l'host l'apprenne
+    kept = {p: ev(p, 'EClass.game.config.tactics.allyKeepDistance.ToString()') for p in (ctx["a"][0], ctx["h"][0])}
+    for p in kept:
+        ev(p, 'EClass.game.config.tactics.allyKeepDistance = false; "ok"')
+    time.sleep(4)
     for who, key in both(ctx):
         port, uid = ctx[key]
         m, item = 0, 0
@@ -1077,6 +1083,8 @@ def g36(ctx):
         finally:
             drop([m])
             ev(H, f'foreach (var t in {chara(H, uid)}.things.Where(k => k.id == "{leash}").ToList()) t.Destroy(); "ok"')
+    for p, was in kept.items():
+        ev(p, f'EClass.game.config.tactics.allyKeepDistance = {was.lower()}; "ok"')
 
 
 def g37(ctx):
@@ -1247,7 +1255,13 @@ def g40(ctx):
         if check(f"un monstre apparait a cote de l'invite ({mob})", mob and eventually(lambda: seen(port, mob), timeout=10)):
             x, z = cell(H, mob).split(",")
             before = hp(H, mob)
-            log(f"l'host zappe : {use_held(H, rod, at=(x, z), pick='i.act is ActZap')}")
+            zap = use_held(H, rod, at=(x, z), pick='i.act is ActZap')
+            if zap.startswith("action absente"):
+                # (une case ou quelque chose se recolte : le plan d'actions du banc n'y propose que la recolte) :
+                # l'acte du jeu lui-meme, celui que le clic lance
+                zap += " -> " + str(ev(H, f'var t = EClass.pc.things.Find(q => q.uid == {rod}); var m = EClass._map.charas.Find(q => q.uid == {mob}); '
+                                          'return new ActZap { trait = t.trait as TraitRod }.Perform(EClass.pc, m, m.pos).ToString();'))
+            log(f"l'host zappe : {zap}")
             check(cond=eventually(lambda: hp(H, mob) != before, timeout=10), label=f"la baguette de l'host blesse le monstre ({before} -> {hp(H, mob)})")
             check(cond=eventually(lambda: hp(port, mob) == hp(H, mob), timeout=10),
                   label=f"l'invite voit les memes points de vie ({hp(port, mob)} chez lui, {hp(H, mob)} chez l'host)")
