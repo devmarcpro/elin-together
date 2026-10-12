@@ -442,8 +442,9 @@ could recommend to anyone (as of 12 October 2026).
 - One release shipped with a defect (0.26.691: an animal brushed by a guest went to the host) because not every
   test series had been replayed. The whole chain must be green before each release, and a few series are still
   unstable (night, guest).
-- Never checked: that a world played with this fork still loads without it, or with the original mod. No automatic
-  copy of the world before the first game with a new version: make your own.
+- A world hosted for the first time with a new version is first copied to the game's own backups (since the
+  release after 0.26.708). Read in a save: nothing of the mod is written there that the game cannot ignore; but
+  loading such a world in an Elin without the mod, or with the original mod, has never been played.
 
 **3. Installing**
 

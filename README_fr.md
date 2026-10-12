@@ -454,8 +454,9 @@ recommander à n'importe qui (état au 12 octobre 2026).
 - Une version a été publiée avec un défaut (0.26.691 : l'animal brossé par un invité allait à l'host) parce que
   toutes les séries de tests n'avaient pas été rejouées. La chaîne complète doit être verte avant chaque version, et
   quelques séries sont encore instables (nuit, invité).
-- Jamais vérifié : qu'un monde joué avec ce fork se recharge encore sans lui, ou avec le mod d'origine. Pas de copie
-  automatique du monde avant la première partie avec une nouvelle version : faites la vôtre.
+- Un monde hébergé pour la première fois avec une nouvelle version est d'abord copié dans les sauvegardes de secours
+  du jeu (depuis la version qui suit la 0.26.708). Lu dans une sauvegarde : rien du mod n'y est écrit que le jeu ne
+  sache ignorer ; mais recharger ce monde dans un Elin sans le mod, ou avec le mod d'origine, n'a jamais été joué.
 
 **3. L'installation**
 

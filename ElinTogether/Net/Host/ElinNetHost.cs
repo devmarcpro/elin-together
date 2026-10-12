@@ -20,6 +20,38 @@ internal partial class ElinNetHost : ElinNetBase
     internal bool IsLocalServer => Socket.IsLocalUdp;
 
     /// <param name="quiet">Opened by itself at load (EmpAutoHost): friends only, and no window says so</param>
+    /// <summary>
+    ///     The version of the mod this world was last hosted with, kept in the save
+    /// </summary>
+    [ElinGameIOProperty("hosted_version")]
+    private static string[] HostedVersion
+    {
+        get => field is { Length: 1 } ? field : field = [""];
+        set;
+    }
+
+    /// <summary>
+    ///     A world is hosted for the first time with this version of the mod: the save as it is on disk goes to the
+    ///     game's own backups first (the ones the game's load menu restores), once. A version that goes wrong
+    ///     leaves a world to come back to, without the player having thought of copying it
+    /// </summary>
+    private static void BackupBeforeNewVersion()
+    {
+        if (HostedVersion[0] == ModInfo.BuildVersion) {
+            return;
+        }
+
+        try {
+            GameIO.MakeBackup(new GameIndex { id = Game.id, cloud = game.isCloud });
+            EmpLog.Information("World {World} hosted with {Version} for the first time (was {Before}): the save was copied to the game's backups first",
+                Game.id, ModInfo.BuildVersion, HostedVersion[0].Length == 0 ? "never hosted" : HostedVersion[0]);
+        } catch (System.Exception ex) {
+            EmpLog.Warning(ex, "No backup of the save before hosting it with a new version of the mod");
+        }
+
+        HostedVersion[0] = ModInfo.BuildVersion;
+    }
+
     internal void StartServer(bool localUdp = false, bool quiet = false)
     {
         Stop();
@@ -31,6 +63,8 @@ internal partial class ElinNetHost : ElinNetBase
             Session.ResetSession();
             return;
         }
+
+        BackupBeforeNewVersion();
 
         // nobody asked for this session: never one a stranger can find, but the players of this world come in
         // without being Steam friends of whoever hosts it today
