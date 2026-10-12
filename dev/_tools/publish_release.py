@@ -9,6 +9,20 @@ import urllib.error
 import urllib.request
 
 version, commit, note, zip_path = sys.argv[1:5]
+
+# La barriere : _tools/release_gate.sh doit avoir tourne, tout vert, sur CE code (le mod et ses textes ; les notes et
+# les outils peuvent avoir change depuis). Sans elle : --sans-barriere "la raison", ecrite dans la note du journal.
+tree = lambda path: subprocess.run(['git', 'rev-parse', commit + ':' + path], capture_output=True, text=True).stdout.strip()  # noqa: E731
+code = tree('ElinTogether') + '-' + tree('package')
+gate_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '_shots', 'gate.txt')
+gate = io.open(gate_path, encoding='utf-8', errors='replace').read() if os.path.exists(gate_path) else ''
+if '--sans-barriere' in sys.argv:
+    print('PUBLIE SANS BARRIERE :', sys.argv[sys.argv.index('--sans-barriere') + 1])
+elif ('code ' + code) not in gate or 'BARRIERE OK' not in gate:
+    print("Refuse : la barriere de version n'est pas verte pour ce code.")
+    print('  bash _tools/release_gate.sh   (PC libre, une heure et demie), puis relancer ; ou --sans-barriere "raison"')
+    print('  etat :', (gate.strip().splitlines() or ['pas de fichier _shots/gate.txt'])[-1])
+    raise SystemExit(2)
 cred = subprocess.run(['git', 'credential', 'fill'], input='protocol=https\nhost=github.com\n\n', capture_output=True, text=True).stdout
 token = [line.split('=', 1)[1] for line in cred.splitlines() if line.startswith('password=')][0]
 HEADERS = {'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json', 'User-Agent': 'elin-together-release'}

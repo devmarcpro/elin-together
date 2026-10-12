@@ -66,6 +66,32 @@ def back():
     both_joined(H, A, HOME)
 
 
+def town(uid):
+    """A1 a A5 : dans une ville"""
+    log("--- A1 : l'invite recrute seul, sur une carte qu'il tient")
+    alone("l'invite seul a Vernis")
+    m = int(ev(A, 'var c = CharaGen.Create("putit"); EClass._zone.AddCard(c, EClass.pc.pos.GetNearestPoint(false, false)); c.MakeAlly(false); '
+                  'return c.uid + "";'))
+    got = str(ev(A, f'var c = EClass._map.charas.Find(x => x.uid == {m}); return (c != null && c.IsPCParty) + "|" + c.IsGlobal + "|" + c.uid;'))
+    check(f"A1 : la recrue est dans l'equipe de l'invite, dans son jeu ({got})", got.startswith("True|"))
+    log("--- A2 : il rentre chez l'host")
+    back()
+    here("A2", uid, m)
+    log("--- A3 : il repart seul avec elle")
+    alone("l'invite seul a Vernis, avec sa recrue")
+    got = look(A, uid, m)
+    check(f"A3 : la recrue l'a suivi a Vernis, dans son jeu ({got})", got[0] == "la" and got[1] == "True" and got[2] == "1")
+    log("--- A4 : seul, il la regle (reste ici, equipement partage)")
+    ev(A, f'var c = EClass._map.charas.Find(x => x.uid == {m}); if (c != null) {{ c.ShowDialog(); }} return "ok";')
+    time.sleep(2)
+    ev(A, f'var c = EClass._map.charas.Find(x => x.uid == {m}); if (c != null) {{ c.noMove = true; c.orgPos = new Point(c.pos); c.SetInt(113, 1); }} '
+          'if (LayerDrama.Instance != null) LayerDrama.Instance.Close(); return "ok";')
+    time.sleep(2)
+    log("--- A5 : il rentre encore")
+    back()
+    here("A5", uid, m, extra=("True", "1"))
+
+
 def to_field(what):
     """l'invite sort par le bord et entre sur une case libre de la carte du monde : un champ que SON jeu cree"""
     from travel_suite import dismiss_dialogs, enter_at, free_spot  # noqa: PLC0415
@@ -243,10 +269,17 @@ def main():
     start = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
     uid = state(A)["pc"]["uid"]
     steps = {"field": field, "home": home_sent, "elsewhere": home_sent_elsewhere, "settings": settings}
-    if any(k in sys.argv[1:] for k in steps):
+    # « all » : tout, d'affilee (la barriere de version) : A1 a A5 puis les quatre autres
+    everything = "all" in sys.argv[1:]
+    if everything:
+        try:
+            town(uid)
+        except Exception as ex:  # noqa: BLE001
+            check(f"interrompu : {type(ex).__name__}: {str(ex)[:300]}", False)
+    if everything or any(k in sys.argv[1:] for k in steps):
         try:
             for k, step in steps.items():
-                if k in sys.argv[1:]:
+                if everything or k in sys.argv[1:]:
                     step(uid)
         except Exception as ex:  # noqa: BLE001
             check(f"interrompu : {type(ex).__name__}: {str(ex)[:300]}", False)
@@ -255,28 +288,7 @@ def main():
         print(f"{len(RESULTS) - len(failed)}/{len(RESULTS)} verifications OK")
         sys.exit(1 if failed else 0)
     try:
-        log("--- A1 : l'invite recrute seul, sur une carte qu'il tient")
-        alone("l'invite seul a Vernis")
-        m = int(ev(A, 'var c = CharaGen.Create("putit"); EClass._zone.AddCard(c, EClass.pc.pos.GetNearestPoint(false, false)); c.MakeAlly(false); '
-                      'return c.uid + "";'))
-        got = str(ev(A, f'var c = EClass._map.charas.Find(x => x.uid == {m}); return (c != null && c.IsPCParty) + "|" + c.IsGlobal + "|" + c.uid;'))
-        check(f"A1 : la recrue est dans l'equipe de l'invite, dans son jeu ({got})", got.startswith("True|"))
-        log("--- A2 : il rentre chez l'host")
-        back()
-        here("A2", uid, m)
-        log("--- A3 : il repart seul avec elle")
-        alone("l'invite seul a Vernis, avec sa recrue")
-        got = look(A, uid, m)
-        check(f"A3 : la recrue l'a suivi a Vernis, dans son jeu ({got})", got[0] == "la" and got[1] == "True" and got[2] == "1")
-        log("--- A4 : seul, il la regle (reste ici, equipement partage)")
-        ev(A, f'var c = EClass._map.charas.Find(x => x.uid == {m}); if (c != null) {{ c.ShowDialog(); }} return "ok";')
-        time.sleep(2)
-        ev(A, f'var c = EClass._map.charas.Find(x => x.uid == {m}); if (c != null) {{ c.noMove = true; c.orgPos = new Point(c.pos); c.SetInt(113, 1); }} '
-              'if (LayerDrama.Instance != null) LayerDrama.Instance.Close(); return "ok";')
-        time.sleep(2)
-        log("--- A5 : il rentre encore")
-        back()
-        here("A5", uid, m, extra=("True", "1"))
+        town(uid)
     except Exception as ex:  # noqa: BLE001
         check(f"interrompu : {type(ex).__name__}: {str(ex)[:300]}", False)
     scan_logs(start)
