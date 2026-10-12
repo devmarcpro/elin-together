@@ -317,5 +317,9 @@
     "LangGeneral.emp_ui_sv_desc_once_per_player.text": "开：商店的限量商品和剧情给的东西（任务奖励、对话礼物）每位玩家各得一次。关：只有第一个玩家（与原版相同）。",
     "LangGeneral.emp_takeover_rejoin.text": "另一位玩家已接管这个世界。正在加入其游戏…",
     "LangGeneral.emp_story_share_got.text": "你收到了剧情奖励中属于你的一份：{0}",
-    "LangGeneral.emp_story_share_mail.text": "你的那份剧情奖励（{0}）已寄往据点的邮箱。"
+    "LangGeneral.emp_story_share_mail.text": "你的那份剧情奖励（{0}）已寄往据点的邮箱。",
+    "LangGeneral.emp_ui_report.text": "生成问题报告",
+    "LangGeneral.emp_ui_report_desc.text": "在桌面生成一个zip，包含游戏和Mod的日志（不含存档和设置文件）。反馈问题时请发送此文件。",
+    "LangGeneral.emp_ui_report_done.text": "问题报告已生成：{0}",
+    "LangGeneral.emp_ui_report_failed.text": "无法生成问题报告。"
 }

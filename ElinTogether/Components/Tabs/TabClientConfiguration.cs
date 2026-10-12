@@ -63,6 +63,17 @@ internal class TabClientConfiguration : TabEmpBase
         Toggle("emp_ui_cl_keep_mods", keep.Value, value => keep.Value = value)
             .SetTooltipLang(keep.Description.Description);
         TextSmall("        " + "emp_ui_cl_desc_keep_mods".lang());
+
+        // something went wrong: one zip to send, with the game's own log in it
+        Row().Button("emp_ui_report".lang(), () => {
+            if (BugReport.Make() is { } path) {
+                EmpPop.Information("emp_ui_report_done".Loc(path));
+                Util.ShowExplorer(path);
+            } else {
+                EmpPop.Information("emp_ui_report_failed".lang());
+            }
+        });
+        TextSmall("        " + "emp_ui_report_desc".lang());
     }
 
     private YKHorizontal Row()

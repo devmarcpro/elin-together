@@ -415,6 +415,12 @@ def t8(ctx):
             break
         ev(A, f'var m = EClass._map.charas.Find(x => x.uid == {last}); if (m != null && !m.isDead) ACT.Melee.Perform(EClass.pc, m, m.pos); "ok"')
         time.sleep(1.5)
+    if not dead():
+        # vu une fois le 2026-10-12 (quarante coups sans tuer un monstre a 1 PV, paralyse) : ce que les deux jeux en disent
+        why = ('var m = EClass._map.charas.Find(x => x.uid == %d); return m == null ? "monstre absent" : "pv " + m.hp + " dist " + m.Dist(%s) + '
+               '" case " + m.pos + " cond " + string.Join(",", m.conditions.Select(c => c.GetType().Name));')
+        log("host : " + str(ev(H, why % (last, f"EClass._map.charas.Find(x => x.uid == {a})"))) + " ; etat invite " + str(state(A).get("inTransfer")))
+        log("invite : " + str(ev(A, why % (last, "EClass.pc"))) + " ; ia " + str(ev(A, 'EClass.pc.ai.GetType().Name + " halt " + EInput.haltInput')))
     check("l'invite tue le dernier monstre", dead())
     check("la quete est reussie dans la zone de l'host", eventually(lambda: ev(H, STATUS) == "Success", timeout=15))
     ev(A, LEAVE)
