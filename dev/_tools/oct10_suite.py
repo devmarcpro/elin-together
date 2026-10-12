@@ -85,6 +85,10 @@ S3  rattrapage d'un monde joue avant le registre (conseil 15) : des quetes d'his
     premiere image du jeu qui heberge, leurs recompenses sont ecrites une fois dans le registre ; chaque joueur du
     monde, host compris, recoit un colis a son nom ; une seule fois. Le banc vide le registre, marque deux quetes
     finies (QuestDefense, QuestPuppy) et remet la marque a zero par reflexion ; l'invite est ramene par un aller-retour.
+Z1  factures fantomes : le compteur des factures d'impot impayees du monde est ramene aux factures qui existent
+    (sacs de l'host et de l'invite, courrier, banque, carte), jamais releve ; une fois par monde tout seul, et encore
+    a la demande de l'host. Le banc fabrique trois factures (deux chez l'host, une chez l'invite), ajoute quatre
+    « fantomes » au compteur et appelle RepairBillCount ; la perte de karma du mois et le bouton ne sont pas joues.
 F2  (trois fenetres : mp_test.py --clients 2) la meme chose que F1 sur une carte tenue par un invite, frappe par
     un autre invite.
 F1  un monstre vise l'host, qui ne fait rien ; l'invite le frappe dix fois : le monstre joue ses tours (avant : fige,
@@ -531,6 +535,40 @@ def s3():
     check("une seule fois : rien de plus apres un second appel", parcels("host") == mine and parcels("invite") == its)
 
 
+BILLS = ('var t = System.AppDomain.CurrentDomain.GetAssemblies().First(a => a.GetName().Name == "ElinTogether").GetType("ElinTogether.Net.ElinNetHost"); '
+         'var f = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic; '
+         'var count = new System.Func<int>(() => (int)t.GetMethod("CountTaxBills", f).Invoke(null, null)); '
+         'var repair = new System.Func<bool, int>(again => (int)t.GetMethod("RepairBillCount", f).Invoke(null, new object[] { again })); ')
+
+
+def z1():
+    guest = state(A)["pc"]["uid"]
+    made = str(ev(H, BILLS + f'var g = EClass._map.charas.Find(x => x.uid == {guest}); var before = EClass.player.taxBills; var had = count(); '
+                             'EClass.pc.AddThing(ThingGen.CreateBill(100, true)); EClass.pc.AddThing(ThingGen.CreateBill(120, true)); '
+                             'g.AddThing(ThingGen.CreateBill(140, true)); return before + "|" + had + "|" + EClass.player.taxBills + "|" + count();'))
+    before, had, counted, found = (int(x) for x in made.split("|"))
+    check(f"trois factures faites : le compteur monte de trois et le mod les trouve toutes, celle de l'invite aussi (compteur {before} -> {counted}, trouvees {had} -> {found})",
+          counted == before + 3 and found == had + 3)
+    got = str(ev(H, BILLS + 'EClass.player.taxBills += 4; var up = EClass.player.taxBills; var off = repair(true); '
+                            'return up + "|" + off + "|" + EClass.player.taxBills + "|" + count();'))
+    up, off, now, found = (int(x) for x in got.split("|"))
+    check(f"quatre factures fantomes ajoutees au compteur ({up}) : la reparation les retire, le compteur vaut les factures trouvees ({off} retirees, compteur {now}, trouvees {found})",
+          now == found and off == up - found and off >= 4)
+    got = str(ev(H, BILLS + 'var off = repair(true); EClass.player.taxBills -= 1; var low = EClass.player.taxBills; var off2 = repair(true); '
+                            'return off + "|" + low + "|" + off2 + "|" + EClass.player.taxBills;'))
+    check(f"rien a retirer une seconde fois, et un compteur plus bas que les factures n'est jamais releve (retirees|compteur baisse|retirees|compteur : {got})",
+          got.split("|")[0] == "0" and got.split("|")[2] == "0" and got.split("|")[1] == got.split("|")[3])
+    got = str(ev(H, BILLS + 'EClass.player.taxBills += 5; var off = repair(false); var kept = EClass.player.taxBills; var off2 = repair(true); '
+                            'return off + "|" + kept + "|" + off2 + "|" + EClass.player.taxBills + "|" + count();'))
+    off, kept, off2, now, found = (int(x) for x in got.split("|"))
+    check(f"tout seul une seule fois par monde (deja fait a l'ouverture : rien), puis a la demande de l'host (retirees|compteur|retirees|compteur|trouvees : {got})",
+          off == 0 and off2 == kept - found and off2 > 0 and now == found)
+    # menage : les trois factures du banc et leur part du compteur
+    ev(H, f'var g = EClass._map.charas.Find(x => x.uid == {guest}); foreach (var who in new[] {{ EClass.pc, g }}) '
+          'foreach (var b in who.things.List(t => t.id == "bill_tax" && (t.c_bill == 100 || t.c_bill == 120 || t.c_bill == 140), true)) b.Destroy(); '
+          f'EClass.player.taxBills = {before}; return "ok";')
+
+
 def f2():
     """a trois fenetres : la meme chose sur une carte tenue par un INVITE, le troisieme joueur frappe"""
     from travel_suite import HOME, VERNIS, client_settled, move, wait  # noqa: PLC0415
@@ -760,6 +798,12 @@ def t1():
         uid = state(port_of)["pc"]["uid"]
         return int(ev(H, f'var c = EClass.game.cards.globalCharas.Find({uid}); var t = ThingGen.Create("bucket"); '
                          't.c_editorTags = "TreasureMelilith"; EClass._zone.AddCard(t, c.pos); return t.uid.ToString();'))
+    # les drapeaux « a soi » d'un invite sont gardes dans son fichier de reglages, par monde et par personnage : le monde
+    # du banc est remis a neuf a chaque passe et le personnage de test reprend souvent le meme numero, il retrouvait
+    # alors « tresor deja pris » d'une passe d'avant (rouge du 2026-10-12 : maudit des le premier tresor)
+    for p in (H, A):
+        ev(p, 'EClass.player.flags.pickedMelilithTreasure = false; EClass.player.flags.gotMelilithCurse = false; EClass.pc.SetFeat(1206, 0); return "ok";')
+    time.sleep(2)
     started = ev(H, 'var row = EClass.sources.quests.rows.FirstOrDefault(r => r.type == "QuestCursedManor"); if (row == null) return "pas de ligne"; '
                     'if (EClass.game.quests.Get<QuestCursedManor>() == null) EClass.game.quests.Start(row.id); return row.id;')
     time.sleep(3)
@@ -837,7 +881,7 @@ def main():
             continue
         check(f"{name} : pas de deuxieme ajout, lien remis ({r})", r == "0/0/True")
     check("au moins un jeu avait un autre membre dans l'equipe", RESULTS)
-    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, s3, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, t1, q1, f2)
+    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, s3, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, z1, t1, q1, f2)
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(',')]
     for step in steps:

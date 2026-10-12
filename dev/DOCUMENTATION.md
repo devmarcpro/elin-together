@@ -624,7 +624,7 @@ Cette liste vient d'une relecture de toute la documentation, de `HANDOFF.md`, de
   de Fiama, cadeau de Jure, esquisses de Felmera, objets de soutien, lettres).
 - « Beaucoup de bugs autour des compagnons » : pas d'exemple donné. Trouvé et corrigé : la monture. Reste : un
   compagnon d'invité qui ne suit pas, intermittent (`companion_suite` K2, K6), la laisse (g36).
-- Journal séparé par joueur. Factures fantômes des mondes déjà touchés (décision à prendre). Dépôt GitHub affiché
+- Journal séparé par joueur. Dépôt GitHub affiché
   comme un fork. « Mes attributs ne montent pas » : il faut un journal de session. Duels : arène, pari, abandon.
 
 **2. Écrit, pas prouvé en jeu**

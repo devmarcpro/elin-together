@@ -1,3 +1,4 @@
+using ElinTogether.LangMod;
 using System.Collections.Generic;
 using BepInEx.Configuration;
 using ElinTogether.Helper;
@@ -53,6 +54,17 @@ internal class TabServerConfiguration : TabEmpBase
         Option(time, "world_keeper", EmpConfig.Server.WorldKeeper);
         Option(time, "turn_combat", EmpConfig.Server.TurnBasedCombat);
         Option(time, "shared_speed", EmpConfig.Server.SharedAverageSpeed);
+
+        // the count of unpaid tax bills against the bills that exist (ElinNetHost.RepairBillCount), for a host in game
+        if (EClass.core.IsGameStarted && NetSession.Instance.Transport is ElinNetHost) {
+            var (count, found) = (EClass.player.taxBills, ElinNetHost.CountTaxBills());
+            Button("emp_ui_sv_bills".Loc(count, found), () => {
+                var off = ElinNetHost.RepairBillCount(true);
+                EmpPop.Information((off > 0 ? "emp_ui_sv_bills_done" : "emp_ui_sv_bills_none").Loc(off));
+                LayerElinTogether.Instance?.Reopen();
+            });
+            TextSmall("        " + "emp_ui_sv_bills_desc".lang());
+        }
 
         BuildValidationSets();
     }

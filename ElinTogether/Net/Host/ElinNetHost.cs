@@ -65,6 +65,7 @@ internal partial class ElinNetHost : ElinNetBase
         }
 
         BackupBeforeNewVersion();
+        RepairBillCount();
 
         // nobody asked for this session: never one a stranger can find, but the players of this world come in
         // without being Steam friends of whoever hosts it today

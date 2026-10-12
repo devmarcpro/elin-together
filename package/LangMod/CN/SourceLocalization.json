@@ -321,5 +321,9 @@
     "LangGeneral.emp_ui_report.text": "生成问题报告",
     "LangGeneral.emp_ui_report_desc.text": "在桌面生成一个zip，包含游戏和Mod的日志（不含存档和设置文件）。反馈问题时请发送此文件。",
     "LangGeneral.emp_ui_report_done.text": "问题报告已生成：{0}",
-    "LangGeneral.emp_ui_report_failed.text": "无法生成问题报告。"
+    "LangGeneral.emp_ui_report_failed.text": "无法生成问题报告。",
+    "LangGeneral.emp_ui_sv_bills.text": "未缴税单：计数 {0}，实际存在 {1}（修复）",
+    "LangGeneral.emp_ui_sv_bills_desc.text": "当计数高于实际存在的税单时（旧版本的缺陷），将其降到实际数量。不会增加。",
+    "LangGeneral.emp_ui_sv_bills_done.text": "已从计数中去掉 {0} 张无法缴纳的税单。",
+    "LangGeneral.emp_ui_sv_bills_none.text": "计数与实际税单一致。"
 }
