@@ -129,6 +129,7 @@ internal partial class ElinNetHost
             // off map until the owner comes back, see BringCompanions
             uploaded.currentZone = null;
             game.cards.globalCharas.Add(uploaded);
+            JoinItsBase(uploaded);
 
             // the uploaded copy carries its own copy of the party, rebuild members from the uids
             // died on the way: out of the party, dead, until someone revives it
@@ -173,6 +174,74 @@ internal partial class ElinNetHost
         }
 
         RebindRide(ownerUid);
+    }
+
+    // recruited while its player was alone: a member of the base in that player's copy of the world only
+    private static void JoinItsBase(Chara chara)
+    {
+        if (chara.homeBranch is { } home && !home.members.Contains(chara)) {
+            home.members.Add(chara);
+        }
+    }
+
+    /// <summary>
+    ///     The characters of the base a player made or let go while it was alone, and that did not come back with
+    ///     it (ZoneLeaseRelease.Residents): they exist here from now on, members of their base, at their base
+    /// </summary>
+    private void ReplaceResidents(List<LZ4Bytes>? residents, int ownerUid)
+    {
+        if (residents is null || ownerUid == 0) {
+            return;
+        }
+
+        var party = pc.party;
+        foreach (var data in residents) {
+            var uploaded = data.Decompress<Chara>();
+            var old = game.cards.globalCharas.Find(uploaded.uid);
+            if (uploaded.GetBool("remote_chara") || (old is { parent: Zone } && old.currentZone == _zone)) {
+                // (never a player's character; one that stands on this map is the host's to tell about)
+                continue;
+            }
+
+            // only what that player could let go: a character nobody knew, or one that travelled with it
+            if (old is not null && old.CompanionOwnerUid != ownerUid) {
+                EmpLog.Warning("Resident {Uid} sent by player {OwnerUid} is not its own, left as it is", uploaded.uid, ownerUid);
+                continue;
+            }
+
+            ForgetCachedCard(uploaded);
+            if (old is not null) {
+                ForgetCachedCard(old);
+                game.cards.globalCharas.Remove(old);
+                if (old.homeBranch is { } branch && branch.members.IndexOf(old) is var index and >= 0) {
+                    branch.members[index] = uploaded;
+                }
+            }
+
+            uploaded.SetInt(CompanionHelper.OwnerKey, 0);
+            uploaded.party = null;
+            if (party.uidMembers.Remove(uploaded.uid)) {
+                party.SetMembers();
+            }
+
+            uploaded.currentZone = null;
+            game.cards.globalCharas.Add(uploaded);
+            JoinItsBase(uploaded);
+
+            foreach (var thing in uploaded.things.Flatten().ToList()) {
+                if (PendingUid.IsPending(thing.uid)) {
+                    game.cards.AssignUID(thing);
+                }
+            }
+
+            // (dead: it waits at its base as the game keeps the dead of a base, nothing to place)
+            if (!uploaded.isDead && uploaded.homeZone is { } home) {
+                uploaded.MoveZone(home);
+            }
+
+            EmpLog.Information("Resident {Uid} made or let go by player {OwnerUid} while alone: now at its base {ZoneUid}",
+                uploaded.uid, ownerUid, uploaded.homeZone?.uid ?? 0);
+        }
     }
 
     private static void RebindRide(int ownerUid)

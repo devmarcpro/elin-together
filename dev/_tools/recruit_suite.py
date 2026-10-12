@@ -134,7 +134,9 @@ def owned_by_guest(ctx, uid, what):
     check(f"{what} : il appartient a l'invite chez l'host", info(H, uid) is not None and info(H, uid)[2] == a)
     check(f"{what} : pareil chez l'invite", eventually(lambda: info(A, uid) is not None and info(A, uid)[3] == 1 and info(A, uid)[2] == a, timeout=15))
     walk_away(A)
-    check(f"{what} : il suit l'invite, pas l'host", eventually(lambda: 0 <= dist(H, uid, a) <= 4, timeout=30) and dist(H, uid, h) > 4)
+    # (5 cases : l'invite de test a « mes allies gardent leurs distances » coche, ses compagnons se tiennent a 5 cases de lui)
+    check(f"{what} : il suit l'invite, pas l'host (a {dist(H, uid, a)} de l'invite, {dist(H, uid, h)} de l'host)",
+          eventually(lambda: 0 <= dist(H, uid, a) <= 5, timeout=30) and dist(H, uid, h) > 5)
     walk_away(A, dx=-8)
     time.sleep(3)
 

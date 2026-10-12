@@ -1145,6 +1145,7 @@ internal partial class ElinNetHost
         var rebound = new Dictionary<int, int>();
         var chara = ReplaceRemoteChara(peer.User, release.Chara, rebound: rebound);
         ReplaceCompanions(release.Companions, SavedRemoteCharas.TryGetValue(peer.User, out var ownerUid) ? ownerUid : 0, rebound);
+        ReplaceResidents(release.Residents, ownerUid);
         ReplaceGuestCharas(release, peer);
 
         // never next to the host when something tells where: it walks into the host's map by the way it took, or
@@ -1225,6 +1226,7 @@ internal partial class ElinNetHost
 
         ReplaceRemoteChara(peer.User, checkpoint.Chara);
         ReplaceCompanions(checkpoint.Companions, SavedRemoteCharas.TryGetValue(peer.User, out var ownerUid) ? ownerUid : 0);
+        ReplaceResidents(checkpoint.Residents, ownerUid);
         ReplaceGuestCharas(checkpoint, peer);
 
         EmpLog.Debug("Checkpoint of player {@Peer} in zone {ZoneUid}",

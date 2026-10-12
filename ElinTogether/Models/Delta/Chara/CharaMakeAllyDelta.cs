@@ -64,6 +64,12 @@ public class CharaMakeAllyDelta : ElinDelta
             return;
         }
 
+        // a companion that only comes back is one of ours already: the game's recruiting forgets the tile it was
+        // told to stay on ("stay here"), which this game then no longer had while the host did
+        var stays = chara.IsPCFaction ? chara.orgPos : null;
         chara.Stub_MakeAlly(ShowMsg);
+        if (stays is not null) {
+            chara.orgPos = stays;
+        }
     }
 }

@@ -93,4 +93,12 @@ public class ZoneLeaseRelease
     /// </summary>
     [Key(14)]
     public bool Soft { get; set; } = false;
+
+    /// <summary>
+    ///     Characters of the base this player made or let go while it was alone, and that do not travel with it:
+    ///     a recruit sent home, an egg hatched as livestock, a companion that died or was told to go home. They
+    ///     exist in its copy of the world only, the host takes them (see AwayResidents)
+    /// </summary>
+    [Key(15)]
+    public List<LZ4Bytes>? Residents { get; init; }
 }

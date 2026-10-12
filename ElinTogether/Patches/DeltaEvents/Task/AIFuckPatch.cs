@@ -33,7 +33,10 @@ internal static class AIFuckPatch
     [HarmonyPatch(typeof(AI_Fuck), nameof(AI_Fuck.Finish))]
     internal static void OnFinish(AI_Fuck __instance, out ScopeExit? __state)
     {
-        __state = NetSession.Instance.Connection is ElinNetHost && __instance.owner is { IsRemotePlayer: true } player
+        // (not the brush: taming recruits for "the player", and who recruited is read from the act, see
+        // CharaMakeAllyEvent.Recruiter: standing in, the animal a guest tamed became the host's)
+        __state = NetSession.Instance.Connection is ElinNetHost && __instance.Type == AI_Fuck.FuckType.fuck &&
+                  __instance.owner is { IsRemotePlayer: true } player
             ? RemoteCraft.AsCrafter(player)
             : null;
     }
