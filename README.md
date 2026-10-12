@@ -128,9 +128,6 @@ Launch Elin once after subscribing, then close it.
 `Elin\_ElinTogether_sauvegarde`. The installer and its notes (`LISEZMOI.txt`) are in French; the steps are also on
 each release page.
 
-**On a Mac** (Elin in CrossOver, Whisky or Wine): download `ElinTogether-independance-mac.zip`, unzip it, open
-Terminal, type `bash` and a space, drag `Installer-Mac.command` into the window and press Enter. It is the same
-mod. Not tried on a real Mac yet.
 
 **Every player must install the same release.** This fork does not talk to the Workshop version, nor to another
 version of itself: a player on another version is refused with a message that names both versions. Each release is
@@ -403,77 +400,72 @@ The code is described file by file in [`dev/DOCUMENTATION.md`](dev/DOCUMENTATION
 
 ## Known limits
 
-- **Played for real by one small group only.** Much of the newest work has only run on the test bench, and some of
-  it not at all. "Not played" in a release note or a commit message means exactly that.
-- **When the host leaves or crashes, no guest takes the world over by itself.** Someone takes it from the depot by
-  hand.
-- **One date for the world**, that of the player furthest ahead; only its effects (hunger, rot, deadlines) are per
-  player. When the host sleeps alone, the date still moves by about 40 minutes. On the world map, when everyone
-  travels together, only the host's steps move it.
-- During the few seconds of a night of its own, a player can be attacked: the world goes on for the others.
-- When the host and a guest meet again on a map, the guest's screen reloads. The checkbox "No world reload when
-  the host and a player meet again" avoids it; it is new and off by default.
-- On the host's screen, walking guests can move in jumps of three tiles.
+- **Played for real by one small group only.** Almost everything is checked by in-game tests on one PC (two or three
+  windows). "Not played" in a release note or a commit message means exactly that.
+- **One date for the world**, which only moves with the host: on the world map only the host's steps move it; the
+  shared night only passes when everyone sleeps. Each player can sleep a night "of its own" without moving it (when
+  the host sleeps alone it moves by about ten minutes).
+- **When the host leaves or crashes**, a guest can take the world over by itself: the checkbox exists ("Takeover") and
+  stays off until it has been played between two real PCs. Without it someone takes the world from the depot.
+- Meeting the host again no longer reloads the whole world (ticked by default since 0.26.691); at the slightest doubt
+  the mod reloads as before.
 - A player refused by the holder of a map still receives the whole world.
+- On the host's screen, walking guests can move in jumps of three tiles.
 - **More than three players**: five game windows were tested on one PC, never five real PCs. Expect the game to
   slow down as players are added.
+- Zones are generated with the host's feats (odds of monsters, of shrines), and the residents of a base only
+  "notice" the host (rumours, gifts).
 - Dungeon quests for two, when the guest took the quest: subdue, harvest and music quests. Defense quests are
-  settled alone.
-- Duels have no arena, betting or give-up button. Equipped items cannot be traded.
+  settled alone. An adventurer duel started by a guest leaves the adventurer in two places during the duel.
+- Duels between players have no arena, betting or give-up button. Equipped items cannot be traded.
 - Mods: Elin restarts once at the first join (see [Games with mods](#games-with-mods)). A mod removed from the game
   later stays subscribed for a player who chose to keep the mods. Not tried on Steam Deck, Linux or a Mac.
-- A few rare conflicts are known and not fixed: two players building on the same tile, a mount existing twice
-  after a trip.
+- Catching up worlds played before "a share for everyone": recipes, the tickets of the debt, the wedding gifts and
+  dialog gifts are not given again.
 
 The full list is in [`dev/DOCUMENTATION.md`](dev/DOCUMENTATION.md), section 6 (French).
 
 ## What is left before a real release
 
 This fork is published as pre-releases for a group of friends. Here is what stands between that and a version one
-could recommend to anyone.
+could recommend to anyone (as of 12 October 2026).
 
-**1. Play what was published without being played**
+**1. Proof on real PCs**
 
-- Joining with a mounted character, and dialogs for a player with a language mod (0.26.605).
-- "Keep the mods of the game" (0.26.608): the real subscription, then a second start with no restart.
-- The story beyond its first steps: the fix that let the main quest move on again (0.26.597) was played up to the
-  axe and the gold, not further.
-- The Mac installer, on a real Mac. Steam Deck and Linux.
+- Almost everything is proven on one PC, over the local network. Steam lobbies, invitations, real latency, three or
+  four players and a long game are only covered by a few real evenings, and each of them found defects the tests
+  had not seen. It needs a small group playing every release.
+- A guest taking the world over ("Takeover"): played with three windows, never between two PCs.
 
-**2. Open leads**
+**2. Safe releases**
 
-- On a brand-new world, a guest who sleeps alone was seen waking up still exhausted and unable to act. It may be a
-  tutorial dialog of the game that the test does not click; not settled.
-- Three warnings of the mod when a saved game is loaded again with a guest ("Removing quest from player chara"):
-  not looked at.
-- The sleep test suite gives different failures from one run to the next on a slow PC: the suite or the mod, not
-  settled.
+- One release shipped with a defect (0.26.691: an animal brushed by a guest went to the host) because not every
+  test series had been replayed. The whole chain must be green before each release, and a few series are still
+  unstable (night, guest).
+- Never checked: that a world played with this fork still loads without it, or with the original mod. No automatic
+  copy of the world before the first game with a new version: make your own.
 
-**3. Missing pieces**
+**3. Installing**
 
-- **The world going on when the host leaves or crashes**: a guest taking over by itself, with no click. Designed,
-  not started. Today the session ends and someone takes the world from the depot by hand.
-- **A copy of the world on every player's PC by default**, so that a group with no depot loses nothing when the
-  host is away. The checkbox exists and is off; the hand-over from such a copy is not done.
-- **Mods**: the restart at the first join is still there the first time. A game whose mod list changes is not
-  handled for players who kept the mods.
-- **Duels**: arena, betting, give-up button.
-- **Defense quests for two** when the guest took the quest.
+- The mod needs Elin's **Nightly** channel, and each release is built for one build of the game.
+- A zip and an `Installer.bat`, in French, which replaces the Workshop version of the original mod. No Workshop page.
+- Every player must have exactly the same version.
 
-**4. Proof on real PCs**
+**4. Missing pieces**
 
-- Almost everything is proven on one PC, over the local network. Steam lobbies, invitations and relays between
-  real PCs are only covered by the few real evenings.
-- More than three players on real PCs, and how slow it gets.
-- A long game: hours of play, a big world, a full base.
+- A shared world time (the date only moves with the host): to be designed.
+- Mods: the host's list applied without a restart; a game whose mod list changes.
+- Duels: arena, betting, give-up. Defense quests for two.
+- The online depot of the world: automatic take-over from the depot.
 
 **5. Before recommending it**
 
-- Follow Elin's updates: each release is built for one Nightly build.
-- An installer and notes in English (they are in French).
-- The Chinese and Japanese READMEs are shorter than this one and were not proofread by a native speaker.
+- The Chinese and Japanese READMEs are shorter than this one and were not proofread by a native speaker; the mod's
+  settings are in English.
 - Decide what happens with the original project: this fork changes the heart of the mod and is not meant to be
   merged as it is.
+- To report a defect: the "Prepare a bug report" button of the *Client Settings* tab writes a zip on the desktop
+  with the logs of the game and of the mod (no save, no settings file).
 
 ## How it is tested
 
@@ -515,7 +507,7 @@ dotnet restore ./ElinTogether --locked-mode
 dotnet build ./ElinTogether -c ReleaseNightly
 ```
 
-`dev/make_release.ps1` builds the two zips of a release, Windows and Mac. The development setup (several game
+`dev/make_release.ps1` builds the zip of a release. The development setup (several game
 windows on one PC, the in-game test suites, the debug bridge) is described in [`dev/SETUP.md`](dev/SETUP.md)
 (French). The day-by-day journal of the fork is [`dev/MODLOG.md`](dev/MODLOG.md) (French).
 

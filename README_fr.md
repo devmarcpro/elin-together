@@ -132,9 +132,6 @@ lui. Lancez Elin une fois après l'abonnement, puis fermez-le.
 `Desinstaller.bat` remet la version Workshop ; rien n'est supprimé, l'ancien état est gardé dans
 `Elin\_ElinTogether_sauvegarde`. La notice `LISEZMOI.txt` du zip explique tout.
 
-**Sur Mac** (Elin dans CrossOver, Whisky ou Wine) : téléchargez `ElinTogether-independance-mac.zip`,
-décompressez-le, ouvrez le Terminal, tapez `bash` puis un espace, faites glisser `Installer-Mac.command` dans la
-fenêtre et appuyez sur Entrée. C'est le même mod. Pas encore essayé sur un vrai Mac.
 
 **Tous les joueurs doivent installer la même version.** Ce fork ne se connecte pas à la version du Workshop, ni à
 une autre version de lui-même : un joueur sur une autre version est refusé, avec un message qui nomme les deux
@@ -414,80 +411,73 @@ Le code est décrit fichier par fichier dans [`dev/DOCUMENTATION.md`](dev/DOCUME
 
 ## Limites connues
 
-- **Un seul petit groupe y a joué pour de vrai.** Une bonne part du travail récent n'a tourné qu'au banc de test,
-  et une partie pas du tout. « Pas joué » dans une note de version ou un message de commit veut dire exactement
-  cela.
-- **Quand l'host part ou plante, aucun invité ne reprend le monde tout seul.** Quelqu'un le prend dans le dépôt, à
-  la main.
-- **Une seule date pour le monde**, celle du joueur le plus avancé ; seuls ses effets (faim, pourriture, délais)
-  sont propres à chacun. Quand l'host dort seul, la date avance quand même d'environ 40 minutes. Sur la carte du
-  monde, quand tous voyagent ensemble, seuls les pas de l'host la font avancer.
-- Pendant les quelques secondes de sa nuit à soi, un joueur peut être attaqué : le monde continue pour les autres.
-- Quand l'host et un invité se retrouvent sur une carte, l'écran de l'invité recharge. La case « No world reload
-  when the host and a player meet again » l'évite ; elle est nouvelle et décochée au départ.
-- Sur l'écran de l'host, les invités qui marchent peuvent avancer par à-coups de trois cases.
+- **Un seul petit groupe y a joué pour de vrai.** Presque tout est vérifié par des tests en jeu sur un seul PC (deux
+  ou trois fenêtres). « Pas joué » dans une note de version ou un message de commit veut dire exactement cela.
+- **Une seule date pour le monde**, qui n'avance qu'avec l'host : sur la carte du monde, seuls ses pas la font
+  avancer ; la nuit commune ne passe que si tout le monde dort. Chacun peut dormir « à soi » sans la faire bouger
+  (quand l'host dort seul, elle avance d'une dizaine de minutes).
+- **Quand l'host part ou plante**, un invité peut reprendre le monde tout seul : la case existe (« Takeover »), elle
+  est décochée tant que ce n'est pas joué entre deux vrais PC. Sans elle, quelqu'un prend le monde dans le dépôt.
+- Retrouver l'host ne recharge plus tout le monde (case cochée d'office depuis la 0.26.691) ; au moindre doute le mod
+  recharge comme avant.
 - Un joueur refusé par celui qui tient une carte reçoit encore le monde entier.
+- Sur l'écran de l'host, les invités qui marchent peuvent avancer par à-coups de trois cases.
 - **Plus de trois joueurs** : cinq fenêtres du jeu ont été testées sur un seul PC, jamais cinq vrais PC.
   Attendez-vous à ce que le jeu ralentisse quand le nombre de joueurs augmente.
+- Les zones sont créées avec les dons de l'host (chances de monstres, de sanctuaires), et les habitants d'une base ne
+  « remarquent » que lui (rumeurs, cadeaux).
 - Quêtes à donjon à deux, quand c'est l'invité qui a la quête : « subjuguer », récolte et musique. La défense se
-  fait seul.
-- Les duels n'ont ni arène, ni pari, ni bouton pour abandonner. Un objet équipé ne peut pas être échangé.
+  fait seul. Un duel d'aventurier lancé par un invité laisse l'aventurier en double pendant le duel.
+- Les duels entre joueurs n'ont ni arène, ni pari, ni bouton pour abandonner. Un objet équipé ne peut pas être échangé.
 - Mods : Elin se relance une fois à la première connexion (voir [Les parties avec mods](#les-parties-avec-mods)).
   Un mod retiré de la partie plus tard reste abonné chez un joueur qui a choisi de garder les mods. Pas essayé sur
   Steam Deck, Linux ni Mac.
-- Quelques conflits rares sont connus et pas corrigés : deux joueurs qui construisent sur la même case, une
-  monture qui existe en double après un voyage.
+- Rattrapage des mondes joués avant « une part pour chacun » : les recettes, les billets de la dette, les cadeaux du
+  mariage et les cadeaux de dialogue ne sont pas redonnés.
 
 La liste complète : [`dev/DOCUMENTATION.md`](dev/DOCUMENTATION.md), section 6.
 
 ## Ce qu'il reste avant une vraie sortie
 
 Ce fork est publié en préversions pour un groupe d'amis. Voici ce qui sépare cela d'une version qu'on pourrait
-recommander à n'importe qui.
+recommander à n'importe qui (état au 12 octobre 2026).
 
-**1. Jouer ce qui a été publié sans être joué**
+**1. La preuve sur de vrais PC**
 
-- Rejoindre avec un personnage monté, et les dialogues chez un joueur qui a un mod de langue (0.26.605).
-- « Keep the mods of the game » (0.26.608) : l'abonnement réel, puis un deuxième lancement sans relance.
-- L'histoire au-delà de ses premières étapes : la correction qui a permis à la quête principale d'avancer de
-  nouveau (0.26.597) a été jouée jusqu'à la hache et l'or, pas plus loin.
-- L'installateur Mac, sur un vrai Mac. Steam Deck et Linux.
+- Presque tout est prouvé sur un seul PC, par le réseau local. Les salons Steam, les invitations, la latence réelle,
+  trois ou quatre joueurs et une longue partie ne sont couverts que par quelques vraies soirées, et chacune a trouvé
+  des défauts que les tests n'avaient pas vus. Il faut un petit groupe qui joue chaque version.
+- La reprise du monde par un invité (« Takeover ») : jouée à trois fenêtres, jamais entre deux PC.
 
-**2. Pistes ouvertes**
+**2. Des versions sûres**
 
-- Sur un monde tout neuf, un invité qui dort seul a été vu se réveiller toujours épuisé et incapable d'agir. C'est
-  peut-être un dialogue de tutoriel du jeu que le test ne clique pas ; pas tranché.
-- Trois avertissements du mod quand une partie sauvegardée est rechargée avec un invité (« Removing quest from
-  player chara ») : pas regardé.
-- La suite de tests du sommeil donne des échecs différents d'un passage à l'autre sur un PC lent : la suite ou le
-  mod, pas tranché.
+- Une version a été publiée avec un défaut (0.26.691 : l'animal brossé par un invité allait à l'host) parce que
+  toutes les séries de tests n'avaient pas été rejouées. La chaîne complète doit être verte avant chaque version, et
+  quelques séries sont encore instables (nuit, invité).
+- Jamais vérifié : qu'un monde joué avec ce fork se recharge encore sans lui, ou avec le mod d'origine. Pas de copie
+  automatique du monde avant la première partie avec une nouvelle version : faites la vôtre.
 
-**3. Ce qui manque**
+**3. L'installation**
 
-- **Le monde qui continue quand l'host part ou plante** : un invité qui reprend tout seul, sans rien cliquer.
-  Conçu, pas commencé. Aujourd'hui la partie s'arrête et quelqu'un prend le monde dans le dépôt à la main.
-- **Une copie du monde sur le PC de chaque joueur, par défaut**, pour qu'un groupe sans dépôt ne perde rien quand
-  l'host est absent. La case existe et elle est décochée ; la reprise à partir d'une telle copie n'est pas faite.
-- **Mods** : la relance à la première connexion est toujours là la première fois. Une partie dont la liste de mods
-  change n'est pas traitée pour les joueurs qui ont gardé les mods.
-- **Duels** : arène, pari, bouton pour abandonner.
-- **Quêtes de défense à deux** quand c'est l'invité qui a la quête.
+- Le mod demande le canal **Nightly** d'Elin, et chaque version est compilée pour une version précise du jeu.
+- Un zip et un `Installer.bat`, en français, qui remplace la version Workshop du mod d'origine. Pas de page Workshop.
+- Tous les joueurs doivent avoir exactement la même version.
 
-**4. Preuve sur de vrais PC**
+**4. Ce qui manque**
 
-- Presque tout est prouvé sur un seul PC, par le réseau local. Les salons Steam, les invitations et les relais
-  entre vrais PC ne sont couverts que par les quelques vraies soirées.
-- Plus de trois joueurs sur de vrais PC, et à quel point ça ralentit.
-- Une longue partie : des heures de jeu, un grand monde, une base pleine.
+- Le temps du monde commun (la date n'avance qu'avec l'host) : à concevoir.
+- Mods : la liste de l'host appliquée sans relance ; une partie dont la liste change.
+- Duels : arène, pari, abandon. Quêtes de défense à deux.
+- Le dépôt en ligne du monde : la reprise automatique depuis le dépôt.
 
 **5. Avant de le recommander**
 
-- Suivre les mises à jour d'Elin : chaque version est compilée pour une version précise du canal Nightly.
-- Un installateur et une notice en anglais (ils sont en français).
 - Les README chinois et japonais sont plus courts que celui-ci et n'ont pas été relus par quelqu'un dont c'est la
-  langue.
+  langue ; les réglages du mod sont en anglais.
 - Décider ce qu'on fait avec le projet d'origine : ce fork change le cœur du mod et n'est pas fait pour y être
   fusionné tel quel.
+- Pour signaler un défaut : le bouton « Prepare a bug report » de l'onglet *Client Settings* écrit sur le bureau un
+  zip avec les journaux du jeu et du mod (ni sauvegarde, ni fichier de réglages).
 
 ## Comment c'est testé
 
@@ -533,7 +523,7 @@ dotnet restore ./ElinTogether --locked-mode
 dotnet build ./ElinTogether -c ReleaseNightly
 ```
 
-`dev/make_release.ps1` fabrique les deux zips d'une version, Windows et Mac. Le poste de développement (plusieurs
+`dev/make_release.ps1` fabrique le zip d'une version. Le poste de développement (plusieurs
 fenêtres du jeu sur un PC, suites de tests en jeu, pont de test) est décrit dans [`dev/SETUP.md`](dev/SETUP.md).
 Le journal du fork, jour par jour : [`dev/MODLOG.md`](dev/MODLOG.md).
 
