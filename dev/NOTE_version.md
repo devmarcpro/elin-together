@@ -1,32 +1,49 @@
-# Elin Together « indépendance » 0.26.716
+# Elin Together « indépendance » 0.26.730
 
 (English below / version anglaise plus bas)
 
-Suite de la 0.26.708 : **les factures d'impôt « fantômes »**, une copie de secours automatique du monde, et un bouton
-pour signaler un problème. Joué au banc de test (deux fenêtres sur un PC), rien encore entre deux PC. **Cette version
-sort sans que toutes les séries de tests aient été rejouées** : celles qui touchent ce qui a changé l'ont été. Si elle
-se passe mal, la 0.26.708 reste en ligne. Compilé pour Elin **EA 23.355**.
+Suite de la 0.26.716 : **la progression des quêtes d'histoire** (une quête ne recule plus, les journaux des joueurs se
+rattrapent, les mondes abîmés sont réparés), et **un invité peut prendre une terre**. Joué au banc de test (deux
+fenêtres sur un PC), les étapes de quêtes y sont posées à la main : aucune vraie quête n'a été jouée de bout en bout,
+rien entre deux PC. **Cette version sort avant que toutes les séries de tests aient été rejouées** sur son code. Si
+elle se passe mal, la 0.26.716 reste en ligne. Compilé pour Elin **EA 23.355**.
 **Tous les joueurs doivent installer ce même zip.**
 
 ## Corrigé (joué au banc)
 
-- **Factures d'impôt impossibles à solder.** Avant la 0.26.652, une facture payée par un invité seul sur une autre
-  carte n'était pas toujours comptée : le monde gardait plus de factures « impayées » qu'il n'en existe, plus rien à
-  payer pour faire baisser ce nombre, et 50 de karma en moins chaque mois. Le compteur est ramené aux factures qui
-  existent vraiment (sacs de tous les joueurs et compagnons, courrier, banque, caisse d'expédition, carte où se trouve
-  l'hébergeur). Il n'est jamais relevé. **Cela se fait tout seul**, une fois, quand l'hébergeur lance la partie avec
-  cette version ; un bouton de l'onglet *Server Setting* le refait à la demande (« Unpaid tax bills: counted N,
-  existing M (repair) »). Une facture rangée dans un coffre sur une autre carte n'est pas vue : si le compteur tombe
-  à zéro, le jeu la refusera, elle est simplement annulée.
+- **Quête de Vernis revenue en arrière, pas de dragon.** Un joueur seul sur une carte, avec un journal en retard,
+  pouvait ramener la quête de tout le monde à une étape passée ; le boss de la mine ne revenant pas, la quête ne
+  pouvait plus finir. Une quête ne recule plus. **Pour un monde déjà touché** : l'hébergeur lance la partie avec cette
+  version (la quête est remise où la mine dit que le monde en était), redescend une fois à l'étage du boss, puis
+  parle à Loytel à la base.
+- **Le journal de chaque joueur suit celui du monde.** Toutes les 20 secondes l'hébergeur dit à chacun l'étape des
+  quêtes d'histoire, celles qui sont finies et celles qui sont proposées. Un joueur en retard rattrape, même seul sur
+  une autre carte ; un joueur en avance n'est jamais ramené en arrière.
+- **Même réparation pour Nymelle et Lesimas** : Nymelle est remise à l'étape que ses étages ouverts prouvent ;
+  l'étage du boss de Lesimas, boss déjà mort, fait avancer la quête.
+- **Une terre prise pendant la partie n'était jamais connue des invités**, même prise par l'hébergeur : Vernis
+  restait « à personne, sans base » chez eux, même en y revenant. Ils la reçoivent maintenant tout de suite.
+- **Fin de la quête de Nasu faite par un invité** : elle plantait chez l'hébergeur (le sac à dos repris était le
+  sien) et les récompenses étaient perdues.
+- **Rêves de Lesimas** : deux joueurs sur la même carte faisaient avancer la quête chacun de son côté, un rêve
+  était sauté.
+- **Recette apprise en dormant par un invité** : comptée deux fois chez l'hébergeur.
+- Quête d'impôt : l'invité connaît les factures du monde. Dette de Loytel prise par un invité : la cassette est pour
+  lui. L'hébergeur ne refuse plus de commencer une quête d'histoire dont le numéro a changé.
 
 ## Nouveau
 
-- **Copie de secours avant une nouvelle version.** La première fois qu'un monde est hébergé avec une nouvelle version
-  du mod, la sauvegarde telle qu'elle est sur le disque est d'abord copiée dans les sauvegardes de secours du jeu
-  (celles que son écran de chargement sait restaurer).
-- **Signaler un problème.** Le bouton « Prepare a bug report » de l'onglet *Client Settings* écrit sur le bureau un
-  zip avec le journal du jeu, celui d'avant, les derniers journaux du mod et une courte fiche (versions, mods).
-  Ni sauvegarde, ni fichier de réglages. C'est ce fichier qu'il faut envoyer.
+- **Un invité peut prendre une terre.** Il lit l'acte de propriété sur la carte de l'hébergeur, le jeu lui pose sa
+  question, et son oui fait de la terre une base pour tout le monde. Encore refusé : seul sur une carte qu'il tient,
+  et quand la case « seul l'hébergeur gère la base » est cochée.
+- Le zip du bouton « Prepare a bug report » liste le groupe du joueur (pour trouver un compagnon compté en trop).
+
+## Pas corrigé, signalé cette semaine
+
+- Le nombre de compagnons affiché avec un de trop : pas reproduit. Envoyez le zip « Prepare a bug report ».
+- Un invité qui ne pouvait pas miner : rien pour chercher, dites où et quoi.
+- Un invité sur la carte du monde envoyé dans le donjon de l'hébergeur : pas reproduit, même demande.
+- Loytel, quand un invité prend la dette, rejoint l'équipe comme compagnon de l'hébergeur.
 
 ## Limites connues
 
@@ -55,31 +72,47 @@ Chacun télécharge `ElinTogether-independance.zip` (ci-dessous), le décompress
 
 ---
 
-# Elin Together "independence" 0.26.716
+# Elin Together "independence" 0.26.730
 
-Follows 0.26.708: **"phantom" tax bills**, an automatic backup of the world, and a button to report a problem.
-Played on the test bench (two windows on one PC), nothing between two PCs yet. **This release ships without every
-test series having been replayed**: those covering what changed were. If it goes wrong, 0.26.708 stays online. Built
-for Elin **EA 23.355**.
+Follows 0.26.716: **story quest progression** (a quest no longer goes backwards, the players' journals catch up, damaged
+worlds are repaired), and **a guest can claim land**. Played on the test bench (two windows on one PC), where quest
+steps are set by hand: no real quest was played from end to end, nothing between two PCs. **This release ships before
+every test series was replayed** on its code. If it goes wrong, 0.26.716 stays online. Built for Elin **EA 23.355**.
 **Every player must install this same zip.**
 
 ## Fixed (played on the bench)
 
-- **Tax bills that could not be settled.** Before 0.26.652, a bill paid by a guest alone on another map was not
-  always counted: the world kept more "unpaid" bills than exist, with nothing left to pay to bring that number down,
-  and 50 karma lost each month. The count is brought down to the bills that really exist (bags of every player and
-  companion, mail, bank, shipping box, the map the host stands on). It is never raised. **It happens by itself**,
-  once, when the host starts the game with this version; a button of the *Server Setting* tab does it again on
-  request ("Unpaid tax bills: counted N, existing M (repair)"). A bill kept in a chest on another map is not seen:
-  if the count drops to zero the game will refuse it, it is simply cancelled.
+- **Vernis quest gone backwards, no dragon.** A player alone on a map, with a late journal, could take everyone's
+  quest back to a past step; the mine boss does not come back, so the quest could not finish. A quest no longer goes
+  backwards. **For a world already hit**: the host starts the game with this version (the quest is put back where the
+  mine says the world was), goes down once to the boss floor, then talks to Loytel at the base.
+- **Each player's journal follows the world's.** Every 20 seconds the host tells everyone the step of the story
+  quests, those that are done and those on offer. A late player catches up, even alone on another map; a player ahead
+  is never taken back.
+- **Same repair for Nymelle and Lesimas**: Nymelle is put back at the step its open floors prove; the Lesimas boss
+  floor, boss already dead, moves the quest on.
+- **Land claimed during a game never reached the guests**, even claimed by the host: Vernis stayed "nobody's, no
+  base" for them, even when coming back to it. They get it at once now.
+- **End of the Nasu quest done by a guest**: it threw on the host (the backpack taken back was the host's) and the
+  rewards were lost.
+- **Dreams of Lesimas**: two players on one map each moved the quest on, a dream was skipped.
+- **Recipe learnt while sleeping by a guest**: counted twice on the host.
+- Tax quest: the guest knows the world's bills. Loytel's debt taken by a guest: the cassette is the guest's. The host
+  no longer refuses to start a story quest whose number changed.
 
 ## New
 
-- **Backup before a new version.** The first time a world is hosted with a new version of the mod, the save as it
-  is on disk is first copied to the game's own backups (the ones its load screen can restore).
-- **Reporting a problem.** The "Prepare a bug report" button of the *Client Settings* tab writes a zip on the desktop
-  with the game's log, the previous one, the latest logs of the mod and a short note (versions, mods). No save, no
-  settings file. That is the file to send.
+- **A guest can claim land.** It reads the deed on the host's map, the game asks its question, and its yes makes the
+  land a base for everyone. Still refused: alone on a map it keeps, and when "only the host manages the base" is
+  ticked.
+- The "Prepare a bug report" zip lists the player's party (to find a companion counted in excess).
+
+## Not fixed, reported this week
+
+- The ally count shown one too many: not reproduced. Send the "Prepare a bug report" zip.
+- A guest who could not mine: nothing to go on, say where and what.
+- A guest on the world map sent into the host's dungeon: not reproduced, same request.
+- Loytel, when a guest takes the debt, joins the party as the host's companion.
 
 ## Known limits
 
