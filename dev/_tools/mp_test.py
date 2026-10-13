@@ -145,6 +145,11 @@ def _join_client(client_port, name):
     wait(in_zone_or_embark, f"{name} en jeu", timeout=300, every=3.0)
     time.sleep(3)
     log(f"{name} en jeu")
+    # les reglages « a soi » de l'invite de test survivent d'un monde du banc a l'autre (ElinMP/OwnSettings) : une serie
+    # interrompue y a laisse « mes allies gardent leurs distances », et dans quatre series « le compagnon suit son
+    # joueur » etait rouge sur un monde neuf (2026-10-13). Chaque lancement repart des reglages du jeu
+    time.sleep(2)
+    emp.call(client_port, "eval", {"code": 'var t = EClass.game.config.tactics; t.allyKeepDistance = false; t.dontWander = false; return "ok";'})
 
 
 def main():
