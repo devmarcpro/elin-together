@@ -98,7 +98,9 @@ public class QuestJournalDelta : ElinDelta
         }
 
         // finished in the world and still open here
-        foreach (var quest in quests.list.Where(q => q is QuestSequence && !PersonalQuests.IsPersonal(q) && Completed.Contains(q.id)).ToList()) {
+        // (not one the world has open again: a quest finished once and started anew is open in the world)
+        foreach (var quest in quests.list.Where(q => q is QuestSequence && !PersonalQuests.IsPersonal(q) && Completed.Contains(q.id) &&
+                                                     !Ids.Contains(q.id) && !SharedQuests.IsAwaitingHost(q)).ToList()) {
             EmpLog.Information("Quest {QuestId} was still open here, the world finished it: closed", quest.id);
             QuestCompleteEvent.CompleteQuietly(quest, false);
         }

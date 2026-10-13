@@ -249,7 +249,7 @@ def fight(K, B, who):
         check(f"{who} : les deux jouent, le monstre suit le plus rapide des deux ({t3 - t2} tours ; attendu {max(da, db):.1f}, "
               f"la somme ferait {da + db:.1f})", t3 >= 0 and max(da, db) - 2.5 <= t3 - t2 <= max(da, db) + 2.5)
     finally:
-        ev(K, f'var m = {mon}; if (m != null) m.Destroy(); var c = EClass.pc.GetCondition<ConInvulnerable>(); if (c != null) c.Kill(); return "ok";')
+        ev(K, f'var m = {mon}; if (m != null) m.Destroy(); return "ok";')
 
 
 def f1():
@@ -1171,7 +1171,17 @@ def main():
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(',')]
     for step in steps:
         try:
+            # (les deux joueurs de test ne peuvent pas mourir pendant la suite : un monstre de la Prairie tuait l'invite
+            # pendant les attentes, pv -37, et toutes les etapes suivantes echouaient sur un joueur mort, 2026-10-13)
+            # (par l'etiquette du jeu « invulnerable », posee dans les deux jeux sur les deux personnages : la condition
+            # ConInvulnerable ne dure que quelques tours, et c'est le jeu qui simule la carte qui decide d'une mort)
+            for port in (H, A):
+                ev(port, 'foreach (var c in EClass.pc.party.members.Where(m => m.IsPC || m.GetBool("remote_chara"))) '
+                         'if (!c.HasEditorTag(EditorTag.Invulnerable)) c.AddEditorTag(EditorTag.Invulnerable); return "ok";')
             step()
+            for name, port in (("host", H), ("invite", A)):
+                if ev(port, 'EClass.pc.isDead.ToString()') == "True":
+                    print(f"    !! {name} MORT apres {step.__name__} : la suite n'est pas fiable")
         except Exception as ex:  # noqa: BLE001
             check(f"{step.__name__} interrompu : {type(ex).__name__}: {str(ex)[:300]}", False)
     scan_logs(start)

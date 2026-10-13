@@ -738,8 +738,9 @@ def b9(ctx):
             ev(port, f'var t = EClass.pc.things.Find(x => x.uid == {deed}); ((TraitDeed)t.trait).OnRead(EClass.pc); "ok"')
             time.sleep(2)
             opened = dialog_open(port)
-            verdict = "s'ouvre" if key == "h" else "ne s'ouvre pas"
-            check(f"{who} : la boite « reclamer ? » {verdict} ({opened})", opened == (key == "h"))
+            # (depuis le 2026-10-13 la boite s'ouvre aussi chez l'invite sur la carte de l'host : son oui est une
+            # demande a l'host, jouee dans oct10_suite v4. Ici la boite est fermee sans oui)
+            check(f"{who} : la boite « reclamer ? » s'ouvre ({opened})", opened)
         finally:
             close_layers()   # la boite se ferme sans oui : rien n'est reclame
             ev(port, f'EClass._zone.idMainFaction = "{owner0}"; "ok"')
