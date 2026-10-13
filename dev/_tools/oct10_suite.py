@@ -207,7 +207,10 @@ def fight(K, B, who):
     # (les habitants d'une carte s'en melent et le monstre se retourne contre eux : il est garde sur sa cible)
     # (et sa cible est soignee : un monstre de niveau 60 qui joue enfin ses tours tue un personnage de test,
     # et tout ce qui suit dans la suite echoue sur un joueur mort)
-    keep = f'var m = {mon}; if (m != null) {{ m.hp = m.MaxHP; m.enemy = EClass.pc; }} EClass.pc.hp = EClass.pc.MaxHP; '
+    # (2026-10-13 : soignee ne suffit pas, un seul coup du monstre entre deux soins la tuait certaines passes, et un
+    # host mort ne recoit plus de part d'histoire : s2 et s3 rouges derriere. Elle ne peut pas mourir pendant le test)
+    keep = (f'var m = {mon}; if (m != null) {{ m.hp = m.MaxHP; m.enemy = EClass.pc; }} EClass.pc.hp = EClass.pc.MaxHP; '
+            'if (!EClass.pc.HasCondition<ConInvulnerable>()) EClass.pc.AddCondition<ConInvulnerable>(5000, true); ')
     blow = f'var m = {mon}; if (m != null) {{ ACT.Melee.Perform(EClass.pc, m, m.pos); EClass.player.EndTurn(false); }} return "ok";'
     try:
         time.sleep(2)
@@ -246,7 +249,7 @@ def fight(K, B, who):
         check(f"{who} : les deux jouent, le monstre suit le plus rapide des deux ({t3 - t2} tours ; attendu {max(da, db):.1f}, "
               f"la somme ferait {da + db:.1f})", t3 >= 0 and max(da, db) - 2.5 <= t3 - t2 <= max(da, db) + 2.5)
     finally:
-        ev(K, f'var m = {mon}; if (m != null) m.Destroy(); return "ok";')
+        ev(K, f'var m = {mon}; if (m != null) m.Destroy(); var c = EClass.pc.GetCondition<ConInvulnerable>(); if (c != null) c.Kill(); return "ok";')
 
 
 def f1():
@@ -954,7 +957,7 @@ def main():
             continue
         check(f"{name} : pas de deuxieme ajout, lien remis ({r})", r == "0/0/True")
     check("au moins un jeu avait un autre membre dans l'equipe", RESULTS)
-    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, s3, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, z1, t1, q1, f2, v1)
+    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, s3, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, z1, v1, t1, q1, f2)  # v1 avant t1 : t1 maudit l'invite de test, qui en meurt et ne voyage plus
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(',')]
     for step in steps:
