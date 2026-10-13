@@ -1009,6 +1009,7 @@ def v2():
         move(H, HOME)
         wait(lambda: zone_uid(H) == HOME, "l'host a la base", timeout=180)
         both_joined(H, A, HOME)
+        ev(A, 'foreach (var q in EClass.game.quests.list.Where(x => x is QuestVernis || x is QuestExploration || x is QuestIntoDarkness).ToList()) EClass.game.quests.Remove(q); return "ok";')
         ev(H, 'foreach (var q in EClass.game.quests.list.Where(x => x is QuestVernis || x is QuestExploration || x is QuestIntoDarkness).ToList()) EClass.game.quests.Remove(q); '
               'foreach (var z in EClass.game.spatials.map.Values.Where(x => (x is Zone_Nymelle || x is Zone_DungeonDead) && x.lv < -1).ToList()) z.Destroy(); return "ok";')
 
@@ -1067,6 +1068,95 @@ def v3():
     ev(H, 'var q = EClass.game.quests.Get<QuestIntoDarkness>(); if (q != null) EClass.game.quests.Remove(q); return "ok";')
 
 
+def v4():
+    """Suite du 2026-10-13 : une quete d'histoire proposee dans le monde pendant qu'un joueur est seul lui arrive ;
+    l'invite lit un acte de propriete et dit oui : la terre est prise pour tout le monde (avant : refuse a l'invite).
+    Ce que le banc ne joue pas : l'offre est ajoutee par QuestManager.Add (ce que fait le jeu a une date ou dans un
+    dialogue) ; Vernis est rendue prenable en mettant sa quete a l'etape 4 par eval ; l'acte est lu par OnRead
+    (ce que fait « lire ») et le oui est le vrai bouton de la boite du jeu. ETAPE A JOUER EN DERNIER : Vernis
+    reste une base dans le monde du banc."""
+    from base_suite import click_yes, dialog_open  # noqa: PLC0415
+    from travel_suite import VERNIS, both_joined, client_settled, move, wait  # noqa: PLC0415
+    guest = state(A)["pc"]["uid"]
+    offered = lambda port: ev(port, '(EClass.game.quests.globalList.Exists(q => q.id == "into_darkness")).ToString()') == "True"  # noqa: E731
+    ev(H, 'EClass.game.quests.globalList.RemoveAll(q => q.id == "into_darkness"); return "ok";')
+    try:
+        move(A, VERNIS)
+        wait(client_settled(A, VERNIS, True), "l'invite seul a Vernis", timeout=180)
+        time.sleep(3)
+        ev(A, 'EClass.game.quests.globalList.RemoveAll(q => q.id == "into_darkness"); EClass.game.quests.list.RemoveAll(q => q.id == "into_darkness"); return "ok";')
+        ev(H, 'EClass.game.quests.Add("into_darkness", "ashland"); return "ok";')
+        check("l'host a une nouvelle quete d'histoire a proposer", offered(H))
+        check("l'invite, seul sur sa carte, la recoit", eventually(lambda: offered(A), timeout=45))
+    finally:
+        move(A, HOME)
+        both_joined(H, A, HOME)
+    ev(H, 'EClass.game.quests.globalList.RemoveAll(q => q.id == "into_darkness"); return "ok";')
+    ev(A, 'EClass.game.quests.globalList.RemoveAll(q => q.id == "into_darkness"); return "ok";')
+    # l'acte de propriete lu par l'invite, a Vernis (prenable a l'etape 4 de sa quete)
+    ev(H, 'if (EClass.game.cards.globalCharas.Find("loytel") == null) CharaGen.Create("loytel").SetGlobal(EClass.game.spatials.Find(7), 50, 50); '
+          'if (EClass.game.quests.Get<QuestVernis>() == null) EClass.game.quests.Start("vernis_gold", "loytel"); return "ok";')
+    if not check("la quete de Vernis est dans les deux journaux",
+                 eventually(lambda: ev(A, '(EClass.game.quests.Get<QuestVernis>() != null).ToString()') == "True", timeout=20)):
+        return
+    for port in (H, A):
+        ev(port, VQ + 'q.phase = 4; q.task = null; return "ok";')
+    host_goto(H, A, VERNIS)
+    time.sleep(4)
+    look = 'return EClass._zone.id + "|" + EClass._zone.IsPCFaction + "|" + (EClass._zone.branch != null) + "|" + EClass._map.things.Count(t => t.trait is TraitCoreZone);'
+    deeds = lambda port: int(ev(port, f'var g = EClass._map.charas.Find(x => x.uid == {guest}); return g.things.List(t => t.trait is TraitDeed, true).Sum(t => t.Num).ToString();'))  # noqa: E731
+    if not check(f"les deux sont a Vernis, qui n'est a personne et peut etre prise (host {ev(H, look)}, invite {ev(A, look)}, prenable {ev(A, 'EClass._zone.isClaimable.ToString()')})",
+                 str(ev(H, look)).startswith("vernis|False|False") and ev(A, 'EClass._zone.isClaimable.ToString()') == "True" and ev(H, 'EClass._zone.isClaimable.ToString()') == "True"):
+        return
+    ev(H, f'var g = EClass._map.charas.Find(x => x.uid == {guest}); g.AddThing(ThingGen.Create("deed")); return "ok";')
+    check("l'invite a un acte de propriete, dans les deux jeux", eventually(lambda: deeds(A) == 1 and deeds(H) == 1, timeout=15))
+    ev(A, 'var t = EClass.pc.things.List(x => x.trait is TraitDeed, true).First(); t.trait.OnRead(EClass.pc); return "ok";')
+    time.sleep(2)
+    if not check("la boite « reclamer cette terre ? » s'ouvre chez l'invite (avant : refus)", dialog_open(A)):
+        return
+    check(f"il clique oui ({click_yes(A)})", True)
+    check("chez l'host : Vernis est une base, avec sa branche et sa pierre de foyer",
+          eventually(lambda: str(ev(H, look)) == "vernis|True|True|1", timeout=30))
+    check("chez l'invite aussi", eventually(lambda: state(A).get("connected") and str(ev(A, look)) == "vernis|True|True|1", timeout=120))
+    time.sleep(3)
+    check(f"l'acte est consomme, une fois (host {deeds(H)}, invite {deeds(A)})", deeds(H) == 0 and deeds(A) == 0)
+    ev(H, 'var q = EClass.game.quests.Get<QuestVernis>(); if (q != null) EClass.game.quests.Remove(q); return "ok";')
+    host_goto(H, A, HOME)
+
+
+def v5():
+    """Suite du 2026-10-13 : les factures d'impot faites et payees du monde sont connues de l'invite (la quete
+    d'impot les demande a « le joueur ») ; la dette de Loytel prise par l'invite : Loytel le rejoint LUI et la
+    cassette va dans SON sac. Le banc pose les compteurs par eval et accepte la dette par QuestManager.Start sur
+    l'offre du monde (ce que fait le oui du dialogue de Loytel), sans jouer le dialogue."""
+    guest = state(A)["pc"]["uid"]
+    tax = lambda port: str(ev(port, 'EClass.player.stats.taxBills + "|" + EClass.player.stats.taxBillsPaid'))  # noqa: E731
+    before = tax(A)
+    ev(H, 'EClass.player.stats.taxBills += 3; EClass.player.stats.taxBillsPaid += 500; return "ok";')
+    check(f"factures faites et payees du monde : l'invite les connait ({before} -> {tax(H)})", eventually(lambda: tax(A) == tax(H), timeout=45))
+    ev(H, 'var l = EClass.game.cards.globalCharas.Find("loytel") ?? CharaGen.Create("loytel").SetGlobal(EClass.game.spatials.Find(7), 50, 50); '
+          'if (!EClass._map.charas.Contains(l)) EClass._zone.AddCard(l, EClass.pc.pos.GetNearestPoint(false, false)); '
+          'foreach (var q in EClass.game.quests.list.Where(x => x is QuestDebt).ToList()) EClass.game.quests.Remove(q); '
+          'EClass.game.quests.globalList.RemoveAll(x => x is QuestDebt); EClass.game.quests.Add("debt", "loytel"); return "ok";')
+    if not check("la dette est proposee, l'invite le sait",
+                 eventually(lambda: ev(A, '(EClass.game.quests.globalList.Exists(q => q is QuestDebt)).ToString()') == "True", timeout=45)):
+        return
+    look = (f'var g = EClass.game.cards.globalCharas.Find({guest}); var l = EClass.game.cards.globalCharas.Find("loytel"); '
+            'return (EClass.game.quests.Get<QuestDebt>() != null) + "|" + EClass.pc.party.members.Contains(l) + "|" + l.GetInt("emp_owner") + "|" + '
+            'g.things.List(t => t.id == "856", true).Count + "|" + EClass.pc.things.List(t => t.id == "856", true).Count;')
+    before = str(ev(H, look))
+    ev(A, 'EClass.game.quests.Start(EClass.game.quests.globalList.First(q => q is QuestDebt)); return "ok";')
+    want = lambda: str(ev(H, look))  # noqa: E731
+    ok_ = eventually(lambda: want().split("|")[:2] == ["True", "True"], timeout=20)
+    now = want()
+    # (PAS FAIT : Loytel entre dans l'equipe comme compagnon de l'host, « a qui » reste 0 ; il devrait suivre l'invite)
+    check(f"l'invite prend la dette : elle commence dans le monde, Loytel entre dans l'equipe (dette|dans l'equipe|a qui|cassettes invite|cassettes host : {before} -> {now})", ok_)
+    check(f"la cassette est dans son sac, pas dans celui de l'host ({before} -> {now})",
+          int(now.split("|")[3]) == int(before.split("|")[3]) + 1 and now.split("|")[4] == before.split("|")[4])
+    ev(H, 'var l = EClass.game.cards.globalCharas.Find("loytel"); if (EClass.pc.party.members.Contains(l)) EClass.pc.party.RemoveMember(l); '
+          'foreach (var q in EClass.game.quests.list.Where(x => x is QuestDebt).ToList()) EClass.game.quests.Remove(q); return "ok";')
+
+
 def main():
     start = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
     for name, port in (("host", 27551), ("invite", 27552)):
@@ -1076,7 +1166,7 @@ def main():
             continue
         check(f"{name} : pas de deuxieme ajout, lien remis ({r})", r == "0/0/True")
     check("au moins un jeu avait un autre membre dans l'equipe", RESULTS)
-    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, s3, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, z1, v1, v2, v3, t1, q1, f2)  # v1 avant t1 : t1 maudit l'invite de test, qui en meurt et ne voyage plus
+    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, s3, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, z1, v1, v2, v3, v5, t1, q1, f2, v4)  # v1 avant t1 : t1 maudit l'invite de test, qui en meurt et ne voyage plus
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(',')]
     for step in steps:

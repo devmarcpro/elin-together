@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using ElinTogether.Helper;
 using ElinTogether.Net;
@@ -41,6 +42,20 @@ public class QuestJournalDelta : ElinDelta
     public string[]? CompletedTypes { get; init; }
 
     /// <summary>
+    ///     The story quests on offer (the game's "global" list, not the requests of a town board): a player alone
+    ///     on another map is not told of a new offer, and a dialog that hands one out threw without it
+    /// </summary>
+    [Key(4)]
+    public LZ4Bytes? Offers { get; init; }
+
+    /// <summary>
+    ///     Tax bills made and paid, the world's count: the tax quest asks "the player" for them, and the bills are
+    ///     made in the host's game only (a guest could not talk the quest on)
+    /// </summary>
+    [Key(5)]
+    public long[]? Tax { get; init; }
+
+    /// <summary>
     ///     Host, end of a frame
     /// </summary>
     internal static void Tell()
@@ -57,6 +72,8 @@ public class QuestJournalDelta : ElinDelta
             Ids = steps.Select(q => q.id).ToArray(),
             Completed = quests.completedIDs.ToArray(),
             CompletedTypes = quests.completedTypes.ToArray(),
+            Offers = LZ4Bytes.Create(quests.globalList.Where(q => !q.IsRandomQuest).ToList()),
+            Tax = [player.stats.taxBills, player.stats.taxBillsPaid],
         });
     }
 
@@ -90,5 +107,29 @@ public class QuestJournalDelta : ElinDelta
         // opens, a resident's talk, the next quest of the story)
         quests.completedIDs.UnionWith(Completed);
         quests.completedTypes.UnionWith(CompletedTypes ?? []);
+
+        if (Tax is { Length: 2 }) {
+            player.stats.taxBills = System.Math.Max(player.stats.taxBills, (int)Tax[0]);
+            player.stats.taxBillsPaid = System.Math.Max(player.stats.taxBillsPaid, Tax[1]);
+        }
+
+        foreach (var offer in Offers?.Decompress<List<Quest>>() ?? []) {
+            if (offer is null || quests.completedIDs.Contains(offer.id) || quests.list.Exists(q => q.id == offer.id) ||
+                quests.globalList.Exists(q => q.id == offer.id && q.uid == offer.uid)) {
+                continue;
+            }
+
+            // (the same offer under an older number: the world's replaces it)
+            quests.globalList.RemoveAll(q => q.id == offer.id);
+
+            if (offer.person?.chara is not { } chara) {
+                EmpLog.Debug("Story quest {QuestId} is on offer in the world, its giver is unknown here: left", offer.id);
+                continue;
+            }
+
+            EmpLog.Information("Story quest {QuestId} is on offer in the world and was not here: added", offer.id);
+            offer.SetClient(chara, false);
+            quests.globalList.Add(offer);
+        }
     }
 }

@@ -131,6 +131,12 @@ public class QuestStartDelta : ElinDelta
             quest = offered;
         }
 
+        // a story quest is one of a kind: the offer of this player may carry a number this world gave to another
+        // copy of it (an offer made again, a journal that came from an older copy), it is the same quest
+        if (quest is null && Uid >= 0 && Data.Decompress<Quest>() is { IsRandomQuest: false } asked) {
+            quest = game.quests.globalList.Find(q => q.id == asked.id && !q.IsRandomQuest);
+        }
+
         if (quest is null) {
             if (Uid >= 0) {
                 EmpLog.Warning("Rejecting quest start, unresolved quest {QuestUid}", Uid);

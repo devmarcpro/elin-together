@@ -14,17 +14,24 @@ internal static class StoryForPlayerPatch
 {
     /// <summary>
     ///     Nasu takes the backpack back from "the player": it is in the bag of the player who talked to her. For
-    ///     the host it was not there, the end of the quest threw and its rewards were lost
+    ///     the host it was not there, the end of the quest threw and its rewards were lost <br />
+    ///     The debt starts with Loytel joining "the player" and a cassette in its bag: the player who took the debt
+    ///     from Loytel, not the host (when that player has a home, the game reads it)
     /// </summary>
     [HarmonyPrefix]
     [HarmonyPatch(typeof(QuestNasu), nameof(QuestNasu.OnComplete))]
-    internal static void OnNasuComplete(out ScopeExit? __state)
+    [HarmonyPatch(typeof(QuestDebt), nameof(QuestDebt.OnStart))]
+    internal static void OnNasuComplete(MethodBase __originalMethod, out ScopeExit? __state)
     {
-        __state = QuestRewardPatch.Receiver is { isDead: false } earner ? RemoteCraft.AsCrafter(earner) : null;
+        __state = QuestRewardPatch.Receiver is { isDead: false } earner &&
+                  (earner.homeBranch is not null || __originalMethod.DeclaringType != typeof(QuestDebt))
+            ? RemoteCraft.AsCrafter(earner)
+            : null;
     }
 
     [HarmonyFinalizer]
     [HarmonyPatch(typeof(QuestNasu), nameof(QuestNasu.OnComplete))]
+    [HarmonyPatch(typeof(QuestDebt), nameof(QuestDebt.OnStart))]
     internal static void OnNasuCompleteEnd(ScopeExit? __state)
     {
         __state?.Dispose();

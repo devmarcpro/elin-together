@@ -89,7 +89,8 @@ internal static class RemoteBasePaidPatch
     [HarmonyPatch(typeof(TraitDeed), nameof(TraitDeed.OnRead))]
     private static bool OnReadDeed()
     {
-        if (!IsNotWorldHost) {
+        // on the host's map the game asks its question, and the yes is a request to the host (ClaimZonePatch)
+        if (!IsNotWorldHost || (IsRequester && !NetSession.Instance.Rules.HostManagesBase)) {
             return true;
         }
 

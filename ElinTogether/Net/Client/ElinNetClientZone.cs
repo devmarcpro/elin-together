@@ -82,6 +82,33 @@ internal partial class ElinNetClient
     }
 
     /// <summary>
+    ///     Whose land this is, as the host has it. A zone this game already knows keeps its own copy of the zone,
+    ///     and only a world copy brought a change of owner: a land claimed during the session (by the host, or
+    ///     asked by a guest, see ClaimZoneDelta) stayed "nobody's, no base" here, even when coming back to it
+    ///     (2026-10-13: Vernis claimed by the host, still Palmia's for the guest). What a base holds once it
+    ///     exists is told piece by piece, as before
+    /// </summary>
+    private static void AdoptOwner(Zone zone, ZoneDataResponse response)
+    {
+        try {
+            var hosts = response.Zone.Decompress<Zone>();
+            if (hosts.idMainFaction == zone.idMainFaction && hosts.branch is null == zone.branch is null) {
+                return;
+            }
+
+            EmpLog.Information("Zone {ZoneFullName}: owner {Owner} (base {HasBase}) here, {HostOwner} (base {HostHasBase}) for the host: taken from the host",
+                zone.ZoneFullName, zone.idMainFaction, zone.branch is not null, hosts.idMainFaction, hosts.branch is not null);
+            zone.idMainFaction = hosts.idMainFaction;
+            zone.branch = hosts.branch;
+            zone.branch?.SetOwner(zone);
+            zone.icon = hosts.icon;
+            zone.idPrefix = hosts.idPrefix;
+        } catch (Exception ex) {
+            EmpLog.Warning(ex, "Owner of zone {ZoneFullName} could not be read from the host's state", zone.ZoneFullName);
+        }
+    }
+
+    /// <summary>
     ///     Net event: Received zone state update, must do a scene init
     /// </summary>
     private void OnZoneDataResponse(ZoneDataResponse response)
@@ -177,6 +204,8 @@ internal partial class ElinNetClient
         if (Session.Rules.SoftRecall && response.ZoneState is { } state) {
             ZoneLeaseState.ApplyState(remoteZone, state, response.IdCurrentSubset);
         }
+
+        AdoptOwner(remoteZone, response);
 
         // suppress client-side map regeneration
         remoteZone.isGenerated = true;

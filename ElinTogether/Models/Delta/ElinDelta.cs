@@ -135,6 +135,7 @@ namespace ElinTogether.Models;
 [Union(850, typeof(BossWinDelta))]
 [Union(851, typeof(PartyExpDelta))]
 [Union(852, typeof(QuestJournalDelta))]
+[Union(853, typeof(ClaimZoneDelta))]
 // Act
 [Union(900, typeof(ActThrowDelta))]
 // Element
