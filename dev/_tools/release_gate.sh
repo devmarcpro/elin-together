@@ -15,9 +15,11 @@ suites=${*:-$ALL}
 code="$(git rev-parse HEAD:ElinTogether)-$(git rev-parse HEAD:package)"
 dirty=$(git status --porcelain -- ../ElinTogether ../package | wc -l)
 out=_shots/gate.txt
+# (seulement les fenetres du banc, reconnues a « -empmute » : jamais un jeu lance par l'utilisateur)
+bench() { powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='Elin.exe'\" | Where-Object { \$_.CommandLine -match 'empmute' } | ForEach-Object { \$_.ProcessId }" | tr -d ''; }
 kill_all() {
-    for p in $(tasklist //FI "IMAGENAME eq Elin.exe" //FO CSV //NH | cut -d, -f2 | tr -d '"' | grep -E '^[0-9]+$'); do taskkill //PID $p //F >/dev/null; done
-    for i in $(seq 1 30); do tasklist //FI "IMAGENAME eq Elin.exe" //FO CSV //NH | grep -q Elin.exe || break; sleep 2; done
+    for p in $(bench); do taskkill //PID $p //F >/dev/null; done
+    for i in $(seq 1 30); do [ -z "$(bench)" ] && break; sleep 2; done
 }
 # une seule barriere a la fois : la derniere lancee prend le verrou, une plus ancienne (arretee a moitie : seul son
 # « tail » meurt) s'arrete d'elle-meme a la serie suivante au lieu de fermer les fenetres de la nouvelle

@@ -872,6 +872,79 @@ def offers():
     check(f"l'host a paye l'influence ({ev(H, 'EClass._zone.influence.ToString()')})", ev(H, 'EClass._zone.influence.ToString()') == "4")
 
 
+VQ = 'var q = EClass.game.quests.Get<QuestVernis>(); '
+VREPAIR = ('System.AppDomain.CurrentDomain.GetAssemblies().First(a => a.GetName().Name == "ElinTogether").GetType("ElinTogether.Patches.QuestVernisRepair")'
+           '.GetMethod("Repair", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic).Invoke(null, null); ')
+
+
+def v1():
+    """Quete de Vernis (2026-10-12) : un joueur seul au journal en retard ne la fait plus reculer ; un monde ou elle
+    a recule est remis ou la mine dit qu'il en etait ; l'etage du boss sans boss la fait avancer."""
+    from travel_suite import VERNIS, both_joined, client_settled, move, wait, zone_uid  # noqa: PLC0415
+    phase = lambda port: str(ev(port, VQ + 'return q == null ? "aucune" : q.phase.ToString();'))  # noqa: E731
+    ev(H, 'if (EClass.game.quests.Get<QuestVernis>() == null) EClass.game.quests.Start("vernis_gold", "loytel"); return "ok";')
+    # (le pas de quete ouvre le dialogue de Loytel, comme dans le jeu : il n'existe pas dans le monde du banc)
+    ev(H, 'if (EClass.game.cards.globalCharas.Find("loytel") == null) CharaGen.Create("loytel").SetGlobal(EClass.game.spatials.Find(7), 50, 50); return "ok";')
+    shut = lambda: ev(H, 'if (LayerDrama.Instance != null) LayerDrama.Instance.Close(); return "ok";')  # noqa: E731
+    if not check("la quete de Vernis est dans le journal des deux jeux", eventually(lambda: phase(A) != "aucune", timeout=20)):
+        return
+    for port in (H, A):
+        ev(port, VQ + 'q.phase = 8; q.task = null; return "ok";')
+    try:
+        move(A, VERNIS)
+        wait(client_settled(A, VERNIS, True), "l'invite seul a Vernis", timeout=180)
+        time.sleep(3)
+        ev(A, VQ + 'q.phase = 2; q.ChangePhase(3); return "ok";')
+        time.sleep(5)
+        check(f"l'invite seul, journal en retard a 2, fait 2 -> 3 : le monde reste a 8 (host {phase(H)})", phase(H) == "8")
+        check("et son journal revient a 8", eventually(lambda: phase(A) == "8", timeout=20))
+        ev(H, VQ + 'q.phase = 7; return "ok";')
+        ev(A, VQ + 'q.ChangePhase(9); return "ok";')
+        check("un pas en avant d'un joueur seul reste accepte, meme si l'host etait a une autre etape (7, invite 8 -> 9)",
+              eventually(lambda: phase(H) == "9", timeout=20))
+    finally:
+        move(A, HOME)
+        both_joined(H, A, HOME)
+    time.sleep(3)
+    # le monde abime : quete a 3, mine ouverte jusqu'a l'etage du boss (cree comme le fait le depart de test du jeu)
+    floor = int(ev(H, 'var z = EClass.game.spatials.map.Values.OfType<Zone_VernisMine>().FirstOrDefault(x => x.lv == -8); '
+                      'if (z == null) { z = SpatialGen.Create("vernis_mine", EClass.game.spatials.Find("vernis"), true) as Zone_VernisMine; z.lv = -8; } '
+                      + VQ + 'q.phase = 3; return z.uid;'))
+    ev(H, VREPAIR + 'return "ok";')
+    check(f"quete a 3 dans un monde dont l'etage du boss existe : remise a 8 a l'hebergement ({phase(H)})", phase(H) == "8")
+    ev(H, VQ + 'q.phase = 9; ' + VREPAIR + 'return "ok";')
+    check(f"jamais abaissee (9 reste 9 : {phase(H)})", phase(H) == "9")
+    for port in (H, A):
+        ev(port, VQ + 'q.phase = 8; return "ok";')
+    try:
+        move(H, floor)
+        wait(lambda: zone_uid(H) == floor, "l'host a l'etage du boss", timeout=180)
+        time.sleep(5)
+        boss = str(ev(H, 'var b = EClass._map.charas.FirstOrDefault(c => c.id == "vernis_boss"); return b == null ? "aucun" : b.uid.ToString();'))
+        check(f"le boss est la et la quete attend sa mort (boss {boss}, etape {phase(H)})", boss != "aucun" and phase(H) == "8")
+        ev(H, 'var b = EClass._map.charas.First(c => c.id == "vernis_boss"); b.DamageHP(9999999, AttackSource.None, EClass.pc); return "ok";')
+        time.sleep(2)
+        shut()
+        check("le boss meurt : etape 9, comme dans le jeu", eventually(lambda: phase(H) == "9", timeout=15))
+        # le monde abime : le boss est mort mais la quete est revenue a 8
+        ev(H, VQ + 'q.phase = 8; return "ok";')
+        move(H, HOME)
+        wait(lambda: zone_uid(H) == HOME, "l'host a la base", timeout=180)
+        time.sleep(4)
+        move(H, floor)
+        wait(lambda: zone_uid(H) == floor, "l'host de retour a l'etage du boss", timeout=180)
+        check("etage du boss sans boss, quete a 8 : elle avance a 9", eventually(lambda: phase(H) == "9", timeout=20))
+        time.sleep(2)
+        shut()
+        check("chez l'invite aussi", eventually(lambda: phase(A) == "9", timeout=20))
+    finally:
+        move(H, HOME)
+        wait(lambda: zone_uid(H) == HOME, "l'host a la base", timeout=180)
+        both_joined(H, A, HOME)
+        ev(H, 'var q = EClass.game.quests.Get<QuestVernis>(); if (q != null) EClass.game.quests.Remove(q); '
+              'foreach (var z in EClass.game.spatials.map.Values.OfType<Zone_VernisMine>().Where(x => x.lv == -8).ToList()) z.Destroy(); return "ok";')
+
+
 def main():
     start = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
     for name, port in (("host", 27551), ("invite", 27552)):
@@ -881,7 +954,7 @@ def main():
             continue
         check(f"{name} : pas de deuxieme ajout, lien remis ({r})", r == "0/0/True")
     check("au moins un jeu avait un autre membre dans l'equipe", RESULTS)
-    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, s3, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, z1, t1, q1, f2)
+    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, s3, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, z1, t1, q1, f2, v1)
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(',')]
     for step in steps:
