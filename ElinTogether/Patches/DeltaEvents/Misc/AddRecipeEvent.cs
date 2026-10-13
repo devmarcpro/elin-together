@@ -1,3 +1,4 @@
+using ElinTogether.Helper;
 using ElinTogether.Models;
 using ElinTogether.Net;
 using HarmonyLib;
@@ -44,6 +45,7 @@ internal class AddRecipeEvent
 
         // travelling alone, or keeping a map for visitors: the recipes are the world's, the host tells the others
         // (not our visitors again, they hear it from us below)
+        EmpLog.Debug("Recipe {RecipeId} learnt here, told to the others", id);
         QuestAwaySync.Send(new AddRecipeDelta {
             RecipeId = id,
             Relayed = NetSession.Instance.Connection is ElinNetHost { IsZoneSession: true },

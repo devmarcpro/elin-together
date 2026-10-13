@@ -138,7 +138,16 @@ public class CharaSleepDelta : ElinDelta
 
             if (_dream is { } ehekatl) {
                 var known = new Dictionary<string, int>(player.recipes.knownRecipes);
-                player.recipes.OnSleep(ehekatl);
+
+                // told to the host with the night below, not as a recipe learnt on its own as well: the wake-up
+                // is not always played inside a message, and the host counted the recipe twice (2026-10-13)
+                AddRecipeDelta.IsLanding = true;
+                try {
+                    player.recipes.OnSleep(ehekatl);
+                } finally {
+                    AddRecipeDelta.IsLanding = false;
+                }
+
                 Rand.SetSeed();
 
                 // one recipe, and the variants the game learns with it (pillar, bridge): the shortest id brings them
@@ -210,6 +219,7 @@ public class CharaSleepDelta : ElinDelta
         }
 
         // learnt here, and by the other guests as any recipe: the sender has it already
+        EmpLog.Debug("Recipe {RecipeId} of the night of peer {Peer}", Recipe, OriginPeer);
         player.recipes.Add(Recipe, !player.recipes.IsKnown(Recipe));
         host.SendDeltaToAllExcept(OriginPeer, new AddRecipeDelta {
             RecipeId = Recipe,

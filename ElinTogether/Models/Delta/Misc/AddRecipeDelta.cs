@@ -1,3 +1,4 @@
+using ElinTogether.Helper;
 using ElinTogether.Net;
 using MessagePack;
 
@@ -16,9 +17,9 @@ public class AddRecipeDelta : ElinDelta
     public bool Relayed { get; init; }
 
     /// <summary>
-    ///     True while a recipe that came from someone else is being learnt here
+    ///     True while a recipe that came from someone else is being learnt here, or one that is told another way
     /// </summary>
-    internal static bool IsLanding { get; private set; }
+    internal static bool IsLanding { get; set; }
 
     protected override void OnApply(ElinNetBase net)
     {
@@ -48,6 +49,7 @@ public class AddRecipeDelta : ElinDelta
                 break;
         }
 
+        EmpLog.Debug("Recipe {RecipeId} learnt from peer {Peer}, relayed {Relayed}", RecipeId, OriginPeer, Relayed);
         IsLanding = true;
         try {
             player.recipes.Add(RecipeId, !player.recipes.IsKnown(RecipeId));
