@@ -1254,6 +1254,11 @@ def g40(ctx):
         mob = spawn(uid, "putty")
         if check(f"un monstre apparait a cote de l'invite ({mob})", mob and eventually(lambda: seen(port, mob), timeout=10)):
             x, z = cell(H, mob).split(",")
+            # (l'host se met a portee et en vue : en fin de serie il est souvent loin de l'invite ou derriere un mur, le
+            # jeu ne proposait alors aucune action sur la case et la baguette « ratait », rouge a chaque passe)
+            ev(H, f'var m = EClass._map.charas.Find(q => q.uid == {mob}); var p = m.pos.GetNearestPoint(false, false, true, true); '
+                  'if (p != null) EClass.pc.Teleport(p, true, true); return "ok";')
+            time.sleep(1)
             before = hp(H, mob)
             zap = use_held(H, rod, at=(x, z), pick='i.act is ActZap')
             if zap.startswith("action absente"):
