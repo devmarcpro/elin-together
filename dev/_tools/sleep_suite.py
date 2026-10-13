@@ -316,13 +316,20 @@ def b3(ctx):
           where(ctx, A) == "sol" and where(ctx, H) == "sol")
 
 
-def said(port, key):
+def said(port, key, since=-1):
     """combien de fois le jeu de ce joueur a dit ce message dans son journal (son texte vient du jeu, dans la langue
     de la fenetre : on cherche son plus long morceau fixe, sans les #1 des noms ; un message peut avoir plusieurs
-    variantes, une par ligne, toutes sont cherchees). Le journal du jeu ne garde que ses 50 dernieres lignes"""
+    variantes, une par ligne, toutes sont cherchees). Le journal du jeu ne garde que ses 50 dernieres lignes : pour
+    compter ce qui est dit pendant une etape, passer since=mark(port) pris avant (une difference de deux comptes
+    donnait « -1 message » quand une vieille ligne sortait du journal entre-temps)"""
     return int(ev(port, """var row = EClass.core.sources.langGame.map.TryGetValue("%s"); var all = row == null ? Msg.GetGameText("%s") : row.GetText("text");"""
                         """var ks = all.ToLower().Split(new[] { '\\n', '\\r' }).Select(v => v.Split(new[] { '#', '$', '{' }).OrderByDescending(s => s.Length).First().Trim()).Where(k => k.Length > 3).ToList(); """
-                        """return EClass.game.log.dict.Values.Count(l => l.text != null && ks.Any(k => l.text.ToLower().Contains(k))).ToString();""" % (key, key)))
+                        """return EClass.game.log.dict.Count(l => l.Key > %d && l.Value.text != null && ks.Any(k => l.Value.text.ToLower().Contains(k))).ToString();""" % (key, key, since)))
+
+
+def mark(port):
+    """le numero de la derniere ligne du journal du jeu, pour said(..., since=)"""
+    return int(ev(port, '(EClass.game.log.dict.Count == 0 ? -1 : EClass.game.log.dict.Keys.Max()).ToString()'))
 
 
 def recipes(port):
@@ -378,7 +385,7 @@ def k1(ctx):
               'EClass.pc.things.Find<TraitBed>().elements.SetBase(750, 100); "ok"')
         ev(H, 'EClass.pc.sleepiness.Set(EClass.pc.sleepiness.max); "ok"')
         dismiss_dialogs(H)
-        before = {"rec": (recipes(H), recipes(A)), "recipe": said(A, "learnRecipeSleep"), "dream": said(A, "dream_spell"),
+        before = {"rec": (recipes(H), recipes(A)), "mark": mark(A),
                   "san": (san(H), san(A))}
         check("avant la nuit : l'invite ne connait pas le sort, l'host non plus",
               not knows(A, "EClass.pc") and not knows(H, "EClass.pc"))
@@ -393,8 +400,8 @@ def k1(ctx):
         check("l'host n'a rien recu de ce livre : il ne connait pas ce sort", not knows(H, "EClass.pc"))
         check(f"le livre a perdu ses charges chez l'invite, et chez l'host (invite : {in_book(A, 'EClass.pc')}, host : {in_book(H, chars)})",
               eventually(lambda: in_book(A, "EClass.pc") in ("0", "disparu") and in_book(H, chars) in ("0", "disparu"), timeout=15))
-        check(f"un seul tirage de recette pour l'invite, dans son jeu ({said(A, 'learnRecipeSleep') - before['recipe']} message)",
-              said(A, "learnRecipeSleep") - before["recipe"] == 1)
+        check(f"un seul tirage de recette pour l'invite, dans son jeu ({said(A, 'learnRecipeSleep', before['mark'])} message)",
+              said(A, "learnRecipeSleep", before["mark"]) == 1)
         # une recette de bloc ou de sol vient avec ses variantes (pilier, pont) : on compare recette par recette
         same = eventually(lambda: sum(gained(H, before["rec"][0]).values()) >= 2
                           and gained(H, before["rec"][0]) == gained(A, before["rec"][1]), timeout=15)
@@ -403,8 +410,8 @@ def k1(ctx):
         check(f"recettes de la nuit : celle de l'host et celle de l'invite, les memes des deux cotes, une fois chacune, et rien "
               f"ne revient en double apres coup (host {got[0]}, invite {got[1]})",
               same and got[0] == got[1] and sum(got[0].values()) >= 2)
-        check(f"un seul sort en reve pour l'invite ({said(A, 'dream_spell') - before['dream']} message)",
-              said(A, "dream_spell") - before["dream"] == 1)
+        check(f"un seul sort en reve pour l'invite ({said(A, 'dream_spell', before['mark'])} message)",
+              said(A, "dream_spell", before["mark"]) == 1)
         check(f"son oreiller de Jure a joue : sa raison a baisse de 15 (de {before['san'][1]} a {san(A)}), pas celle de l'host ({before['san'][0]} -> {san(H)})",
               before["san"][1] - san(A) >= 15 and san(H) == before["san"][0])
         hp, top = (int(x) for x in ev(A, 'EClass.pc.hp + "," + EClass.pc.MaxHP').split(","))
@@ -717,7 +724,9 @@ def y1(ctx):
     wait(client_settled(A, VERNIS, True), "invite seul a Vernis", timeout=180)
     time.sleep(3)
     dismiss_dialogs(A)
-    ev(A, 'EClass.pc.sleepiness.Set(EClass.pc.sleepiness.max); "ok"')
+    # (nourri : apres les nuits des etapes d'avant l'invite de test meurt de faim, la faim le blesse a chaque tour et
+    # le reveille aussitot, « You fall asleep. You suffer a minor injury. You wake up. » : y1 et y2 rouges en chaine)
+    ev(A, 'EClass.pc.hunger.Set(0); EClass.pc.sleepiness.Set(EClass.pc.sleepiness.max); "ok"')
     before = {"H": view(H), "A": view(A)}
     ev(A, 'EClass.pc.Sleep(); "ok"')
     ok = eventually(lambda: "LayerSleep" in view(A)["layers"], timeout=60)
@@ -765,7 +774,7 @@ def y2(ctx):
     check("l'invite est seul sur un champ (le sommeil y simule les bases)",
           ev(A, '(EClass._zone is Zone_Field).ToString()') == "True")
     base = f'((Zone)EClass.game.spatials.Find({HOME}))'
-    ev(A, f'{base}.pendingSimHours = 5; EClass.pc.sleepiness.Set(EClass.pc.sleepiness.max); "ok"')
+    ev(A, f'{base}.pendingSimHours = 5; EClass.pc.hunger.Set(0); EClass.pc.sleepiness.Set(EClass.pc.sleepiness.max); "ok"')
     probe = ('return EClass._zone.uid + "|" + EClass.pc.pos.x + "," + EClass.pc.pos.z + "|" + '
              'System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(EClass._map) + "|" + ' + base + '.pendingSimHours;')
     before, leases = ev(A, probe), lease_requests()
