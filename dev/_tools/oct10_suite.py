@@ -948,6 +948,71 @@ def v1():
               'foreach (var z in EClass.game.spatials.map.Values.OfType<Zone_VernisMine>().Where(x => x.lv == -8).ToList()) z.Destroy(); return "ok";')
 
 
+def v2():
+    """Journal des quetes (2026-10-13) : un jeu en retard rattrape celui du monde, jamais l'inverse ; Nymelle remise
+    ou son donjon dit que le monde en etait ; l'etage du boss de Lesimas sans boss fait avancer la quete.
+    Ce que le banc ne joue pas : les etapes sont ecrites par eval (un journal « en retard » ne se fabrique pas
+    autrement), les etages sont crees comme le fait le depart de test du jeu, pas descendus a pied."""
+    from travel_suite import VERNIS, both_joined, client_settled, move, wait, zone_uid  # noqa: PLC0415
+    phase = lambda port, kind="QuestVernis": str(ev(port, f'var q = EClass.game.quests.Get<{kind}>(); return q == null ? "aucune" : q.phase.ToString();'))  # noqa: E731
+    put = lambda port, n: ev(port, VQ + f'q.phase = {n}; q.task = null; return "ok";')  # noqa: E731
+    shut = lambda: ev(H, 'if (LayerDrama.Instance != null) LayerDrama.Instance.Close(); return "ok";')  # noqa: E731
+    for who in ("loytel", "kettle"):
+        ev(H, f'if (EClass.game.cards.globalCharas.Find("{who}") == null) CharaGen.Create("{who}").SetGlobal(EClass.game.spatials.Find(7), 50, 50); return "ok";')
+    ev(H, 'if (EClass.game.quests.Get<QuestVernis>() == null) EClass.game.quests.Start("vernis_gold", "loytel"); return "ok";')
+    if not check("la quete de Vernis est dans le journal des deux jeux", eventually(lambda: phase(A) != "aucune", timeout=20)):
+        return
+    try:
+        put(H, 6)
+        put(A, 2)
+        check("journal de l'invite en retard (2, le monde a 6) : il rattrape tout seul", eventually(lambda: phase(A) == "6", timeout=45))
+        put(A, 7)
+        time.sleep(30)
+        check(f"journal de l'invite en avance (7, le monde a 6) : il n'est pas ramene en arriere ({phase(A)})", phase(A) == "7")
+        move(A, VERNIS)
+        wait(client_settled(A, VERNIS, True), "l'invite seul a Vernis", timeout=180)
+        put(H, 9)
+        check("seul sur sa carte, il rattrape aussi (9)", eventually(lambda: phase(A) == "9", timeout=45))
+    finally:
+        move(A, HOME)
+        both_joined(H, A, HOME)
+    time.sleep(3)
+    ev(H, VQ + 'EClass.game.quests.Remove(q); EClass.game.quests.completedIDs.Add("vernis_gold"); return "ok";')
+    check("quete finie dans le monde, encore ouverte chez l'invite : elle se ferme chez lui",
+          eventually(lambda: ev(A, '(EClass.game.quests.Get<QuestVernis>() == null && EClass.game.quests.completedIDs.Contains("vernis_gold")).ToString()') == "True", timeout=45))
+    for port in (H, A):
+        ev(port, 'EClass.game.quests.completedIDs.Remove("vernis_gold"); EClass.game.quests.completedTypes.Remove("QuestVernis"); return "ok";')
+    # Nymelle : quete au debut, donjon ouvert jusqu'au cristal
+    ev(H, 'if (EClass.game.quests.Get<QuestExploration>() == null) EClass.game.quests.Start("exploration", EClass.game.cards.globalCharas.Find("ashland"), false); '
+          'var q = EClass.game.quests.Get<QuestExploration>(); q.phase = 0; var top = EClass.game.spatials.Find("nymelle"); '
+          'var z = SpatialGen.Create("nymelle", top, true) as Zone; z.lv = -3; return "ok";')
+    ev(H, VREPAIR + 'return "ok";')
+    check(f"Nymelle a 0 avec un etage sous le deuxieme : remise a 1 ({phase(H, 'QuestExploration')})", phase(H, "QuestExploration") == "1")
+    ev(H, 'var z = SpatialGen.Create("nymelle_crystal", EClass.game.spatials.Find("nymelle"), true) as Zone; z.lv = -6; return "ok";')
+    ev(H, VREPAIR + 'return "ok";')
+    check(f"avec l'etage du cristal : remise a 3 ({phase(H, 'QuestExploration')})", phase(H, "QuestExploration") == "3")
+    ev(H, 'var q = EClass.game.quests.Get<QuestExploration>(); q.phase = 5; ' + VREPAIR + 'return "ok";')
+    check(f"jamais abaissee (5 reste 5 : {phase(H, 'QuestExploration')})", phase(H, "QuestExploration") == "5")
+    check("l'invite suit (5)", eventually(lambda: phase(A, "QuestExploration") == "5", timeout=45))
+    # Lesimas : quete a 5, etage du boss sans boss
+    floor = int(ev(H, 'if (EClass.game.quests.Get<QuestIntoDarkness>() == null) EClass.game.quests.Start("into_darkness", EClass.game.cards.globalCharas.Find("kettle")); '
+                      'EClass.game.quests.Get<QuestIntoDarkness>().phase = 5; '
+                      'var z = SpatialGen.Create("cave_dead", EClass.game.spatials.Find("cave_dead"), true) as Zone; z.lv = -6; return z.uid;'))
+    try:
+        move(H, floor)
+        wait(lambda: zone_uid(H) == floor, "l'host a l'etage du boss de Lesimas", timeout=180)
+        check("Lesimas a 5, etage du boss sans boss : la quete avance a 6", eventually(lambda: phase(H, "QuestIntoDarkness") == "6", timeout=20))
+        time.sleep(2)
+        shut()
+        check("chez l'invite aussi", eventually(lambda: phase(A, "QuestIntoDarkness") == "6", timeout=45))
+    finally:
+        move(H, HOME)
+        wait(lambda: zone_uid(H) == HOME, "l'host a la base", timeout=180)
+        both_joined(H, A, HOME)
+        ev(H, 'foreach (var q in EClass.game.quests.list.Where(x => x is QuestVernis || x is QuestExploration || x is QuestIntoDarkness).ToList()) EClass.game.quests.Remove(q); '
+              'foreach (var z in EClass.game.spatials.map.Values.Where(x => (x is Zone_Nymelle || x is Zone_DungeonDead) && x.lv < -1).ToList()) z.Destroy(); return "ok";')
+
+
 def main():
     start = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
     for name, port in (("host", 27551), ("invite", 27552)):
@@ -957,7 +1022,7 @@ def main():
             continue
         check(f"{name} : pas de deuxieme ajout, lien remis ({r})", r == "0/0/True")
     check("au moins un jeu avait un autre membre dans l'equipe", RESULTS)
-    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, s3, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, z1, v1, t1, q1, f2)  # v1 avant t1 : t1 maudit l'invite de test, qui en meurt et ne voyage plus
+    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, s3, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, z1, v1, v2, t1, q1, f2)  # v1 avant t1 : t1 maudit l'invite de test, qui en meurt et ne voyage plus
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(',')]
     for step in steps:

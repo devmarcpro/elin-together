@@ -39,6 +39,7 @@ internal class CoreSynchronizationContext : SynchronizationContext
         ThingRequest.InvalidateDangling();
         StoryGifts.Flush();
         ElinNetHost.GiveStoryShares();
+        QuestJournalDelta.Tell();
         WorldHandover.Watch();
         TileStateDelta.Flush();
         PlayerTrade.Update();

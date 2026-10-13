@@ -1,0 +1,85 @@
+using System.Linq;
+using ElinTogether.Helper;
+using ElinTogether.Net;
+using ElinTogether.Patches;
+using MessagePack;
+using UnityEngine;
+
+namespace ElinTogether.Models;
+
+/// <summary>
+///     The quest log of the world as the host has it, told to every player from time to time. A step of a quest
+///     goes to each game as one message (<see cref="QuestChangePhaseDelta" />) and nothing told a game that
+///     missed one: its journal stayed late for the rest of the session, the game read the wrong step there (a
+///     stair that stays locked, a boss whose death moves nothing) and its player could take the world back
+///     (the Vernis quest back to step 3, 2026-10-12). <br />
+///     A game only ever catches up: a step it made itself and the host has not heard of yet is never undone
+///     (the host answers a refused step by itself), and what a step triggers is not played again here
+/// </summary>
+[MessagePackObject]
+public class QuestJournalDelta : ElinDelta
+{
+    private const float Period = 20f;
+    private static float _next;
+
+    /// <summary>
+    ///     uid, phase of each quest in steps of the journal, by pairs
+    /// </summary>
+    [Key(0)]
+    public required int[] Phases { get; init; }
+
+    /// <summary>
+    ///     Their ids, in the same order (a quest a dialog started here may not have its number yet)
+    /// </summary>
+    [Key(1)]
+    public required string[] Ids { get; init; }
+
+    [Key(2)]
+    public required string[] Completed { get; init; }
+
+    /// <summary>
+    ///     Host, end of a frame
+    /// </summary>
+    internal static void Tell()
+    {
+        if (NetSession.Instance.Connection is not ElinNetHost { IsZoneSession: false } host || Time.unscaledTime < _next ||
+            game?.quests is not { } quests) {
+            return;
+        }
+
+        _next = Time.unscaledTime + Period;
+        var steps = quests.list.Where(q => q is QuestSequence && !PersonalQuests.IsPersonal(q)).ToList();
+        host.Delta.AddRemote(new QuestJournalDelta {
+            Phases = steps.SelectMany(q => new[] { q.uid, q.phase }).ToArray(),
+            Ids = steps.Select(q => q.id).ToArray(),
+            Completed = quests.completedIDs.ToArray(),
+        });
+    }
+
+    protected override void OnApply(ElinNetBase net)
+    {
+        if (net is ElinNetHost || game?.quests is not { } quests) {
+            return;
+        }
+
+        for (var i = 0; i < Ids.Length && i * 2 + 1 < Phases.Length; i++) {
+            var id = Ids[i];
+            var quest = quests.list.Find(q => q.uid == Phases[i * 2]) ?? quests.list.Find(q => q.id == id);
+            var phase = Phases[i * 2 + 1];
+            if (quest is not QuestSequence || quest.id != id || quest.phase >= phase || QuestPhaseRepair.IsMissing(quest, phase)) {
+                continue;
+            }
+
+            EmpLog.Information("Quest {QuestId} was at step {Phase} here, the world is at {World}: caught up", id, quest.phase, phase);
+            quest.phase = phase;
+            quest.task = null;
+            quest.UpdateJournal();
+        }
+
+        // finished in the world and still open here
+        foreach (var quest in quests.list.Where(q => q is QuestSequence && !PersonalQuests.IsPersonal(q) && Completed.Contains(q.id)).ToList()) {
+            EmpLog.Information("Quest {QuestId} was still open here, the world finished it: closed", quest.id);
+            QuestCompleteEvent.CompleteQuietly(quest, false);
+        }
+    }
+}
