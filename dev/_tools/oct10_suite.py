@@ -1013,6 +1013,60 @@ def v2():
               'foreach (var z in EClass.game.spatials.map.Values.Where(x => (x is Zone_Nymelle || x is Zone_DungeonDead) && x.lv < -1).ToList()) z.Destroy(); return "ok";')
 
 
+def v3():
+    """Quetes d'histoire, suite de la relecture du 2026-10-13 : une quete finie dont un jeu n'a jamais entendu parler
+    y est notee finie ; la fin de la quete de Nasu faite par l'invite (elle reprend le sac a dos de « le joueur ») ;
+    les reves de Lesimas ne sont plus avances par deux jeux sur la meme carte.
+    Ce que le banc ne joue pas : les quetes sont creees et terminees par eval, pas par leurs dialogues."""
+    guest = state(A)["pc"]["uid"]
+    done = lambda port, qid: ev(port, f'EClass.game.quests.completedIDs.Contains("{qid}").ToString()') == "True"  # noqa: E731
+    phase = lambda port: str(ev(port, 'var q = EClass.game.quests.Get<QuestIntoDarkness>(); return q == null ? "aucune" : q.phase.ToString();'))  # noqa: E731
+    shut = lambda: ev(H, 'if (LayerDrama.Instance != null) LayerDrama.Instance.Close(); return "ok";')  # noqa: E731
+    ev(H, 'EClass.game.quests.completedIDs.Add("banc_finie"); EClass.game.quests.completedTypes.Add("BancFinie"); return "ok";')
+    check("une quete finie dans le monde, inconnue de l'invite : notee finie chez lui",
+          eventually(lambda: done(A, "banc_finie") and ev(A, 'EClass.game.quests.completedTypes.Contains("BancFinie").ToString()') == "True", timeout=45))
+    for port in (H, A):
+        ev(port, 'EClass.game.quests.completedIDs.Remove("banc_finie"); EClass.game.quests.completedTypes.Remove("BancFinie"); return "ok";')
+    # Nasu : l'invite a le sac a dos, l'invite termine
+    ev(H, 'foreach (var port in new[] { "nasu" }) { EClass.game.quests.completedIDs.Remove(port); } EClass.game.quests.completedTypes.Remove("QuestNasu"); '
+          'var n = EClass.game.cards.globalCharas.Find("fairy_nanasu") ?? CharaGen.Create("fairy_nanasu").SetGlobal(EClass.game.spatials.Find(7), 50, 50); '
+          'if (EClass.game.quests.Get<QuestNasu>() == null) EClass.game.quests.Start("nasu", n, false); '
+          f'var g = EClass._map.charas.Find(x => x.uid == {guest}); g.AddThing(ThingGen.Create("backpack_holding")); return "ok";')
+    has = lambda: str(ev(H, f'var g = EClass._map.charas.Find(x => x.uid == {guest}); return (g.things.Find("backpack_holding") != null) + "|" + '  # noqa: E731
+                            '(EClass._map.things.Where(t => t.pos.Equals(g.pos)).Concat(g.things.List(t => true, true)).Where(t => t.id == "697").Sum(t => t.Num));'))
+    if not check("l'invite connait la quete de Nasu et a le sac a dos",
+                 eventually(lambda: ev(A, '(EClass.game.quests.Get<QuestNasu>() != null && EClass.pc.things.Find("backpack_holding") != null).ToString()') == "True", timeout=20)):
+        return
+    before = has()
+    t0 = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+    ev(A, 'EClass.game.quests.Get<QuestNasu>().Complete(); return "ok";')
+    check("l'invite termine la quete de Nasu : finie dans le monde", eventually(lambda: done(H, "nasu"), timeout=20))
+    time.sleep(3)
+    after = has()
+    check(f"elle a repris le sac a dos de l'invite et il a ses 77 pieces (sac|pieces : {before} -> {after})",
+          after.split("|")[0] == "False" and int(after.split("|")[1]) - int(before.split("|")[1]) == 77)
+    from guest_suite import journal  # noqa: PLC0415
+    check("la fin de la quete n'a pas plante chez l'host", not journal(t0, "completion threw on the host"))
+    for port in (H, A):
+        ev(port, 'EClass.game.quests.completedIDs.Remove("nasu"); EClass.game.quests.completedTypes.Remove("QuestNasu"); return "ok";')
+    # reves de Lesimas : sur la carte de l'host, seul le jeu de l'host avance la quete
+    ev(H, 'if (EClass.game.cards.globalCharas.Find("kettle") == null) CharaGen.Create("kettle").SetGlobal(EClass.game.spatials.Find(7), 50, 50); '
+          'if (EClass.game.quests.Get<QuestIntoDarkness>() == null) EClass.game.quests.Start("into_darkness", EClass.game.cards.globalCharas.Find("kettle")); return "ok";')
+    if not check("la quete de Lesimas est dans les deux journaux", eventually(lambda: phase(A) != "aucune", timeout=20)):
+        return
+    for port in (H, A):
+        ev(port, 'EClass.game.quests.Get<QuestIntoDarkness>().phase = 1; return "ok";')
+    ev(A, 'EClass.player.flags.OnEnterZone(); return "ok";')
+    time.sleep(4)
+    check(f"l'invite entre dans la base, sur la carte de l'host : son jeu n'avance pas la quete (host {phase(H)}, invite {phase(A)})",
+          phase(H) == "1" and phase(A) == "1")
+    ev(H, 'EClass.player.flags.OnEnterZone(); return "ok";')
+    time.sleep(2)
+    shut()
+    check(f"l'host y entre : un pas, un seul, chez les deux (host {phase(H)})", phase(H) == "2" and eventually(lambda: phase(A) == "2", timeout=20))
+    ev(H, 'var q = EClass.game.quests.Get<QuestIntoDarkness>(); if (q != null) EClass.game.quests.Remove(q); return "ok";')
+
+
 def main():
     start = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
     for name, port in (("host", 27551), ("invite", 27552)):
@@ -1022,7 +1076,7 @@ def main():
             continue
         check(f"{name} : pas de deuxieme ajout, lien remis ({r})", r == "0/0/True")
     check("au moins un jeu avait un autre membre dans l'equipe", RESULTS)
-    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, s3, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, z1, v1, v2, t1, q1, f2)  # v1 avant t1 : t1 maudit l'invite de test, qui en meurt et ne voyage plus
+    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, s3, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, z1, v1, v2, v3, t1, q1, f2)  # v1 avant t1 : t1 maudit l'invite de test, qui en meurt et ne voyage plus
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(',')]
     for step in steps:

@@ -113,6 +113,11 @@ internal static class QuestRewardPatch
     private static bool _nothing;
 
     /// <summary>
+    ///     The player the host runs a quest step for, if any
+    /// </summary>
+    internal static Chara? Receiver => _receiver;
+
+    /// <summary>
     ///     While the host runs a quest step for a player on its map: what the step gives is that player's
     /// </summary>
     internal static ScopeExit GiveTo(ElinNetHost host, int peerId)

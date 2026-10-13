@@ -64,10 +64,25 @@ public class QuestCompleteDelta : ElinDelta
             }
 
             // the rewards drop at the feet of the player who completed it, not the host's
-            using (QuestRewardPatch.GiveTo(host, OriginPeer)) {
-                using (Simulate()) {
-                    quest.Complete();
+            try {
+                using (QuestRewardPatch.GiveTo(host, OriginPeer)) {
+                    using (Simulate()) {
+                        quest.Complete();
+                    }
                 }
+            } catch (System.Exception ex) {
+                // the end of a quest written for "the player" threw in this game: the game had already closed
+                // the quest, but nobody was told (the message goes when Quest.Complete returns)
+                EmpLog.Warning(ex, "Quest {QuestId} completion threw on the host, told as completed", quest.id);
+                quest.isComplete = true;
+                if (game.quests.list.Contains(quest)) {
+                    QuestCompleteEvent.CompleteQuietly(quest, true);
+                }
+
+                host.Delta.AddRemote(new QuestCompleteDelta {
+                    Uid = quest.uid,
+                    Id = quest.id,
+                });
             }
 
             return;

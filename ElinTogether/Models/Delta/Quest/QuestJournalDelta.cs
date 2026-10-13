@@ -37,6 +37,9 @@ public class QuestJournalDelta : ElinDelta
     [Key(2)]
     public required string[] Completed { get; init; }
 
+    [Key(3)]
+    public string[]? CompletedTypes { get; init; }
+
     /// <summary>
     ///     Host, end of a frame
     /// </summary>
@@ -53,6 +56,7 @@ public class QuestJournalDelta : ElinDelta
             Phases = steps.SelectMany(q => new[] { q.uid, q.phase }).ToArray(),
             Ids = steps.Select(q => q.id).ToArray(),
             Completed = quests.completedIDs.ToArray(),
+            CompletedTypes = quests.completedTypes.ToArray(),
         });
     }
 
@@ -81,5 +85,10 @@ public class QuestJournalDelta : ElinDelta
             EmpLog.Information("Quest {QuestId} was still open here, the world finished it: closed", quest.id);
             QuestCompleteEvent.CompleteQuietly(quest, false);
         }
+
+        // and what this game never heard of at all: the game asks "is that quest done" all over (a dungeon that
+        // opens, a resident's talk, the next quest of the story)
+        quests.completedIDs.UnionWith(Completed);
+        quests.completedTypes.UnionWith(CompletedTypes ?? []);
     }
 }
