@@ -16,7 +16,7 @@ code="$(git rev-parse HEAD:ElinTogether)-$(git rev-parse HEAD:package)"
 dirty=$(git status --porcelain -- ../ElinTogether ../package | wc -l)
 out=_shots/gate.txt
 # (seulement les fenetres du banc, reconnues a « -empmute » : jamais un jeu lance par l'utilisateur)
-bench() { powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='Elin.exe'\" | Where-Object { \$_.CommandLine -match 'empmute' } | ForEach-Object { \$_.ProcessId }" | tr -d ''; }
+bench() { powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='Elin.exe'\" | Where-Object { \$_.CommandLine -match 'empmute' } | ForEach-Object { \$_.ProcessId }" | tr -d '\r'; }
 kill_all() {
     for p in $(bench); do taskkill //PID $p //F >/dev/null; done
     for i in $(seq 1 30); do [ -z "$(bench)" ] && break; sleep 2; done
