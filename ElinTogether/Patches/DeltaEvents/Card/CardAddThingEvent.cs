@@ -135,6 +135,19 @@ internal static class CardAddThingEvent
             return true;
         }
 
+        // the split menu: the part split off goes back beside the stack it came from, and the stack itself is carried
+        // away. The host makes that split, see CardSplitStackDelta
+        if (connection.IsClient && !tryStack && PendingUid.IsPending(t.uid) && PendingSplit.Resolve(t.uid) is var origin and > 0 &&
+            CardCache.Find(origin) is Thing { parent: var at } source && at == __instance && !PendingUid.IsPending(__instance.uid)) {
+            connection.Delta.AddRemote(new CardSplitStackDelta {
+                Source = source,
+                Parent = __instance,
+                Num = t.Num,
+                Pending = t.uid,
+            });
+            return true;
+        }
+
         // client pending uid
         if (connection.IsClient && (PendingUid.IsPending(t.uid) || PendingUid.IsPending(__instance.uid))) {
             return true;

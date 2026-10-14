@@ -1222,6 +1222,33 @@ def x3():
         both_joined(H, A, HOME)
 
 
+def x4():
+    """Rapport de joueur (2026-10-14) : les medailles qu'un invite lache ou pose au sol disparaissent. Le menu
+    « partager » du jeu laisse la part choisie dans la main et remet le reste au sac : chez l'invite rien ne changeait
+    la pile, elle tombait entiere et le reste n'existait que chez lui. Ici, chez l'invite puis chez l'host : une pile
+    de 5 medailles, la part de 2 lachee comme le fait le menu (Split du reste, remis dans le meme sac sans empiler,
+    puis DropThing de la pile), puis le reste lache a son tour. Le menu lui-meme n'est pas ouvert."""
+    import guest_suite as g  # noqa: PLC0415
+    ctx = {"a": (A, state(A)["pc"]["uid"]), "h": (H, state(H)["pc"]["uid"])}
+    floor = lambda port, uids: ev(port, 'return string.Join(",", EClass._map.things.Where(t => new[] { ' + ",".join(str(u) for u in uids) + ' }.Contains(t.uid)).Select(t => t.Num).OrderBy(x => x));')  # noqa: E731
+    for who, port, key in (("l'invite", A, "a"), ("l'host", H, "h")):
+        ev(H, f'var c = EClass._map.charas.Find(x => x.uid == {ctx[key][1]}); foreach (var t in c.things.List(x => x.id == "medal", true).ToList()) t.Destroy(); return "ok";')
+        time.sleep(2)
+        m = g.give(ctx, key, "medal", num=5)
+        time.sleep(3)
+        kept = int(ev(port, f'var t = EClass.pc.things.List(x => x.uid == {m}, true).First(); var rest = t.Split(t.Num - 2); '
+                            '(t.parent as Card).AddThing(rest, false); EClass.pc.DropThing(t); return rest.uid.ToString();'))
+        bag = lambda q: ev(q, f'var c = EClass._map.charas.Find(x => x.uid == {ctx[key][1]}); return c.things.List(x => x.id == "medal", true).Sum(x => x.Num).ToString();')  # noqa: E731
+        check(f"{who} lache 2 medailles d'une pile de 5 : 2 au sol et 3 au sac, dans les deux jeux (sol {floor(H, [m])} / {floor(A, [m])}, sac {bag(H)} / {bag(port)})",
+              eventually(lambda: floor(H, [m]) == "2" and floor(A, [m]) == "2" and bag(H) == "3" and bag(port) == "3", timeout=15))
+        r = ev(port, 'var t = EClass.pc.things.List(x => x.id == "medal", true).FirstOrDefault(); if (t == null) return "0"; EClass.pc.DropThing(t); return t.uid.ToString();')
+        both = [m, int(r), kept]
+        check(f"{who} lache ensuite les 3 gardees : 2 et 3 au sol, une fois chacune, dans les deux jeux ({floor(H, both)} / {floor(A, both)})",
+              eventually(lambda: floor(H, both) == "2,3" and floor(A, both) == "2,3", timeout=15))
+        ev(H, 'foreach (var t in EClass._map.things.Where(x => x.id == "medal").ToList()) t.Destroy(); return "ok";')
+        time.sleep(2)
+
+
 def main():
     start = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
     for name, port in (("host", 27551), ("invite", 27552)):
@@ -1231,7 +1258,7 @@ def main():
             continue
         check(f"{name} : pas de deuxieme ajout, lien remis ({r})", r == "0/0/True")
     check("au moins un jeu avait un autre membre dans l'equipe", RESULTS)
-    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, s3, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, z1, v1, v2, v3, v5, x2, x3, t1, q1, f2, v4)  # v1 avant t1 : t1 maudit l'invite de test, qui en meurt et ne voyage plus
+    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, s3, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, z1, v1, v2, v3, v5, x2, x3, x4, t1, q1, f2, v4)  # v1 avant t1 : t1 maudit l'invite de test, qui en meurt et ne voyage plus
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(',')]
     for step in steps:
