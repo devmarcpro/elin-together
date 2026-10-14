@@ -4,7 +4,7 @@
 
 Version corrective de la 0.26.730. Jouée au banc de test (deux fenêtres sur un PC), rien entre deux PC. La série
 complète des tests a tourné sur ce code exact : **12 séries vertes sur 14** ; les deux rouges ne passent qu'en fin de
-longue série et sont vertes rejouées seules (voir plus bas). Compilé pour Elin **EA 23.355**.
+longue série et sont vertes rejouées seules (voir plus bas). Compilé pour Elin **EA 23.356** (mise à jour de Steam du 13 octobre ; les tests ont tourné sur cette version).
 **Tous les joueurs doivent installer ce même zip.**
 
 ## Corrigé (joué au banc)
@@ -62,7 +62,7 @@ Chacun télécharge `ElinTogether-independance.zip` (ci-dessous), le décompress
 
 Bug-fix release of 0.26.730. Played on the test bench (two windows on one PC), nothing between two PCs. The whole test
 series ran on this exact code: **12 series green out of 14**; the two red ones only fail at the end of a long series and
-are green replayed on their own (see below). Built for Elin **EA 23.355**.
+are green replayed on their own (see below). Built for Elin **EA 23.356** (Steam update of 13 October; the tests ran on this version).
 **Every player must install this same zip.**
 
 ## Fixed (played on the bench)
