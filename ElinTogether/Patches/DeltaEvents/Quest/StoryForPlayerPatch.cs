@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Reflection;
+using ElinTogether.Helper;
 using ElinTogether.Models;
 using ElinTogether.Net;
 using HarmonyLib;
@@ -32,9 +33,26 @@ internal static class StoryForPlayerPatch
     [HarmonyFinalizer]
     [HarmonyPatch(typeof(QuestNasu), nameof(QuestNasu.OnComplete))]
     [HarmonyPatch(typeof(QuestDebt), nameof(QuestDebt.OnStart))]
-    internal static void OnNasuCompleteEnd(ScopeExit? __state)
+    internal static void OnNasuCompleteEnd(MethodBase __originalMethod, ScopeExit? __state)
     {
+        var earner = __state is null ? null : EClass.pc;
         __state?.Dispose();
+
+        // the game puts Loytel in "the party" with no word of whose companion he is: the player's who took the debt
+        if (earner is null || __originalMethod.DeclaringType != typeof(QuestDebt) ||
+            NetSession.Instance.Connection is not ElinNetHost host ||
+            EClass.game.cards.globalCharas.Find("loytel") is not { } loytel || !EClass.pc.party.members.Contains(loytel)) {
+            return;
+        }
+
+        loytel.SetCompanionOwner(earner);
+        host.Delta.AddRemote(new CharaMakeAllyDelta {
+            Owner = loytel,
+            ShowMsg = false,
+            TemporaryAllyName = loytel.c_altName,
+            OwnerUid = earner.uid,
+            JoinOnly = true,
+        });
     }
 
     /// <summary>

@@ -1147,10 +1147,11 @@ def v5():
     before = str(ev(H, look))
     ev(A, 'EClass.game.quests.Start(EClass.game.quests.globalList.First(q => q is QuestDebt)); return "ok";')
     want = lambda: str(ev(H, look))  # noqa: E731
-    ok_ = eventually(lambda: want().split("|")[:2] == ["True", "True"], timeout=20)
+    ok_ = eventually(lambda: want().split("|")[:3] == ["True", "True", str(guest)], timeout=20)
     now = want()
-    # (PAS FAIT : Loytel entre dans l'equipe comme compagnon de l'host, « a qui » reste 0 ; il devrait suivre l'invite)
-    check(f"l'invite prend la dette : elle commence dans le monde, Loytel entre dans l'equipe (dette|dans l'equipe|a qui|cassettes invite|cassettes host : {before} -> {now})", ok_)
+    check(f"l'invite prend la dette : elle commence dans le monde, Loytel entre dans l'equipe et c'est SON compagnon (dette|dans l'equipe|a qui|cassettes invite|cassettes host : {before} -> {now})", ok_)
+    check("chez l'invite aussi, Loytel est a lui",
+          eventually(lambda: ev(A, 'var l = EClass.game.cards.globalCharas.Find("loytel"); return (l != null && EClass.pc.party.members.Contains(l) && l.GetInt("emp_owner") == EClass.pc.uid).ToString();') == "True", timeout=20))
     check(f"la cassette est dans son sac, pas dans celui de l'host ({before} -> {now})",
           int(now.split("|")[3]) == int(before.split("|")[3]) + 1 and now.split("|")[4] == before.split("|")[4])
     ev(H, 'var l = EClass.game.cards.globalCharas.Find("loytel"); if (EClass.pc.party.members.Contains(l)) EClass.pc.party.RemoveMember(l); '
