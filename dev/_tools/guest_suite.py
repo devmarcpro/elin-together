@@ -1048,7 +1048,19 @@ def g36(ctx):
             x, z = cell(port, m).split(",")
             awake(port)
             pick = 'i.act is DynamicAct d && d.id == "actLeash" && i.tc != null && i.tc.uid == ' + str(m)
-            log(f"{who} : {use_held(port, item, at=(x, z), pick=pick)}")
+            done = use_held(port, item, at=(x, z), pick=pick)
+            if done.startswith("action absente"):
+                # (le chat sur une case ou pousse une plante : le clic n'y propose que la cueillette ; rouge en passe
+                # complete seulement, 2026-10-14). Il est pose a cote, sur une case vide, et le clic recommence
+                log(f"{who} : {done} ; le chat est pose sur une case vide")
+                ev(H, f'var c = {chara(H, m)}; var o = EClass._map.charas.Find(q => q.uid == {uid}); Point best = null; '
+                      'for (var dx = -1; dx <= 1 && best == null; dx++) for (var dz = -1; dz <= 1 && best == null; dz++) { '
+                      'var q = new Point(o.pos.x + dx, o.pos.z + dz); if ((dx != 0 || dz != 0) && q.IsValid && !q.cell.HasObj && !q.cell.HasBlock && !q.HasChara) best = q; } '
+                      'if (best != null) c.MoveImmediate(best); return "ok";')
+                time.sleep(2)
+                x, z = cell(port, m).split(",")
+                done = use_held(port, item, at=(x, z), pick=pick)
+            log(f"{who} : {done}")
             check(cond=eventually(lambda: bit(port) == "True", timeout=10), label=f"{who} : le chat est tenu en laisse dans son jeu ({bit(port)})")
             if key == "a":
                 check(cond=eventually(lambda: lkey(H) == 1, timeout=10), label=f"{who} : l'host a la cle emp_leash du chat a 1 ({lkey(H)})")

@@ -2932,3 +2932,7 @@ Reste de la liste : g41 de `guest_suite` (taille des rondins), le chat introuvab
 2. l'host part et nous confie sa carte avant de répondre à notre demande : la reprise effaçait notre demande, la réponse arrivait « inattendue » et était refusée. La demande vers une autre carte est gardée (`TakeOverZone`).
 3. l'host nous a déjà accordé l'autre carte puis part : il nous confiait quand même la sienne. Un joueur qui tient déjà le bail d'une autre carte ne reste plus en héritier (`ElinNetHostTravel`, liste `staying`).
 Avec 1 seul : 3 rouges sur 5 ; 1+2 : rouge à la passe 2 ; 1+2+3 : **5/5 verts**. Pas joué : le vrai cas du concert (zone de quête) ni l'escalier de l'host ; trois joueurs.
+
+2026-10-14, 8h30 : **barrière complète sur le code des départs simultanés** (6h24-8h11, code 99c9c89) : **12 séries vertes sur 14** (oct10 165 avec x2, quest 59, together 131, base 178, trade 122, reconnect 56, death 11, ride 176, recruit 45, away_recruit 45, companion 28, travel 116). Rouges, lus :
+- `sleep_suite` 123/124 : k1 « l'host n'a rien reçu de ce livre : il ne connaît pas ce sort ». Le sort que l'host reçoit en rêve est tiré au hasard : sans doute le même par hasard, pas vérifié.
+- `guest_suite` 328/334 : g36 (laisse : le chat sur une case avec une plante, le clic ne proposait que la cueillette ; le test pose maintenant le chat sur une case vide et recommence, branche pas encore passée) ; g34 (seringue de gène sans effet chez l'invité, rien consommé) : **vertes deux fois seules** (30/30), rouge seulement en fin de série, pas compris.
