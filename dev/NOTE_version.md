@@ -1,49 +1,35 @@
-# Elin Together « indépendance » 0.26.730
+# Elin Together « indépendance » 0.26.744
 
 (English below / version anglaise plus bas)
 
-Suite de la 0.26.716 : **la progression des quêtes d'histoire** (une quête ne recule plus, les journaux des joueurs se
-rattrapent, les mondes abîmés sont réparés), et **un invité peut prendre une terre**. Joué au banc de test (deux
-fenêtres sur un PC), les étapes de quêtes y sont posées à la main : aucune vraie quête n'a été jouée de bout en bout,
-rien entre deux PC. **Cette version sort avant que toutes les séries de tests aient été rejouées** sur son code. Si
-elle se passe mal, la 0.26.716 reste en ligne. Compilé pour Elin **EA 23.355**.
+Version corrective de la 0.26.730. Jouée au banc de test (deux fenêtres sur un PC), rien entre deux PC. La série
+complète des tests a tourné sur ce code exact : **12 séries vertes sur 14** ; les deux rouges ne passent qu'en fin de
+longue série et sont vertes rejouées seules (voir plus bas). Compilé pour Elin **EA 23.355**.
 **Tous les joueurs doivent installer ce même zip.**
 
 ## Corrigé (joué au banc)
 
-- **Quête de Vernis revenue en arrière, pas de dragon.** Un joueur seul sur une carte, avec un journal en retard,
-  pouvait ramener la quête de tout le monde à une étape passée ; le boss de la mine ne revenant pas, la quête ne
-  pouvait plus finir. Une quête ne recule plus. **Pour un monde déjà touché** : l'hébergeur lance la partie avec cette
-  version (la quête est remise où la mine dit que le monde en était), redescend une fois à l'étage du boss, puis
-  parle à Loytel à la base.
-- **Le journal de chaque joueur suit celui du monde.** Toutes les 20 secondes l'hébergeur dit à chacun l'étape des
-  quêtes d'histoire, celles qui sont finies et celles qui sont proposées. Un joueur en retard rattrape, même seul sur
-  une autre carte ; un joueur en avance n'est jamais ramené en arrière.
-- **Même réparation pour Nymelle et Lesimas** : Nymelle est remise à l'étape que ses étages ouverts prouvent ;
-  l'étage du boss de Lesimas, boss déjà mort, fait avancer la quête.
-- **Une terre prise pendant la partie n'était jamais connue des invités**, même prise par l'hébergeur : Vernis
-  restait « à personne, sans base » chez eux, même en y revenant. Ils la reçoivent maintenant tout de suite.
-- **Fin de la quête de Nasu faite par un invité** : elle plantait chez l'hébergeur (le sac à dos repris était le
-  sien) et les récompenses étaient perdues.
-- **Rêves de Lesimas** : deux joueurs sur la même carte faisaient avancer la quête chacun de son côté, un rêve
-  était sauté.
-- **Recette apprise en dormant par un invité** : comptée deux fois chez l'hébergeur.
-- Quête d'impôt : l'invité connaît les factures du monde. Dette de Loytel prise par un invité : la cassette est pour
-  lui. L'hébergeur ne refuse plus de commencer une quête d'histoire dont le numéro a changé.
+- **Un invité tiré chez l'hébergeur quand les deux changent de carte en même temps** (signalé par un joueur : il
+  allait au concert de sa quête et s'est retrouvé dans le donjon de l'hébergeur). Trois cas selon l'ordre des
+  messages, les trois corrigés : l'invité va où il allait. Test : l'invité part pendant que l'hébergeur part, cinq
+  fois de suite ; avant, 4 ratés sur 5 ; maintenant 5 sur 5. Pas joué : le concert lui-même, ni un escalier.
+- **Journal des quêtes** : une quête d'histoire finie puis recommencée se fermait chez l'invité (défaut de la
+  0.26.730).
+- **Dette de Loytel prise par un invité** : Loytel devient le compagnon de cet invité, plus celui de l'hébergeur.
+- **Monture d'un invité vue deux fois** : dans le jeu de l'invité, une case pouvait garder un personnage deux fois
+  (une passe de test sur trois, après un retour à la base derrière l'hébergeur). Le jeu de l'invité retire ces
+  doublons toutes les deux secondes. La cause d'origine n'est pas trouvée.
 
-## Nouveau
+## Tests encore instables (pas des défauts prouvés)
 
-- **Un invité peut prendre une terre.** Il lit l'acte de propriété sur la carte de l'hébergeur, le jeu lui pose sa
-  question, et son oui fait de la terre une base pour tout le monde. Encore refusé : seul sur une carte qu'il tient,
-  et quand la case « seul l'hébergeur gère la base » est cochée.
-- Le zip du bouton « Prepare a bug report » liste le groupe du joueur (pour trouver un compagnon compté en trop).
+- Seringue de gène sur soi et laisse, chez un invité : rouges en fin de longue série seulement, vertes rejouées
+  seules deux fois.
+- Un sort appris en rêve par l'hébergeur identique au livre de l'invité : sans doute le hasard du tirage.
 
-## Pas corrigé, signalé cette semaine
+## Toujours pas reproduit
 
-- Le nombre de compagnons affiché avec un de trop : pas reproduit. Envoyez le zip « Prepare a bug report ».
-- Un invité qui ne pouvait pas miner : rien pour chercher, dites où et quoi.
-- Un invité sur la carte du monde envoyé dans le donjon de l'hébergeur : pas reproduit, même demande.
-- Loytel, quand un invité prend la dette, rejoint l'équipe comme compagnon de l'hébergeur.
+- Le nombre de compagnons affiché avec un de trop ; un invité qui ne pouvait pas miner. Envoyez le zip du bouton
+  « Prepare a bug report » (onglet *Client Settings*) d'une partie où ça arrive.
 
 ## Limites connues
 
@@ -72,47 +58,34 @@ Chacun télécharge `ElinTogether-independance.zip` (ci-dessous), le décompress
 
 ---
 
-# Elin Together "independence" 0.26.730
+# Elin Together "independence" 0.26.744
 
-Follows 0.26.716: **story quest progression** (a quest no longer goes backwards, the players' journals catch up, damaged
-worlds are repaired), and **a guest can claim land**. Played on the test bench (two windows on one PC), where quest
-steps are set by hand: no real quest was played from end to end, nothing between two PCs. **This release ships before
-every test series was replayed** on its code. If it goes wrong, 0.26.716 stays online. Built for Elin **EA 23.355**.
+Bug-fix release of 0.26.730. Played on the test bench (two windows on one PC), nothing between two PCs. The whole test
+series ran on this exact code: **12 series green out of 14**; the two red ones only fail at the end of a long series and
+are green replayed on their own (see below). Built for Elin **EA 23.355**.
 **Every player must install this same zip.**
 
 ## Fixed (played on the bench)
 
-- **Vernis quest gone backwards, no dragon.** A player alone on a map, with a late journal, could take everyone's
-  quest back to a past step; the mine boss does not come back, so the quest could not finish. A quest no longer goes
-  backwards. **For a world already hit**: the host starts the game with this version (the quest is put back where the
-  mine says the world was), goes down once to the boss floor, then talks to Loytel at the base.
-- **Each player's journal follows the world's.** Every 20 seconds the host tells everyone the step of the story
-  quests, those that are done and those on offer. A late player catches up, even alone on another map; a player ahead
-  is never taken back.
-- **Same repair for Nymelle and Lesimas**: Nymelle is put back at the step its open floors prove; the Lesimas boss
-  floor, boss already dead, moves the quest on.
-- **Land claimed during a game never reached the guests**, even claimed by the host: Vernis stayed "nobody's, no
-  base" for them, even when coming back to it. They get it at once now.
-- **End of the Nasu quest done by a guest**: it threw on the host (the backpack taken back was the host's) and the
-  rewards were lost.
-- **Dreams of Lesimas**: two players on one map each moved the quest on, a dream was skipped.
-- **Recipe learnt while sleeping by a guest**: counted twice on the host.
-- Tax quest: the guest knows the world's bills. Loytel's debt taken by a guest: the cassette is the guest's. The host
-  no longer refuses to start a story quest whose number changed.
+- **A guest pulled to the host when both change maps at the same moment** (reported by a player: going to the concert
+  of their quest, they ended up in the host's dungeon). Three cases depending on the order of messages, all three
+  fixed: the guest goes where it was going. Test: the guest leaves while the host leaves, five times in a row; before,
+  4 failures out of 5; now 5 out of 5. Not played: the concert itself, nor stairs.
+- **Quest journal**: a story quest finished then started again was closed on the guest (defect of 0.26.730).
+- **Loytel's debt taken by a guest**: Loytel becomes that guest's companion, no longer the host's.
+- **A guest's mount seen twice**: in the guest's game a tile could hold a character twice (one test pass in three,
+  after coming back to the base behind the host). The guest's game removes such doubles every two seconds. The
+  original cause is not found.
 
-## New
+## Tests still unstable (not proven defects)
 
-- **A guest can claim land.** It reads the deed on the host's map, the game asks its question, and its yes makes the
-  land a base for everyone. Still refused: alone on a map it keeps, and when "only the host manages the base" is
-  ticked.
-- The "Prepare a bug report" zip lists the player's party (to find a companion counted in excess).
+- Gene syringe on oneself and leash, by a guest: red at the end of a long series only, green replayed alone twice.
+- A spell learnt in a dream by the host equal to the guest's book: most likely the luck of the draw.
 
-## Not fixed, reported this week
+## Still not reproduced
 
-- The ally count shown one too many: not reproduced. Send the "Prepare a bug report" zip.
-- A guest who could not mine: nothing to go on, say where and what.
-- A guest on the world map sent into the host's dungeon: not reproduced, same request.
-- Loytel, when a guest takes the debt, joins the party as the host's companion.
+- The ally count shown one too many; a guest who could not mine. Send the zip of the "Prepare a bug report" button
+  (*Client Settings* tab) from a game where it happens.
 
 ## Known limits
 
