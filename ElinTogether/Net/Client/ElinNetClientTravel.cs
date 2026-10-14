@@ -496,7 +496,13 @@ internal partial class ElinNetClient
         }
 
         Session.IsGuest = false;
-        _pendingTravel = null;
+        // our own move asked just before the host left (to another map than this one) goes on: its grant comes next,
+        // and finds us holding this map as any player away who moves on. Dropped here, the grant was "unexpected"
+        // and refused, and we stayed behind instead of going where we went (simultaneous moves, 2026-10-14)
+        if (_pendingTravel is { } going && going.Zone.uid == grant.ZoneUid) {
+            _pendingTravel = null;
+        }
+
         _handoffDeadline = 0;
         _nextCheckpoint = Time.realtimeSinceStartup + Session.Rules.TravelCheckpointSeconds;
 
@@ -743,6 +749,10 @@ internal partial class ElinNetClient
         // refused after leaving our place to join another player: back to the host
         if (_pendingGrant is not null) {
             _pendingGrant = null;
+            SendRejoin();
+        } else if (!Session.IsAway && _hostZoneAfterDeparture is not null && !_rejoining) {
+            // the host changed map while we asked to go elsewhere (we did not follow it): we stay with it, on its map
+            _hostZoneAfterDeparture = null;
             SendRejoin();
         }
     }

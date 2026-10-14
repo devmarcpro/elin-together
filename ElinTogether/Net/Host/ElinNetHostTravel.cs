@@ -166,7 +166,11 @@ internal partial class ElinNetHost
         // only those standing here: a player still loading this map (it was called back for this very move,
         // or just joined) comes along as before
         // the one whose quest it is keeps its zone, before anyone else
-        var staying = Socket.Peers.Where(p => ActiveRemoteCharas.ContainsKey(p.Id) && _settled.Contains(p.Id))
+        // not one that was just granted another map: it is leaving too, its own way (its answer comes after this
+        // move, see OnZoneLeaseAck). Handed this map, it stayed behind on it instead of going where it went
+        // (simultaneous moves, 2026-10-14)
+        var staying = Socket.Peers.Where(p => ActiveRemoteCharas.ContainsKey(p.Id) && _settled.Contains(p.Id) &&
+                                              !(_leases.TryGetValue(p.Id, out var held) && held.Keys.Any(uid => uid != zone.uid)))
             .OrderByDescending(p => p.Id == keeper).ToList();
         _settled.Clear();
         if (staying.Count == 0) {

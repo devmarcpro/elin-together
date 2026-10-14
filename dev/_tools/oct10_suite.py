@@ -1158,6 +1158,30 @@ def v5():
           'foreach (var q in EClass.game.quests.list.Where(x => x is QuestDebt).ToList()) EClass.game.quests.Remove(q); return "ok";')
 
 
+def x2():
+    """Rapport de joueur (2026-10-14) : l'invite change de carte au moment ou l'host change de carte aussi, et il se
+    retrouvait chez l'host (le donjon de l'host au lieu du concert de sa quete). Ici : l'invite demande Vernis et l'host
+    part a Nymelle dans la meme seconde, cinq fois ; l'invite doit arriver a Vernis, seul. Les deux departs sont des
+    MoveZone par eval, l'un juste apres l'autre (pas de marche jusqu'au bord)."""
+    from travel_suite import VERNIS, both_joined, client_settled, move, wait, zone_uid  # noqa: PLC0415
+    nymelle = int(ev(H, 'return EClass.game.spatials.Find("nymelle").uid.ToString();'))
+    for i in range(5):
+        ev(A, f'EClass.pc.MoveZone(EClass.game.spatials.Find({VERNIS})); return "ok";')
+        if i % 2:
+            time.sleep(0.15)
+        ev(H, f'EClass.pc.MoveZone(EClass.game.spatials.Find({nymelle})); return "ok";')
+        arrived = eventually(lambda: client_settled(A, VERNIS, True)(), timeout=90)
+        wait(lambda: zone_uid(H) == nymelle, "l'host a Nymelle", timeout=180)
+        where = state(A)
+        check(f"passe {i + 1} : l'invite est arrive ou il allait, seul a Vernis (lui : {(where.get('zone') or {}).get('name')}, "
+              f"seul : {where.get('awayZone')}, host a Nymelle)", arrived)
+        move(A, HOME)
+        move(H, HOME)
+        wait(lambda: zone_uid(H) == HOME, "l'host a la base", timeout=180)
+        both_joined(H, A, HOME)
+        time.sleep(3)
+
+
 def main():
     start = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
     for name, port in (("host", 27551), ("invite", 27552)):
@@ -1167,7 +1191,7 @@ def main():
             continue
         check(f"{name} : pas de deuxieme ajout, lien remis ({r})", r == "0/0/True")
     check("au moins un jeu avait un autre membre dans l'equipe", RESULTS)
-    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, s3, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, z1, v1, v2, v3, v5, t1, q1, f2, v4)  # v1 avant t1 : t1 maudit l'invite de test, qui en meurt et ne voyage plus
+    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, s3, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, z1, v1, v2, v3, v5, x2, t1, q1, f2, v4)  # v1 avant t1 : t1 maudit l'invite de test, qui en meurt et ne voyage plus
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(',')]
     for step in steps:

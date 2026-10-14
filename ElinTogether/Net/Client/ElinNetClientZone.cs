@@ -122,7 +122,10 @@ internal partial class ElinNetClient
             return;
         }
 
-        if (IsAwaitingDeparture && !IsZoneSession) {
+        // (also when our own move is only asked: the host changing map at that moment pulled us along to its new
+        // map instead of where we were going, a concert of our quest given up for the host's next floor, reported
+        // 2026-10-14. Asked and refused, we go to it then, see OnZoneLeaseDenied)
+        if (!IsZoneSession && !Session.IsAway && (IsAwaitingDeparture || _pendingTravel is not null)) {
             // we are leaving its map (it left, we stay behind): do not follow it
             EmpLog.Debug("Host moved to {ZoneFullName} while we stay behind", response.ZoneFullName);
             _hostZoneAfterDeparture = response.ZoneUid;
