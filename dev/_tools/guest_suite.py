@@ -1339,7 +1339,13 @@ def g41(ctx):
         check(f"l'arbre est abattu chez l'host en {rounds} recolte(s)", not there(H))
         check(cond=eventually(lambda: not there(port), timeout=10), label="et chez l'invite")
         # il taille des rondins, a la chaine (la tache boucle d'elle-meme jusqu'au dernier rondin)
-        lx, lz = (int(v) for v in ev(H, f'var p = {chara(H, uid)}.pos.GetNearestPoint(false, false, false, true); return p.x + "," + p.z;').split(","))
+        # (une case voisine sans rien dessus : posees sur une herbe ou une plante, le clic n'y proposait que la recolte
+        # de la plante, « action absente, proposees : TaskHarvest », rouge en passe complete)
+        lx, lz = (int(v) for v in ev(H, f'var g = {chara(H, uid)}; Point best = null; '
+                                        'for (var dx = -1; dx <= 1 && best == null; dx++) for (var dz = -1; dz <= 1 && best == null; dz++) { '
+                                        'if (dx == 0 && dz == 0) continue; var q = new Point(g.pos.x + dx, g.pos.z + dz); '
+                                        'if (q.IsValid && !q.cell.HasObj && !q.cell.HasBlock && !q.HasChara && !EClass._map.things.Any(t => t.pos.Equals(q))) best = q; } '
+                                        'var p = best ?? g.pos.GetNearestPoint(false, false, false, true); return p.x + "," + p.z;').split(","))
         logs = int(ev(H, f'var t = ThingGen.Create("log"); t.SetNum(3); EClass._zone.AddCard(t, new Point({lx}, {lz})); return t.uid.ToString();'))
         left = lambda p: ev(p, f'var t = EClass._map.things.Find(m => m.uid == {logs}); return t == null ? "0" : t.Num.ToString();')  # noqa: E731
         eventually(lambda: left(port) == "3", timeout=10)

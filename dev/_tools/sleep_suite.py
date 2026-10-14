@@ -153,9 +153,12 @@ def p2(ctx):
     lit. Rouge avant la correction : le chat de l'invite est sur le lit de l'host, rien ne vient a l'invite"""
     d = ev(H, f'var h = EClass.pc; var g = EClass._map.charas.Find(x => x.uid == {ctx["a"]}); '
               f'var ch = EClass._map.charas.Find(x => x.uid == {ctx["hc"]}); var cg = EClass._map.charas.Find(x => x.uid == {ctx["ac"]}); '
-              'if (g == null || ch == null || cg == null) return "-1,-1,-1,-1"; '
+              'if (g == null || ch == null || cg == null) return "-1,-1,-1,-1," + (g == null ? "invite" : "") + (ch == null ? " chat-host" : "") + (cg == null ? " chat-invite" : ""); '
               'return ch.Dist(h) + "," + ch.Dist(g) + "," + cg.Dist(h) + "," + cg.Dist(g);')
-    ch_h, ch_g, cg_h, cg_g = (int(x) for x in d.split(","))
+    # (absent de la carte de l'host : qui, dit dans le journal ; rouge deux fois en passe complete, jamais seul)
+    ch_h, ch_g, cg_h, cg_g = (int(x) for x in d.split(",")[:4])
+    if len(d.split(",")) > 4:
+        log(f"absent de la carte de l'host : {d.split(',')[4]}")
     log(f"chat de l'host : {ch_h} du lit de l'host, {ch_g} de celui de l'invite ; chat de l'invite : {cg_h} / {cg_g}")
     check("les deux chats et l'invite sont sur la carte de l'host", min(ch_h, ch_g, cg_h, cg_g) >= 0)
     check(f"l'host dort : son chat est venu a cote de lui ({ch_h} case(s))", 0 <= ch_h <= 1)

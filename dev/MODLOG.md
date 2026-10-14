@@ -2924,3 +2924,5 @@ Relancées seules pour mesurer : ride, sleep, guest.
 
 2026-10-14, 3h10 : **Loytel est le compagnon du joueur qui prend la dette** (restait à l'host). Après `QuestDebt.OnStart` joué pour un invité, l'host note le propriétaire et le dit aux autres jeux (`CharaMakeAllyDelta` JoinOnly). `oct10_suite v5` rouge hier sur ce point (« à qui : 0 »), vert : 18/18 avec v3 (Loytel dans l'équipe, à l'invité, dans les deux jeux ; cassette dans son sac).
 Reste de la liste : g41 de `guest_suite` (taille des rondins), le chat introuvable de `sleep_suite` P2 dans la passe complète seulement, la cause de la double entrée de case (filet posé), et les trois rapports de l'utilisateur sans journaux.
+
+2026-10-14, 5h : g41 (l'invité taille les rondins) : les rondins du test étaient posés sur une case avec une plante, le clic n'y proposait que la récolte. Posés sur une case vide : `guest_suite --only g41` 12/12. P2 de `sleep_suite` dit maintenant qui manque sur la carte de l'host (rouge seulement en passe complète). Barrière complète relancée ; à la fin le build publié est remis dans le jeu.
