@@ -1182,6 +1182,46 @@ def x2():
         time.sleep(3)
 
 
+def x3():
+    """Rapport de l'utilisateur (2026-10-12) : « un moment un invite ne pouvait pas miner ». Un mur pose a cote du
+    joueur, mine par le clic du jeu (plan d'actions, TaskMine), en ville (Vernis : le jeu demande « commettre un
+    crime ? », on repond oui) : l'invite et l'host ensemble (l'host simule), puis l'invite seul. Pas reproduit : vert
+    le 2026-10-14 ; le mur est pose par eval (SetBlock)."""
+    import guest_suite as g  # noqa: PLC0415
+    from base_suite import click_yes, dialog_open  # noqa: PLC0415
+    from travel_suite import VERNIS, both_joined, client_settled, move, wait  # noqa: PLC0415
+    ctx = {"a": (A, state(A)["pc"]["uid"]), "h": (H, state(H)["pc"]["uid"])}
+
+    def trial(who, port, zone_game, key):
+        tool = int(ev(port, 'var t = EClass.pc.things.Find(x => x.id == "pickaxe"); return t == null ? "0" : t.uid.ToString();')) or g.give(ctx, key, "pickaxe")
+        spot = ev(zone_game, f'var c = EClass._map.charas.Find(x => x.uid == {ctx[key][1]}); var p = new Point(c.pos.x + 1, c.pos.z); '
+                             'if (p.cell.HasObj) p.cell.obj = 0; EClass._map.SetBlock(p.x, p.z, 45, 1); return p.x + "," + p.z;')
+        time.sleep(3)
+        x, z = spot.split(",")
+        there = lambda q: ev(q, f'return new Point({x}, {z}).cell.HasBlock.ToString();')  # noqa: E731
+        r = g.use_held(port, tool, at=(x, z), pick='i.act is TaskMine')
+        time.sleep(2)
+        if dialog_open(port):
+            click_yes(port)
+        check(f"{who} mine un mur a Vernis ({r})", g.eventually(lambda: there(zone_game) == "False" and there(port) == "False", timeout=40))
+
+    host_goto(H, A, VERNIS)
+    time.sleep(4)
+    try:
+        trial("l'invite, avec l'host", A, H, "a")
+        trial("l'host, avec l'invite", H, H, "h")
+    finally:
+        host_goto(H, A, HOME)
+    move(A, VERNIS)
+    try:
+        wait(client_settled(A, VERNIS, True), "l'invite seul a Vernis", timeout=180)
+        time.sleep(3)
+        trial("l'invite seul", A, A, "a")
+    finally:
+        move(A, HOME)
+        both_joined(H, A, HOME)
+
+
 def main():
     start = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
     for name, port in (("host", 27551), ("invite", 27552)):
@@ -1191,7 +1231,7 @@ def main():
             continue
         check(f"{name} : pas de deuxieme ajout, lien remis ({r})", r == "0/0/True")
     check("au moins un jeu avait un autre membre dans l'equipe", RESULTS)
-    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, s3, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, z1, v1, v2, v3, v5, x2, t1, q1, f2, v4)  # v1 avant t1 : t1 maudit l'invite de test, qui en meurt et ne voyage plus
+    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, s3, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, z1, v1, v2, v3, v5, x2, x3, t1, q1, f2, v4)  # v1 avant t1 : t1 maudit l'invite de test, qui en meurt et ne voyage plus
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(',')]
     for step in steps:
