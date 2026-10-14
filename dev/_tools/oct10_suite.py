@@ -1236,8 +1236,12 @@ def x4():
         time.sleep(2)
         m = g.give(ctx, key, "medal", num=5)
         time.sleep(3)
-        kept = int(ev(port, f'var t = EClass.pc.things.List(x => x.uid == {m}, true).First(); var rest = t.Split(t.Num - 2); '
-                            '(t.parent as Card).AddThing(rest, false); EClass.pc.DropThing(t); return rest.uid.ToString();'))
+        # (dans la fonction Process du menu, que le mod reconnait : SplitMenuPatch.IsSplitting, pose ici par reflexion)
+        menu = ('var sm = System.AppDomain.CurrentDomain.GetAssemblies().First(a => a.GetName().Name == "ElinTogether").GetType("ElinTogether.Patches.SplitMenuPatch")'
+                '.GetProperty("IsSplitting", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic).GetSetMethod(true); ')
+        kept = int(ev(port, menu + f'var t = EClass.pc.things.List(x => x.uid == {m}, true).First(); sm.Invoke(null, new object[] {{ true }}); '
+                            'Thing rest; try { rest = t.Split(t.Num - 2); (t.parent as Card).AddThing(rest, false); } finally { sm.Invoke(null, new object[] { false }); } '
+                            'EClass.pc.DropThing(t); return rest.uid.ToString();'))
         bag = lambda q: ev(q, f'var c = EClass._map.charas.Find(x => x.uid == {ctx[key][1]}); return c.things.List(x => x.id == "medal", true).Sum(x => x.Num).ToString();')  # noqa: E731
         check(f"{who} lache 2 medailles d'une pile de 5 : 2 au sol et 3 au sac, dans les deux jeux (sol {floor(H, [m])} / {floor(A, [m])}, sac {bag(H)} / {bag(port)})",
               eventually(lambda: floor(H, [m]) == "2" and floor(A, [m]) == "2" and bag(H) == "3" and bag(port) == "3", timeout=15))
