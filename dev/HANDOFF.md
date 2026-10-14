@@ -1,5 +1,11 @@
 # Passation — ElinTogether « indépendance »
 
+## État au 14 octobre 2026, 22h30 (à lire en premier)
+
+- **Publiée : 0.26.751** (commit `bd31d37`, Elin EA 23.356). Depuis la 0.26.730 : départs simultanés (x2), journal des quêtes rouvertes, Loytel compagnon de l'invité, filet des cases doublées (`ClientCellSweep`), partage de pile par l'host (`CardSplitStackDelta` 854, `SplitMenuPatch`), tente à la clé (`TentZoneDelta` 855), suppression de personnage (`DeleteCharacter`, case host). Détail : fin de `MODLOG.md`.
+- **Prochains numéros** : delta 856. Barrière : 11 à 12 séries vertes sur 14 selon les passes ; rouges connus, verts seuls (voir MODLOG du 14).
+- **À reprendre** : voir la dernière entrée de `MODLOG.md`.
+
 ## État au 13 octobre 2026, 17h30 (à lire en premier ; tout ce qui suit dans ce fichier est plus ancien)
 
 - **Publiée : 0.26.730** (13 octobre 15h25, commit `7a51494`, ordre de l'utilisateur, **sans barrière verte**), Elin EA 23.355, zip Windows seul. Détail : fin de `MODLOG.md`, entrées du 2026-10-13.
