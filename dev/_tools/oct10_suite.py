@@ -1253,6 +1253,85 @@ def x4():
         time.sleep(2)
 
 
+def x5():
+    """Rapport de joueur (2026-10-14) : la cle a molette d'un invite sur une tente (electricite, sol fertile) marche
+    tout de suite, puis l'effet disparait apres un moment. La cle ameliore la zone de l'interieur de la tente, que rien
+    ne disait aux autres jeux. Ici : l'invite ameliore une tente sur la carte de l'host ; puis, seul a Vernis, il
+    plante une tente, y entre et en ressort (la zone devient celle du monde), l'ameliore, rentre a la base : l'host a
+    l'electricite de cette tente. La tente est posee et sa zone creee par eval ; la cle est le vrai clic."""
+    import guest_suite as g  # noqa: PLC0415
+    from travel_suite import VERNIS, both_joined, client_settled, move, wait, zone_uid  # noqa: PLC0415
+    ctx = {"a": (A, state(A)["pc"]["uid"]), "h": (H, state(H)["pc"]["uid"])}
+    elec = lambda port, z: ev(port, f'var z = EClass.game.spatials.Find({z}); return z == null ? "inconnue" : z.elements.Base(2201).ToString();')  # noqa: E731
+
+    def pitch(sim):
+        r = ev(sim, f'var c = EClass._map.charas.Find(x => x.uid == {ctx["a"][1]}); var p = c.pos.GetNearestPoint(false, false, false, true); '
+                    'var t = ThingGen.Create("tent1"); EClass._zone.AddCard(t, p); t.SetPlaceState(PlaceState.installed); '
+                    'var z = (t.trait as TraitTent).CreateZone(EClass._zone, 0); t.SetPlaceState(PlaceState.installed); '
+                    'return t.uid + "," + z.uid + "," + p.x + "," + p.z;')
+        return [int(v) for v in r.split(",")]
+
+    def wrench(xy):
+        ev(A, 'foreach (var l in EClass.ui.layers.ToList()) l.Close(); return "ok";')
+        w = int(ev(A, 'var t = EClass.pc.things.Find(x => x.id == "wrench_tent_elec"); return t == null ? "0" : t.uid.ToString();'))
+        r = g.use_held(A, w, at=xy, pick='true')
+        time.sleep(4)
+        ev(A, 'foreach (var l in EClass.ui.layers.ToList()) l.Close(); return "ok";')
+        return r
+
+    g.give(ctx, "a", "wrench_tent_elec", num=2)
+    time.sleep(2)
+    _, zone, x, z = pitch(H)
+    time.sleep(3)
+    r = wrench((x, z))
+    check(f"sur la carte de l'host, la cle de l'invite ({r}) : electricite 2 chez les deux ({elec(H, zone)} / {elec(A, zone)})",
+          eventually(lambda: elec(H, zone) == "2" and elec(A, zone) == "2", timeout=15))
+    try:
+        move(A, VERNIS)
+        wait(client_settled(A, VERNIS, True), "l'invite seul a Vernis", timeout=180)
+        time.sleep(3)
+        tent, zone2, x2, z2 = pitch(A)
+        # il entre dans sa tente et en ressort, comme un joueur avant de l'ameliorer
+        ev(A, f'var t = EClass._map.things.Find(q => q.uid == {tent}); (t.trait as TraitNewZone).MoveZone(); return "ok";')
+        time.sleep(15)
+        inside = str(ev(A, 'return EClass._zone.id + "#" + EClass._zone.uid;'))
+        zone2 = int(ev(A, f'return EClass._zone.uid.ToString();')) if "tent" in inside else zone2
+        move(A, VERNIS)
+        wait(client_settled(A, VERNIS, True), "l'invite ressorti a Vernis", timeout=180)
+        time.sleep(3)
+        r = wrench((x2, z2))
+        check(f"seul a Vernis, la cle ({r}, tente {inside}) : electricite 2 dans son jeu ({elec(A, zone2)})", elec(A, zone2) == "2")
+    finally:
+        move(A, HOME)
+        both_joined(H, A, HOME)
+    check(f"rentre a la base : l'host a l'electricite de cette tente ({elec(H, zone2)})", eventually(lambda: elec(H, zone2) == "2", timeout=20))
+
+
+def x6():
+    """Demande de joueur (2026-10-14) : supprimer un des personnages qu'un invite a faits dans un monde. Cote host : un
+    deuxieme personnage de l'invite (fait par eval, inscrit a son nom), avec un compagnon ; la suppression (la fonction
+    que la reponse de l'invite appelle, par reflexion) le retire de ses personnages et du monde, le compagnon reste
+    sans maitre. Pas joue : les deux boites cote invite (liste puis « vraiment ? ») ni le message reseau."""
+    f = 'System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public'
+    host_t = 'var ht = System.AppDomain.CurrentDomain.GetAssemblies().First(a => a.GetName().Name == "ElinTogether").GetType("ElinTogether.Net.ElinNetHost"); '
+    guest = state(A)["pc"]["uid"]
+    r = str(ev(H, host_t + f'var bf = {f}; '
+                  'var saved = (System.Collections.Generic.Dictionary<ulong, int>)ht.GetProperty("SavedRemoteCharas", bf).GetValue(null); '
+                  'var rosters = (System.Collections.Generic.Dictionary<ulong, System.Collections.Generic.List<int>>)ht.GetProperty("PlayerRosters", bf).GetValue(null); '
+                  f'var user = saved.First(kv => kv.Value == {guest}).Key; '
+                  'var alt = CharaGen.Create("chara"); alt.SetGlobal(); if (!rosters.ContainsKey(user)) rosters[user] = new System.Collections.Generic.List<int>(); rosters[user].Add(alt.uid); '
+                  'var pet = CharaGen.Create("dog"); EClass._zone.AddCard(pet, EClass.pc.pos.GetNearestPoint(false, false)); pet.MakeAlly(false); pet.SetInt("emp_owner", alt.uid); '
+                  'var host = ElinTogether.Net.NetSession.Instance.Connection; '
+                  'ht.GetMethod("DeleteCharacter", bf).Invoke(host, new object[] { user, alt }); '
+                  'return rosters[user].Contains(alt.uid) + "|" + alt.isDestroyed + "|" + (EClass.game.cards.globalCharas.Find(alt.uid) != null) + "|" + pet.GetInt("emp_owner") + "|" + EClass.pc.party.members.Contains(pet) + "|" + saved[user] + "|" + pet.uid;'))
+    inroster, destroyed, isglobal, owner, inparty, played, pet = r.split("|")
+    check(f"le personnage supprime n'est plus a l'invite ni dans le monde ({inroster}, detruit {destroyed}, global {isglobal})",
+          inroster == "False" and destroyed == "True" and isglobal == "False")
+    check(f"son compagnon reste dans le monde, sans maitre, hors de l'equipe (a qui {owner}, equipe {inparty})", owner == "0" and inparty == "False")
+    check(f"le personnage que l'invite joue n'est pas touche ({played} = {guest})", played == str(guest))
+    ev(H, f'var c = EClass._map.charas.Find(x => x.uid == {pet}); if (c != null) c.Destroy(); return "ok";')
+
+
 def main():
     start = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
     for name, port in (("host", 27551), ("invite", 27552)):
@@ -1262,7 +1341,7 @@ def main():
             continue
         check(f"{name} : pas de deuxieme ajout, lien remis ({r})", r == "0/0/True")
     check("au moins un jeu avait un autre membre dans l'equipe", RESULTS)
-    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, s3, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, z1, v1, v2, v3, v5, x2, x3, x4, t1, q1, f2, v4)  # v1 avant t1 : t1 maudit l'invite de test, qui en meurt et ne voyage plus
+    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, s3, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, z1, v1, v2, v3, v5, x2, x3, x4, x5, x6, t1, q1, f2, v4)  # v1 avant t1 : t1 maudit l'invite de test, qui en meurt et ne voyage plus
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(',')]
     for step in steps:

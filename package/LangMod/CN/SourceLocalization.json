@@ -325,5 +325,10 @@
     "LangGeneral.emp_ui_sv_bills.text": "未缴税单：计数 {0}，实际存在 {1}（修复）",
     "LangGeneral.emp_ui_sv_bills_desc.text": "当计数高于实际存在的税单时（旧版本的缺陷），将其降到实际数量。不会增加。",
     "LangGeneral.emp_ui_sv_bills_done.text": "已从计数中去掉 {0} 张无法缴纳的税单。",
-    "LangGeneral.emp_ui_sv_bills_none.text": "计数与实际税单一致。"
+    "LangGeneral.emp_ui_sv_bills_none.text": "计数与实际税单一致。",
+    "LangGeneral.emp_ui_chara_delete.text": "删除角色",
+    "LangGeneral.emp_ui_chara_delete_confirm.text": "删除 #1？其携带的物品也会一起消失，同伴留在这个世界。",
+    "LangGeneral.emp_ui_chara_deleted.text": "角色已删除。",
+    "LangGeneral.emp_ui_sv_cfg_delete_chara.text": "玩家可以删除自己的角色",
+    "LangGeneral.emp_ui_sv_desc_delete_chara.text": "在角色选择列表中删除（确认两次）。携带的物品一起消失，同伴留在世界中。"
 }

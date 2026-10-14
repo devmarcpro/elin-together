@@ -23,6 +23,9 @@ public class SessionCharaSelectRequest
     /// </summary>
     [Key(2)]
     public string? Notice { get; init; }
+
+    [Key(3)]
+    public bool AllowDelete { get; init; }
 }
 
 [MessagePackObject]
@@ -49,6 +52,12 @@ public class SessionCharaSelectResponse
     /// </summary>
     [Key(0)]
     public required int Uid { get; init; }
+
+    /// <summary>
+    ///     Not to play that character: to delete it (asked twice on the player's side)
+    /// </summary>
+    [Key(1)]
+    public bool Delete { get; init; }
 }
 
 /// <summary>

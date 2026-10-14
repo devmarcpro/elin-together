@@ -115,6 +115,7 @@ internal partial class ElinNetHost
             // the player picks who to play, brings someone from its own saves, or makes someone new
             peer.Send(new SessionCharaSelectRequest {
                 AllowImport = import,
+                AllowDelete = EmpConfig.Server.DeleteCharacter.Value,
                 Notice = notice,
                 Charas = roster
                     .Select(c => new SessionCharaEntry {
@@ -182,8 +183,42 @@ internal partial class ElinNetHost
             return;
         }
 
+        if (response.Delete) {
+            if (EmpConfig.Server.DeleteCharacter.Value) {
+                DeleteCharacter(peer.User, chara);
+            }
+
+            PreparePlayerJoin(peer, EmpConfig.Server.DeleteCharacter.Value ? "emp_ui_chara_deleted" : null);
+            return;
+        }
+
         SavedRemoteCharas[peer.User] = chara.uid;
         SendSaveProbe(chara, peer);
+    }
+
+    /// <summary>
+    ///     A player deletes one of its characters in this world, not played right now (player request,
+    ///     2026-10-14: a guest who made several had no way to clear them). It goes with what it carries; its
+    ///     companions stay in the world, following nobody
+    /// </summary>
+    private void DeleteCharacter(ulong user, Chara chara)
+    {
+        if (PlayerRosters.TryGetValue(user, out var roster)) {
+            roster.Remove(chara.uid);
+        }
+
+        if (SavedRemoteCharas.TryGetValue(user, out var played) && played == chara.uid) {
+            SavedRemoteCharas.Remove(user);
+        }
+
+        PlayerStandings.Remove(chara.uid);
+        foreach (var companion in game.cards.globalCharas.Values.Where(c => c is not null && c.CompanionOwnerUid == chara.uid).ToList()) {
+            companion.SetCompanionOwner(null);
+            companion.party?.RemoveMember(companion);
+        }
+
+        EmpLog.Information("Player character {Uid} ({Name}, Lv {Level}) deleted by its player", chara.uid, chara.Name, chara.LV);
+        chara.Destroy();
     }
 
     /// <summary>

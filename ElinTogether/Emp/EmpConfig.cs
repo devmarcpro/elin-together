@@ -383,6 +383,14 @@ internal partial class EmpConfig
             "Not its companions, base, quests or bank. Its save is only read, never changed\n" +
             "加入的玩家可以带来自己存档中的角色：角色本身、装备、背包、金币、声望和业力；不包括同伴、据点、任务和银行。存档只被读取，不会被修改");
 
+        Server.DeleteCharacter = config.Bind(
+            "Server",
+            "DeleteCharacter",
+            true,
+            "In the list of its characters, a joining player can delete one of them, with what it carries (asked twice)\n" +
+            "Its companions stay in the world and no longer follow anyone\n" +
+            "加入的玩家可以在角色列表中删除自己的某个角色及其携带的物品（会确认两次），其同伴留在世界中");
+
         Server.TravelCheckpointSeconds = config.Bind(
             "Server",
             "TravelCheckpointSeconds",
@@ -484,6 +492,8 @@ internal partial class EmpConfig
         internal static ConfigEntry<bool> TimeJumpsTogether { get; set; } = null!;
         internal static ConfigEntry<bool> DumpSparesBelt { get; set; } = null!;
         internal static ConfigEntry<bool> ImportCharacter { get; set; } = null!;
+
+        internal static ConfigEntry<bool> DeleteCharacter { get; set; } = null!;
         internal static ConfigEntry<bool> PlayerTrade { get; set; } = null!;
         internal static ConfigEntry<bool> PlayerCombatTime { get; set; } = null!;
         internal static ConfigEntry<bool> PlayerClock { get; set; } = null!;

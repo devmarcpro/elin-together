@@ -37,6 +37,12 @@ internal partial class ElinNetClient
 
         labels.Add("emp_ui_chara_new".lang());
 
+        // then deleting one of them, when the host allows it
+        var delete = request.AllowDelete && request.Charas.Count > 0 ? labels.Count : -1;
+        if (delete >= 0) {
+            labels.Add("emp_ui_chara_delete".lang());
+        }
+
         var title = "emp_ui_chara_pick".lang();
         if (!notice.IsEmpty()) {
             title = notice.lang() + " " + title;
@@ -47,6 +53,11 @@ internal partial class ElinNetClient
             chosen = true;
             if (index == import) {
                 ShowSaveChoice(request);
+                return true;
+            }
+
+            if (index == delete) {
+                ShowDeleteChoice(request);
                 return true;
             }
 
@@ -65,6 +76,30 @@ internal partial class ElinNetClient
     /// <summary>
     ///     Which of its own saves to bring the character of. Closing the list goes back to the first choice
     /// </summary>
+    /// <summary>
+    ///     Which character to delete, then "really?": back to the list for anything but yes
+    /// </summary>
+    private void ShowDeleteChoice(SessionCharaSelectRequest request)
+    {
+        var chosen = false;
+        var dialog = Dialog.List("emp_ui_chara_delete".lang(), request.Charas, c => c.Label, (index, _) => {
+            chosen = true;
+            var target = request.Charas[index];
+            Dialog.YesNo("emp_ui_chara_delete_confirm".lang(target.Label), () => {
+                Host.Send(new SessionCharaSelectResponse {
+                    Uid = target.Uid,
+                    Delete = true,
+                });
+            }, () => ShowCharaChoice(request, request.Notice));
+            return true;
+        });
+        dialog.SetOnKill(() => {
+            if (!chosen) {
+                ShowCharaChoice(request, request.Notice);
+            }
+        });
+    }
+
     private void ShowSaveChoice(SessionCharaSelectRequest request)
     {
         var saves = CharaImport.Saves();
