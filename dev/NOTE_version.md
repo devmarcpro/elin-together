@@ -1,35 +1,33 @@
-# Elin Together « indépendance » 0.26.744
+# Elin Together « indépendance » 0.26.751
 
 (English below / version anglaise plus bas)
 
-Version corrective de la 0.26.730. Jouée au banc de test (deux fenêtres sur un PC), rien entre deux PC. La série
-complète des tests a tourné sur ce code exact : **12 séries vertes sur 14** ; les deux rouges ne passent qu'en fin de
-longue série et sont vertes rejouées seules (voir plus bas). Compilé pour Elin **EA 23.356** (mise à jour de Steam du 13 octobre ; les tests ont tourné sur cette version).
+Suite de la 0.26.744. Jouée au banc de test (deux fenêtres sur un PC), rien entre deux PC. La série complète des tests
+a tourné sur ce code : **11 séries vertes sur 14** ; deux des trois rouges sont vertes rejouées seules sur un monde
+neuf, la troisième est un réglage de test (voir plus bas). Compilé pour Elin **EA 23.356**.
 **Tous les joueurs doivent installer ce même zip.**
 
 ## Corrigé (joué au banc)
 
-- **Un invité tiré chez l'hébergeur quand les deux changent de carte en même temps** (signalé par un joueur : il
-  allait au concert de sa quête et s'est retrouvé dans le donjon de l'hébergeur). Trois cas selon l'ordre des
-  messages, les trois corrigés : l'invité va où il allait. Test : l'invité part pendant que l'hébergeur part, cinq
-  fois de suite ; avant, 4 ratés sur 5 ; maintenant 5 sur 5. Pas joué : le concert lui-même, ni un escalier.
-- **Journal des quêtes** : une quête d'histoire finie puis recommencée se fermait chez l'invité (défaut de la
-  0.26.730).
-- **Dette de Loytel prise par un invité** : Loytel devient le compagnon de cet invité, plus celui de l'hébergeur.
-- **Monture d'un invité vue deux fois** : dans le jeu de l'invité, une case pouvait garder un personnage deux fois
-  (une passe de test sur trois, après un retour à la base derrière l'hébergeur). Le jeu de l'invité retire ces
-  doublons toutes les deux secondes. La cause d'origine n'est pas trouvée.
+- **Médailles (et tout objet en pile) qui disparaissent quand un invité en lâche une partie.** Le menu « partager »
+  du jeu ne marchait pas chez un invité : toute la pile tombait, et il gardait dans son sac une copie fantôme du
+  reste, perdue ensuite. L'hébergeur fait maintenant le partage : 2 lâchées sur 5, il en reste 3, pareil partout.
+- **Tente améliorée à la clé par un invité** (électricité, sol fertile, fond marin) : l'amélioration ne vivait que
+  dans un jeu et se perdait au bout d'un moment. Elle est maintenant connue de tous les jeux, même faite seul sur
+  sa carte. Une tente déjà touchée : repasser la clé une fois.
 
-## Tests encore instables (pas des défauts prouvés)
+## Nouveau
 
-- Seringue de gène sur soi et laisse, chez un invité : rouges en fin de longue série seulement, vertes rejouées
-  seules deux fois.
-- Un sort appris en rêve par l'hébergeur identique au livre de l'invité : sans doute le hasard du tirage.
+- **Un invité peut supprimer un de ses personnages** : dans la liste des personnages à la connexion, « Supprimer un
+  personnage », puis une confirmation. Le personnage disparaît avec ce qu'il porte ; ses compagnons restent dans le
+  monde. Case de l'hébergeur « Les joueurs peuvent supprimer leurs personnages » (cochée). La liste n'apparaît que
+  si « demander le personnage » est cochée, ou si l'invité a plusieurs personnages sans en avoir joué un en dernier.
+  Pas joué : les deux fenêtres côté invité (testé côté hébergeur).
 
-## Toujours pas reproduit
+## Tests encore instables
 
-- Le nombre de compagnons affiché avec un de trop ; un invité qui ne pouvait pas miner. Envoyez le zip du bouton
-  « Prepare a bug report » (onglet *Client Settings*) d'une partie où ça arrive.
+- En toute fin de longue série seulement : l'amélioration de tente faite seul, et une quête à deux où l'invité doit
+  tuer le dernier monstre. Les deux sont vertes rejouées seules sur un monde neuf.
 
 ## Limites connues
 
@@ -58,34 +56,33 @@ Chacun télécharge `ElinTogether-independance.zip` (ci-dessous), le décompress
 
 ---
 
-# Elin Together "independence" 0.26.744
+# Elin Together "independence" 0.26.751
 
-Bug-fix release of 0.26.730. Played on the test bench (two windows on one PC), nothing between two PCs. The whole test
-series ran on this exact code: **12 series green out of 14**; the two red ones only fail at the end of a long series and
-are green replayed on their own (see below). Built for Elin **EA 23.356** (Steam update of 13 October; the tests ran on this version).
+Follows 0.26.744. Played on the test bench (two windows on one PC), nothing between two PCs. The whole test series ran
+on this code: **11 series green out of 14**; two of the three red ones are green replayed alone on a fresh world, the
+third is a test setting (see below). Built for Elin **EA 23.356**.
 **Every player must install this same zip.**
 
 ## Fixed (played on the bench)
 
-- **A guest pulled to the host when both change maps at the same moment** (reported by a player: going to the concert
-  of their quest, they ended up in the host's dungeon). Three cases depending on the order of messages, all three
-  fixed: the guest goes where it was going. Test: the guest leaves while the host leaves, five times in a row; before,
-  4 failures out of 5; now 5 out of 5. Not played: the concert itself, nor stairs.
-- **Quest journal**: a story quest finished then started again was closed on the guest (defect of 0.26.730).
-- **Loytel's debt taken by a guest**: Loytel becomes that guest's companion, no longer the host's.
-- **A guest's mount seen twice**: in the guest's game a tile could hold a character twice (one test pass in three,
-  after coming back to the base behind the host). The guest's game removes such doubles every two seconds. The
-  original cause is not found.
+- **Medals (and any stacked item) vanishing when a guest drops part of a stack.** The game's split menu did not work
+  for a guest: the whole stack fell, and the guest kept a phantom copy of the rest in its bag, lost later. The host
+  now does the split: 2 dropped out of 5, 3 left, the same everywhere.
+- **A tent upgraded with a wrench by a guest** (electricity, fertile soil, sea bed): the upgrade lived in one game only
+  and was lost after a while. It is now known to every game, even done alone on one's own map. A tent already hit:
+  use the wrench once more.
 
-## Tests still unstable (not proven defects)
+## New
 
-- Gene syringe on oneself and leash, by a guest: red at the end of a long series only, green replayed alone twice.
-- A spell learnt in a dream by the host equal to the guest's book: most likely the luck of the draw.
+- **A guest can delete one of its characters**: in the list of characters when joining, "Delete a character", then a
+  confirmation. The character goes with what it carries; its companions stay in the world. Host checkbox "Players can
+  delete their characters" (ticked). The list only shows when "ask the character" is ticked, or when the guest has
+  several characters and none played last. Not played: the two windows on the guest's side (tested on the host's).
 
-## Still not reproduced
+## Tests still unstable
 
-- The ally count shown one too many; a guest who could not mine. Send the zip of the "Prepare a bug report" button
-  (*Client Settings* tab) from a game where it happens.
+- Only at the very end of a long series: the tent upgrade done alone, and a quest for two where the guest kills the
+  last monster. Both are green replayed alone on a fresh world.
 
 ## Known limits
 
