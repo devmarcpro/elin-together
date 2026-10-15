@@ -1399,6 +1399,29 @@ def x9():
           eventually(lambda: party(H) == "True|True|False|True" and party(A) == "True|True|False|True", timeout=15))
 
 
+def v6():
+    """Rapport (2026-10-15) : Tephra vaincu, quete de Vernis restee a 3. La reparation ne tournait qu'au lancement du
+    serveur ; un etage du boss ouvert pendant la partie ne comptait pas. Ici, en cours de partie : quete a 3, l'etage
+    du boss apparait (cree comme le fait le depart de test du jeu) : la quete passe a 8 chez l'host puis chez l'invite,
+    sans relancer."""
+    phase = lambda port: str(ev(port, VQ + 'return q == null ? "aucune" : q.phase.ToString();'))  # noqa: E731
+    ev(H, 'if (EClass.game.cards.globalCharas.Find("loytel") == null) CharaGen.Create("loytel").SetGlobal(EClass.game.spatials.Find(7), 50, 50); '
+          'if (EClass.game.quests.Get<QuestVernis>() == null) EClass.game.quests.Start("vernis_gold", "loytel"); '
+          'foreach (var z in EClass.game.spatials.map.Values.OfType<Zone_VernisMine>().Where(x => x.lv < -1).ToList()) z.Destroy(); return "ok";')
+    if not check("la quete de Vernis est dans les deux journaux", eventually(lambda: phase(A) != "aucune", timeout=20)):
+        return
+    for port in (H, A):
+        ev(port, VQ + 'q.phase = 3; q.task = null; return "ok";')
+    time.sleep(25)
+    check(f"sans etage ouvert, la quete reste a 3 ({phase(H)})", phase(H) == "3")
+    ev(H, 'var z = SpatialGen.Create("vernis_mine", EClass.game.spatials.Find("vernis"), true) as Zone_VernisMine; z.lv = -8; return "ok";')
+    check("l'etage du boss apparait en cours de partie : la quete passe a 8 chez l'host", eventually(lambda: phase(H) == "8", timeout=30))
+    check("et chez l'invite", eventually(lambda: phase(A) == "8", timeout=30))
+    ev(H, 'var q = EClass.game.quests.Get<QuestVernis>(); if (q != null) EClass.game.quests.Remove(q); '
+          'foreach (var z in EClass.game.spatials.map.Values.OfType<Zone_VernisMine>().Where(x => x.lv < -1).ToList()) z.Destroy(); return "ok";')
+    ev(A, 'var q = EClass.game.quests.Get<QuestVernis>(); if (q != null) EClass.game.quests.Remove(q); return "ok";')
+
+
 def main():
     start = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
     for name, port in (("host", 27551), ("invite", 27552)):
@@ -1408,7 +1431,7 @@ def main():
             continue
         check(f"{name} : pas de deuxieme ajout, lien remis ({r})", r == "0/0/True")
     check("au moins un jeu avait un autre membre dans l'equipe", RESULTS)
-    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, s3, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, z1, v1, v2, v3, v5, x2, x3, x4, x5, x6, x7, x8, x9, t1, q1, f2, v4)  # v1 avant t1 : t1 maudit l'invite de test, qui en meurt et ne voyage plus
+    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, s3, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, z1, v1, v6, v2, v3, v5, x2, x3, x4, x5, x6, x7, x8, x9, t1, q1, f2, v4)  # v1 avant t1 : t1 maudit l'invite de test, qui en meurt et ne voyage plus
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(',')]
     for step in steps:
