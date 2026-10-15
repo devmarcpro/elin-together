@@ -1351,6 +1351,28 @@ def x7():
               eventually(lambda: seed(port) == "False" and seed(other) == "False", timeout=10))
 
 
+def x8():
+    """Audit apres l'hallucination (2026-10-15) : des etats ecrits pour « le joueur » qui passaient d'un joueur a
+    l'autre. Fureur (ConStrife) : dans le jeu de l'host, celle de l'invite etait remplacee par celle de l'host, ou
+    retiree s'il n'en avait pas, et celle de l'host donnee a l'invite. Peur (ConFear) : l'invite effraye fuyait le
+    personnage de l'host dans le jeu de l'host. Le banc pose les etats par AddCondition et appelle Tick et
+    TryApplyParty directement (ce que font les tours du jeu)."""
+    guest = state(A)["pc"]["uid"]
+    g = f'EClass._map.charas.Find(x => x.uid == {guest})'
+    r = str(ev(H, f'var g = {g}; foreach (var c in EClass.pc.conditions.OfType<ConStrife>().ToList()) c.Kill(); '
+                  'var s = g.AddCondition<ConStrife>(100, true) as ConStrife; s.lv = 3; s.turn = 50; s.Tick(); s.Tick(); '
+                  'var still = g.GetCondition<ConStrife>(); return (still != null && !still.IsKilled) + "|" + (still == null ? 0 : still.lv);'))
+    check(f"la fureur de l'invite, dans le jeu de l'host qui n'en a pas : gardee, a son niveau (presente|niveau : {r})", r == "True|3")
+    r = str(ev(H, f'var g = {g}; foreach (var c in g.conditions.OfType<ConStrife>().ToList()) c.Kill(); '
+                  'var s = EClass.pc.AddCondition<ConStrife>(100, true) as ConStrife; s.lv = 3; s.turn = 50; s.TryApplyParty(); '
+                  'var r = (g.GetCondition<ConStrife>() != null).ToString(); s.Kill(); return r;'))
+    check(f"la fureur de l'host n'est pas donnee a l'invite ({r})", r == "False")
+    r = str(ev(H, f'var g = {g}; var p0 = g.pos.Copy(); var f = g.AddCondition<ConFear>(100, true) as ConFear; '
+                  'for (var i = 0; i < 5; i++) f.Tick(); var moved = !g.pos.Equals(p0); f.Kill(); return moved.ToString();'))
+    check(f"l'invite effraye ne fuit pas le personnage de l'host dans le jeu de l'host (deplace : {r})", r == "False")
+    ev(H, f'var g = {g}; foreach (var c in g.conditions.Where(c => c is ConStrife || c is ConFear).ToList()) c.Kill(); return "ok";')
+
+
 def main():
     start = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
     for name, port in (("host", 27551), ("invite", 27552)):
@@ -1360,7 +1382,7 @@ def main():
             continue
         check(f"{name} : pas de deuxieme ajout, lien remis ({r})", r == "0/0/True")
     check("au moins un jeu avait un autre membre dans l'equipe", RESULTS)
-    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, s3, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, z1, v1, v2, v3, v5, x2, x3, x4, x5, x6, x7, t1, q1, f2, v4)  # v1 avant t1 : t1 maudit l'invite de test, qui en meurt et ne voyage plus
+    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, s3, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, z1, v1, v2, v3, v5, x2, x3, x4, x5, x6, x7, x8, t1, q1, f2, v4)  # v1 avant t1 : t1 maudit l'invite de test, qui en meurt et ne voyage plus
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(',')]
     for step in steps:
