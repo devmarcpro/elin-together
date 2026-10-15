@@ -1,12 +1,16 @@
-# Elin Together « indépendance » 0.26.754
+# Elin Together « indépendance » 0.26.757
 
 (English below / version anglaise plus bas)
 
-Suite de la 0.26.751 : une correction (hallucinations). Jouée au banc de test (deux fenêtres sur un PC), rien entre deux PC. La série complète des tests a tourné sur le code de la 0.26.751 (la correction des hallucinations a son propre test, vert) : **11 séries vertes sur 14** ; deux des trois rouges sont vertes rejouées seules sur un monde
+Suite de la 0.26.754 : une correction (fureur au combat). Jouée au banc de test (deux fenêtres sur un PC), rien entre deux PC. La série complète des tests a tourné sur le code de la 0.26.751 (les corrections des hallucinations et de la fureur ont leur propre test, vert) : **11 séries vertes sur 14** ; deux des trois rouges sont vertes rejouées seules sur un monde
 neuf, la troisième est un réglage de test (voir plus bas). Compilé pour Elin **EA 23.356**.
 **Tous les joueurs doivent installer ce même zip.**
 
 ## Corrigé (joué au banc)
+
+- **Fureur au combat (« Strife ») partagée** (0.26.757) : dans le jeu de l'hébergeur, la fureur d'un invité était
+  remplacée par celle de l'hébergeur, ou retirée s'il n'en avait pas, et celle de l'hébergeur était donnée à
+  l'invité et à ses compagnons. Chacun garde maintenant la sienne ; ses compagnons copient celle de leur joueur.
 
 - **Hallucinations partagées** (0.26.754) : quand l'hébergeur mangeait un champignon blanc, l'écran de l'invité
   hallucinait aussi, et ça ne partait pas. L'écran de chaque joueur ne suit plus que son propre personnage (et un
@@ -59,13 +63,17 @@ Chacun télécharge `ElinTogether-independance.zip` (ci-dessous), le décompress
 
 ---
 
-# Elin Together "independence" 0.26.754
+# Elin Together "independence" 0.26.757
 
-Follows 0.26.751: one fix (hallucinations). Played on the test bench (two windows on one PC), nothing between two PCs. The whole test series ran on 0.26.751's code (the hallucination fix has its own test, green): **11 series green out of 14**; two of the three red ones are green replayed alone on a fresh world, the
+Follows 0.26.754: one fix (strife). Played on the test bench (two windows on one PC), nothing between two PCs. The whole test series ran on 0.26.751's code (the hallucination and strife fixes have their own tests, green): **11 series green out of 14**; two of the three red ones are green replayed alone on a fresh world, the
 third is a test setting (see below). Built for Elin **EA 23.356**.
 **Every player must install this same zip.**
 
 ## Fixed (played on the bench)
+
+- **Shared strife** (0.26.757): in the host's game a guest's strife was replaced by the host's, or removed when the
+  host had none, and the host's was given to the guest and its companions. Each player now keeps its own; its
+  companions copy their player's.
 
 - **Shared hallucinations** (0.26.754): when the host ate a white mushroom, the guest's screen hallucinated too, for
   good. Each player's screen now follows its own character only (and a guest who hallucinates finally sees it).
