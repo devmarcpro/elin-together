@@ -2975,3 +2975,5 @@ Publié : **0.26.757** (commit 7e25a16, 2026-10-15, « oui release »), une corr
 - **« Dissoudre l'équipe »** (`Party.Disband`) : renvoyait tous les membres sauf le joueur local, compagnons des autres joueurs compris (le chien de l'invité partait quand l'host dissolvait). Maintenant les compagnons du joueur local seulement. x9 : rouge sans, vert avec (7/7).
 - **mort d'un autre joueur** (`Chara.Die`) : comptée comme un compagnon mort (`stats.allyDeath`, tutoriel des compagnons morts). Le compte est laissé tel quel. `death_suite` 11/11, compte de l'host 0 avant et après la mort de l'invité. Rouge pas joué (le compte serait passé à 1).
 - **pièce porte-bonheur** : pas un défaut, les objets clés sont communs au monde (`DialogFlagSync`), chacun compte les mêmes pièces.
+
+Publié : **0.26.760** (commit df5e84b, 2026-10-15, « corrige et release »), trois corrections depuis la 0.26.757 (gène, dissoudre, mort d'un joueur). Zip identique en ligne (sha256 363ce36d…), build publié installé dans le jeu.
