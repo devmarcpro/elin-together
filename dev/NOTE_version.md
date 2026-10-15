@@ -1,12 +1,18 @@
-# Elin Together « indépendance » 0.26.760
+# Elin Together « indépendance » 0.26.764
 
 (English below / version anglaise plus bas)
 
-Suite de la 0.26.757 : trois corrections (gènes, dissoudre l'équipe, mort d'un joueur). Jouée au banc de test (deux fenêtres sur un PC), rien entre deux PC. La série complète des tests a tourné sur le code de la 0.26.751 (chaque correction depuis a son propre test, vert) : **11 séries vertes sur 14** ; deux des trois rouges sont vertes rejouées seules sur un monde
+Suite de la 0.26.760 : la quête de Vernis bloquée à 3 après Tephra. Jouée au banc de test (deux fenêtres sur un PC), rien entre deux PC. La série complète des tests a tourné sur le code de la 0.26.751 (chaque correction depuis a son propre test, vert) : **11 séries vertes sur 14** ; deux des trois rouges sont vertes rejouées seules sur un monde
 neuf, la troisième est un réglage de test (voir plus bas). Compilé pour Elin **EA 23.356**.
 **Tous les joueurs doivent installer ce même zip.**
 
 ## Corrigé (joué au banc)
+
+- **Quête de Vernis restée à 3 après la victoire sur Tephra** (0.26.764) : la réparation des mondes ne se faisait qu'au
+  lancement de la partie par l'hébergeur ; l'étage du boss atteint et le boss vaincu dans la même soirée laissaient
+  la quête à 3. Elle se fait maintenant aussi en cours de partie. **Pour un monde touché** : l'hébergeur lance la
+  partie avec cette version (la quête passe à 8 en une vingtaine de secondes), le groupe redescend une fois à l'étage
+  du boss de la mine (le boss étant mort, la quête avance), puis parle à Loytel à la base, deux fois si besoin.
 
 - **Gène porté par un invité** (0.26.760) : le jeu comparait son coût aux points de don de l'hébergeur ; un invité
   avec assez de points se le voyait refuser. Ce sont maintenant ses propres points.
@@ -68,13 +74,19 @@ Chacun télécharge `ElinTogether-independance.zip` (ci-dessous), le décompress
 
 ---
 
-# Elin Together "independence" 0.26.760
+# Elin Together "independence" 0.26.764
 
-Follows 0.26.757: three fixes (genes, disband, a player's death). Played on the test bench (two windows on one PC), nothing between two PCs. The whole test series ran on 0.26.751's code (each fix since has its own test, green): **11 series green out of 14**; two of the three red ones are green replayed alone on a fresh world, the
+Follows 0.26.760: the Vernis quest stuck at 3 after Tephra. Played on the test bench (two windows on one PC), nothing between two PCs. The whole test series ran on 0.26.751's code (each fix since has its own test, green): **11 series green out of 14**; two of the three red ones are green replayed alone on a fresh world, the
 third is a test setting (see below). Built for Elin **EA 23.356**.
 **Every player must install this same zip.**
 
 ## Fixed (played on the bench)
+
+- **Vernis quest stuck at 3 after beating Tephra** (0.26.764): the world repair only ran when the host started the
+  game; the boss floor reached and the boss beaten in one evening left the quest at 3. It now also runs during the
+  game. **For a world already hit**: the host starts the game with this version (the quest goes to 8 within about
+  twenty seconds), the party goes down once to the mine's boss floor (the boss being dead, the quest moves on), then
+  talks to Loytel at the base, twice if needed.
 
 - **Gene worn by a guest** (0.26.760): the game compared its cost with the host's feat points; a guest with enough
   points was refused. Its own points now.
