@@ -1,12 +1,17 @@
-# Elin Together « indépendance » 0.26.757
+# Elin Together « indépendance » 0.26.760
 
 (English below / version anglaise plus bas)
 
-Suite de la 0.26.754 : une correction (fureur au combat). Jouée au banc de test (deux fenêtres sur un PC), rien entre deux PC. La série complète des tests a tourné sur le code de la 0.26.751 (les corrections des hallucinations et de la fureur ont leur propre test, vert) : **11 séries vertes sur 14** ; deux des trois rouges sont vertes rejouées seules sur un monde
+Suite de la 0.26.757 : trois corrections (gènes, dissoudre l'équipe, mort d'un joueur). Jouée au banc de test (deux fenêtres sur un PC), rien entre deux PC. La série complète des tests a tourné sur le code de la 0.26.751 (chaque correction depuis a son propre test, vert) : **11 séries vertes sur 14** ; deux des trois rouges sont vertes rejouées seules sur un monde
 neuf, la troisième est un réglage de test (voir plus bas). Compilé pour Elin **EA 23.356**.
 **Tous les joueurs doivent installer ce même zip.**
 
 ## Corrigé (joué au banc)
+
+- **Gène porté par un invité** (0.26.760) : le jeu comparait son coût aux points de don de l'hébergeur ; un invité
+  avec assez de points se le voyait refuser. Ce sont maintenant ses propres points.
+- **« Dissoudre l'équipe »** (0.26.760) : renvoyait aussi les compagnons des autres joueurs. Seulement les siens.
+- **Mort d'un autre joueur** (0.26.760) : n'est plus comptée comme celle d'un compagnon (statistique, astuce).
 
 - **Fureur au combat (« Strife ») partagée** (0.26.757) : dans le jeu de l'hébergeur, la fureur d'un invité était
   remplacée par celle de l'hébergeur, ou retirée s'il n'en avait pas, et celle de l'hébergeur était donnée à
@@ -63,13 +68,18 @@ Chacun télécharge `ElinTogether-independance.zip` (ci-dessous), le décompress
 
 ---
 
-# Elin Together "independence" 0.26.757
+# Elin Together "independence" 0.26.760
 
-Follows 0.26.754: one fix (strife). Played on the test bench (two windows on one PC), nothing between two PCs. The whole test series ran on 0.26.751's code (the hallucination and strife fixes have their own tests, green): **11 series green out of 14**; two of the three red ones are green replayed alone on a fresh world, the
+Follows 0.26.757: three fixes (genes, disband, a player's death). Played on the test bench (two windows on one PC), nothing between two PCs. The whole test series ran on 0.26.751's code (each fix since has its own test, green): **11 series green out of 14**; two of the three red ones are green replayed alone on a fresh world, the
 third is a test setting (see below). Built for Elin **EA 23.356**.
 **Every player must install this same zip.**
 
 ## Fixed (played on the bench)
+
+- **Gene worn by a guest** (0.26.760): the game compared its cost with the host's feat points; a guest with enough
+  points was refused. Its own points now.
+- **"Disband the party"** (0.26.760): also sent away the other players' companions. Only one's own now.
+- **Another player's death** (0.26.760): no longer counted as a pet's (statistic, tutorial).
 
 - **Shared strife** (0.26.757): in the host's game a guest's strife was replaced by the host's, or removed when the
   host had none, and the host's was given to the guest and its companions. Each player now keeps its own; its
