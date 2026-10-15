@@ -2969,3 +2969,9 @@ Publié : **0.26.754** (commit fe2391d, 2026-10-15, « OUI »), une correction d
 - Pas faits, signalés : un joueur qui meurt dans le jeu d'un autre y passe par « allié mort » (retiré de l'équipe, compteur `stats.allyDeath`, tutoriel du compagnon mort) ; `death_suite` couvre la mort et le relevé, pas ces messages. Équipement de gènes comparé aux points de don du joueur local (`CharaBody.cs:160`), pièce porte-bonheur et éléments de faction du joueur local comptés pour un autre joueur, « Dissoudre l'équipe » qui renvoie aussi les autres joueurs : rares ou pas vérifiés.
 
 Publié : **0.26.757** (commit 7e25a16, 2026-10-15, « oui release »), une correction depuis la 0.26.754 (fureur, x8). Zip identique en ligne (sha256 85c3fc2c…), build publié installé dans le jeu (make_release le pose).
+
+2026-10-15 (suite) : **« occupe-toi de tout ça »** (les points restants de l'audit). `Patches/OtherPlayerPatch.cs` :
+- **gène porté** (`CharaBody.IsEquippable`) : le coût était comparé aux points de don du joueur LOCAL ; maintenant à ceux du porteur (transpileur). x9 : sans le correctif l'invité avec 10 points est refusé quand l'host n'en a aucun, avec : accepté (et refusé sans points).
+- **« Dissoudre l'équipe »** (`Party.Disband`) : renvoyait tous les membres sauf le joueur local, compagnons des autres joueurs compris (le chien de l'invité partait quand l'host dissolvait). Maintenant les compagnons du joueur local seulement. x9 : rouge sans, vert avec (7/7).
+- **mort d'un autre joueur** (`Chara.Die`) : comptée comme un compagnon mort (`stats.allyDeath`, tutoriel des compagnons morts). Le compte est laissé tel quel. `death_suite` 11/11, compte de l'host 0 avant et après la mort de l'invité. Rouge pas joué (le compte serait passé à 1).
+- **pièce porte-bonheur** : pas un défaut, les objets clés sont communs au monde (`DialogFlagSync`), chacun compte les mêmes pièces.
