@@ -66,6 +66,11 @@ public class QuestJournalDelta : ElinDelta
         }
 
         _next = Time.unscaledTime + Period;
+
+        // the floors a dungeon opened during this session count too, not only those the world had when it was
+        // hosted: the Vernis mine reached and its boss beaten in one evening left the quest at 3 (2026-10-15)
+        QuestVernisRepair.Repair();
+
         var steps = quests.list.Where(q => q is QuestSequence && !PersonalQuests.IsPersonal(q)).ToList();
         host.Delta.AddRemote(new QuestJournalDelta {
             Phases = steps.SelectMany(q => new[] { q.uid, q.phase }).ToArray(),
