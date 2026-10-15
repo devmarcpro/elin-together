@@ -2,8 +2,7 @@
 
 (English below / version anglaise plus bas)
 
-Suite de la 0.26.751 : une correction (hallucinations). Jouée au banc de test (deux fenêtres sur un PC), rien entre deux PC. La série complète des tests
-a tourné sur ce code : **11 séries vertes sur 14** ; deux des trois rouges sont vertes rejouées seules sur un monde
+Suite de la 0.26.751 : une correction (hallucinations). Jouée au banc de test (deux fenêtres sur un PC), rien entre deux PC. La série complète des tests a tourné sur le code de la 0.26.751 (la correction des hallucinations a son propre test, vert) : **11 séries vertes sur 14** ; deux des trois rouges sont vertes rejouées seules sur un monde
 neuf, la troisième est un réglage de test (voir plus bas). Compilé pour Elin **EA 23.356**.
 **Tous les joueurs doivent installer ce même zip.**
 
@@ -62,8 +61,7 @@ Chacun télécharge `ElinTogether-independance.zip` (ci-dessous), le décompress
 
 # Elin Together "independence" 0.26.754
 
-Follows 0.26.751: one fix (hallucinations). Played on the test bench (two windows on one PC), nothing between two PCs. The whole test series ran
-on this code: **11 series green out of 14**; two of the three red ones are green replayed alone on a fresh world, the
+Follows 0.26.751: one fix (hallucinations). Played on the test bench (two windows on one PC), nothing between two PCs. The whole test series ran on 0.26.751's code (the hallucination fix has its own test, green): **11 series green out of 14**; two of the three red ones are green replayed alone on a fresh world, the
 third is a test setting (see below). Built for Elin **EA 23.356**.
 **Every player must install this same zip.**
 
