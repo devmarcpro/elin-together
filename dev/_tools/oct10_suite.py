@@ -1332,6 +1332,25 @@ def x6():
     ev(H, f'var c = EClass._map.charas.Find(x => x.uid == {pet}); if (c != null) c.Destroy(); return "ok";')
 
 
+def x7():
+    """Rapport de joueur (2026-10-15) : l'host mange un champignon blanc, l'ecran de l'invite hallucine aussi, et le
+    reste apres la fin de l'hallucination de l'host. L'ecran hallucine par un interrupteur du jeu (seedHallucination)
+    que le personnage de l'host pose aussi dans le jeu de l'invite. Ici : l'host attrape l'hallucination (AddCondition,
+    ce que fait le champignon), puis la perd ; puis l'invite. L'ecran de chacun ne suit que son propre joueur."""
+    seed = lambda port: ev(port, 'return (Player.seedHallucination != 0).ToString();')  # noqa: E731
+    for who, port, other in (("l'host", H, A), ("l'invite", A, H)):
+        ev(H, 'return "ok";')
+        uid = state(port)["pc"]["uid"]
+        # (pose dans le jeu qui simule la carte : l'host)
+        ev(H, f'var c = EClass._map.charas.Find(x => x.uid == {uid}); c.AddCondition<ConHallucination>(200, true); return "ok";')
+        check(f"{who} hallucine : son ecran hallucine ({seed(port)})", eventually(lambda: seed(port) == "True", timeout=10))
+        time.sleep(3)
+        check(f"{who} hallucine : l'ecran de l'autre joueur reste normal ({seed(other)})", seed(other) == "False")
+        ev(H, f'var c = EClass._map.charas.Find(x => x.uid == {uid}); var h = c.GetCondition<ConHallucination>(); if (h != null) h.Kill(); return "ok";')
+        check(f"{who} n'hallucine plus : les deux ecrans sont normaux ({seed(port)} / {seed(other)})",
+              eventually(lambda: seed(port) == "False" and seed(other) == "False", timeout=10))
+
+
 def main():
     start = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
     for name, port in (("host", 27551), ("invite", 27552)):
@@ -1341,7 +1360,7 @@ def main():
             continue
         check(f"{name} : pas de deuxieme ajout, lien remis ({r})", r == "0/0/True")
     check("au moins un jeu avait un autre membre dans l'equipe", RESULTS)
-    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, s3, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, z1, v1, v2, v3, v5, x2, x3, x4, x5, x6, t1, q1, f2, v4)  # v1 avant t1 : t1 maudit l'invite de test, qui en meurt et ne voyage plus
+    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, s3, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, z1, v1, v2, v3, v5, x2, x3, x4, x5, x6, x7, t1, q1, f2, v4)  # v1 avant t1 : t1 maudit l'invite de test, qui en meurt et ne voyage plus
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(',')]
     for step in steps:
