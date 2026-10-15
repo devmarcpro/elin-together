@@ -1,13 +1,17 @@
-# Elin Together « indépendance » 0.26.751
+# Elin Together « indépendance » 0.26.754
 
 (English below / version anglaise plus bas)
 
-Suite de la 0.26.744. Jouée au banc de test (deux fenêtres sur un PC), rien entre deux PC. La série complète des tests
+Suite de la 0.26.751 : une correction (hallucinations). Jouée au banc de test (deux fenêtres sur un PC), rien entre deux PC. La série complète des tests
 a tourné sur ce code : **11 séries vertes sur 14** ; deux des trois rouges sont vertes rejouées seules sur un monde
 neuf, la troisième est un réglage de test (voir plus bas). Compilé pour Elin **EA 23.356**.
 **Tous les joueurs doivent installer ce même zip.**
 
 ## Corrigé (joué au banc)
+
+- **Hallucinations partagées** (0.26.754) : quand l'hébergeur mangeait un champignon blanc, l'écran de l'invité
+  hallucinait aussi, et ça ne partait pas. L'écran de chaque joueur ne suit plus que son propre personnage (et un
+  invité qui hallucine le voit enfin lui-même).
 
 - **Médailles (et tout objet en pile) qui disparaissent quand un invité en lâche une partie.** Le menu « partager »
   du jeu ne marchait pas chez un invité : toute la pile tombait, et il gardait dans son sac une copie fantôme du
@@ -56,14 +60,17 @@ Chacun télécharge `ElinTogether-independance.zip` (ci-dessous), le décompress
 
 ---
 
-# Elin Together "independence" 0.26.751
+# Elin Together "independence" 0.26.754
 
-Follows 0.26.744. Played on the test bench (two windows on one PC), nothing between two PCs. The whole test series ran
+Follows 0.26.751: one fix (hallucinations). Played on the test bench (two windows on one PC), nothing between two PCs. The whole test series ran
 on this code: **11 series green out of 14**; two of the three red ones are green replayed alone on a fresh world, the
 third is a test setting (see below). Built for Elin **EA 23.356**.
 **Every player must install this same zip.**
 
 ## Fixed (played on the bench)
+
+- **Shared hallucinations** (0.26.754): when the host ate a white mushroom, the guest's screen hallucinated too, for
+  good. Each player's screen now follows its own character only (and a guest who hallucinates finally sees it).
 
 - **Medals (and any stacked item) vanishing when a guest drops part of a stack.** The game's split menu did not work
   for a guest: the whole stack fell, and the guest kept a phantom copy of the rest in its bag, lost later. The host
