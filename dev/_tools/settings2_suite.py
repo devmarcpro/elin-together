@@ -27,6 +27,8 @@ P12 l'invite crochete un coffre ferme (Trait.OnLockOpen, la fin du crochetage) :
 P13 l'invite change la couleur d'une lumiere (c_lightColor, ce que fait la palette de l'entree Maj) : l'host l'a.
 P14 l'invite change le modele d'une figurine par le curseur (la fonction du curseur du jeu, appelee par reflexion) :
     l'host a le meme.
+P15 l'invite change l'apparence complete d'un habitant (la fenetre du jeu LayerEditPCC, ouverte par eval comme le fait
+    « modifier l'apparence » de la liste des habitants ; une couleur changee, puis Apply) : l'host a la meme.
 """
 import os
 import sys
@@ -69,12 +71,18 @@ def p1(ctx):
     to_base()
     me = state(A)["pc"]["uid"]
     door = ev(H, f'var c = EClass._map.charas.Find(x => x.uid == {me}); var d = EClass._map.things.Where(t => t.IsInstalled && t.trait.GetType() == typeof(TraitDoor) '
-                 '&& t.c_lockLv == 0 && !(t.trait as TraitDoor).IsOpen() && !t.pos.HasChara).OrderBy(t => t.pos.Distance(c.pos)).FirstOrDefault(); '
-                 'return d == null ? "" : d.uid + "," + d.pos.x + "," + d.pos.z;')
+                 '&& t.c_lockLv == 0 && !(t.trait as TraitDoor).IsOpen() && !t.pos.HasChara).OrderBy(t => t.pos.Distance(c.pos)).Take(3); '
+                 'return string.Join(";", d.Select(x => x.uid + "," + x.pos.x + "," + x.pos.z));')
     if not check("une porte fermee, sans serrure, sur la carte", bool(door)):
         return
-    uid, x, z = door.split(",")
-    if not check("l'invite marche a cote de la porte", walk_next_to(A, x, z)):
+    # (la plus proche n'est pas toujours atteignable a pied : le pas s'arretait en route, trois fois le 18 ; on essaie
+    # les trois plus proches)
+    for candidate in door.split(";"):
+        uid, x, z = candidate.split(",")
+        if walk_next_to(A, x, z):
+            break
+    else:
+        check("l'invite marche a cote d'une des trois portes les plus proches", False)
         return
     dirs = lambda: (ev(H, f'{thing(uid)}.dir.ToString()'), ev(A, f'{thing(uid)}.dir.ToString()'))  # noqa: E731
     before = dirs()
@@ -207,6 +215,12 @@ def to_base():
         home = int(ev(H, 'return EClass.pc.homeZone.uid.ToString();'))
         log(f"pas d'habitant ici : l'host va a la base ({home})")
         host_goto(H, A, home)
+        # (un pas lance dans les premieres secondes apres l'arrivee s'arretait en route, trois fois le 18-19 : a creuser,
+        # le journal de l'host dit « Halting abandoned act ... client reports idle »)
+        time.sleep(8)
+        for port in (H, A):
+            ev(port, 'foreach (var c in EClass._map.charas.Where(m => m.IsPC || m.GetBool("remote_chara"))) '
+                     'if (!c.HasEditorTag(EditorTag.Invulnerable)) c.AddEditorTag(EditorTag.Invulnerable); return "ok";')
     return residents()
 
 
@@ -292,11 +306,35 @@ def p14(ctx):
           eventually(lambda: ev(H, f'return {thing(uid)}.refVal.ToString();') == want, timeout=8))
 
 
+def p15(ctx):
+    to_base()
+    uid = ev(A, 'var c = EClass._map.charas.FirstOrDefault(x => x.IsPCFaction && !x.IsPCParty && !x.IsPC && x.pccData != null); return c == null ? "" : c.uid.ToString();')
+    if not uid:
+        # (aucun dans la base : l'invite en donne une a un habitant, ce que fait le bouton « apparence complete » ; ce
+        # bouton lui-meme n'est pas joue)
+        uid = ev(A, 'var c = EClass._map.charas.First(x => x.IsPCFaction && !x.IsPCParty && !x.IsPC && !x.GetBool("remote_chara")); '
+                    'c.pccData = PCCData.Create(c.IDPCCBodySet); c.pccData.Randomize(c.IDPCCBodySet); c._CreateRenderer(); return c.uid.ToString();')
+    if not check("un habitant a apparence complete (PCC)", bool(uid)):
+        return
+    chara = f'EClass._map.charas.Find(x => x.uid == {uid})'
+    look = lambda port: ev(port, f'var c = {chara}; if (c.pccData == null) return "aucune"; return string.Join(";", c.pccData.map.OrderBy(x => x.Key).Select(x => x.Key + "=" + string.Join(",", x.Value)));')  # noqa: E731
+    r = ev(A, f'var c = {chara}; var l = EClass.ui.AddLayer<LayerEditPCC>("LayerPCC/LayerEditPCC"); l.Activate(c, UIPCC.Mode.Full); '
+              'var d = l.uiPCC.pcc.data; var k = d.map.Keys.First(x => d.map[x].Length > 2 && d.map[x][2].Length >= 6); var v = d.map[k]; '
+              'v[2] = v[2].StartsWith("123456") ? "654321FF" : "123456FF"; l.Apply(); l.Close(); return k + "=" + v[2];')
+    want = look(A)
+    check(f"l'invite change une couleur ({r}) : l'host a la meme apparence", eventually(lambda: look(H) == want, timeout=8))
+
+
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
-    steps = [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14]
+    steps = [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15]
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(",")]
+    # (les deux joueurs de test ne meurent pas pendant la serie : un yeek de la base du depot a tue l'invite de test, niveau 1,
+    # le 19 octobre ; comme oct10_suite, l'etiquette du jeu « invulnerable » dans les deux jeux)
+    for port in (H, A):
+        ev(port, 'foreach (var c in EClass._map.charas.Where(m => m.IsPC || m.GetBool("remote_chara"))) '
+                 'if (!c.HasEditorTag(EditorTag.Invulnerable)) c.AddEditorTag(EditorTag.Invulnerable); return "ok";')
     for step in steps:
         log(f"--- {step.__name__.upper()} : {step.__doc__ or ''}")
         try:
