@@ -1424,6 +1424,26 @@ def y1():
           m[1] == t[1] and m[3] == t[3] and int(t[1]) > int(t[0]))
 
 
+def y2():
+    """Liste du 2026-10-18 : un objet beni par un dieu donne son bonus « global » a la faction seulement si le dieu
+    est celui du joueur. Dans le jeu de l'host, l'objet de l'invite etait juge contre la foi de l'HOST. Ici, dans le
+    jeu de l'host : l'host prie le vent, l'invite la terre ; l'invite equipe une bague benie par la terre (bonus
+    compte), puis une benie par le vent (pas compte). Fois et bague posees par eval, equipement par CharaBody.Equip
+    (pas le glisser)."""
+    guest = state(A)["pc"]["uid"]
+    g = f'EClass._map.charas.Find(x => x.uid == {guest})'
+    code = ('var g = {g}; var hf = EClass.pc.idFaith; var gf = g.idFaith; EClass.pc.idFaith = "wind"; g.idFaith = "earth"; '
+            'var box = EClass.pc.faction.charaElements; var r = ""; '
+            'foreach (var god in new[] {{ "earth", "wind" }}) {{ '
+            'var t = ThingGen.Create("ring_decorative"); t.c_idDeity = god; t.elements.SetBase(70, 7); t.elements.GetElement(70).vExp = -2; '
+            'g.AddThing(t); var v0 = box.Value(70); g.body.Equip(t); var v1 = box.Value(70); g.body.Unequip(t); var v2 = box.Value(70); t.Destroy(); '
+            'r += god + ":" + (v1 - v0) + "/" + (v2 - v0) + " "; }} '
+            'EClass.pc.idFaith = hf; g.idFaith = gf; return r.Trim();').format(g=g)
+    r = str(ev(H, code))
+    check(f"dans le jeu de l'host, la bague de l'invite compte selon SA foi (terre : +7 puis 0 ; vent : 0) ({r})",
+          r == "earth:7/0 wind:0/0")
+
+
 def v6():
     """Rapport (2026-10-15) : Tephra vaincu, quete de Vernis restee a 3. La reparation ne tournait qu'au lancement du
     serveur ; un etage du boss ouvert pendant la partie ne comptait pas. Ici, en cours de partie : quete a 3, l'etage
@@ -1511,7 +1531,7 @@ def main():
             continue
         check(f"{name} : pas de deuxieme ajout, lien remis ({r})", r == "0/0/True")
     check("au moins un jeu avait un autre membre dans l'equipe", RESULTS)
-    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, s3, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, z1, v1, v6, v7, v2, v3, v5, x2, x3, x4, x5, x6, x7, x8, x9, y1, t1, q1, f2, n1, v4)  # v1 avant t1 : t1 maudit l'invite de test, qui en meurt et ne voyage plus
+    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, s3, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, z1, v1, v6, v7, v2, v3, v5, x2, x3, x4, x5, x6, x7, x8, x9, y1, y2, t1, q1, f2, n1, v4)  # v1 avant t1 : t1 maudit l'invite de test, qui en meurt et ne voyage plus
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(',')]
     for step in steps:

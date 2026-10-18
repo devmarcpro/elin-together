@@ -42,6 +42,24 @@ internal static class OtherPlayerPatch
     }
 
     /// <summary>
+    ///     An item blessed by a god gives its global bonus only to the faith of "the player": another player's item
+    ///     was judged by the local player's god (in the host's game, the guest's blessed gear counted if the host
+    ///     prayed to its god, not if the guest did). The faith of the player who wears it, or whose companion does
+    /// </summary>
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(ElementContainerFaction), nameof(ElementContainerFaction.IsEffective))]
+    internal static bool OnIsEffective(Thing t, ref bool __result)
+    {
+        if (!IsMultiplayer || t.c_idDeity.IsEmpty() || t.parent is not Chara wearer ||
+            CompanionHelper.OwnerOf(wearer) is not { } owner || owner == EClass.pc) {
+            return true;
+        }
+
+        __result = t.c_idDeity == owner.idFaith;
+        return false;
+    }
+
+    /// <summary>
     ///     Another player dies in this game: the game counts it as one of "the player's" pets that died (a statistic,
     ///     and once the tutorial about dead pets). Not a pet: the count stays as it was
     /// </summary>
