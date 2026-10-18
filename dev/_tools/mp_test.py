@@ -156,6 +156,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--reuse", action="store_true")
     ap.add_argument("--clients", type=int, default=1, choices=[0, 1, 2, 3, 4])
+    # un autre monde de depart, copie sous le nom world_lab (ex. _lab/saves/world_depot.copy : jamais envoye au depot)
+    ap.add_argument("--world", type=Path, default=PRISTINE)
     a = ap.parse_args()
     sys.stdout.reconfigure(encoding="utf-8")
     SHOTS.mkdir(exist_ok=True)
@@ -170,8 +172,8 @@ def main():
             sys.exit("Elin tourne deja : ferme-le ou utilise --reuse")
 
         shutil.rmtree(SAVES / "world_lab", ignore_errors=True)
-        shutil.copytree(PRISTINE, SAVES / "world_lab")
-        log("world_lab restaure depuis la copie vierge")
+        shutil.copytree(a.world, SAVES / "world_lab")
+        log(f"world_lab restaure depuis {a.world.name}")
 
         host = subprocess.Popen([str(GAME_EXE), *WINDOW], cwd=GAME_EXE.parent)
         log(f"host lance (pid {host.pid})")
