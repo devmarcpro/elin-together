@@ -32,6 +32,9 @@ public class CardSettingDelta : ElinDelta
     public const byte AltName = 9;
     public const byte Painting = 10;
     public const byte RoomPlate = 11;
+    public const byte Restrain = 12;
+    public const byte Look = 13;
+    public const byte RideSkin = 14;
 
     [Key(0)]
     public required RemoteCard Card { get; init; }
@@ -76,6 +79,8 @@ public class CardSettingDelta : ElinDelta
                 Teleporter => (card.trait as TraitTeleporter)?.id,
                 Name => card.c_refText,
                 AltName => card.c_altName,
+                Look => card.c_idPortrait + "\n" + card.c_idSpriteReplacer,
+                RideSkin => card.c_idRidePCC,
                 RoomPlate => (card.trait as TraitRoomPlate)?.areaData.name,
                 _ => null,
             },
@@ -85,6 +90,7 @@ public class CardSettingDelta : ElinDelta
                 Teleporter => EClass._zone.uid,
                 Door => card.dir,
                 Masked => card.isMasked ? 1 : 0,
+                Restrain => card.isRestrained ? 1 : 0,
                 _ => 0,
             },
             Blob = kind == Painting ? card.c_textureData : null,
@@ -117,10 +123,11 @@ public class CardSettingDelta : ElinDelta
     }
 
     /// <summary>
-    ///     The name a player gives to a resident or an ally (list of the base, "change name"). Not someone else's
-    ///     companion (its owner's to name), not a stranger
+    ///     What a player sets on a resident or an ally: its name (list of the base, "change name"), freed from its
+    ///     shackle or put in one, its portrait and skin, the look of the horse it rides (hitching post). Not someone
+    ///     else's companion (its owner's), not a stranger
     /// </summary>
-    private void ApplyAltName(ElinNetBase net)
+    private void ApplyChara(ElinNetBase net)
     {
         if (Card.Find() is not Chara { isDestroyed: false } chara) {
             return;
@@ -134,14 +141,42 @@ public class CardSettingDelta : ElinDelta
 
             // a resident of the base, when only the host manages it: the sender gets the name back
             if (NetSession.Instance.Rules.HostManagesBase && !host.IsZoneSession && CompanionHelper.OwnerOf(chara) is null) {
-                host.SendDeltaTo(OriginPeer, Create(chara, AltName));
+                host.SendDeltaTo(OriginPeer, Create(chara, Kind));
                 return;
             }
 
             host.Delta.AddRemote(this);
         }
 
-        chara.c_altName = Text;
+        switch (Kind) {
+            case AltName:
+                chara.c_altName = Text;
+                break;
+            case Restrain:
+                chara.isRestrained = Value != 0;
+                // the shackle it stands on knows whom it holds (TraitShackle.Restrain)
+                if (Value != 0 && chara.ExistsOnMap && chara.pos.FindThing<TraitShackle>() is { } shackle) {
+                    shackle.owner.c_uidRefCard = chara.uid;
+                }
+
+                break;
+            case Look:
+                var look = (Text ?? "").Split('\n');
+                chara.c_idPortrait = look[0].Length == 0 ? null : look[0];
+                chara.c_idSpriteReplacer = look.Length < 2 || look[1].Length == 0 ? null : look[1];
+                if (chara.ExistsOnMap) {
+                    chara._CreateRenderer();
+                }
+
+                break;
+            case RideSkin:
+                chara.c_idRidePCC = Text;
+                if (chara.ExistsOnMap) {
+                    chara._CreateRenderer();
+                }
+
+                break;
+        }
     }
 
     /// <summary>
@@ -175,8 +210,8 @@ public class CardSettingDelta : ElinDelta
 
     protected override void OnApply(ElinNetBase net)
     {
-        if (Kind == AltName) {
-            ApplyAltName(net);
+        if (Kind is AltName or Restrain or Look or RideSkin) {
+            ApplyChara(net);
             return;
         }
 

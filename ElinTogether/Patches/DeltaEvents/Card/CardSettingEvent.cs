@@ -73,6 +73,82 @@ internal static class CardSettingEvent
         }
     }
 
+    /// <summary>
+    ///     Freed from a shackle by hand (not the night's own shielding, which writes the flag itself)
+    /// </summary>
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(Card), nameof(Card.TryUnrestrain))]
+    internal static void OnUnrestrain(Card __instance, out bool __state)
+    {
+        __state = __instance.isRestrained;
+    }
+
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(Card), nameof(Card.TryUnrestrain))]
+    internal static void OnUnrestrained(Card __instance, bool __state)
+    {
+        if (__instance is Chara && __state && !__instance.isRestrained) {
+            Tell(__instance, CardSettingDelta.Restrain);
+        }
+    }
+
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(TraitShackle), nameof(TraitShackle.Restrain))]
+    internal static void OnRestrained(Card tc)
+    {
+        if (tc is Chara) {
+            Tell(tc, CardSettingDelta.Restrain);
+        }
+    }
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(Card), nameof(Card.c_idPortrait), MethodType.Setter)]
+    internal static void OnPortrait(Card __instance, out string? __state)
+    {
+        __state = __instance.c_idPortrait;
+    }
+
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(Card), nameof(Card.c_idPortrait), MethodType.Setter)]
+    internal static void OnPortraitSet(Card __instance, string? __state)
+    {
+        if (__instance is Chara && __instance.c_idPortrait != __state) {
+            Tell(__instance, CardSettingDelta.Look);
+        }
+    }
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(Card), nameof(Card.c_idSpriteReplacer), MethodType.Setter)]
+    internal static void OnSkin(Card __instance, out string? __state)
+    {
+        __state = __instance.c_idSpriteReplacer;
+    }
+
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(Card), nameof(Card.c_idSpriteReplacer), MethodType.Setter)]
+    internal static void OnSkinSet(Card __instance, string? __state)
+    {
+        if (__instance is Chara && __instance.c_idSpriteReplacer != __state) {
+            Tell(__instance, CardSettingDelta.Look);
+        }
+    }
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(Card), nameof(Card.c_idRidePCC), MethodType.Setter)]
+    internal static void OnRideSkin(Card __instance, out string? __state)
+    {
+        __state = __instance.c_idRidePCC;
+    }
+
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(Card), nameof(Card.c_idRidePCC), MethodType.Setter)]
+    internal static void OnRideSkinSet(Card __instance, string? __state)
+    {
+        if (__instance is Chara && __instance.c_idRidePCC != __state) {
+            Tell(__instance, CardSettingDelta.RideSkin);
+        }
+    }
+
     [HarmonyPrefix]
     [HarmonyPatch(typeof(Card), nameof(Card.isMasked), MethodType.Setter)]
     internal static void OnMask(Card __instance, out bool __state)

@@ -17,6 +17,10 @@ P6  l'invite peint une toile de son sac (une seule toile : le banc ecrit c_textu
     plusieurs toiles (le jeu en detache une copie, numero provisoire). OLD=1 : envoi retire chez l'invite.
 P7  l'invite bascule « atrium » d'une piece par l'entree du menu de la piece (la vraie action du jeu, sans le clic) :
     la plaque de la piece a la meme valeur chez l'host. Pas joue : nom (fenetre de saisie), acces, groupe, hauteur.
+P8  un habitant attache (pose par eval dans les deux jeux) : l'invite le libere (TryUnrestrain, ce que fait « liberer »
+    du menu), l'host le voit libre ; puis l'inverse.
+P9  l'invite change le portrait d'un habitant (c_idPortrait, ce que fait la fenetre des portraits) : l'host l'a.
+P10 l'invite change l'apparence de la monture d'un habitant (c_idRidePCC, ce que fait le curseur du poteau) : l'host l'a.
 """
 import os
 import sys
@@ -56,6 +60,7 @@ def walk_next_to(port, x, z):
 
 
 def p1(ctx):
+    to_base()
     me = state(A)["pc"]["uid"]
     door = ev(H, f'var c = EClass._map.charas.Find(x => x.uid == {me}); var d = EClass._map.things.Where(t => t.IsInstalled && t.trait.GetType() == typeof(TraitDoor) '
                  '&& t.c_lockLv == 0 && !(t.trait as TraitDoor).IsOpen() && !t.pos.HasChara).OrderBy(t => t.pos.Distance(c.pos)).FirstOrDefault(); '
@@ -78,6 +83,7 @@ def p1(ctx):
 
 
 def p2(ctx):
+    to_base()
     me = state(A)["pc"]["uid"]
     spot = ev(A, f'var c = EClass.pc; var t = EClass._map.things.Where(x => x.IsInstalled && !x.isMasked && x.trait.CanBeMasked && x.pos.Distance(c.pos) < 12)'
                  '.OrderBy(x => x.pos.Distance(c.pos)).FirstOrDefault(); return t == null ? "" : t.uid + "," + t.pos.x + "," + t.pos.z;')
@@ -184,9 +190,56 @@ def p7(ctx):
           'room.ListInteractions().First(x => x.text.StartsWith("toggleAtrium".lang())).action(); return "ok";')
 
 
+def residents():
+    return ev(H, 'return string.Join(",", EClass._map.charas.Where(c => c.IsPCFaction && !c.IsPCParty && !c.IsPC && !c.GetBool("remote_chara"))'
+                 '.Select(c => c.uid).Take(2));').split(",")
+
+
+def to_base():
+    from travel_suite import host_goto  # noqa: PLC0415
+    if residents() == [""]:
+        home = int(ev(H, 'return EClass.pc.homeZone.uid.ToString();'))
+        log(f"pas d'habitant ici : l'host va a la base ({home})")
+        host_goto(H, A, home)
+    return residents()
+
+
+def p8(ctx):
+    uids = to_base()
+    if not check(f"deux habitants ({uids})", len(uids) == 2):
+        return
+    chara = lambda uid: f'EClass._map.charas.Find(x => x.uid == {uid})'  # noqa: E731
+    tied = lambda port, uid: ev(port, f'return {chara(uid)}.isRestrained.ToString();')  # noqa: E731
+    for who, port, other, uid in (("l'invite", A, H, uids[0]), ("l'host", H, A, uids[1])):
+        for p in (H, A):
+            ev(p, f'{chara(uid)}.isRestrained = true; return "ok";')
+        ev(port, f'{chara(uid)}.TryUnrestrain(true, EClass.pc); return "ok";')
+        check(f"{who} libere l'habitant {uid} : libre dans l'autre jeu", eventually(lambda: tied(other, uid) == "False", timeout=8))
+        for p in (H, A):
+            ev(p, f'{chara(uid)}.isRestrained = false; return "ok";')
+
+
+def p9(ctx):
+    uids = to_base()
+    chara = f'EClass._map.charas.Find(x => x.uid == {uids[0]})'
+    want = ev(A, f'var c = {chara}; var other = EClass._map.charas.Select(x => x.c_idPortrait).FirstOrDefault(x => !string.IsNullOrEmpty(x) && x != c.c_idPortrait); '
+                 'c.c_idPortrait = other ?? "bench_portrait"; return c.c_idPortrait;')
+    check(f"l'invite change le portrait de {uids[0]} ({want}) : l'host l'a",
+          eventually(lambda: ev(H, f'return {chara}.c_idPortrait ?? "";') == want, timeout=8))
+
+
+def p10(ctx):
+    uids = to_base()
+    chara = f'EClass._map.charas.Find(x => x.uid == {uids[0]})'
+    want = ev(A, f'var c = {chara}; var l = EClass.core.pccs.sets["ride"].map["body"].map.Keys.ToList(); '
+                 'var v = l.FirstOrDefault(x => x != c.c_idRidePCC); c.c_idRidePCC = v; c._CreateRenderer(); return v ?? "";')
+    check(f"l'invite change la monture de {uids[0]} ({want}) : l'host l'a",
+          bool(want) and eventually(lambda: ev(H, f'return {chara}.c_idRidePCC ?? "";') == want, timeout=8))
+
+
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
-    steps = [p1, p2, p3, p4, p5, p6, p7]
+    steps = [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10]
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(",")]
     for step in steps:
