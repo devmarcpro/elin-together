@@ -1,5 +1,16 @@
 # Passation — ElinTogether « indépendance »
 
+## État au 18 octobre 2026, 19h (à lire en premier)
+
+- **Publiée : 0.26.764** (15 octobre). Depuis, **pas publié** : `8ca29ea` quête de Vernis restée à 11 terminée à la
+  base (le dragon arrive), `315a556` portes/objets cachés/noms partagés, `b758330` manger automatiquement. Détail et
+  tests : dernière entrée de `MODLOG.md`.
+- **Mis de côté, pas compilé** : `git stash` « Ame solitaire » (aptitude 1646 pour les autres joueurs).
+- **Tester sur le monde de l'utilisateur** : `python _tools/mp_test.py --world _lab/saves/world_depot.copy` (copie du
+  monde du dépôt du 18 octobre, jamais envoyée au dépôt).
+- **Prochains numéros** : delta 856. Liste de travail à jour : `DOCUMENTATION.md` §7, « Liste du 2026-10-18 ».
+- L'utilisateur a demandé : changer de modèle et d'effort selon la tâche (agents haiku/sonnet pour chercher).
+
 ## État au 14 octobre 2026, 22h30 (à lire en premier)
 
 - **Publiée : 0.26.751** (commit `bd31d37`, Elin EA 23.356). Depuis la 0.26.730 : départs simultanés (x2), journal des quêtes rouvertes, Loytel compagnon de l'invité, filet des cases doublées (`ClientCellSweep`), partage de pile par l'host (`CardSplitStackDelta` 854, `SplitMenuPatch`), tente à la clé (`TentZoneDelta` 855), suppression de personnage (`DeleteCharacter`, case host). Détail : fin de `MODLOG.md`.

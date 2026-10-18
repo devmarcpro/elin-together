@@ -2982,3 +2982,38 @@ Publié : **0.26.760** (commit df5e84b, 2026-10-15, « corrige et release »), t
 Joué (23h10) : `oct10_suite v6` (quête à 3, l'étage du boss apparaît en cours de partie : 8 chez l'host puis chez l'invité, sans relancer) et v1 : 19/19. Rouge pas joué (avant, la réparation n'existait qu'au lancement du serveur : la quête restait à 3).
 
 Publié : **0.26.764** (commit 80e623f, 2026-10-15 23h15, « teste et release »), réparation de la quête de Vernis en cours de partie. Zip identique en ligne (sha256 8c6c387b…), build publié installé dans le jeu.
+
+## 2026-10-18 (après-midi et soir) : chasse au travail, quatre corrections
+
+Demande : « cherche le plus possible du travail à faire », tester sur une **copie du monde du dépôt** (pour voir la quête
+bloquée). Fait : `mp_test.py --world _lab/saves/world_depot.copy` (copie prise le 18 à 14h43, nommée `world_lab` dans le
+banc : jamais envoyée au dépôt, hors dépôt Git).
+
+Recherche (agents peu chers) : doc et plans (60 points ouverts, liste dans « Reste à faire » de DOCUMENTATION §7),
+journaux du jeu (rien de grave en vraie partie ; « Moving invalid chara » au chargement = les personnages des joueurs
+absents, le jeu les pose à la base puis le mod les retire : vu, pas un défaut ; compagnon d'un absent après
+rechargement : testé, reste rangé et revient), GitHub (aucune issue sur notre dépôt), atelier Steam (pas lu : la page
+ne répond pas aux outils), deux audits du code (gestes d'un invité non partagés ; effets sur « le joueur » qui
+touchent les autres joueurs).
+
+**Quête de Vernis (rapport du 15, « Gold Beneath : 3 », pas de dragon).** Le monde du dépôt était à l'étape **11**,
+pas 3 : le « 3 » est le texte du jeu pour les étapes 10 et 11. Le dialogue de Loytel de l'étape 10 termine la quête
+(dragon Mokyu, « corgon », à la base) ; l'étape 11 n'a pas de dialogue et n'avance jamais. Corrigé `8ca29ea` :
+l'host termine une quête restée à 11 quand il est à la base de Vernis (toutes les 20 s). Test `oct10_suite v7` vert
+sur la copie du monde (terminée chez les deux, un dragon de plus, un seul). Cause de la perte du dialogue pas
+trouvée : au banc, un invité qui parle à Loytel à l'étape 9 termine bien la quête.
+
+**Réglages d'objets changés par un invité chez lui seulement** `315a556` (`CardSettingDelta` Door/Masked/Name) :
+porte ouverte ou fermée à la main (pas en marchant ni la fermeture auto, que chaque jeu fait déjà), objet caché par
+l'outil de visibilité, nom d'une graine/toile/mannequin. `settings2_suite` : rouge 9/12 (fix retiré à chaud), vert.
+
+**Manger automatiquement sur la carte du monde** `b758330` : le jeu de chaque joueur nourrissait tout le groupe,
+les autres joueurs aussi, de leur propre sac (ration 10 -> 9 chez l'host, faim différente dans les deux jeux). Rouge
+joué (script), vert `oct10_suite n1` 8/8. Le rouge rejoué dans n1 a été gêné par une rencontre en route ; n1 coupe
+maintenant les rencontres (pas rejoué après ce changement).
+
+**Écrit, pas compilé ni testé** (mis de côté : `git stash list`, « Ame solitaire ») : l'aptitude « âme solitaire »
+(1646, vie et mana par place d'allié libre) ne comptait pas pour un autre joueur dans le jeu de l'host, qui calcule
+ses blessures. Transpileurs de `Chara.MaxHP` et `StatsMana.max` dans `CompanionAllyLimitPatch`. À compiler, tester.
+
+Pas publié (accord de l'utilisateur nécessaire). Banc fermé, build publié remis dans le jeu (voir HANDOFF).

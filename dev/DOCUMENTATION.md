@@ -612,6 +612,37 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
 
 ## 7. Reste à faire
 
+### Liste du 2026-10-18 (passe avant tout ce qui suit)
+
+Venue d'une relecture de la doc et des plans, des journaux, et de deux audits du code (agents). Pas encore fait :
+
+**Effets sur « le joueur » qui touchent les autres joueurs (audit)**
+- Combat automatique de l'host : un autre joueur près de mourir est sauvé, l'host devient invulnérable et perd de
+  l'endurance (`Card.DamageHP`, `GoalAutoCombat.listHealthy`) ; l'invité, lui, n'a pas cette protection.
+- Équipement béni d'un dieu jugé contre la foi du joueur local (`ElementContainerFaction.IsEffective`, `CharaBody`).
+- Sorts de zone d'un autre joueur : la maîtrise du joueur local (302, aptitude 1214) protège en plus (`ActEffect`).
+- Les morts tuées par un autre joueur comptent pour le joueur local (frénésie, guilde des guerriers, `stats.kills`).
+- Portail (`Gate`) : téléporte les autres joueurs chez le lanceur seulement. Parchemin de résurrection : peut
+  choisir un autre joueur mort. Petits : torche (visuel), plante-serviteur.
+- Âme solitaire : écrit, mis de côté (`git stash`), à compiler et tester.
+
+**Gestes d'un invité gardés chez lui (audit)**
+- Renommer un habitant ou un allié (`BaseListPeople`, `c_altName`). Changer l'apparence d'un habitant (peau,
+  portrait, PCC).
+- Tableau de maison (toit, murs, musique), plaque de pièce (nom, accès), tableau de carte (réglages visuels).
+- Peindre une toile (`c_textureData`). Libérer un personnage attaché. Apparence de monture au poteau.
+- Cases (neige, flotter : `AM_FlagCell`), ascenseur, figurines, couleur de lumière. `AM_Deconstruct` et
+  `AM_Visibility` ne passent pas par la case « les autres construisent ».
+
+**Déjà listés, toujours ouverts (doc, plans)** : joueur refusé par celui qui tient la carte qui reçoit tout le monde ;
+quêtes que l'host n'a pas dans le journal d'un joueur ; philtre d'amour dans le sac d'un compagnon ; « mes attributs
+ne montent pas » ; compteur d'alliés un de trop et minage refusé (pas reproduits) ; objets perdus en ramassant sac
+plein ; laisse ; monture et cavalier pas à la même vitesse ; machine à gènes utilisée par un invité (même défaut que
+la roue ; essai du 18 : le menu de la case n'offrait aucune action, à reprendre) ; forte pluie ; servante, type de
+résident, réglages de coffre ; habitants qui ne remarquent que l'host (conseil) ; temps du monde (ne pas commencer sans
+l'utilisateur) ; duels (arène, pari) ; journal par joueur ; tests instables (sleep k1, together T2/T8, guest g34/g40,
+x5) ; suites jamais jouées (five f6-f8, desync, bank S2/S3) ; entre deux vrais PC (Steam, reprise) jamais joué.
+
 ### Liste à jour du 2026-10-11, midi (passe avant tout ce qui suit ; le reste de cette section est plus ancien)
 
 Publiée : **0.26.716** (12 octobre, 20h30, Elin EA 23.355). Après elle, rien de neuf.
