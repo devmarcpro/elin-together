@@ -43,7 +43,10 @@ System.Action<Thing, string> thing = null;
 thing = (t, where) => {
     // (ce qu'un objet porte dans un sac : sa derniere case et sa place, propres a chaque jeu ; fenetres : mapObj 2)
     var ints = (int[])t._ints.Clone(); if (where != "map") { ints[7] = ints[8] = ints[9] = ints[18] = 0; }
-    lines.Add("T" + t.uid + "\t" + where + "|" + t.id + "|" + string.Join(",", ints) + "|" + t._bits1.Bits + "," + t._bits2.Bits + "|" + maps(t));
+    // (l'orientation d'un objet pose sans etre installe est tiree par chaque jeu ; « ne pas ramasser seul » : bit 7,
+    // propre a celui qui a pose l'objet)
+    if (!t.IsInstalled) ints[5] = 0; var b1 = t._bits1.Bits & ~(1u << 7);
+    lines.Add("T" + t.uid + "\t" + where + "|" + t.id + "|" + string.Join(",", ints) + "|" + b1 + "," + t._bits2.Bits + "|" + maps(t));
     foreach (var c in t.things) thing(c, "in" + t.uid);
 };
 foreach (var t in EClass._map.things) thing(t, "map");
@@ -59,11 +62,11 @@ PLAN = r'''
 var me = EClass.pc; var res = new System.Collections.Generic.List<string>();
 for (var dx = -__R__; dx <= __R__; dx++) for (var dz = -__R__; dz <= __R__; dz++) {
     var pt = new Point(me.pos.x + dx, me.pos.z + dz); if (!pt.IsValid) continue;
-    foreach (var inp in new[] { ActInput.LeftMouse, ActInput.AllAction }) {
+    foreach (var inp in new[] { ActInput.LeftMouse, ActInput.RightMouse, ActInput.AllAction }) {
         var p = new ActPlan { input = inp }; var tg = new PointTarget(); tg.pos.Set(pt); p._Update(tg);
         for (var i = 0; i < p.list.Count; i++) {
             var a = p.list[i].act; var id = a is DynamicAct d ? d.id : a.GetType().Name;
-            res.Add(pt.x + "," + pt.z + "," + (inp == ActInput.AllAction ? 1 : 0) + "," + i + "," + id + "," + (p.list[i].tc == null ? 0 : p.list[i].tc.uid));
+            res.Add(pt.x + "," + pt.z + "," + (inp == ActInput.AllAction ? 1 : inp == ActInput.RightMouse ? 2 : 0) + "," + i + "," + id + "," + (p.list[i].tc == null ? 0 : p.list[i].tc.uid));
         }
     }
 }
@@ -72,9 +75,9 @@ return string.Join("\n", res.Distinct());
 
 DO = r'''
 var p = new ActPlan { input = __INP__ }; var tg = new PointTarget(); tg.pos.Set(new Point(__X__, __Z__)); p._Update(tg);
-if (p.list.Count <= __I__) return "gone";
-var a = p.list[__I__].act; var id = a is DynamicAct d ? d.id : a.GetType().Name; if (id != "__ID__") return "moved " + id;
-try { p.list[__I__].Perform(); } catch (System.Exception ex) { return "throw " + ex.GetType().Name; }
+var item = p.list.FirstOrDefault(x => (x.act is DynamicAct d ? d.id : x.act.GetType().Name) == "__ID__");
+if (item == null) return "gone";
+try { item.Perform(); } catch (System.Exception ex) { return "throw " + ex.GetType().Name; }
 return "ok";
 '''
 
@@ -87,6 +90,22 @@ return string.Join("\n", EClass._map.things.Where(t => t.IsInstalled && t.pos.Is
 '''
 
 GO = 'var p = new Point(__X__, __Z__).GetNearestPoint(allowChara: false); EClass.pc.MoveImmediate(p); return p.x + "," + p.z;'
+
+# un objet du sac de l'invite par sorte (trait) ; pas ce qui fait quitter la carte ni les papiers du monde
+HELD = r'''
+var all = new System.Collections.Generic.List<Thing>(); System.Action<Thing> walk = null;
+walk = t => { all.Add(t); if (t.IsContainer) foreach (var c in t.things) walk(c); };
+foreach (var t in EClass.pc.things) walk(t);
+var skip = new[] { "Return", "Escape", "Evac", "Gate", "Deed", "Bill", "Letter", "Teleport", "Container", "Purse", "ToolBelt", "Map", "Spellbook", "Ancient" };
+return string.Join("\n", all.Where(t => !t.isEquipped && !skip.Any(k => t.trait.GetType().Name.Contains(k)))
+    .GroupBy(t => t.trait.GetType().Name).Select(g => g.First()).Take(__N__).Select(t => t.trait.GetType().Name + "," + t.uid));
+'''
+
+HOLD = ('var all = new System.Collections.Generic.List<Thing>(); System.Action<Thing> walk = null; '
+        'walk = t => { all.Add(t); if (t.IsContainer) foreach (var c in t.things) walk(c); }; foreach (var t in EClass.pc.things) walk(t); '
+        'var h = all.Find(t => t.uid == __U__); if (h == null) return "gone"; EClass.pc.HoldCard(h); EClass.player.RefreshCurrentHotItem(); return "ok";')
+
+DROP = 'if (EClass.pc.held != null) EClass.pc.PickHeld(); EClass.player.RefreshCurrentHotItem(); return "ok";'
 
 CLOSE = 'EClass.ui.CloseLayers(); if (EClass.pc.ai is AIAct ai && !(ai is GoalManualMove) && !ai.IsIdle) EClass.pc.SetNoGoal(); return "ok";'
 
@@ -111,6 +130,7 @@ def main():
     ap.add_argument("--wait", type=float, default=4)
     ap.add_argument("--kinds", type=int, default=0, help="aller a cote d'un objet de chaque sorte (N sortes)")
     ap.add_argument("--host-acts", action="store_true", help="l'host fait les actions, l'invite est compare")
+    ap.add_argument("--held", type=int, default=0, help="prendre en main N sortes d'objets du sac, une a une")
     ap.add_argument("--zone", help="id d'une zone ou aller d'abord (ex. mysilia), host et invite ensemble")
     a = ap.parse_args()
     sys.stdout.reconfigure(encoding="utf-8")
@@ -126,26 +146,39 @@ def main():
     if os.environ.get("WITNESS") == "1":
         witness()
     spots = [None]
-    if a.kinds:
+    if a.held:
+        spots = [("held:" + k, u) for k, u in (line.split(",") for line in ev(A, HELD.replace("__N__", str(a.held)), timeout=60).split("\n") if line)]
+    elif a.kinds:
         spots = [line.split(",") for line in ev(A, KINDS.replace("__N__", str(a.kinds)), timeout=60).split("\n") if line]
     plan = []
     for spot in spots:
-        if spot:
+        if spot and spot[0].startswith("held:"):
+            if ev(A, HOLD.replace("__U__", spot[1])) != "ok":
+                continue
+            time.sleep(0.5)
+        elif spot:
             ev(A, GO.replace("__X__", spot[1]).replace("__Z__", spot[2]))
             time.sleep(1)
         for line in ev(A, PLAN.replace("__R__", str(a.radius)), timeout=60).split("\n"):
             # (une fois par action et par sorte d'objet)
             if line and (line.split(",")[4], spot and spot[0]) not in {(p[4], p[6]) for p in plan}:
-                plan.append(line.split(",") + ([spot[0], spot[1], spot[2]] if spot else ["", "", ""]))
+                plan.append(line.split(",") + ([spot[0], spot[1], spot[2] if len(spot) > 2 else ""] if spot else ["", "", ""]))
+        if spot and spot[0].startswith("held:"):
+            ev(A, DROP)
     plan = [p for p in plan if not any(s.lower() == p[4].lower() for s in SKIP)]
     log(f"{len(plan)} actions proposees a l'invite autour de lui")
     report, done = [], 0
     for x, z, shift, i, act, tc, kind, sx, sz in plan:
-        if sx:
+        if kind.startswith("held:"):
+            if ev(A, HOLD.replace("__U__", sx)) != "ok":
+                log(f"  {kind} : plus dans le sac")
+                continue
+            time.sleep(0.5)
+        elif sx:
             ev(A, GO.replace("__X__", sx).replace("__Z__", sz))
             time.sleep(1)
         before = fingerprint(A, me)
-        r = ev(A, DO.replace("__INP__", "ActInput.AllAction" if shift == "1" else "ActInput.LeftMouse")
+        r = ev(A, DO.replace("__INP__", {"1": "ActInput.AllAction", "2": "ActInput.RightMouse"}.get(shift, "ActInput.LeftMouse"))
                .replace("__X__", x).replace("__Z__", z).replace("__ID__", act).replace("__I__", i))
         if r != "ok":
             log(f"  {act} en {x},{z} : {r}")
@@ -153,19 +186,21 @@ def main():
         done += 1
         time.sleep(a.wait)
         ev(A, CLOSE)
+        if kind.startswith("held:"):
+            ev(A, DROP)
         after = fingerprint(A, me)
         changed = [k for k in set(before) | set(after) if before.get(k) != after.get(k)]
         if not changed:
             continue
         bad = []
-        for attempt in range(2):
+        for attempt in range(4):
             host = fingerprint(H, me)
             after = fingerprint(A, me)
             bad = [k for k in changed if host.get(k) != after.get(k)]
             if not bad:
                 break
             time.sleep(3)
-        line = f"{act} en {x},{z}{' (Maj)' if shift == '1' else ''}{' [' + kind + ']' if kind else ''} : {len(changed)} change(s) chez l'invite"
+        line = f"{act} en {x},{z}{' (Maj)' if shift == '1' else ' (droit)' if shift == '2' else ''}{' [' + kind + ']' if kind else ''} : {len(changed)} change(s) chez l'invite"
         if bad:
             line += f", {len(bad)} DIFFERENT(S) chez l'host"
             report.append(line)
