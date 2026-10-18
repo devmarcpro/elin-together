@@ -1448,6 +1448,35 @@ def v7():
         check(f"un dragon de plus, un seul ({port} : {before[port]} -> {dragons(port)})", eventually(lambda: dragons(port) == before[port] + 1, timeout=10))
 
 
+def n1():
+    """Audit (2026-10-18) : en marchant sur la carte du monde avec « manger automatiquement », le jeu nourrit tout le
+    groupe, les autres joueurs aussi, du sac qu'ils portent : chez l'host l'invite mangeait une ration (10 -> 9) et
+    n'avait plus faim, chez lui il avait toujours faim. Seul l'host mange chez l'host."""
+    me = state(A)["pc"]["uid"]
+    if ev(H, 'EClass._zone.IsRegion.ToString()') != "True":
+        host_goto(H, A, 2)
+        time.sleep(5)
+    for key, uid in (("a", me), ("h", state(H)["pc"]["uid"])):
+        ev(H, f'var c = EClass._map.charas.Find(x => x.uid == {uid}); var f = ThingGen.Create("ration"); f.SetNum(5); c.AddThing(f, false); return "ok";')
+    time.sleep(4)
+    who = lambda uid: f'var c = EClass._map.charas.Find(x => x.uid == {uid}); '  # noqa: E731
+    rations = lambda port, uid: int(ev(port, who(uid) + 'return c.things.Where(t => t.id == "ration").Sum(t => t.Num).ToString();'))  # noqa: E731
+    hunger = lambda port, uid: int(ev(port, who(uid) + 'return c.hunger.value.ToString();'))  # noqa: E731
+    host_uid = state(H)["pc"]["uid"]
+    for port in (H, A):
+        for uid in (me, host_uid):
+            ev(port, who(uid) + 'c.hunger.value = 80; return "ok";')
+    before = rations(H, me), rations(H, host_uid)
+    auto = ev(H, 'var v = EClass.game.config.preference.autoEat; EClass.game.config.preference.autoEat = true; return v.ToString();')
+    # (pas de rencontre en route : elle emmene l'host sur une autre carte)
+    ev(H, 'EClass.player.safeTravel = 99; var p = EClass.pc.pos.Copy(); p.x += 4; EClass.pc.SetAIImmediate(new AI_Goto(p, 0)); return "ok";')
+    time.sleep(12)
+    ev(H, f'EClass.game.config.preference.autoEat = {auto.lower()}; return "ok";')
+    check(f"l'host a mange en marchant (faim 80 -> {hunger(H, host_uid)} ; il prend le meilleur de son sac)", hunger(H, host_uid) < 65)
+    check(f"l'invite n'a rien mange chez l'host ({before[0]} -> {rations(H, me)}, faim {hunger(H, me)})", rations(H, me) == before[0] and hunger(H, me) == 80)
+    check(f"ni chez lui ({rations(A, me)})", rations(A, me) == before[0])
+
+
 def main():
     start = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
     for name, port in (("host", 27551), ("invite", 27552)):
@@ -1457,7 +1486,7 @@ def main():
             continue
         check(f"{name} : pas de deuxieme ajout, lien remis ({r})", r == "0/0/True")
     check("au moins un jeu avait un autre membre dans l'equipe", RESULTS)
-    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, s3, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, z1, v1, v6, v7, v2, v3, v5, x2, x3, x4, x5, x6, x7, x8, x9, t1, q1, f2, v4)  # v1 avant t1 : t1 maudit l'invite de test, qui en meurt et ne voyage plus
+    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, s3, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, z1, v1, v6, v7, v2, v3, v5, x2, x3, x4, x5, x6, x7, x8, x9, t1, q1, f2, n1, v4)  # v1 avant t1 : t1 maudit l'invite de test, qui en meurt et ne voyage plus
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(',')]
     for step in steps:

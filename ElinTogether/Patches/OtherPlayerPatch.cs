@@ -91,4 +91,16 @@ internal static class OtherPlayerPatch
 
         return false;
     }
+
+    /// <summary>
+    ///     Walking the world map with "eat automatically", the game feeds every member of the party (no food given:
+    ///     the best of the eater's bag). The other players and their companions eat in their own game: fed here too,
+    ///     they ate twice, from the bag they carry
+    /// </summary>
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(Chara), nameof(Chara.InstantEat))]
+    internal static bool OnInstantEat(Chara __instance, Thing? t)
+    {
+        return t is not null || !IsMultiplayer || EClass.pc is not { } pc || CompanionHelper.OwnerOf(__instance) is not { } owner || owner == pc;
+    }
 }
