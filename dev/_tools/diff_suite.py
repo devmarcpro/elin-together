@@ -50,7 +50,8 @@ foreach (var t in EClass._map.things) thing(t, "map");
 var me = EClass._map.charas.Find(x => x.uid == __ME__);
 if (me != null) foreach (var t in me.things) thing(t, "bag");
 foreach (var c in EClass._map.charas.Where(c => c.IsPCFaction || c.IsPC || c.GetBool("remote_chara")))
-    lines.Add("C" + c.uid + "\t" + c.id + "|" + c._bits1.Bits + "," + c._bits2.Bits + "|" + maps(c));
+    // (32 : minuteur du « bon retour » de l'IA d'un habitant, propre au jeu qui le fait vivre)
+    lines.Add("C" + c.uid + "\t" + c.id + "|" + c._bits1.Bits + "," + c._bits2.Bits + "|" + maps(c).Replace(";32=" + c.GetInt(32), "").Replace("32=" + c.GetInt(32) + ";", ""));
 return string.Join("\n", lines);
 '''
 
@@ -109,8 +110,18 @@ def main():
     ap.add_argument("--radius", type=int, default=2)
     ap.add_argument("--wait", type=float, default=4)
     ap.add_argument("--kinds", type=int, default=0, help="aller a cote d'un objet de chaque sorte (N sortes)")
+    ap.add_argument("--host-acts", action="store_true", help="l'host fait les actions, l'invite est compare")
+    ap.add_argument("--zone", help="id d'une zone ou aller d'abord (ex. mysilia), host et invite ensemble")
     a = ap.parse_args()
     sys.stdout.reconfigure(encoding="utf-8")
+    global H, A
+    if a.host_acts:
+        H, A = A, H  # (A : celui qui agit ; H : celui qu'on compare)
+    if a.zone:
+        from travel_suite import host_goto  # noqa: PLC0415
+        uid = int(ev(H, f'return EClass.game.spatials.map.Values.First(z => z.id == "{a.zone}" && z is Zone).uid.ToString();'))
+        if int(ev(H, 'return EClass._zone.uid.ToString();')) != uid:
+            host_goto(27551, 27552, uid)
     me = ev(A, 'return EClass.pc.uid.ToString();')
     if os.environ.get("WITNESS") == "1":
         witness()
