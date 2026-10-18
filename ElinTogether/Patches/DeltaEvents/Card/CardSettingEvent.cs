@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using ElinTogether.Models;
 using ElinTogether.Net;
@@ -20,7 +21,7 @@ internal static class CardSettingEvent
             return;
         }
 
-        if (card.GetRootCard() is not Chara) {
+        if (card.GetRootCard() is not Chara && kind != CardSettingDelta.Door) {
             RemoteBasePaidPatch.WarnHostOnly();
         }
 
@@ -32,6 +33,29 @@ internal static class CardSettingEvent
     internal static void OnNote(Card __instance)
     {
         Tell(__instance, CardSettingDelta.Note);
+    }
+
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(Card), nameof(Card.c_refText), MethodType.Setter)]
+    internal static void OnName(Card __instance)
+    {
+        Tell(__instance, CardSettingDelta.Name);
+    }
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(Card), nameof(Card.isMasked), MethodType.Setter)]
+    internal static void OnMask(Card __instance, out bool __state)
+    {
+        __state = __instance.isMasked;
+    }
+
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(Card), nameof(Card.isMasked), MethodType.Setter)]
+    internal static void OnMasked(Card __instance, bool __state)
+    {
+        if (__instance.isMasked != __state) {
+            Tell(__instance, CardSettingDelta.Masked);
+        }
     }
 
     [HarmonyPrefix]
@@ -81,3 +105,27 @@ internal static class BedSettingEvent
         CardSettingEvent.Tell(__instance.owner, CardSettingDelta.Bed);
     }
 }
+
+/// <summary>
+///     A door opened or closed by hand (the "open", "close" of its menu). A walker opens it in every game already, and
+///     each game shuts its doors after a while by itself: told, a town's doors would never stop talking
+/// </summary>
+[HarmonyPatch]
+internal static class DoorSettingEvent
+{
+    internal static IEnumerable<MethodBase> TargetMethods()
+    {
+        return AccessTools.GetDeclaredMethods(typeof(TraitDoor))
+            .Concat(typeof(TraitDoor).GetNestedTypes(AccessTools.all).SelectMany(AccessTools.GetDeclaredMethods))
+            .Where(m => m.Name.Contains("<TrySetAct>"));
+    }
+
+    [HarmonyPostfix]
+    internal static void OnDoorByHand(object __instance)
+    {
+        var door = __instance as TraitDoor ?? AccessTools.GetDeclaredFields(__instance.GetType())
+            .Select(f => f.GetValue(__instance)).OfType<TraitDoor>().FirstOrDefault();
+        CardSettingEvent.Tell(door?.owner, CardSettingDelta.Door);
+    }
+}
+

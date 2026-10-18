@@ -12,6 +12,8 @@ namespace ElinTogether.Models;
 ///     the host, who runs the residents and keeps the save, and the host's never reached the guests <br />
 ///     <see cref="Fields" /> is what the tools of a held item change on an object (wrench, eco mark, brush, hammer), told by
 ///     the host only <br />
+///     Also: a door opened or closed (by hand, or by the game, which shuts them after a while: each game did it alone), an
+///     object hidden from view (visibility tool), the name given to a canvas, a mannequin, a seed <br />
 ///     Closed list. The whole state is sent, not the click: applying it twice changes nothing
 /// </summary>
 [MessagePackObject]
@@ -22,6 +24,9 @@ public class CardSettingDelta : ElinDelta
     public const byte Bed = 2;
     public const byte Teleporter = 3;
     public const byte Fields = 4;
+    public const byte Door = 5;
+    public const byte Masked = 6;
+    public const byte Name = 7;
 
     [Key(0)]
     public required RemoteCard Card { get; init; }
@@ -58,12 +63,15 @@ public class CardSettingDelta : ElinDelta
             Text = kind switch {
                 Note => card.c_note,
                 Teleporter => (card.trait as TraitTeleporter)?.id,
+                Name => card.c_refText,
                 _ => null,
             },
             Value = kind switch {
                 Sale => card.isSale ? 1 : 0,
                 Bed => (int)card.c_bedType,
                 Teleporter => EClass._zone.uid,
+                Door => card.dir,
+                Masked => card.isMasked ? 1 : 0,
                 _ => 0,
             },
             Holders = kind == Bed ? card.c_charaList?.list.ToArray() : null,
@@ -108,7 +116,7 @@ public class CardSettingDelta : ElinDelta
     {
         // an object of the map, or one the sender carries; a bed setting only on a bed
         if (Card.Find() is not Thing { isDestroyed: false } thing || (Kind == Bed && thing.trait is not TraitBed) ||
-            (Kind == Teleporter && thing.trait is not TraitTeleporter) || Kind > Fields) {
+            (Kind == Teleporter && thing.trait is not TraitTeleporter) || (Kind == Door && thing.trait is not TraitDoor) || Kind > Name) {
             return;
         }
 
@@ -121,7 +129,8 @@ public class CardSettingDelta : ElinDelta
 
             // only the host manages the base: what stands on its map is not changed by the others, the sender gets the
             // setting the host keeps, which puts its copy back (what a player carries is its own)
-            if (NetSession.Instance.Rules.HostManagesBase && !host.IsZoneSession && thing.GetRootCard() is not Chara) {
+            // (a door is opened by whoever walks there)
+            if (NetSession.Instance.Rules.HostManagesBase && !host.IsZoneSession && thing.GetRootCard() is not Chara && Kind != Door) {
                 host.SendDeltaTo(OriginPeer, Create(thing, Kind));
                 return;
             }
@@ -145,6 +154,21 @@ public class CardSettingDelta : ElinDelta
                 var teleporter = (TraitTeleporter)thing.trait;
                 teleporter.id = Text;
                 game.teleports.SetID(teleporter, Value);
+                break;
+            case Door when thing.dir != Value:
+                thing.dir = Value;
+                thing.renderer.RefreshSprite();
+                if (thing.pos.IsValid && EClass._map is { } map) {
+                    map.RefreshSingleTile(thing.pos.x, thing.pos.z);
+                    map.RefreshFOV(thing.pos.x, thing.pos.z);
+                }
+
+                break;
+            case Masked:
+                thing.isMasked = Value != 0;
+                break;
+            case Name:
+                thing.c_refText = Text;
                 break;
             case Fields when Numbers is { Length: 8 } n:
                 if (n[0] >= 0) {
