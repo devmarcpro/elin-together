@@ -24,6 +24,9 @@ P10 l'invite change l'apparence de la monture d'un habitant (c_idRidePCC, ce que
 P11 l'invite bascule « allumage automatique » d'une lumiere (ce que fait l'entree Maj du menu de la case) : l'host l'a.
 P12 l'invite crochete un coffre ferme (Trait.OnLockOpen, la fin du crochetage) : ouvert chez l'host aussi.
     (P11 et P12 trouves par le comparateur diff_suite.py, 2026-10-18)
+P13 l'invite change la couleur d'une lumiere (c_lightColor, ce que fait la palette de l'entree Maj) : l'host l'a.
+P14 l'invite change le modele d'une figurine par le curseur (la fonction du curseur du jeu, appelee par reflexion) :
+    l'host a le meme.
 """
 import os
 import sys
@@ -263,9 +266,35 @@ def p12(ctx):
     ev(H, f'{thing(uid)}.Destroy(); return "ok";')
 
 
+def p13(ctx):
+    to_base()
+    uid = ev(A, 'var t = EClass._map.things.Where(x => x.IsInstalled && x.LightData != null).OrderBy(x => x.pos.Distance(EClass.pc.pos)).FirstOrDefault(); return t == null ? "" : t.uid.ToString();')
+    if not check("une lumiere installee", bool(uid)):
+        return
+    want = ev(A, f'var t = {thing(uid)}; t.c_lightColor = t.c_lightColor == 31 * 1024 + 1 * 32 + 1 ? 1 * 1024 + 31 * 32 + 1 : 31 * 1024 + 1 * 32 + 1; return t.c_lightColor.ToString();')
+    check(f"l'invite colore la lumiere {uid} ({want}) : l'host a la meme couleur",
+          eventually(lambda: ev(H, f'return {thing(uid)}.c_lightColor.ToString();') == want, timeout=8))
+
+
+def p14(ctx):
+    to_base()
+    uid = ev(A, 'var t = EClass._map.things.FirstOrDefault(x => x.trait is TraitFigure f && f.source != null && f.source.tiles.Length > 1); return t == null ? "" : t.uid.ToString();')
+    if not uid:
+        # (une figurine d'un monstre a plusieurs modeles : celles de la base n'en ont qu'un)
+        uid = ev(H, 'foreach (var x in EClass._map.things.Where(x => x.trait is TraitFigure f && f.source == null).ToList()) x.Destroy(); '
+                    'var row = EClass.sources.charas.rows.First(r => r.tiles != null && r.tiles.Length > 1); '
+                    'var t = ThingGen.Create("figure"); t.c_idRefCard = row.id; EClass._zone.AddCard(t, EClass.pc.pos.GetNearestPoint(allowChara: false)).Install(); return t.uid.ToString();')
+        eventually(lambda: ev(A, f'({thing(uid)} != null).ToString()') == "True", timeout=10)
+    want = ev(A, f'var f = {thing(uid)}.trait as TraitFigure; var n = f.source.tiles.Length; var b = (f.owner.refVal + 1) % System.Math.Max(n, 2); '
+                 'var m = typeof(TraitFigure).GetMethods(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).First(x => x.Name.Contains("<TrySetAct>") && x.GetParameters().Length == 1 && x.GetParameters()[0].ParameterType == typeof(float)); '
+                 'm.Invoke(f, new object[] { (float)b }); return f.owner.refVal.ToString();')
+    check(f"l'invite choisit le modele {want} de la figurine {uid} : l'host a le meme",
+          eventually(lambda: ev(H, f'return {thing(uid)}.refVal.ToString();') == want, timeout=8))
+
+
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
-    steps = [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12]
+    steps = [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14]
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(",")]
     for step in steps:

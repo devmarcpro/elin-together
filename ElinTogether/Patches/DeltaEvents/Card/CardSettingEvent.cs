@@ -150,6 +150,25 @@ internal static class CardSettingEvent
     }
 
     /// <summary>
+    ///     The color of a light (shift menu of the tile, with the illumination license)
+    /// </summary>
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(Card), nameof(Card.c_lightColor), MethodType.Setter)]
+    internal static void OnLightColor(Card __instance, out int __state)
+    {
+        __state = __instance.c_lightColor;
+    }
+
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(Card), nameof(Card.c_lightColor), MethodType.Setter)]
+    internal static void OnLightColored(Card __instance, int __state)
+    {
+        if (__instance is Thing && __instance.c_lightColor != __state) {
+            Tell(__instance, CardSettingDelta.LightColor);
+        }
+    }
+
+    /// <summary>
     ///     "Turn on/off automatically" of a light (shift menu of the tile)
     /// </summary>
     [HarmonyPrefix]
@@ -260,6 +279,28 @@ internal static class RoomPlateSettingEvent
 
         return AccessTools.GetDeclaredFields(closure.GetType()).Where(f => !f.FieldType.IsValueType)
             .Select(f => AreaOf(f.GetValue(closure), depth - 1)).FirstOrDefault(a => a is not null);
+    }
+}
+
+/// <summary>
+///     The model a figure shows (its slider, a lambda of TraitFigure.TrySetAct)
+/// </summary>
+[HarmonyPatch]
+internal static class FigureSettingEvent
+{
+    internal static IEnumerable<MethodBase> TargetMethods()
+    {
+        return typeof(TraitFigure).GetNestedTypes(AccessTools.all).SelectMany(AccessTools.GetDeclaredMethods)
+            .Concat(AccessTools.GetDeclaredMethods(typeof(TraitFigure)))
+            .Where(m => m.Name.Contains("<TrySetAct>") && m.ReturnType == typeof(void) && m.GetParameters() is [{ ParameterType: var t }] && t == typeof(float));
+    }
+
+    [HarmonyPostfix]
+    internal static void OnFigure(object __instance)
+    {
+        var figure = __instance as TraitFigure ?? AccessTools.GetDeclaredFields(__instance.GetType())
+            .Select(f => f.GetValue(__instance)).OfType<TraitFigure>().FirstOrDefault();
+        CardSettingEvent.Tell(figure?.owner, CardSettingDelta.Figure);
     }
 }
 

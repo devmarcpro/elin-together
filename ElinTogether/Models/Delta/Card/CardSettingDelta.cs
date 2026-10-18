@@ -37,6 +37,8 @@ public class CardSettingDelta : ElinDelta
     public const byte RideSkin = 14;
     public const byte AutoToggle = 15;
     public const byte Lock = 16;
+    public const byte LightColor = 17;
+    public const byte Figure = 18;
 
     [Key(0)]
     public required RemoteCard Card { get; init; }
@@ -95,6 +97,8 @@ public class CardSettingDelta : ElinDelta
                 Restrain => card.isRestrained ? 1 : 0,
                 AutoToggle => card.disableAutoToggle ? 1 : 0,
                 Lock => card.c_lockLv,
+                LightColor => card.c_lightColor,
+                Figure => card.refVal,
                 _ => 0,
             },
             Blob = kind == Painting ? card.c_textureData : null,
@@ -224,7 +228,7 @@ public class CardSettingDelta : ElinDelta
             (Kind == Teleporter && thing.trait is not TraitTeleporter) || (Kind == Door && thing.trait is not TraitDoor) ||
             (Kind == HouseBoard && thing.trait is not TraitHouseBoard) ||
             (Kind == Painting && (thing.trait is not TraitCanvas || Blob is not { Length: <= 1 << 20 })) ||
-            (Kind == RoomPlate && thing.trait is not TraitRoomPlate) || Kind is > RoomPlate and < AutoToggle or > Lock) {
+            (Kind == RoomPlate && thing.trait is not TraitRoomPlate) || (Kind == Figure && (thing.trait is not TraitFigure { source: { } row } || Value < 0 || Value >= row.tiles.Length)) || Kind is > RoomPlate and < AutoToggle or > Figure) {
             return;
         }
 
@@ -306,6 +310,21 @@ public class CardSettingDelta : ElinDelta
 
                 if (n[7] > 0) {
                     thing.elements.SetBase(405, n[7]);
+                }
+
+                break;
+            case LightColor:
+                thing.c_lightColor = Value;
+                if (thing.ExistsOnMap) {
+                    thing.RecalculateFOV();
+                    thing.renderer.GetTC<TCExtra>()?.RefreshColor();
+                }
+
+                break;
+            case Figure:
+                thing.refVal = Value;
+                if (thing.ExistsOnMap) {
+                    thing.renderer.RefreshSprite();
                 }
 
                 break;
