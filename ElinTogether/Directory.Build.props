@@ -33,6 +33,8 @@
         <ErrorReport>prompt</ErrorReport>
         <WarningLevel>4</WarningLevel>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+        <!-- avis de securite sur MessagePack 3.1.8 paru apres la 0.26.764 : mise a jour a tester a part (2026-10-19) -->
+        <WarningsNotAsErrors>NU1902</WarningsNotAsErrors>
     </PropertyGroup>
     <ItemGroup>
         <Reference Include="$(ElinGamePath)\BepInEx\core\0Harmony.dll">
