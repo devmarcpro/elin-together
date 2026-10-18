@@ -60,6 +60,42 @@ internal static class OtherPlayerPatch
     }
 
     /// <summary>
+    ///     An area spell spares friends by the caster's control magic (302) and its feat (1214); a companion of "the
+    ///     player" uses the player's too, and learns as a companion (five times the player's experience). Cast by another
+    ///     player, the local player's were added and it learnt as a companion; cast by another player's companion, the
+    ///     local player's were used. The caster's own as a player, and its owner's for a companion
+    /// </summary>
+    [HarmonyTranspiler]
+    [HarmonyPatch(typeof(ActEffect), nameof(ActEffect.DamageEle))]
+    internal static IEnumerable<CodeInstruction> OnDamageEle(IEnumerable<CodeInstruction> instructions)
+    {
+        var getPc = AccessTools.PropertyGetter(typeof(EClass), nameof(EClass.pc));
+        var isPc = AccessTools.PropertyGetter(typeof(Card), nameof(Card.IsPC));
+        var list = instructions.ToList();
+        // the friendly fire block ends with the feat read on "the player"; the "is the player" after it are crimes
+        var last = list.FindLastIndex(c => c.LoadsConstant(1214));
+        for (var i = 0; i <= last; i++) {
+            if (list[i].Calls(getPc) && (list[i + 1].LoadsConstant(302) || list[i + 1].LoadsConstant(1214))) {
+                list[i] = new CodeInstruction(OpCodes.Ldarg_0) { labels = list[i].labels };
+                list.Insert(i + 1, CodeInstruction.Call(typeof(OtherPlayerPatch), nameof(MasteryOf)));
+                last++;
+            } else if (list[i].Calls(isPc)) {
+                list[i] = new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(CompanionAllyLimitPatch), nameof(CompanionAllyLimitPatch.IsAnyPlayer))) {
+                    labels = list[i].labels,
+                };
+            }
+        }
+
+        return list;
+    }
+
+    // whose control magic a companion uses: its player's
+    internal static Chara MasteryOf(Card caster)
+    {
+        return IsMultiplayer && caster is Chara chara && CompanionHelper.OwnerOf(chara) is { } owner ? owner : EClass.pc;
+    }
+
+    /// <summary>
     ///     Another player dies in this game: the game counts it as one of "the player's" pets that died (a statistic,
     ///     and once the tutorial about dead pets). Not a pet: the count stays as it was
     /// </summary>

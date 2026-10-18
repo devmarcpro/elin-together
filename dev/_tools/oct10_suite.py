@@ -1470,6 +1470,27 @@ def y3():
     check(f"tue par l'host : compte pareil dans les deux jeux ({res['host']})", res["host"][0] == res["host"][1] and res["host"][0].startswith("1/"))
 
 
+def y4():
+    """Liste du 2026-10-18 : un sort de zone epargne les amis selon la maitrise (302) et l'aptitude 1214 du lanceur ;
+    lance par un autre joueur, le jeu ajoutait celles du joueur LOCAL. Ici, dans le jeu de l'host : l'host a 1214,
+    l'invite rien ; l'invite lance 40 boules de feu (ActEffect.DamageEle, ce que fait le sort, sans le menu) sur un
+    habitant ami (cree par eval). Avant : l'ami epargne ~4 fois sur 5 (l'aptitude de l'host) ; maintenant : touche.
+    (pas sur l'host : un joueur ne blesse pas un autre joueur, le mod l'empeche)"""
+    guest = state(A)["pc"]["uid"]
+    r = str(ev(H, f'var g = EClass._map.charas.Find(x => x.uid == {guest}); var h = EClass.pc; '
+                  'var m = CharaGen.Create("putit"); EClass._zone.AddCard(m, g.pos.GetNearestPoint(allowChara: false)); '
+                  'm.hostility = m.c_originalHostility = Hostility.Friend; '
+                  'var f = h.elements.Base(1214); h.elements.SetBase(1214, 1); '
+                  'var g302 = g.elements.Base(302); var g1214 = g.elements.Base(1214); g.elements.SetBase(302, 0); g.elements.SetBase(1214, 0); '
+                  'var hits = 0; for (var i = 0; i < 40; i++) { m.hp = m.MaxHP; var hp0 = m.hp; '
+                  'ActEffect.DamageEle(g, EffectId.Ball, 100, Element.Create(910, 10), new System.Collections.Generic.List<Point> { m.pos.Copy(), g.pos.Copy() }, default(ActRef)); '
+                  'if (m.hp < hp0 || m.isDead) hits++; if (m.isDead) break; } h.elements.SetBase(1214, f); g.elements.SetBase(302, g302); g.elements.SetBase(1214, g1214); '
+                  'var friend = g.IsFriendOrAbove(m); if (!m.isDead) m.Destroy(); g.hp = g.MaxHP; return hits + "|" + friend;'))
+    hits, friend = r.split("|")
+    check(f"l'habitant est un ami pour l'invite ({friend})", friend == "True")
+    check(f"la boule de feu de l'invite (sans maitrise ni aptitude) touche l'ami au moins 30 fois sur 40, ou le tue ({hits})", int(hits) >= 30 or "dead" in r)
+
+
 def v6():
     """Rapport (2026-10-15) : Tephra vaincu, quete de Vernis restee a 3. La reparation ne tournait qu'au lancement du
     serveur ; un etage du boss ouvert pendant la partie ne comptait pas. Ici, en cours de partie : quete a 3, l'etage
@@ -1557,7 +1578,7 @@ def main():
             continue
         check(f"{name} : pas de deuxieme ajout, lien remis ({r})", r == "0/0/True")
     check("au moins un jeu avait un autre membre dans l'equipe", RESULTS)
-    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, s3, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, z1, v1, v6, v7, v2, v3, v5, x2, x3, x4, x5, x6, x7, x8, x9, y1, y2, y3, t1, q1, f2, n1, v4)  # v1 avant t1 : t1 maudit l'invite de test, qui en meurt et ne voyage plus
+    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, s3, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, z1, v1, v6, v7, v2, v3, v5, x2, x3, x4, x5, x6, x7, x8, x9, y1, y2, y3, y4, t1, q1, f2, n1, v4)  # v1 avant t1 : t1 maudit l'invite de test, qui en meurt et ne voyage plus
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(',')]
     for step in steps:
