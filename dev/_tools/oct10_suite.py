@@ -1415,8 +1415,13 @@ def y1():
     hp = ('var c = {c}; var e0 = c.elements.ValueWithoutLink(1646); c.elements.SetBase(1646, 0); var hp0 = c.MaxHP; var mp0 = c.mana.max; '
           'c.elements.SetBase(1646, 20); var hp1 = c.MaxHP; var mp1 = c.mana.max; c.elements.SetBase(1646, e0); '
           'return hp0 + "|" + hp1 + "|" + mp0 + "|" + mp1 + "|" + EClass.player.lastEmptyAlly;')
+    # (une place d'allie libre au moins : x9 donne un chien a l'invite ; aptitude 1645, « plus d'allies », dans les deux jeux)
+    for port, c in ((A, 'EClass.pc'), (H, g)):
+        ev(port, f'var c = {c}; c.elements.SetBase(1645, c.elements.Base(1645) + 3); EClass.player.RefreshEmptyAlly(); return "ok";')
     mine = str(ev(A, hp.format(c='EClass.pc')))
     there = str(ev(H, hp.format(c=g)))
+    for port, c in ((A, 'EClass.pc'), (H, g)):
+        ev(port, f'var c = {c}; c.elements.SetBase(1645, c.elements.Base(1645) - 3); EClass.player.RefreshEmptyAlly(); return "ok";')
     print(f"    invite chez lui (vie sans|avec|mana sans|avec|places libres) : {mine} ; chez l'host : {there}")
     m, t = mine.split("|"), there.split("|")
     check(f"l'ame solitaire donne de la vie a l'invite chez lui ({mine})", int(m[1]) > int(m[0]))
@@ -1489,6 +1494,44 @@ def y4():
     hits, friend = r.split("|")
     check(f"l'habitant est un ami pour l'invite ({friend})", friend == "True")
     check(f"la boule de feu de l'invite (sans maitrise ni aptitude) touche l'ami au moins 30 fois sur 40, ou le tue ({hits})", int(hits) >= 30 or "dead" in r)
+
+
+def y5():
+    """Liste du 2026-10-18 : le portail (EffectId.Gate) teleporte le lanceur et fait venir « l'equipe du joueur ».
+    Mesure : l'invite (avec un chien a lui) et l'host (avec un chien a lui) loin l'un de l'autre ; l'invite lance le
+    portail (ActEffect.Proc, ce que fait le sort, sans le menu). Attendu, comme en solo : l'invite et SON chien
+    ensemble, l'host et son chien ne bougent pas ; pareil dans les deux jeux. Puis l'inverse (l'host lance).
+    Mesure du 19 : le chien de l'invite ne le suivait pas, et le portail de l'host emmenait le chien de l'invite."""
+    import guest_suite as gs  # noqa: PLC0415
+    # (pas sur la carte du monde : le portail n'y fait rien)
+    if ev(H, 'return EClass._zone.IsRegion.ToString();') == "True":
+        host_goto(H, A, int(ev(H, 'return EClass.pc.homeZone.uid.ToString();')))
+        time.sleep(8)
+    guest, host = state(A)["pc"]["uid"], state(H)["pc"]["uid"]
+    ctx = {"a": (A, guest), "h": (H, host)}
+    gdog = gs.tame(ctx, "dog", "a")
+    hdog = gs.tame(ctx, "dog", "h")
+    time.sleep(3)
+    where = lambda port: ev(port, f'System.Func<int, string> p = u => {{ var c = EClass._map.charas.Find(x => x.uid == u); return c == null ? "-" : c.pos.x + ":" + c.pos.z; }}; '  # noqa: E731
+                                  f'return p({guest}) + " " + p({gdog}) + " " + p({host}) + " " + p({hdog});')
+    before = where(H)
+    ev(A, 'ActEffect.Proc(EffectId.Gate, 100, BlessedState.Normal, EClass.pc, EClass.pc); return "ok";')
+    time.sleep(6)
+    after_h, after_a = where(H), where(A)
+    print(f"    invite chien-invite host chien-host : avant {before} ; apres chez l'host {after_h}, chez l'invite {after_a}")
+    g, gd, h, hd = after_h.split()
+    near = lambda a, b: a != "-" and b != "-" and max(abs(int(a.split(":")[0]) - int(b.split(":")[0])), abs(int(a.split(":")[1]) - int(b.split(":")[1]))) <= 2  # noqa: E731
+    check(f"chez l'host : le chien de l'invite l'a suivi ({g} / {gd})", near(g, gd))
+    check(f"chez l'host : l'host et son chien n'ont pas bouge ({before.split()[2:]} -> {h} {hd})", [h, hd] == before.split()[2:])
+    check(f"les deux jeux ont les memes places ({after_h} / {after_a})", eventually(lambda: where(H) == where(A), timeout=10))
+    # l'autre sens : l'host lance le portail ; son chien vient, l'invite et le chien de l'invite restent
+    before = where(H)
+    ev(H, 'ActEffect.Proc(EffectId.Gate, 100, BlessedState.Normal, EClass.pc, EClass.pc); return "ok";')
+    time.sleep(6)
+    g, gd, h, hd = where(H).split()
+    print(f"    l'host lance : avant {before} ; apres {where(H)}")
+    check(f"chez l'host : son chien l'a suivi ({h} / {hd})", near(h, hd))
+    check(f"chez l'host : l'invite et son chien n'ont pas bouge ({before.split()[:2]} -> {g} {gd})", [g, gd] == before.split()[:2])
 
 
 def v6():
@@ -1578,7 +1621,7 @@ def main():
             continue
         check(f"{name} : pas de deuxieme ajout, lien remis ({r})", r == "0/0/True")
     check("au moins un jeu avait un autre membre dans l'equipe", RESULTS)
-    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, s3, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, z1, v1, v6, v7, v2, v3, v5, x2, x3, x4, x5, x6, x7, x8, x9, y1, y2, y3, y4, t1, q1, f2, n1, v4)  # v1 avant t1 : t1 maudit l'invite de test, qui en meurt et ne voyage plus
+    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, s3, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, z1, v1, v6, v7, v2, v3, v5, x2, x3, x4, x5, x6, x7, x8, x9, y1, y2, y3, y4, y5, t1, q1, f2, n1, v4)  # v1 avant t1 : t1 maudit l'invite de test, qui en meurt et ne voyage plus
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(',')]
     for step in steps:

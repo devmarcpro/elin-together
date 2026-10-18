@@ -95,6 +95,51 @@ internal static class OtherPlayerPatch
         return IsMultiplayer && caster is Chara chara && CompanionHelper.OwnerOf(chara) is { } owner ? owner : EClass.pc;
     }
 
+    private static Chara? _gateCaster;
+
+    /// <summary>
+    ///     The gate spell takes the caster away and brings "the player's party" along: cast by the local player, also the
+    ///     other players and their companions (the host's gate stole a guest's dog). Only the caster's own companions; a
+    ///     guest asks the host to bring them on a map the host runs (<see cref="Models.GateFollowDelta" />)
+    /// </summary>
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(ActEffect), nameof(ActEffect.Proc), typeof(EffectId), typeof(int), typeof(BlessedState), typeof(Card), typeof(Card), typeof(ActRef))]
+    internal static void OnProc(EffectId id, Card cc, out bool __state)
+    {
+        __state = IsMultiplayer && id == EffectId.Gate && cc is Chara { IsPC: true } && _gateCaster is null;
+        if (__state) {
+            _gateCaster = (Chara)cc;
+        }
+    }
+
+    [HarmonyFinalizer]
+    [HarmonyPatch(typeof(ActEffect), nameof(ActEffect.Proc), typeof(EffectId), typeof(int), typeof(BlessedState), typeof(Card), typeof(Card), typeof(ActRef))]
+    internal static void OnProcEnd(bool __state)
+    {
+        if (__state) {
+            _gateCaster = null;
+        }
+    }
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(Card), nameof(Card.Teleport))]
+    internal static bool OnTeleport(Card __instance, Point point)
+    {
+        if (_gateCaster is not { } caster || __instance == caster || __instance is not Chara chara) {
+            return true;
+        }
+
+        if (CompanionHelper.OwnerOf(chara) != caster) {
+            return false;
+        }
+
+        if (NetSession.Instance.Connection is ElinNetClient client && point.IsValid) {
+            client.Delta.AddRemote(new Models.GateFollowDelta { Chara = chara, X = point.x, Z = point.z });
+        }
+
+        return true;
+    }
+
     /// <summary>
     ///     Another player dies in this game: the game counts it as one of "the player's" pets that died (a statistic,
     ///     and once the tutorial about dead pets). Not a pet: the count stays as it was
