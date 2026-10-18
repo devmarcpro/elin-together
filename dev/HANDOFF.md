@@ -1,6 +1,15 @@
 # Passation — ElinTogether « indépendance »
 
-## État au 19 octobre 2026, 0h15 (à lire en premier)
+## Pause du 19 octobre 2026, 1h45 (l'utilisateur joue une heure)
+
+- **En cours, pas commité ni testé vert** : outil « drapeaux de case » du mode construction (neige, flotter, pilier,
+  transparence, zone dégagée) : `CellFlagDelta` 857, `CellFlagEvent`, 23e champ de `TileStateDelta`,
+  `RemoteBuildModePatch`. Rouge joué (`settings2_suite p16`), relu (gardes ajoutés). À faire : `rebench`, `p16`
+  vert, toute `settings2_suite`, commit.
+- Build publié 0.26.764 remis dans le jeu. Bancs fermés.
+- Toujours pas : série complète (`release_gate.sh`), envoi GitHub (refusé par le filtre de la session).
+
+## État au 19 octobre 2026, 0h15
 
 - **Publiée : 0.26.764.** Depuis, pas publié : les commits du 18 au soir (liste dans `MODLOG.md`, entrée « 2026-10-18
   (nuit) »), sur `fix/points-restants`. **Pas poussés** : l'envoi sur GitHub est refusé par le filtre de permissions
