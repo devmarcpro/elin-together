@@ -31,6 +31,15 @@ internal static class QuestVernisRepair
         var mine = zones.OfType<Zone_VernisMine>().ToList();
         PutBack(EClass.game.quests.Get<QuestVernis>(), mine.Any(z => z.IsBossLv) ? 8 : mine.Any(z => z.lv < -1) ? 7 : 0);
 
+        // the dialog of step 10 ends the quest (the dragon joins the base); step 11 has no dialog and never moves on.
+        // A world whose end was lost there (seen 2026-10-18, the user's world) is ended here, at the base, as that dialog does
+        if (EClass.game.quests.Get<QuestVernis>() is { phase: >= 11 } lost && EClass._zone.id == "vernis" && EClass.Branch is not null) {
+            EmpLog.Information("The Vernis quest stood at phase {Phase}, after its last dialog: completed", lost.phase);
+            using (Models.ElinDelta.Simulate()) {
+                lost.Complete();
+            }
+        }
+
         // Nymelle, the same way: the game opens the stairs under the first floor at step 1, those of the boss
         // floor at 2 and those under it, to the crystal, at 3 (Zone_Nymelle.LockExit)
         var nymelle = zones.OfType<Zone_Nymelle>().ToList();

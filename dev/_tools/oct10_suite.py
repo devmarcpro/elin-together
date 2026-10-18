@@ -110,7 +110,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 import emp  # noqa: E402
 from mp_test import log, ok, state  # noqa: E402
-from travel_suite import RESULTS, check, ev, eventually, host_goto, players, scan_logs  # noqa: E402
+from travel_suite import RESULTS, VERNIS, check, ev, eventually, host_goto, players, scan_logs  # noqa: E402
 
 TWICE = ('var p = EClass.pc.party; var c = p.members.FirstOrDefault(x => x != EClass.pc); if (c == null) return "seul"; '
          'var n = p.members.Count; var u = p.uidMembers.Count; c.party = new Party(); p.AddMemeber(c); '
@@ -1422,6 +1422,32 @@ def v6():
     ev(A, 'var q = EClass.game.quests.Get<QuestVernis>(); if (q != null) EClass.game.quests.Remove(q); return "ok";')
 
 
+def v7():
+    """Rapport (2026-10-18, le monde du depot) : Tephra vaincu, le dragon n'est jamais venu, la quete affiche « 3 ». Elle
+    etait a l'etape 11 : le dialogue de l'etape 10 termine la quete, l'etape 11 n'a pas de dialogue et n'avance jamais
+    (le « 3 » est le texte du jeu pour ces etapes). L'host termine une quete restee la, a la base de Vernis, comme ce
+    dialogue : le dragon arrive, une seule fois. Il faut un monde dont Vernis est la base (pas world_lab : l'etape le dit)."""
+    if ev(H, 'var z = EClass.game.spatials.Find("vernis"); return (z != null && z.branch != null).ToString();') != "True":
+        print("    [SAUTE] Vernis n'est pas une base dans ce monde (joue sur une copie du monde du depot)")
+        return
+    # (la quete est commencee par l'host seul : commencee aussi par l'invite, l'host en avait deux, et deux dragons)
+    for port in (H, A):
+        ev(port, 'EClass.game.quests.completedIDs.Remove("vernis_gold"); return "ok";')
+    dragons = lambda port: int(ev(port, 'return EClass.game.cards.globalCharas.Values.Count(c => c.id == "corgon" && !c.isDestroyed).ToString();'))  # noqa: E731
+    before = {port: dragons(port) for port in (H, A)}
+    ev(H, 'if (EClass.game.quests.Get<QuestVernis>() == null) EClass.game.quests.Start("vernis_gold", "loytel"); return "ok";')
+    if not check("la quete de Vernis est dans les deux journaux", eventually(lambda: ev(A, VQ + 'return (q != null).ToString();') == "True", timeout=30)):
+        return
+    for port in (H, A):
+        ev(port, VQ + 'q.phase = 11; q.task = null; return "ok";')
+    host_goto(H, A, VERNIS)
+    done = lambda port: ev(port, 'return (EClass.game.quests.completedIDs.Contains("vernis_gold") && EClass.game.quests.Get<QuestVernis>() == null).ToString();') == "True"  # noqa: E731
+    check("a la base de Vernis, la quete restee a 11 est terminee chez l'host", eventually(lambda: done(H), timeout=40))
+    check("et chez l'invite", eventually(lambda: done(A), timeout=30))
+    for port in (H, A):
+        check(f"un dragon de plus, un seul ({port} : {before[port]} -> {dragons(port)})", eventually(lambda: dragons(port) == before[port] + 1, timeout=10))
+
+
 def main():
     start = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
     for name, port in (("host", 27551), ("invite", 27552)):
@@ -1431,7 +1457,7 @@ def main():
             continue
         check(f"{name} : pas de deuxieme ajout, lien remis ({r})", r == "0/0/True")
     check("au moins un jeu avait un autre membre dans l'equipe", RESULTS)
-    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, s3, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, z1, v1, v6, v2, v3, v5, x2, x3, x4, x5, x6, x7, x8, x9, t1, q1, f2, v4)  # v1 avant t1 : t1 maudit l'invite de test, qui en meurt et ne voyage plus
+    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, s3, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, z1, v1, v6, v7, v2, v3, v5, x2, x3, x4, x5, x6, x7, x8, x9, t1, q1, f2, v4)  # v1 avant t1 : t1 maudit l'invite de test, qui en meurt et ne voyage plus
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(',')]
     for step in steps:
