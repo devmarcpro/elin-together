@@ -3076,3 +3076,10 @@ fenêtres `-empmute`).
   trouvée (le « Halting abandoned act » de l'host ne touche pas le jeu de l'invité).
 - `dev/_decomp` refait pour Elin EA 23.356 (demande de l'utilisateur ; l'ancien gardé à côté).
 - Série complète toujours pas jouée : l'utilisateur utilise le PC.
+
+Publié : **0.26.789** (commit f8e4636, 2026-10-19 vers 2h, ordre de l'utilisateur : « commit push release », « c'est à
+toi de tout faire »), `--sans-barriere` (série complète pas jouée : l'utilisateur utilisait le PC ; chaque correction
+rouge puis verte au banc). Zip identique en ligne (sha256 0c3e6c12…). Dedans depuis la 0.26.764 : tout ce qui
+précède depuis le 18 (gestes partagés, âme solitaire, objet béni, sort de zone, portail, Vernis, manger
+automatiquement). Pas dedans : drapeaux de case (mis de côté, `git stash`). Le build Release laisse passer l'avis
+NU1902 (MessagePack 3.1.8, paru après la 0.26.764 : mise à jour à tester à part). Build publié installé dans le jeu.

@@ -1,5 +1,11 @@
 # Passation — ElinTogether « indépendance »
 
+## 19 octobre 2026, 2h : publiée 0.26.789 (à lire en premier)
+
+- **Publiée : 0.26.789** (commit f8e4636), sans série complète (ordre de l'utilisateur). Build publié dans le jeu.
+- Mis de côté (`git stash list`, deux entrées « Drapeaux de case ») : à reprendre, `p16` vert à jouer.
+- À faire : série complète sur ce code quand le PC est libre ; MessagePack (NU1902) à mettre à jour et tester.
+
 ## Pause du 19 octobre 2026, 1h45 (l'utilisateur joue une heure)
 
 - **En cours, pas commité ni testé vert** : outil « drapeaux de case » du mode construction (neige, flotter, pilier,
