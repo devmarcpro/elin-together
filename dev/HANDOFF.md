@@ -1,6 +1,16 @@
 # Passation — ElinTogether « indépendance »
 
-## État au 18 octobre 2026, 19h (à lire en premier)
+## État au 19 octobre 2026, 0h15 (à lire en premier)
+
+- **Publiée : 0.26.764.** Depuis, pas publié : les commits du 18 au soir (liste dans `MODLOG.md`, entrée « 2026-10-18
+  (nuit) »), sur `fix/points-restants`. **Pas poussés** : l'envoi sur GitHub est refusé par le filtre de permissions
+  de la session (l'utilisateur doit autoriser `git push`).
+- Nouveau : `_tools/diff_suite.py` (comparateur). Série complète (`release_gate.sh`) **pas jouée** sur ce code :
+  l'utilisateur utilisait le PC.
+- Banc : `mp_test.py` lance les fenêtres réduites sans prendre la main.
+- Prochains numéros : delta 856 (rien de neuf : tout est dans `CardSettingDelta`, kinds jusqu'à 16).
+
+## État au 18 octobre 2026, 19h
 
 - **Publiée : 0.26.764** (15 octobre). Depuis, **pas publié** : `8ca29ea` quête de Vernis restée à 11 terminée à la
   base (le dragon arrive), `315a556` portes/objets cachés/noms partagés, `b758330` manger automatiquement. Détail et

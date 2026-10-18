@@ -3017,3 +3017,46 @@ maintenant les rencontres (pas rejoué après ce changement).
 ses blessures. Transpileurs de `Chara.MaxHP` et `StatsMana.max` dans `CompanionAllyLimitPatch`. À compiler, tester.
 
 Pas publié (accord de l'utilisateur nécessaire). Banc fermé, build publié remis dans le jeu (voir HANDOFF).
+
+## 2026-10-18 (nuit) : liste du 18, effets du joueur local et gestes d'un invité
+
+Banc : `mp_test.py --world _lab/saves/world_depot.copy` (le monde démarre sur la carte du monde ; les tests qui ont
+besoin de la base y vont seuls). Fenêtres réduites par un script du dossier de travail (`minimize.ps1` : seules les
+fenêtres `-empmute`).
+- **Âme solitaire** (aptitude 1646) `32fd232` : vie et mana max d'un autre joueur dans le jeu qui simule sa carte.
+  `oct10_suite y1` : rouge 20/25 chez l'host contre 24/30 chez l'invité (transpileurs retirés à chaud), vert 24/30.
+  Pas traité : le bonus de vitesse de l'aptitude (la vitesse d'un joueur passe par la vitesse partagée).
+- **Objet béni par un dieu** `51dcc27` : jugé selon la foi de son porteur (ou du maître du compagnon), plus celle du
+  joueur local (`OtherPlayerPatch.OnIsEffective`). `y2` : rouge sur l'ancien build (la foi de l'host comptait), vert.
+  Pas traité : un joueur qui change de dieu, les autres jeux ne recomptent pas ses objets.
+- **Morts comptées** : **pas reproduit comme écart**. Mesure `y3` : chaque jeu rejoue la mort et la compte pour son
+  joueur, quel que soit le tueur du groupe (+1 des deux côtés). L'audit disait « seulement l'host ». `y3` reste comme
+  garde-fou. Conseil passé avant la mesure (verdict : message « tu as tué X » au jeu du tueur) : sans objet.
+- **Combat automatique** : conseil (verdict : couper la protection croisée ; un drapeau « combat auto » de l'invité
+  vers le simulateur est fragile, latence). **Pas encore fait ni mesuré.**
+- **Tableau de maison** `44359bc` (`CardSettingDelta` HouseBoard 8) : `settings2_suite p4` rouge (envoi retiré à chaud
+  chez l'invité), vert. Relu : rien.
+- **Renommer un habitant ou un allié, toile peinte, plaque de pièce** `2da1d55` (AltName 9, Painting 10 avec le
+  champ `Blob`, RoomPlate 11) : `p5`, `p6`, `p7` rouges sur l'ancien build, verts. Relus deux fois : gardes ajoutés
+  (toile seulement sur une toile, 1 Mo ; nom seulement pour un habitant ou son propre compagnon ; plaque dite
+  seulement si elle a changé, valeurs bornées).
+- **Sort de zone d'un autre joueur** `053cbd3` : sa maîtrise (302) et son aptitude 1214, plus celles du joueur local ;
+  expérience de joueur. `y4` : 40 boules de feu de l'invité sur un habitant ami, rouge 0 touche (l'host a 10 en
+  maîtrise dans ce monde), vert 40/40.
+- **Habitant libéré ou attaché, portrait et peau, monture** `0706345` (Restrain 12, Look 13, RideSkin 14, même
+  chemin que le nom). Accroché aux gestes (TryUnrestrain, TraitShackle.Restrain), pas au champ : la nuit commune
+  l'écrit elle-même. `p8`-`p10` rouges 4/4, verts ; série `settings2_suite` entière verte (p1 au second essai).
+- Banc : fenêtres lancées réduites sans prendre la main (`mp_test.py`, `BEHIND`) et un veilleur qui les remet en bas
+  (l'utilisateur joue à côté). Une fenêtre réduite remplit le journal de l'invité d'erreurs Unity « RenderTextureDesc
+  height » (pas le mod ; l'host en a 0).
+- **Série complète pas lancée** (la boucle la demande toutes les 3 corrections) : l'utilisateur utilise le PC.
+- Idée de l'utilisateur (23h25) : tester chaque fonction du jeu en multijoueur. Conseil : oui, en commençant petit.
+  **Comparateur `_tools/diff_suite.py`** `d87c2a4` : l'invité fait chaque action du menu des cases (clic, Maj+clic)
+  près d'un objet de chaque sorte de la carte ; ce qui a changé chez lui doit être pareil chez l'host (empreinte par
+  objet : champs entiers, drapeaux, cartes de valeurs ; habitants et joueurs sans PV ni position). Témoin
+  (`WITNESS=1`, partage des portes retiré à chaud) : retrouvé. Première passe (base du monde du dépôt, 81 actions) :
+  14 différences, 2 vrais défauts corrigés `ab9e214` (**allumage automatique d'une lumière**, **serrure crochetée**,
+  `p11`/`p12` rouges puis verts), le reste du bruit filtré (case et place d'un objet dans un sac, fenêtres).
+  Après : 103 actions, 0 différence. Option `--host-acts` : l'host agit, l'invité est comparé.
+- **Envoi sur GitHub refusé** par le filtre de permissions de la session (« Out-of-Place Publication ») : commits
+  locaux sur `fix/points-restants`, pas poussés.

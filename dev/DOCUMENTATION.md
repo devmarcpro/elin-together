@@ -612,6 +612,17 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
 
 ## 7. Reste à faire
 
+### Avancement du 2026-10-18 au soir (liste ci-dessous mise à jour)
+
+Fait (rouge puis vert, détail dans MODLOG) : âme solitaire, objet béni (foi du porteur), sort de zone d'un autre
+joueur, tableau de maison, renommer, toile peinte, plaque de pièce, libérer/attacher, portrait et peau, monture au
+poteau, allumage automatique, serrure crochetée. Pas reproduit : morts comptées (chaque jeu compte pour son joueur).
+Nouvel outil : `_tools/diff_suite.py` (comparateur des deux jeux après chaque action du menu des cases).
+Reste de la liste : combat automatique (conseil : couper la protection croisée ; drapeau « combat auto » de l'invité
+à concevoir), portail, parchemin de résurrection, cases (neige, flotter), ascenseur, figurines, couleur de lumière,
+PCC d'un habitant (bouton de la liste), crime d'un sort de zone d'un autre joueur en ville (karma du joueur local ?),
+vitesse de l'âme solitaire. Comparateur : à étendre (objets du sac, autres cartes, carte tenue par un invité).
+
 ### Liste du 2026-10-18 (passe avant tout ce qui suit)
 
 Venue d'une relecture de la doc et des plans, des journaux, et de deux audits du code (agents). Pas encore fait :
