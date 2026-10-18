@@ -56,6 +56,49 @@ internal static class CompanionAllyLimitPatch
         }
     }
 
+    /// <summary>
+    ///     "Lonely soul" (feat 1646): more life and mana for each empty ally slot, for "the player" only. Another
+    ///     player had none of it here, and the game that runs its map is the one that heals and wounds it
+    /// </summary>
+    [HarmonyTranspiler]
+    [HarmonyPatch(typeof(Chara), nameof(Chara.MaxHP), MethodType.Getter)]
+    internal static IEnumerable<CodeInstruction> OnMaxHP(IEnumerable<CodeInstruction> instructions)
+    {
+        return LonelySoul(instructions, new CodeInstruction(OpCodes.Ldarg_0));
+    }
+
+    [HarmonyTranspiler]
+    [HarmonyPatch(typeof(StatsMana), nameof(StatsMana.max), MethodType.Getter)]
+    internal static IEnumerable<CodeInstruction> OnMaxMana(IEnumerable<CodeInstruction> instructions)
+    {
+        return LonelySoul(instructions, new CodeInstruction(OpCodes.Ldsfld, AccessTools.Field(typeof(BaseStats), nameof(BaseStats.CC))));
+    }
+
+    private static IEnumerable<CodeInstruction> LonelySoul(IEnumerable<CodeInstruction> instructions, CodeInstruction loadChara)
+    {
+        var isPC = AccessTools.PropertyGetter(typeof(Card), nameof(Card.IsPC));
+        var lastEmptyAlly = AccessTools.Field(typeof(Player), nameof(Player.lastEmptyAlly));
+
+        foreach (var instruction in instructions) {
+            if (instruction.Calls(isPC)) {
+                yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(CompanionAllyLimitPatch), nameof(IsAnyPlayer))) {
+                    labels = instruction.labels,
+                    blocks = instruction.blocks,
+                };
+            } else if (instruction.LoadsField(lastEmptyAlly)) {
+                yield return loadChara.Clone().MoveLabelsFrom(instruction);
+                yield return CodeInstruction.Call(typeof(CompanionAllyLimitPatch), nameof(EmptyAllyFor));
+            } else {
+                yield return instruction;
+            }
+        }
+    }
+
+    internal static bool IsAnyPlayer(Card card)
+    {
+        return card is Chara { IsPlayer: true } || card.IsPC;
+    }
+
     internal static int EmptyAllyFor(Player player, Chara chara)
     {
         if (!IsMultiplayerWorld || CompanionHelper.OwnerOf(chara) is not { } owner || owner == EClass.pc) {

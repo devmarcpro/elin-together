@@ -1399,6 +1399,31 @@ def x9():
           eventually(lambda: party(H) == "True|True|False|True" and party(A) == "True|True|False|True", timeout=15))
 
 
+def y1():
+    """Liste du 2026-10-18 : l'aptitude « ame solitaire » (1646 : vie et mana en plus pour chaque place d'allie libre)
+    ne comptait que pour le joueur local. Dans le jeu de l'host, qui calcule les blessures de l'invite sur sa carte,
+    l'invite qui l'a n'avait ni la vie ni la mana en plus. Le banc pose l'aptitude par eval dans les deux jeux (pas
+    par un livre de dons) et lit MaxHP et mana.max ; « sans » = aptitude a 0. Rouge : OLD=1 retire les transpileurs
+    a chaud dans le jeu de l'host (Harmony.Unpatch), puis relancer le banc pour le vert."""
+    import os  # noqa: PLC0415
+    guest = state(A)["pc"]["uid"]
+    g = f'EClass._map.charas.Find(x => x.uid == {guest})'
+    if os.environ.get("OLD") == "1":
+        ev(H, 'var h = new HarmonyLib.Harmony("bench.unpatch"); '
+              'h.Unpatch(HarmonyLib.AccessTools.PropertyGetter(typeof(Chara), "MaxHP"), HarmonyLib.HarmonyPatchType.Transpiler, "*"); '
+              'h.Unpatch(HarmonyLib.AccessTools.PropertyGetter(typeof(StatsMana), "max"), HarmonyLib.HarmonyPatchType.Transpiler, "*"); return "ok";')
+    hp = ('var c = {c}; var e0 = c.elements.ValueWithoutLink(1646); c.elements.SetBase(1646, 0); var hp0 = c.MaxHP; var mp0 = c.mana.max; '
+          'c.elements.SetBase(1646, 20); var hp1 = c.MaxHP; var mp1 = c.mana.max; c.elements.SetBase(1646, e0); '
+          'return hp0 + "|" + hp1 + "|" + mp0 + "|" + mp1 + "|" + EClass.player.lastEmptyAlly;')
+    mine = str(ev(A, hp.format(c='EClass.pc')))
+    there = str(ev(H, hp.format(c=g)))
+    print(f"    invite chez lui (vie sans|avec|mana sans|avec|places libres) : {mine} ; chez l'host : {there}")
+    m, t = mine.split("|"), there.split("|")
+    check(f"l'ame solitaire donne de la vie a l'invite chez lui ({mine})", int(m[1]) > int(m[0]))
+    check(f"dans le jeu de l'host, l'invite a la meme vie et mana avec l'ame solitaire que chez lui ({m[1]}/{m[3]} contre {t[1]}/{t[3]})",
+          m[1] == t[1] and m[3] == t[3] and int(t[1]) > int(t[0]))
+
+
 def v6():
     """Rapport (2026-10-15) : Tephra vaincu, quete de Vernis restee a 3. La reparation ne tournait qu'au lancement du
     serveur ; un etage du boss ouvert pendant la partie ne comptait pas. Ici, en cours de partie : quete a 3, l'etage
@@ -1486,7 +1511,7 @@ def main():
             continue
         check(f"{name} : pas de deuxieme ajout, lien remis ({r})", r == "0/0/True")
     check("au moins un jeu avait un autre membre dans l'equipe", RESULTS)
-    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, s3, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, z1, v1, v6, v7, v2, v3, v5, x2, x3, x4, x5, x6, x7, x8, x9, t1, q1, f2, n1, v4)  # v1 avant t1 : t1 maudit l'invite de test, qui en meurt et ne voyage plus
+    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, s3, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, z1, v1, v6, v7, v2, v3, v5, x2, x3, x4, x5, x6, x7, x8, x9, y1, t1, q1, f2, n1, v4)  # v1 avant t1 : t1 maudit l'invite de test, qui en meurt et ne voyage plus
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(',')]
     for step in steps:
