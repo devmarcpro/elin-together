@@ -149,6 +149,35 @@ internal static class CardSettingEvent
         }
     }
 
+    /// <summary>
+    ///     "Turn on/off automatically" of a light (shift menu of the tile)
+    /// </summary>
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(Card), nameof(Card.disableAutoToggle), MethodType.Setter)]
+    internal static void OnAutoToggle(Card __instance, out bool __state)
+    {
+        __state = __instance.disableAutoToggle;
+    }
+
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(Card), nameof(Card.disableAutoToggle), MethodType.Setter)]
+    internal static void OnAutoToggled(Card __instance, bool __state)
+    {
+        if (__instance.disableAutoToggle != __state) {
+            Tell(__instance, CardSettingDelta.AutoToggle);
+        }
+    }
+
+    /// <summary>
+    ///     A lock picked or forced open (the chest stayed locked in the other games)
+    /// </summary>
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(Trait), nameof(Trait.OnLockOpen))]
+    internal static void OnLockOpen(Trait __instance)
+    {
+        Tell(__instance.owner, CardSettingDelta.Lock);
+    }
+
     [HarmonyPrefix]
     [HarmonyPatch(typeof(Card), nameof(Card.isMasked), MethodType.Setter)]
     internal static void OnMask(Card __instance, out bool __state)

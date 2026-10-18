@@ -21,6 +21,9 @@ P8  un habitant attache (pose par eval dans les deux jeux) : l'invite le libere 
     du menu), l'host le voit libre ; puis l'inverse.
 P9  l'invite change le portrait d'un habitant (c_idPortrait, ce que fait la fenetre des portraits) : l'host l'a.
 P10 l'invite change l'apparence de la monture d'un habitant (c_idRidePCC, ce que fait le curseur du poteau) : l'host l'a.
+P11 l'invite bascule « allumage automatique » d'une lumiere (ce que fait l'entree Maj du menu de la case) : l'host l'a.
+P12 l'invite crochete un coffre ferme (Trait.OnLockOpen, la fin du crochetage) : ouvert chez l'host aussi.
+    (P11 et P12 trouves par le comparateur diff_suite.py, 2026-10-18)
 """
 import os
 import sys
@@ -237,9 +240,32 @@ def p10(ctx):
           bool(want) and eventually(lambda: ev(H, f'return {chara}.c_idRidePCC ?? "";') == want, timeout=8))
 
 
+def p11(ctx):
+    to_base()
+    uid = ev(A, 'var t = EClass._map.things.Where(x => x.IsInstalled && x.trait.IsLighting).OrderBy(x => x.pos.Distance(EClass.pc.pos)).FirstOrDefault(); return t == null ? "" : t.uid.ToString();')
+    if not check("une lumiere installee", bool(uid)):
+        return
+    want = ev(A, f'var t = {thing(uid)}; t.disableAutoToggle = !t.disableAutoToggle; return t.disableAutoToggle.ToString();')
+    check(f"l'invite bascule l'allumage automatique de {uid} ({want}) : l'host l'a",
+          eventually(lambda: ev(H, f'return {thing(uid)}.disableAutoToggle.ToString();') == want, timeout=8))
+    ev(A, f'var t = {thing(uid)}; t.disableAutoToggle = !t.disableAutoToggle; return "ok";')
+
+
+def p12(ctx):
+    to_base()
+    uid = ev(H, 'var c = ThingGen.Create("chest_practice"); EClass._zone.AddCard(c, EClass.pc.pos.GetNearestPoint(allowChara: false)).Install(); '
+                'c.c_lockLv = 5; return c.uid.ToString();')
+    lock = lambda port: ev(port, f'var t = {thing(uid)}; return t == null ? "absent" : t.c_lockLv.ToString();')  # noqa: E731
+    if not check(f"un coffre ferme pose par l'host, connu de l'invite ({lock(A)})", eventually(lambda: lock(A) not in ("absent", "0"), timeout=10)):
+        return
+    ev(A, f'var t = {thing(uid)}; t.trait.OnLockOpen(EClass.pc); return "ok";')
+    check(f"l'invite le crochete : ouvert chez l'host aussi ({lock(A)} / {lock(H)})", eventually(lambda: lock(H) == "0", timeout=8))
+    ev(H, f'{thing(uid)}.Destroy(); return "ok";')
+
+
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
-    steps = [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10]
+    steps = [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12]
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(",")]
     for step in steps:

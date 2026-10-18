@@ -35,6 +35,8 @@ public class CardSettingDelta : ElinDelta
     public const byte Restrain = 12;
     public const byte Look = 13;
     public const byte RideSkin = 14;
+    public const byte AutoToggle = 15;
+    public const byte Lock = 16;
 
     [Key(0)]
     public required RemoteCard Card { get; init; }
@@ -91,6 +93,8 @@ public class CardSettingDelta : ElinDelta
                 Door => card.dir,
                 Masked => card.isMasked ? 1 : 0,
                 Restrain => card.isRestrained ? 1 : 0,
+                AutoToggle => card.disableAutoToggle ? 1 : 0,
+                Lock => card.c_lockLv,
                 _ => 0,
             },
             Blob = kind == Painting ? card.c_textureData : null,
@@ -220,7 +224,7 @@ public class CardSettingDelta : ElinDelta
             (Kind == Teleporter && thing.trait is not TraitTeleporter) || (Kind == Door && thing.trait is not TraitDoor) ||
             (Kind == HouseBoard && thing.trait is not TraitHouseBoard) ||
             (Kind == Painting && (thing.trait is not TraitCanvas || Blob is not { Length: <= 1 << 20 })) ||
-            (Kind == RoomPlate && thing.trait is not TraitRoomPlate) || Kind > RoomPlate) {
+            (Kind == RoomPlate && thing.trait is not TraitRoomPlate) || Kind is > RoomPlate and < AutoToggle or > Lock) {
             return;
         }
 
@@ -302,6 +306,18 @@ public class CardSettingDelta : ElinDelta
 
                 if (n[7] > 0) {
                     thing.elements.SetBase(405, n[7]);
+                }
+
+                break;
+            case AutoToggle:
+                thing.disableAutoToggle = Value != 0;
+                break;
+            case Lock:
+                thing.c_lockLv = Value;
+                // what Trait.OnLockOpen undoes too: a hard lock and the price it added
+                if (Value == 0 && thing.c_lockedHard) {
+                    thing.c_lockedHard = false;
+                    thing.c_priceAdd = 0;
                 }
 
                 break;
