@@ -8,7 +8,8 @@
 - Nouveau : `_tools/diff_suite.py` (comparateur). Série complète (`release_gate.sh`) **pas jouée** sur ce code :
   l'utilisateur utilisait le PC.
 - Banc : `mp_test.py` lance les fenêtres réduites sans prendre la main.
-- Prochains numéros : delta 856 (rien de neuf : tout est dans `CardSettingDelta`, kinds jusqu'à 16).
+- Prochains numéros : delta 857 (856 = `GateFollowDelta`) ; `CardSettingDelta` kinds jusqu'à 18.
+- `dev/_decomp` refait pour Elin EA 23.356 (19 octobre, 1h30).
 
 ## État au 18 octobre 2026, 19h
 

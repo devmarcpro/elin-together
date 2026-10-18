@@ -3060,3 +3060,19 @@ fenêtres `-empmute`).
   Après : 103 actions, 0 différence. Option `--host-acts` : l'host agit, l'invité est comparé.
 - **Envoi sur GitHub refusé** par le filtre de permissions de la session (« Out-of-Place Publication ») : commits
   locaux sur `fix/points-restants`, pas poussés.
+
+2026-10-19, nuit (suite de la boucle) :
+- Comparateur étendu : `--host-acts` (l'host agit : 85 actions, 0 vrai défaut ; « passer le temps » au lit diffère =
+  le temps du monde, sujet réservé), `--zone mysilia` (65 actions, 0 différence), `--held` (objets en main, clic
+  droit compris : 50 actions, aucun vrai défaut ; une graine plantée arrive chez l'autre après plus de 7 s).
+- **Couleur d'une lumière, modèle d'une figurine** `72079a2` (LightColor 17, Figure 18 ; modèle borné à l'arrivée).
+  `p13`/`p14` rouges puis verts.
+- **Apparence complète (PCC) d'un habitant ou d'un compagnon** `34777fc`, et le bouton « apparence complète » de la
+  liste de la base. `p15` rouge puis vert. Pas joué : le bouton lui-même, le retour à l'apparence simple.
+- **Portail** `512910e` : chacun n'emmène que ses compagnons ; ceux d'un invité le suivent (`GateFollowDelta` 856).
+  `y5` rouge (le portail de l'host emmenait le chien de l'invité ; celui de l'invité n'emmenait pas le sien), vert.
+- Banc : un yeek de la base du dépôt tuait l'invité de test (niveau 1) : joueurs invulnérables dans `settings2_suite`.
+  `p1` (marche vers une porte juste après l'arrivée à la base) : trois échecs, contourné par une pause ; cause pas
+  trouvée (le « Halting abandoned act » de l'host ne touche pas le jeu de l'invité).
+- `dev/_decomp` refait pour Elin EA 23.356 (demande de l'utilisateur ; l'ancien gardé à côté).
+- Série complète toujours pas jouée : l'utilisateur utilise le PC.

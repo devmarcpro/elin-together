@@ -618,6 +618,10 @@ Fait (rouge puis vert, détail dans MODLOG) : âme solitaire, objet béni (foi d
 joueur, tableau de maison, renommer, toile peinte, plaque de pièce, libérer/attacher, portrait et peau, monture au
 poteau, allumage automatique, serrure crochetée. Pas reproduit : morts comptées (chaque jeu compte pour son joueur).
 Nouvel outil : `_tools/diff_suite.py` (comparateur des deux jeux après chaque action du menu des cases).
+Fait aussi depuis : couleur d'une lumière, figurine, apparence complète d'un habitant, portail (chacun ses
+compagnons). `dev/_decomp` refait le 19 octobre pour Elin EA 23.356 (l'ancien : `_decomp/Elin_23352`) ; nouveautés
+du jeu à vérifier en multijoueur : jumelles (`HotItemActionBinocular`), toise (`TraitHeightMeasure`), balance
+(`TraitWeightScale`).
 Reste de la liste : combat automatique (conseil : couper la protection croisée ; drapeau « combat auto » de l'invité
 à concevoir), portail, parchemin de résurrection, cases (neige, flotter), ascenseur, figurines, couleur de lumière,
 PCC d'un habitant (bouton de la liste), crime d'un sort de zone d'un autre joueur en ville (karma du joueur local ?),
@@ -707,7 +711,7 @@ Cette liste vient d'une relecture de toute la documentation, de `HANDOFF.md`, de
   durée réelle des rechargements, zip Mac jamais essayé.
 
 **7. Ménage**
-- `dev/_decomp` date de la 23.352 (jeu en 23.355) ; les lanceurs `_lab` Elin4 et Elin5 sont à refaire pour cinq
+- `dev/_decomp` refait pour la 23.356 le 19 octobre ; les lanceurs `_lab` Elin4 et Elin5 sont à refaire pour cinq
   joueurs ; bas de `HANDOFF.md` et sections 6 et 7 de ce fichier à résumer ; README à compléter.
 
 ### Mise à jour du 2026-10-06, 22h30 (la 0.26.524 n'a JAMAIS été jouée)
