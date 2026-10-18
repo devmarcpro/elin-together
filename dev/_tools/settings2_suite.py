@@ -6,7 +6,11 @@
 P1  une porte ouverte puis fermee a la main par l'invite (menu de la case, « ouvrir », Maj « fermer ») : pareil chez l'host
 P2  un objet cache puis remontre par l'invite (outil de visibilite du mode construction) : pareil chez l'host
 P3  le nom donne par l'invite a une graine de son sac (« changer le nom » est propose par le jeu) : l'host le connait
+P4  le tableau de maison (toit, musique) change par l'invite : l'host a les memes reglages. Le banc va a la base si
+    besoin, ecrit les champs puis appelle TraitHouseBoard.ApplyData (ce que fait chaque bouton du menu, pas le menu).
+    OLD=1 : retire a chaud chez l'invite ce qui le dit aux autres (rouge attendu).
 """
+import os
 import sys
 import time
 from pathlib import Path
@@ -94,9 +98,35 @@ def p3(ctx):
     check("l'host connait le nom", eventually(lambda: name() == "Zorblax", timeout=8))
 
 
+def p4(ctx):
+    from travel_suite import host_goto  # noqa: PLC0415
+    find = ('var b = EClass._map.things.FirstOrDefault(t => t.trait is TraitHouseBoard && t.IsInstalled && t.pos.cell.room != null); '
+            'return b == null ? "" : b.uid.ToString();')
+    if not ev(H, find):
+        home = int(ev(H, 'return EClass.pc.homeZone.uid.ToString();'))
+        log(f"pas de tableau ici : l'host va a la base ({home})")
+        host_goto(H, A, home)
+    uid = ev(H, find)
+    if not check("un tableau de maison installe dans une piece", bool(uid)):
+        return
+    if os.environ.get("OLD") == "1":
+        ev(A, 'new HarmonyLib.Harmony("bench.unpatch").Unpatch(HarmonyLib.AccessTools.Method(typeof(TraitHouseBoard), "ApplyData"), HarmonyLib.HarmonyPatchType.Postfix, "*"); return "ok";')
+    read = lambda port: ev(port, f'var d = ({thing(uid)}.trait as TraitHouseBoard).data; return d == null ? "rien" : d.idRoofStyle + "/" + d.idBGM + "/" + d.snow;')  # noqa: E731
+    before = read(H)
+    log(f"tableau {uid} : host {before}, invite {read(A)}")
+    ev(A, f'var b = {thing(uid)}.trait as TraitHouseBoard; if (b.data == null) b.data = new TraitHouseBoard.Data(); '
+          'b.data.idRoofStyle = (b.data.idRoofStyle + 1) % 5; b.data.idBGM = 42; b.data.snow = !b.data.snow; b.ApplyData(); return "ok";')
+    want = read(A)
+    check(f"l'host a le toit, la musique et la neige choisis par l'invite ({want})", eventually(lambda: read(H) == want, timeout=8))
+    log(f"host {read(H)} (avant {before})")
+
+
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
-    for step in (p1, p2, p3):
+    steps = [p1, p2, p3, p4]
+    if len(sys.argv) > 1:
+        steps = [x for x in steps if x.__name__ in sys.argv[1].split(",")]
+    for step in steps:
         log(f"--- {step.__name__.upper()} : {step.__doc__ or ''}")
         try:
             step({})

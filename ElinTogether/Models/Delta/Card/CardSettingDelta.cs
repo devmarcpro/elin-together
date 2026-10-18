@@ -27,6 +27,7 @@ public class CardSettingDelta : ElinDelta
     public const byte Door = 5;
     public const byte Masked = 6;
     public const byte Name = 7;
+    public const byte HouseBoard = 8;
 
     [Key(0)]
     public required RemoteCard Card { get; init; }
@@ -75,7 +76,11 @@ public class CardSettingDelta : ElinDelta
                 _ => 0,
             },
             Holders = kind == Bed ? card.c_charaList?.list.ToArray() : null,
-            Numbers = kind == Fields ? FieldsOf(card) : null,
+            Numbers = kind switch {
+                Fields => FieldsOf(card),
+                HouseBoard => HouseOf((card.trait as TraitHouseBoard)?.data),
+                _ => null,
+            },
         };
     }
 
@@ -92,6 +97,18 @@ public class CardSettingDelta : ElinDelta
             up?.cap ?? 0, // 5 wrench: magic chest
             up?.cool ?? 0, // 6
             c.elements.Base(405), // 7 wrench: fridge
+        ];
+    }
+
+    /// <summary>
+    ///     The house board (roof, walls, music of the lot), in the order of its fields
+    /// </summary>
+    internal static int[]? HouseOf(TraitHouseBoard.Data? d)
+    {
+        return d is null ? null : [
+            d.idRoofStyle, d.height, d.idBGM, d.heightFix, d.idRoofTile, d.idBlock, d.idRamp, d.idDeco, d.idDeco2,
+            d.decoFix, d.decoFix2, d.colRoof, d.colBlock, d.colDeco, d.colDeco2, d.reverse ? 1 : 0, d.snow ? 1 : 0,
+            d.altRoof ? 1 : 0,
         ];
     }
 
@@ -116,7 +133,8 @@ public class CardSettingDelta : ElinDelta
     {
         // an object of the map, or one the sender carries; a bed setting only on a bed
         if (Card.Find() is not Thing { isDestroyed: false } thing || (Kind == Bed && thing.trait is not TraitBed) ||
-            (Kind == Teleporter && thing.trait is not TraitTeleporter) || (Kind == Door && thing.trait is not TraitDoor) || Kind > Name) {
+            (Kind == Teleporter && thing.trait is not TraitTeleporter) || (Kind == Door && thing.trait is not TraitDoor) ||
+            (Kind == HouseBoard && thing.trait is not TraitHouseBoard) || Kind > HouseBoard) {
             return;
         }
 
@@ -200,6 +218,15 @@ public class CardSettingDelta : ElinDelta
                     thing.elements.SetBase(405, n[7]);
                 }
 
+                break;
+            case HouseBoard when Numbers is { Length: 18 } n:
+                var board = (TraitHouseBoard)thing.trait;
+                var d = board.data ??= new();
+                (d.idRoofStyle, d.height, d.idBGM, d.heightFix, d.idRoofTile, d.idBlock, d.idRamp, d.idDeco, d.idDeco2) =
+                    (n[0], n[1], n[2], n[3], n[4], n[5], n[6], n[7], n[8]);
+                (d.decoFix, d.decoFix2, d.colRoof, d.colBlock, d.colDeco, d.colDeco2) = (n[9], n[10], n[11], n[12], n[13], n[14]);
+                (d.reverse, d.snow, d.altRoof) = (n[15] != 0, n[16] != 0, n[17] != 0);
+                board.ApplyData();
                 break;
         }
     }

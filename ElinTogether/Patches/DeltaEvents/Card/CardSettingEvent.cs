@@ -76,6 +76,19 @@ internal static class CardSettingEvent
 
 }
 
+/// <summary>
+///     The house board's roof, walls and music: every change of its menu ends in ApplyData
+/// </summary>
+[HarmonyPatch(typeof(TraitHouseBoard), nameof(TraitHouseBoard.ApplyData))]
+internal static class HouseBoardSettingEvent
+{
+    [HarmonyPostfix]
+    internal static void OnApplyData(TraitHouseBoard __instance)
+    {
+        CardSettingEvent.Tell(__instance.owner, CardSettingDelta.HouseBoard);
+    }
+}
+
 [HarmonyPatch(typeof(TeleportManager), nameof(TeleportManager.SetID))]
 internal static class TeleporterSettingEvent
 {
