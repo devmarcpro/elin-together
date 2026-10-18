@@ -1,6 +1,7 @@
 using ElinTogether.Patches;
 using System.Collections.Generic;
 using System.Linq;
+using ElinTogether.Helper;
 using ElinTogether.Net;
 using MessagePack;
 
@@ -28,6 +29,9 @@ public class CardSettingDelta : ElinDelta
     public const byte Masked = 6;
     public const byte Name = 7;
     public const byte HouseBoard = 8;
+    public const byte AltName = 9;
+    public const byte Painting = 10;
+    public const byte RoomPlate = 11;
 
     [Key(0)]
     public required RemoteCard Card { get; init; }
@@ -56,6 +60,12 @@ public class CardSettingDelta : ElinDelta
     [Key(5)]
     public int[]? Numbers { get; init; }
 
+    /// <summary>
+    ///     The picture painted on a canvas (a small PNG, or a JPG from a camera)
+    /// </summary>
+    [Key(6)]
+    public byte[]? Blob { get; init; }
+
     internal static CardSettingDelta Create(Card card, byte kind)
     {
         return new() {
@@ -65,6 +75,8 @@ public class CardSettingDelta : ElinDelta
                 Note => card.c_note,
                 Teleporter => (card.trait as TraitTeleporter)?.id,
                 Name => card.c_refText,
+                AltName => card.c_altName,
+                RoomPlate => (card.trait as TraitRoomPlate)?.areaData.name,
                 _ => null,
             },
             Value = kind switch {
@@ -75,10 +87,14 @@ public class CardSettingDelta : ElinDelta
                 Masked => card.isMasked ? 1 : 0,
                 _ => 0,
             },
+            Blob = kind == Painting ? card.c_textureData : null,
             Holders = kind == Bed ? card.c_charaList?.list.ToArray() : null,
             Numbers = kind switch {
                 Fields => FieldsOf(card),
                 HouseBoard => HouseOf((card.trait as TraitHouseBoard)?.data),
+                RoomPlate when card.trait is TraitRoomPlate plate => [
+                    plate.areaData.group, plate.areaData.maxHeight, (int)plate.areaData.accessType, plate.areaData.atrium ? 1 : 0,
+                ],
                 _ => null,
             },
         };
@@ -98,6 +114,34 @@ public class CardSettingDelta : ElinDelta
             up?.cool ?? 0, // 6
             c.elements.Base(405), // 7 wrench: fridge
         ];
+    }
+
+    /// <summary>
+    ///     The name a player gives to a resident or an ally (list of the base, "change name"). Not someone else's
+    ///     companion (its owner's to name), not a stranger
+    /// </summary>
+    private void ApplyAltName(ElinNetBase net)
+    {
+        if (Card.Find() is not Chara { isDestroyed: false } chara) {
+            return;
+        }
+
+        if (net is ElinNetHost host) {
+            if (!host.ActiveRemoteCharas.TryGetValue(OriginPeer, out var sender) ||
+                (CompanionHelper.OwnerOf(chara) is { } owner ? owner != sender : !chara.IsPCFaction)) {
+                return;
+            }
+
+            // a resident of the base, when only the host manages it: the sender gets the name back
+            if (NetSession.Instance.Rules.HostManagesBase && !host.IsZoneSession && CompanionHelper.OwnerOf(chara) is null) {
+                host.SendDeltaTo(OriginPeer, Create(chara, AltName));
+                return;
+            }
+
+            host.Delta.AddRemote(this);
+        }
+
+        chara.c_altName = Text;
     }
 
     /// <summary>
@@ -131,10 +175,17 @@ public class CardSettingDelta : ElinDelta
 
     protected override void OnApply(ElinNetBase net)
     {
+        if (Kind == AltName) {
+            ApplyAltName(net);
+            return;
+        }
+
         // an object of the map, or one the sender carries; a bed setting only on a bed
         if (Card.Find() is not Thing { isDestroyed: false } thing || (Kind == Bed && thing.trait is not TraitBed) ||
             (Kind == Teleporter && thing.trait is not TraitTeleporter) || (Kind == Door && thing.trait is not TraitDoor) ||
-            (Kind == HouseBoard && thing.trait is not TraitHouseBoard) || Kind > HouseBoard) {
+            (Kind == HouseBoard && thing.trait is not TraitHouseBoard) ||
+            (Kind == Painting && (thing.trait is not TraitCanvas || Blob is not { Length: <= 1 << 20 })) ||
+            (Kind == RoomPlate && thing.trait is not TraitRoomPlate) || Kind > RoomPlate) {
             return;
         }
 
@@ -216,6 +267,24 @@ public class CardSettingDelta : ElinDelta
 
                 if (n[7] > 0) {
                     thing.elements.SetBase(405, n[7]);
+                }
+
+                break;
+            case Painting when Blob is not null:
+                thing.c_textureData = Blob;
+                thing.isModified = true;
+                thing.ClearPaintSprite();
+                thing.renderer.RefreshSprite();
+                break;
+            // (the values the menus offer: groups 0-4, heights 1-9; with some room to spare)
+            case RoomPlate when Numbers is { Length: 4 } n && n[0] is >= 0 and <= 9 && n[1] is >= 0 and <= 20 &&
+                                System.Enum.IsDefined(typeof(BaseArea.AccessType), n[2]):
+                var area = ((TraitRoomPlate)thing.trait).areaData;
+                area.name = Text;
+                (area.group, area.maxHeight, area.accessType, area.atrium) = (n[0], n[1], (BaseArea.AccessType)n[2], n[3] != 0);
+                // each game rebuilds its rooms from their plates
+                if (thing.IsInstalled && thing.parent == EClass._zone) {
+                    EClass._map.rooms.RefreshAll();
                 }
 
                 break;

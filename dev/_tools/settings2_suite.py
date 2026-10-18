@@ -9,6 +9,14 @@ P3  le nom donne par l'invite a une graine de son sac (« changer le nom » est 
 P4  le tableau de maison (toit, musique) change par l'invite : l'host a les memes reglages. Le banc va a la base si
     besoin, ecrit les champs puis appelle TraitHouseBoard.ApplyData (ce que fait chaque bouton du menu, pas le menu).
     OLD=1 : retire a chaud chez l'invite ce qui le dit aux autres (rouge attendu).
+P5  l'invite renomme un habitant de la base (« changer le nom » de la liste des habitants : le banc ecrit c_altName,
+    ce que fait la fenetre de saisie), puis l'host en renomme un autre : chaque nom est connu des deux jeux.
+    OLD=1 : retire a chaud l'envoi dans les deux jeux (rouge attendu).
+P6  l'invite peint une toile de son sac (une seule toile : le banc ecrit c_textureData, ce que font le pinceau et la
+    fenetre de peinture ; pas la fenetre) : l'host a la meme image, octet pour octet. Pas couvert : une pile de
+    plusieurs toiles (le jeu en detache une copie, numero provisoire). OLD=1 : envoi retire chez l'invite.
+P7  l'invite bascule « atrium » d'une piece par l'entree du menu de la piece (la vraie action du jeu, sans le clic) :
+    la plaque de la piece a la meme valeur chez l'host. Pas joue : nom (fenetre de saisie), acces, groupe, hauteur.
 """
 import os
 import sys
@@ -121,9 +129,64 @@ def p4(ctx):
     log(f"host {read(H)} (avant {before})")
 
 
+def p5(ctx):
+    pick = ('return string.Join(",", EClass._map.charas.Where(c => c.IsPCFaction && !c.IsPCParty && !c.IsPC && !c.GetBool("remote_chara"))'
+            '.Select(c => c.uid).Take(2));')
+    uids = ev(H, pick).split(",")
+    if not check(f"deux habitants de la base sur la carte ({uids})", len(uids) == 2 and all(uids)):
+        return
+    if os.environ.get("OLD") == "1":
+        for port in (H, A):
+            ev(port, 'new HarmonyLib.Harmony("bench.unpatch").Unpatch(HarmonyLib.AccessTools.PropertySetter(typeof(Card), "c_altName"), HarmonyLib.HarmonyPatchType.Postfix, "*"); return "ok";')
+    chara = lambda uid: f'EClass._map.charas.Find(x => x.uid == {uid})'  # noqa: E731
+    name = lambda port, uid: ev(port, f'var c = {chara(uid)}; return c == null ? "absent" : (c.c_altName ?? "");')  # noqa: E731
+    for who, port, other, uid, new in (("l'invite", A, H, uids[0], "Zorblax"), ("l'host", H, A, uids[1], "Quimby")):
+        ev(port, f'{chara(uid)}.c_altName = "{new}"; return "ok";')
+        check(f"{who} renomme l'habitant {uid} en {new} : l'autre jeu a ce nom", eventually(lambda: name(other, uid) == new, timeout=8))
+        log(f"{uid} : host {name(H, uid)}, invite {name(A, uid)}")
+
+
+def p6(ctx):
+    me = state(A)["pc"]["uid"]
+    canvas = ev(H, f'var c = EClass._map.charas.Find(x => x.uid == {me}); var s = ThingGen.Create("canvas"); c.AddThing(s); return s.uid.ToString();')
+    if not check("l'host donne une toile a l'invite", eventually(lambda: ev(A, f'(EClass.pc.things.Find(x => x.uid == {canvas}) != null).ToString()') == "True", timeout=15)):
+        return
+    if os.environ.get("OLD") == "1":
+        ev(A, 'new HarmonyLib.Harmony("bench.unpatch").Unpatch(HarmonyLib.AccessTools.PropertySetter(typeof(Card), "c_textureData"), HarmonyLib.HarmonyPatchType.Postfix, "*"); return "ok";')
+    ev(A, f'var t = EClass.pc.things.Find(x => x.uid == {canvas}); var tex = new UnityEngine.Texture2D(28, 28); '
+          'for (var i = 0; i < 28; i++) tex.SetPixel(i, i, UnityEngine.Color.red); tex.Apply(); t.c_textureData = UnityEngine.ImageConversion.EncodeToPNG(tex); return "ok";')
+    sig = lambda port, root: ev(port, f'var t = {root}.things.Find(x => x.uid == {canvas}); var d = t == null ? null : t.c_textureData; '  # noqa: E731
+                                     'return d == null ? "vide" : d.Length + ":" + System.Convert.ToBase64String(System.Security.Cryptography.MD5.Create().ComputeHash(d));')
+    mine = sig(A, "EClass.pc")
+    there = lambda: sig(H, f'EClass._map.charas.Find(x => x.uid == {me})')  # noqa: E731
+    check(f"l'host a la meme image que l'invite ({mine})", eventually(lambda: there() == mine, timeout=8))
+    log(f"host : {there()}")
+
+
+def p7(ctx):
+    from travel_suite import host_goto  # noqa: PLC0415
+    find = 'var r = EClass._map.rooms.listRoom.FirstOrDefault(x => x.plate != null); return r == null ? "" : r.plate.owner.uid.ToString();'
+    if not ev(H, find):
+        home = int(ev(H, 'return EClass.pc.homeZone.uid.ToString();'))
+        log(f"pas de plaque ici : l'host va a la base ({home})")
+        host_goto(H, A, home)
+    uid = ev(H, find)
+    if not check("une piece avec sa plaque", bool(uid)):
+        return
+    atrium = lambda port: ev(port, f'return ({thing(uid)}.trait as TraitRoomPlate).areaData.atrium.ToString();')  # noqa: E731
+    before = atrium(A)
+    r = ev(A, f'var room = EClass._map.rooms.listRoom.First(x => x.plate != null && x.plate.owner.uid == {uid}); '
+              'var i = room.ListInteractions().First(x => x.text.StartsWith("toggleAtrium".lang())); i.action(); return room.data.atrium.ToString();')
+    check(f"l'invite bascule l'atrium ({before} -> {r})", r != before)
+    check(f"l'host a la meme valeur sur la plaque ({r})", eventually(lambda: atrium(H) == r, timeout=8))
+    log(f"plaque {uid} : host {atrium(H)}, invite {atrium(A)}")
+    ev(A, f'var room = EClass._map.rooms.listRoom.First(x => x.plate != null && x.plate.owner.uid == {uid}); '
+          'room.ListInteractions().First(x => x.text.StartsWith("toggleAtrium".lang())).action(); return "ok";')
+
+
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
-    steps = [p1, p2, p3, p4]
+    steps = [p1, p2, p3, p4, p5, p6, p7]
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(",")]
     for step in steps:

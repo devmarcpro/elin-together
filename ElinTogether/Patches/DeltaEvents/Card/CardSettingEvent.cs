@@ -42,6 +42,37 @@ internal static class CardSettingEvent
         Tell(__instance, CardSettingDelta.Name);
     }
 
+    /// <summary>
+    ///     A canvas painted (pixel paint, paint brush, camera)
+    /// </summary>
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(Card), nameof(Card.c_textureData), MethodType.Setter)]
+    internal static void OnPainted(Card __instance, byte[]? value)
+    {
+        if (value is not null) {
+            Tell(__instance, CardSettingDelta.Painting);
+        }
+    }
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(Card), nameof(Card.c_altName), MethodType.Setter)]
+    internal static void OnRename(Card __instance, out string? __state)
+    {
+        __state = __instance.c_altName;
+    }
+
+    /// <summary>
+    ///     A resident or an ally renamed (the game also names a dish this way: an object, left out)
+    /// </summary>
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(Card), nameof(Card.c_altName), MethodType.Setter)]
+    internal static void OnRenamed(Card __instance, string? __state)
+    {
+        if (__instance is Chara && __instance.c_altName != __state) {
+            Tell(__instance, CardSettingDelta.AltName);
+        }
+    }
+
     [HarmonyPrefix]
     [HarmonyPatch(typeof(Card), nameof(Card.isMasked), MethodType.Setter)]
     internal static void OnMask(Card __instance, out bool __state)
@@ -74,6 +105,57 @@ internal static class CardSettingEvent
         }
     }
 
+}
+
+/// <summary>
+///     The plate of a room: name, access, group, height, atrium, set by the lambdas of the room's menu
+///     (BaseArea.ListInteractions), which write the plate's data. Told after each of them: the whole state
+/// </summary>
+[HarmonyPatch]
+internal static class RoomPlateSettingEvent
+{
+    internal static IEnumerable<MethodBase> TargetMethods()
+    {
+        return typeof(BaseArea).GetNestedTypes(AccessTools.all).SelectMany(AccessTools.GetDeclaredMethods)
+            .Concat(AccessTools.GetDeclaredMethods(typeof(BaseArea)))
+            .Where(m => m.Name.Contains("<ListInteractions>"));
+    }
+
+    [HarmonyPrefix]
+    internal static void OnRoomMenuStart(object __instance, out string? __state)
+    {
+        __state = StateOf(AreaOf(__instance, 2)?.plate);
+    }
+
+    // (opening a list or the access menu changes nothing: only what changed the plate is told)
+    [HarmonyPostfix]
+    internal static void OnRoomMenu(object __instance, string? __state)
+    {
+        var plate = AreaOf(__instance, 2)?.plate;
+        if (plate is not null && StateOf(plate) != __state) {
+            CardSettingEvent.Tell(plate.owner, CardSettingDelta.RoomPlate);
+        }
+    }
+
+    private static string? StateOf(TraitRoomPlate? plate)
+    {
+        return plate is null ? null : string.Join("|", CardSettingDelta.Create(plate.owner, CardSettingDelta.RoomPlate).Numbers!) + "|" + plate.areaData.name;
+    }
+
+    // the area, held by the closure or by the closure it was made in
+    private static BaseArea? AreaOf(object? closure, int depth)
+    {
+        if (closure is BaseArea area) {
+            return area;
+        }
+
+        if (closure is null || depth == 0) {
+            return null;
+        }
+
+        return AccessTools.GetDeclaredFields(closure.GetType()).Where(f => !f.FieldType.IsValueType)
+            .Select(f => AreaOf(f.GetValue(closure), depth - 1)).FirstOrDefault(a => a is not null);
+    }
 }
 
 /// <summary>
