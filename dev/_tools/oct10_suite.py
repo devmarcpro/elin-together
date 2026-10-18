@@ -1444,6 +1444,32 @@ def y2():
           r == "earth:7/0 wind:0/0")
 
 
+def y3():
+    """Liste du 2026-10-18 : un monstre tue sur la carte de l'host compte pour qui ? (stats.kills, codex, guilde des
+    guerriers). Mesure dans les deux jeux, tueur = l'invite puis l'host. Le monstre est cree par eval chez l'host et
+    tue par DamageHP avec le tueur comme origine (ce que fait un coup), pas par un vrai combat."""
+    guest = state(A)["pc"]["uid"]
+    host = state(H)["pc"]["uid"]
+    counts = 'return EClass.player.stats.kills + "|" + EClass.player.codex.GetOrCreate("putit").kills + "|" + Guild.Fighter.relation.exp;'
+    res = {}
+    for who, uid in (("invite", guest), ("host", host)):
+        m = str(ev(H, f'var k = EClass._map.charas.Find(x => x.uid == {uid}); var m = CharaGen.Create("putit"); '
+                      'EClass._zone.AddCard(m, k.pos.GetNearestPoint(allowChara: false)); m.hostility = m.c_originalHostility = Hostility.Enemy; return m.uid.ToString();'))
+        eventually(lambda: ev(A, f'(EClass._map.charas.Find(x => x.uid == {m}) != null).ToString()') == "True", timeout=10)
+        before = (ev(H, counts), ev(A, counts))
+        ev(H, f'var k = EClass._map.charas.Find(x => x.uid == {uid}); var m = EClass._map.charas.Find(x => x.uid == {m}); '
+              'm.DamageHP(99999, AttackSource.Melee, k); return "ok";')
+        time.sleep(4)
+        after = (ev(H, counts), ev(A, counts))
+        d = lambda b, a: "/".join(str(int(float(y)) - int(float(x))) for x, y in zip(b.split("|"), a.split("|")))  # noqa: E731
+        res[who] = (d(before[0], after[0]), d(before[1], after[1]))
+        print(f"    tueur {who} : host +{res[who][0]}, invite +{res[who][1]} (morts/codex/guilde)")
+    # (mesure du 2026-10-18 : chaque jeu rejoue la mort et la compte pour son joueur, quel que soit le tueur du
+    # groupe ; pas d'ecart host/invite, l'audit disait « seulement l'host » : pas reproduit)
+    check(f"tue par l'invite : compte pareil dans les deux jeux ({res['invite']})", res["invite"][0] == res["invite"][1] and res["invite"][0].startswith("1/"))
+    check(f"tue par l'host : compte pareil dans les deux jeux ({res['host']})", res["host"][0] == res["host"][1] and res["host"][0].startswith("1/"))
+
+
 def v6():
     """Rapport (2026-10-15) : Tephra vaincu, quete de Vernis restee a 3. La reparation ne tournait qu'au lancement du
     serveur ; un etage du boss ouvert pendant la partie ne comptait pas. Ici, en cours de partie : quete a 3, l'etage
@@ -1531,7 +1557,7 @@ def main():
             continue
         check(f"{name} : pas de deuxieme ajout, lien remis ({r})", r == "0/0/True")
     check("au moins un jeu avait un autre membre dans l'equipe", RESULTS)
-    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, s3, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, z1, v1, v6, v7, v2, v3, v5, x2, x3, x4, x5, x6, x7, x8, x9, y1, y2, t1, q1, f2, n1, v4)  # v1 avant t1 : t1 maudit l'invite de test, qui en meurt et ne voyage plus
+    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, s3, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, z1, v1, v6, v7, v2, v3, v5, x2, x3, x4, x5, x6, x7, x8, x9, y1, y2, y3, t1, q1, f2, n1, v4)  # v1 avant t1 : t1 maudit l'invite de test, qui en meurt et ne voyage plus
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(',')]
     for step in steps:
