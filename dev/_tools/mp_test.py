@@ -29,6 +29,8 @@ LAB5_EXE = ROOT / "_lab" / "Elin5" / "Elin.exe"
 CLIENTS = [(LAB_EXE, "elin2-player.log"), (LAB3_EXE, "elin3-player.log"), (LAB4_EXE, "elin4-player.log"),
            (LAB5_EXE, "elin5-player.log")]
 SAVES = Path.home() / "AppData" / "LocalLow" / "Lafrontier" / "Elin" / "Save"
+# fenetres lancees reduites, sans prendre la main (l'utilisateur joue pendant les tests, 2026-10-18)
+BEHIND = subprocess.STARTUPINFO(dwFlags=subprocess.STARTF_USESHOWWINDOW, wShowWindow=7)  # SW_SHOWMINNOACTIVE
 PRISTINE = ROOT / "_lab" / "saves" / "world_lab.pristine"
 SHOTS = ROOT / "_shots"
 # -empmute : instance de test muette des le demarrage (EmpDebugListener)
@@ -175,7 +177,7 @@ def main():
         shutil.copytree(a.world, SAVES / "world_lab")
         log(f"world_lab restaure depuis {a.world.name}")
 
-        host = subprocess.Popen([str(GAME_EXE), *WINDOW], cwd=GAME_EXE.parent)
+        host = subprocess.Popen([str(GAME_EXE), *WINDOW], cwd=GAME_EXE.parent, startupinfo=BEHIND)
         log(f"host lance (pid {host.pid})")
         host_port = wait(lambda: bridge_for(host.pid), "pont du host", timeout=420)
 
@@ -191,7 +193,7 @@ def main():
 
         client_ports = []
         for exe, logname in CLIENTS[:a.clients]:
-            client = subprocess.Popen([str(exe), *WINDOW, "-logFile", str(SHOTS / logname)], cwd=exe.parent)
+            client = subprocess.Popen([str(exe), *WINDOW, "-logFile", str(SHOTS / logname)], cwd=exe.parent, startupinfo=BEHIND)
             log(f"client {exe.parent.name} lance (pid {client.pid})")
             port = wait(lambda: bridge_for(client.pid), f"pont de {exe.parent.name}", timeout=600)
             wait(lambda: state(port).get("sceneMode") == "Title", f"ecran titre de {exe.parent.name}", timeout=300)
