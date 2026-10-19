@@ -612,6 +612,36 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
 
 ## 7. Reste à faire
 
+### Liste à jour du 2026-10-19, 11h50 (passe avant tout ce qui suit)
+
+**À faire en premier**
+1. Rejouer la série complète (`bash _tools/release_gate.sh`, PC libre, ~2 h) sur le code actuel ; lire les journaux de
+   chaque rouge (garder `Player.log` de l'host et `_shots/elin2-player.log` avant le lancement suivant, ils s'écrasent).
+2. Si elle est verte (ou rouges expliqués) : proposer une version (lot depuis la 0.26.789 dans `HANDOFF.md`).
+
+**Défauts connus, pas corrigés**
+- Laisse du compagnon d'un invité : ne tire pas, parfois (`guest_suite` « le chat suit » ; diagnostic Debug en place).
+- Combat automatique : la protection de l'host couvre aussi l'invité, celle de l'invité ne protège rien (conseil :
+  couper la protection croisée ; un drapeau « combat auto » de l'invité à concevoir). Même endroit : réduction des
+  dégâts des alliés par la compétence 135 de l'host (n°25).
+- Stock d'un marchand tiré avec le don 1406 de l'host (stock commun : question de conception, conseil).
+- Habitants qui ne remarquent que l'host (n°17, conseil).
+- Mode survie : portail d'atterrissage, casque du ciel (réglage du monde), moongate (n°27) ; divorce et anneau perdu
+  écrits avec le joueur local (n°28) ; forte pluie sur la carte du monde (n°13, effets rares).
+- Fenêtres pas encore partagées (recensement du 19) : playlists de zone, titre du joueur, options d'export de carte,
+  effets de l'écran de sommeil sur les PNJ. Ombre des objets d'une case (outil de drapeaux) : laissée à chaque jeu.
+- Orientation d'arbres et d'herbes qui change avec le temps dans un seul jeu (visuel).
+- Réglages du monde : un invité dont la fenêtre est ouverte pendant que l'host change un réglage voit le message de refus.
+- Machine à gènes : pas joués la fin par l'invité ni la vraie fenêtre de dépôt du gène.
+- MessagePack 3.1.8 : avis de sécurité NU1902 (laissé passer à la compilation) : mise à jour à tester à part.
+
+**Outils** : comparateur `_tools/diff_suite.py` (`--kinds N`, `--held N`, `--host-acts`, `--zone id`,
+`--guest-holds id`, `WITNESS=1`) ; à étendre : donjon, dialogues, artisanat, carte tenue par l'invité avec objets.
+Banc sur le monde de l'utilisateur : `mp_test.py --world _lab/saves/world_depot.copy`.
+Toujours ouverts plus bas (listes du 18 et d'avant) : quêtes que l'host n'a pas dans le journal d'un joueur, philtre
+d'amour, « mes attributs ne montent pas », monture et cavalier pas à la même vitesse, temps du monde (ne pas
+commencer sans l'utilisateur), duels, journal par joueur, tests instables, suites jamais jouées, deux vrais PC.
+
 ### Avancement du 2026-10-18 au soir (liste ci-dessous mise à jour)
 
 Fait (rouge puis vert, détail dans MODLOG) : âme solitaire, objet béni (foi du porteur), sort de zone d'un autre

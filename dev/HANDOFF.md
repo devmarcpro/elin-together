@@ -1,5 +1,30 @@
 # Passation — ElinTogether « indépendance »
 
+## Arrêt du 19 octobre 2026, 11h50 (à lire en premier)
+
+**Publiée : 0.26.789** (19 octobre ~2h, commit `f8e4636`, note anglais + français). Elle est installée dans le jeu.
+Branche `fix/points-restants` = `feat/independent-travel` sur GitHub (poussée, dernier commit de code `469bd8a`).
+
+**Depuis la 0.26.789, poussé, PAS publié** (chaque point : test rouge puis vert, relu par l'agent relecteur) :
+- drapeaux de case du mode construction (`CellFlagDelta` 857, 23e champ de `TileStateDelta`), `settings2 p16` ;
+- puits (charge, `CardSettingDelta.Well`), `p17` ; poste d'artisanat (recharge auto, stock), `p18` ;
+- réglages du monde = ceux de l'host (`WorldPrincipalDelta` 858, message `emp_world_setting_host`), `p19` ;
+- machine à gènes d'un invité (`GeneMachineDelta` 859, n°8 de la chasse du 5 octobre), `p20` ;
+- don « destin » (n°26), `oct10 y6` ; butin selon la chance du tueur, graines selon le don du porteur (n°25), `y7`, `y8`.
+→ un lot qui vaut une version (accord de l'utilisateur nécessaire ; il veut que je fasse tout moi-même : commit,
+push, `make_release.ps1`, `publish_release.py`, note en anglais ET français).
+
+**Série complète** : dernière passe entière le 19 de 6h17 à 8h02 (12/14) ; ses rouges d'`oct10` venaient du banc
+(corrigés : coffre de Fiama trop lourd, n1 qui laissait les joueurs sur la carte du monde) ; `guest_suite` : la laisse
+du compagnon de l'invité, intermittente (diagnostic Debug « Leash of … not pulled » ajouté, à lire au prochain rouge).
+**Une passe relancée à 11h45 sur le code actuel a été arrêtée à la demande de l'utilisateur : à rejouer.**
+
+**Dépôt** : `dev/_tools` (banc de test, scripts Python) n'est plus suivi par git (demande de l'utilisateur) : il
+n'existe que sur ce PC. Prochain delta : **860**. `CardSettingDelta` : kinds jusqu'à 21.
+
+**Reste à faire** : liste à jour dans `DOCUMENTATION.md` §7 (« Avancement du 2026-10-18 au soir » et suite) ; détail
+et pièges à la fin de `MODLOG.md`.
+
 ## 19 octobre 2026, 10h50 (à lire en premier)
 
 - **Publiée : 0.26.789.** Depuis, poussé, pas publié : drapeaux de case (857), puits, poste d'artisanat (recharge,

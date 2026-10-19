@@ -3140,3 +3140,7 @@ le stock d'un marchand (don 1406, à vérifier : l'acheteur est-il déjà le jou
 ouverte : 13 (forte pluie), 17 (conseil), 27 (objets de voyage du mode survie), 28 (divorce, anneau perdu).
 Banc : y4 neutralise la maîtrise apprise par l'invité de test (s'entraînait à chaque passe : 0 touche).
 Dépôt : `dev/_tools` n'est plus suivi (demande de l'utilisateur).
+
+2026-10-19, 11h50 : **arrêt demandé par l'utilisateur** (« arrête toi, note tout dans la documentation »). Série
+complète relancée à 11h45 sur le code actuel (`cb452b0`) : arrêtée avant la fin, à rejouer. Build publié 0.26.789
+remis dans le jeu, bancs fermés. Passation : haut de `HANDOFF.md`.
