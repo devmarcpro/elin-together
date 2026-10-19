@@ -1,6 +1,16 @@
 # Passation — ElinTogether « indépendance »
 
-## 19 octobre 2026, 5h45 (à lire en premier)
+## 19 octobre 2026, 10h50 (à lire en premier)
+
+- **Publiée : 0.26.789.** Depuis, poussé, pas publié : drapeaux de case (857), puits, poste d'artisanat (recharge,
+  stock), réglages du monde (858, ceux de l'host). Un lot qui vaut une version (dit à l'utilisateur).
+- Série complète du matin : 12/14 ; les rouges d'oct10 (x5, x8, y4, v4, depuis le 13) étaient **le banc** (coffre de
+  Fiama de 226 kg qui écrasait l'invité de test ; n1 qui laissait les joueurs sur la carte du monde) : corrigés, oct10
+  entière verte. Reste : la laisse du compagnon de l'invité, intermittente (diagnostic Debug ajouté, à lire au
+  prochain rouge) ; g34 (seringue) verte seule.
+- Prochain delta : 859. Comparateur `diff_suite.py` : base, Mysilia, carte tenue par l'invité, objets en main.
+
+## 19 octobre 2026, 5h45
 
 - Publiée : 0.26.789. Depuis : drapeaux de case (`CellFlagDelta` 857, testé). Série complète jouée : 11/14, les trois
   rouges verts seuls ou dus aux tests (détail : fin de `MODLOG.md`). Prochain delta : 858.
