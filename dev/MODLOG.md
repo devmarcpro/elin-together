@@ -3131,3 +3131,12 @@ les renvoie à tous (chaque jeu sait dans quelle machine est l'habitant et quel 
 machine de l'host, les autres ne le savaient pas). `p20` rouge (liste ouverte chez l'host), vert ; série 50/50.
 Relu : gardes ajoutées (machine allumée et libre, habitant éligible, gène pris dans le sac de l'invité).
 Pas joué : la fin (gène appliqué) par l'invité, la vraie fenêtre de dépôt du gène (le test appelle `_OnProcess`).
+
+2026-10-19, 12h : n°26 **don « destin »** (`ae59e1f`, y6) ; n°25 (formules qui lisent les dons de l'host) :
+**butin** d'un monstre tué par un invité selon SA chance (1660, `SpawnLoot`, y7 : 0/20 queues légendaires avant,
+20/20 après) et **graines de la nourriture pourrie** dans le sac d'un invité selon SON don (1325, `Decay`, y8).
+Relu : rien. Pas traités du n°25 : la réduction de dégâts du combat auto (avec le point « combat automatique »),
+le stock d'un marchand (don 1406, à vérifier : l'acheteur est-il déjà le joueur local ?). Chasse du 5 octobre encore
+ouverte : 13 (forte pluie), 17 (conseil), 27 (objets de voyage du mode survie), 28 (divorce, anneau perdu).
+Banc : y4 neutralise la maîtrise apprise par l'invité de test (s'entraînait à chaque passe : 0 touche).
+Dépôt : `dev/_tools` n'est plus suivi (demande de l'utilisateur).

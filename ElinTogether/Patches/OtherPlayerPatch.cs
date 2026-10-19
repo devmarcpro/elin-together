@@ -117,6 +117,51 @@ internal static class OtherPlayerPatch
         return list;
     }
 
+    /// <summary>
+    ///     Luck (1660) makes the equipment a monster drops legendary: the game reads the local player's. Only the host
+    ///     makes the loot: a guest's kill dropped by the host's luck. The killer's, or its owner's for a companion
+    /// </summary>
+    [HarmonyTranspiler]
+    [HarmonyPatch(typeof(Card), nameof(Card.SpawnLoot))]
+    internal static IEnumerable<CodeInstruction> OnSpawnLoot(IEnumerable<CodeInstruction> instructions)
+    {
+        return ReplacePcBefore(instructions, 1660, OpCodes.Ldarg_1);
+    }
+
+    /// <summary>
+    ///     With the feat 1325, food that rots in a bag leaves seeds: the game reads the local player's. A guest's bag
+    ///     rots in the host's game: the host's feat. The one who carries it
+    /// </summary>
+    [HarmonyTranspiler]
+    [HarmonyPatch(typeof(Card), nameof(Card.Decay))]
+    internal static IEnumerable<CodeInstruction> OnDecay(IEnumerable<CodeInstruction> instructions)
+    {
+        return ReplacePcBefore(instructions, 1325, OpCodes.Ldarg_0);
+    }
+
+    // "EClass.pc" read right before the element id becomes the player behind the card loaded by `load`
+    private static IEnumerable<CodeInstruction> ReplacePcBefore(IEnumerable<CodeInstruction> instructions, int element, OpCode load)
+    {
+        var getPc = AccessTools.PropertyGetter(typeof(EClass), nameof(EClass.pc));
+        var list = instructions.ToList();
+        for (var i = 0; i < list.Count - 1; i++) {
+            if (list[i].Calls(getPc) && list[i + 1].LoadsConstant(element)) {
+                list[i] = new CodeInstruction(load) { labels = list[i].labels };
+                list.Insert(i + 1, CodeInstruction.Call(typeof(OtherPlayerPatch), nameof(PlayerOf)));
+                break;
+            }
+        }
+
+        return list;
+    }
+
+    // the player a card stands for: a player itself, a companion's owner, what carries an item; the local player else
+    internal static Chara PlayerOf(Card? card)
+    {
+        var chara = card as Chara ?? card?.GetRootCard() as Chara;
+        return IsMultiplayer && chara is not null && CompanionHelper.OwnerOf(chara) is { } owner ? owner : EClass.pc;
+    }
+
     private static Chara? _gateCaster;
 
     /// <summary>
