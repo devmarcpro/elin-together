@@ -35,6 +35,8 @@ internal class TraitOnUsePatch
             AccessTools.Method(typeof(TraitBookRoster), nameof(TraitBookRoster.OnUse), [typeof(Chara)]),
             AccessTools.Method(typeof(TraitDetector), nameof(TraitDetector.OnUse), [typeof(Chara)]),
             AccessTools.Method(typeof(TraitGeneratorWheel), nameof(TraitGeneratorWheel.OnUse), [typeof(Chara)]),
+            // its windows; the choices come as GeneMachineDelta, the end (gene applied) is done here as for anyone
+            AccessTools.Method(typeof(TraitGeneMachine), nameof(TraitGeneMachine.OnUse), [typeof(Chara)]),
             // runes and plugs (TraitRune, TraitModRanged inherit it): the pick goes back by InvOwnerOnProcessDelta
             AccessTools.Method(typeof(TraitMod), nameof(TraitMod.OnUse), [typeof(Chara)]),
             // the delivery chest of a harvest
@@ -54,6 +56,11 @@ internal class TraitOnUsePatch
     internal static bool OnRemotePlayerUse(Trait __instance, Chara c)
     {
         if (!NetSession.Instance.HasActiveConnection || c is not { IsPC: false, IsRemotePlayer: true }) {
+            return true;
+        }
+
+        // the end of the machine (no window): done where the resident is run, as for anyone
+        if (__instance is TraitGeneMachine machine && machine.GetTarget() is not null && machine.GetProgress() >= 1f) {
             return true;
         }
 

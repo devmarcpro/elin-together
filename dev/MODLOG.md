@@ -3121,3 +3121,13 @@ Passe complète du matin (6h17-8h02) : 12/14, l'autre rouge `guest_suite` (g34 s
 le chat resté à 5 cases, **pas une ligne « Leash of »** : la fonction s'arrête avant, sur un de ses premiers gardes) ;
 g34 (seringue) verte. Diagnostic ajouté (Debug « Leash of … companions not pulled » : suivre, région, garder ses
 distances zone/invité/host). Rejouée : 334/334 (intermittent, pas repris). À lire au prochain rouge.
+
+2026-10-19, 11h : **machine à gènes utilisée par un invité** (n°8 de la chasse du 5 octobre, jamais traité) : la liste
+des habitants s'ouvrait aussi chez l'host (qui rejoue l'usage) et l'host ne gardait aucun choix ; chez l'invité, la
+fonction du choix plantait à mi-chemin (un jeu qui ne fait pas vivre l'habitant ne peut pas lui poser l'état
+« dans la machine »). Maintenant : l'usage n'est plus rejoué chez l'host pour un autre joueur (sauf la fin, sans
+fenêtre) ; le choix de l'habitant et le gène glissé sont une demande à l'host (`GeneMachineDelta` 859), qui les fait et
+les renvoie à tous (chaque jeu sait dans quelle machine est l'habitant et quel gène il prend ; avant, même pour la
+machine de l'host, les autres ne le savaient pas). `p20` rouge (liste ouverte chez l'host), vert ; série 50/50.
+Relu : gardes ajoutées (machine allumée et libre, habitant éligible, gène pris dans le sac de l'invité).
+Pas joué : la fin (gène appliqué) par l'invité, la vraie fenêtre de dépôt du gène (le test appelle `_OnProcess`).

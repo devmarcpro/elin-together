@@ -141,6 +141,7 @@ namespace ElinTogether.Models;
 [Union(856, typeof(GateFollowDelta))]
 [Union(857, typeof(CellFlagDelta))]
 [Union(858, typeof(WorldPrincipalDelta))]
+[Union(859, typeof(GeneMachineDelta))]
 // Act
 [Union(900, typeof(ActThrowDelta))]
 // Element

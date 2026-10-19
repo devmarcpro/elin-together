@@ -38,6 +38,10 @@ P18 l'invite bascule les deux interrupteurs de la fenetre d'un poste d'artisanat
     utiliser le stock : les champs que basculent les boutons) : l'host a les memes. Puis l'host les remet.
 P19 reglages du monde (conseil du 19 : ceux de l'host) : l'invite ouvre la fenetre, bascule « benediction du vide » et la
     ferme : rien ne change, ni chez lui ni chez l'host ; l'host fait de meme : l'invite recoit le changement.
+P20 machine a genes utilisee par l'invite (n°8 de la chasse du 5 octobre) : « utiliser » par le menu de la case ; la
+    liste des habitants s'ouvre chez lui seul ; il choisit un habitant (la fonction du choix de la liste) : chez l'host
+    l'habitant est couche dans la machine ; il glisse un gene (ce que fait le depot dans la fenetre, _OnProcess) : chez
+    l'host le gene est dans la machine. Machine posee et allumee par eval ; gene fabrique par eval.
 """
 import os
 import sys
@@ -399,9 +403,46 @@ def p19(ctx):
     ev(H, toggle)
 
 
+def p20(ctx):
+    uids = to_base()
+    res = uids[0]
+    me = state(A)["pc"]["uid"]
+    spot = ev(H, f'var g = EClass._map.charas.Find(x => x.uid == {me}); var p = g.pos.GetNearestPoint(allowChara: false); '
+                 'var m = ThingGen.Create("machine_gene2"); EClass._zone.AddCard(m, p).Install(); m.isOn = true; return m.uid + "," + p.x + "," + p.z;')
+    mid, x, z = spot.split(",")
+    eventually(lambda: ev(A, f'({thing(mid)} != null).ToString()') == "True", timeout=10)
+    ev(A, f'{thing(mid)}.isOn = true; return "ok";')
+    layers = lambda port: ev(port, 'return string.Join(",", EClass.ui.layers.Select(l => l.GetType().Name));')  # noqa: E731
+    walk_next_to(A, x, z)
+    r = act(A, (x, z), 'i.act is DynamicAct d && d.id == "actUse"', all_actions=False)
+    time.sleep(3)
+    check(f"l'invite utilise la machine ({r}) : la liste s'ouvre chez lui ({layers(A)})", r == "ok" and "LayerPeople" in layers(A))
+    check(f"et pas chez l'host ({layers(H)})", "LayerPeople" not in layers(H))
+    # (la base du banc n'a pas l'electricite de la machine : le jeu l'eteint ; branchee dans une vraie partie)
+    power = lambda: [ev(p, f'{thing(mid)}.isOn = true; return "ok";') for p in (H, A)]  # noqa: E731
+    power()
+    picked = ev(A, f'var l = EClass.ui.layers.OfType<LayerPeople>().FirstOrDefault(); if (l == null) return "pas de liste"; '
+                   f'var c = EClass._map.charas.Find(x => x.uid == {res}); var o = l.multi.owners.OfType<ListPeopleSelect>().FirstOrDefault(); '
+                   'if (o == null) return "pas de choix"; o.onClick(c); l.Close(); return "ok";')
+    inside = lambda port: ev(port, f'var c = EClass._map.charas.Find(x => x.uid == {res}); var s = c == null ? null : c.GetCondition<ConSuspend>(); '  # noqa: E731
+                                   'return s == null ? "dehors" : s.uidMachine + "/" + (s.gene == null ? 0 : s.gene.uid);')
+    check(f"il choisit l'habitant {res} ({picked}) : chez l'host il est couche dans la machine ({inside(H)})",
+          picked == "ok" and eventually(lambda: inside(H).startswith(mid + "/"), timeout=10))
+    check(f"et chez l'invite, il sait dans quelle machine ({inside(A)})", eventually(lambda: inside(A).startswith(mid + "/"), timeout=10))
+    gene = ev(H, f'var g = EClass._map.charas.Find(x => x.uid == {me}); var c = EClass._map.charas.Find(x => x.uid == {res}); c.feat = 99; '
+                 'var t = DNA.GenerateGene(c, DNA.Type.Superior); g.AddThing(t); return t.uid.ToString();')
+    eventually(lambda: ev(A, f'(EClass.pc.things.Find(x => x.uid == {gene}) != null).ToString()') == "True", timeout=10)
+    power()
+    ev(A, f'var c = EClass._map.charas.Find(x => x.uid == {res}); c.feat = 99; var t = EClass.pc.things.Find(x => x.uid == {gene}); '
+          f'new InvOwnerGene({thing(mid)}, c)._OnProcess(t); return "ok";')
+    check(f"il glisse le gene {gene} : chez l'host le gene est dans la machine ({inside(H)})",
+          eventually(lambda: inside(H) == f"{mid}/{gene}" and inside(A) == f"{mid}/{gene}", timeout=10))
+    ev(H, f'var c = EClass._map.charas.Find(x => x.uid == {res}); c.RemoveCondition<ConSuspend>(); {thing(mid)}.Destroy(); return "ok";')
+
+
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
-    steps = [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19]
+    steps = [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20]
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(",")]
     # (les deux joueurs de test ne meurent pas pendant la serie : un yeek de la base du depot a tue l'invite de test, niveau 1,
