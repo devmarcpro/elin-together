@@ -77,7 +77,8 @@ Les commandes de test se lancent depuis `dev/` avec `PYTHONPATH=_tools/pylib`.
 ## Ce qui ne va jamais dans le dépôt (il est public)
 
 Fichiers du jeu, code décompilé (`dev/_decomp`), copies du jeu (`dev/_lab`), sauvegardes de l'utilisateur,
-journaux et captures bruts (`dev/_shots`), bibliothèques tierces. `dev/.gitignore` les écarte : ne pas le contourner.
+journaux et captures bruts (`dev/_shots`), bibliothèques tierces, et **le banc de test `dev/_tools` (scripts Python,
+suites) : sur la machine seulement** depuis le 19 octobre (demande de l'utilisateur). `dev/.gitignore` les écarte : ne pas le contourner.
 
 ## Aide-mémoire
 
