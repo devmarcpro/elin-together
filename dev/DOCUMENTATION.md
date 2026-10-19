@@ -658,7 +658,7 @@ Venue d'une relecture de la doc et des plans, des journaux, et de deux audits du
 **Déjà listés, toujours ouverts (doc, plans)** : joueur refusé par celui qui tient la carte qui reçoit tout le monde ;
 quêtes que l'host n'a pas dans le journal d'un joueur ; philtre d'amour dans le sac d'un compagnon ; « mes attributs
 ne montent pas » ; compteur d'alliés un de trop et minage refusé (pas reproduits) ; objets perdus en ramassant sac
-plein ; laisse ; monture et cavalier pas à la même vitesse ; machine à gènes utilisée par un invité (même défaut que
+plein (**pas reproduit** le 19 : `pickup_suite` 46/47, le rouge est le test qui ne trouve pas de case libre à Vernis) ; laisse ; monture et cavalier pas à la même vitesse ; machine à gènes utilisée par un invité (même défaut que
 la roue ; essai du 18 : le menu de la case n'offrait aucune action, à reprendre) ; forte pluie ; servante, type de
 résident, réglages de coffre ; habitants qui ne remarquent que l'host (conseil) ; temps du monde (ne pas commencer sans
 l'utilisateur) ; duels (arène, pari) ; journal par joueur ; tests instables (sleep k1, together T2/T8, guest g34/g40,
