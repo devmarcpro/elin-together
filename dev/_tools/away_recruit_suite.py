@@ -216,7 +216,8 @@ DIGEST = ('var c = EClass.game.cards.globalCharas.Find({m}); if (c == null) retu
           'parts.Add("sac=" + string.Join("+", c.things.Where(t => !t.isEquipped).Select(t => t.id + "x" + t.Num).OrderBy(x => x))); '
           'return string.Join(";", parts);')
 # ce qui change tout seul d'une carte a l'autre, sans etre un reglage : la carte, la case, la direction, les tours
-MOVING = ("cints1=", "ints6=", "ints7=", "ints8=", "ints9=", "ints10=", "ints11=", "ints12=", "ints13=", "ints14=", "ints15=", "ints16=", "ints17=")
+# (ints5 : la direction ou il regarde, qui change en marchant : vu le 19 octobre, 0 -> 2)
+MOVING = ("cints1=", "ints5=", "ints6=", "ints7=", "ints8=", "ints9=", "ints10=", "ints11=", "ints12=", "ints13=", "ints14=", "ints15=", "ints16=", "ints17=")
 SET_ALL = ('var c = EClass._map.charas.Find(x => x.uid == {m}); if (c == null) return "pas sur la carte"; '
            'c.noMove = true; c.orgPos = new Point(c.pos); foreach (var id in new[] { 106, 108, 113, 119, 123, 126 }) c.SetInt(id, 1); '
            'c.SetBool(129, true); c.knowFav = true; c.isLeashed = true; c.c_altName = "Nom du banc"; '
