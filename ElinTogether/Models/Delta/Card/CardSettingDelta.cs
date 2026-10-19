@@ -40,6 +40,8 @@ public class CardSettingDelta : ElinDelta
     public const byte LightColor = 17;
     public const byte Figure = 18;
     public const byte Well = 19;
+    public const byte AutoRefuel = 20;
+    public const byte StockUse = 21;
 
     [Key(0)]
     public required RemoteCard Card { get; init; }
@@ -101,6 +103,8 @@ public class CardSettingDelta : ElinDelta
                 LightColor => card.c_lightColor,
                 Figure => card.refVal,
                 Well => card.c_charges,
+                AutoRefuel => card.autoRefuel ? 1 : 0,
+                StockUse => card.c_isDisableStockUse ? 1 : 0,
                 _ => 0,
             },
             Blob = kind == Painting ? card.c_textureData : null,
@@ -230,7 +234,7 @@ public class CardSettingDelta : ElinDelta
             (Kind == Teleporter && thing.trait is not TraitTeleporter) || (Kind == Door && thing.trait is not TraitDoor) ||
             (Kind == HouseBoard && thing.trait is not TraitHouseBoard) ||
             (Kind == Painting && (thing.trait is not TraitCanvas || Blob is not { Length: <= 1 << 20 })) ||
-            (Kind == RoomPlate && thing.trait is not TraitRoomPlate) || (Kind == Figure && (thing.trait is not TraitFigure { source: { } row } || Value < 0 || Value >= row.tiles.Length)) || (Kind == Well && thing.trait is not TraitWell) || Kind is > RoomPlate and < AutoToggle or > Well) {
+            (Kind == RoomPlate && thing.trait is not TraitRoomPlate) || (Kind == Figure && (thing.trait is not TraitFigure { source: { } row } || Value < 0 || Value >= row.tiles.Length)) || (Kind == Well && thing.trait is not TraitWell) || Kind is > RoomPlate and < AutoToggle or > StockUse) {
             return;
         }
 
@@ -317,6 +321,12 @@ public class CardSettingDelta : ElinDelta
                 break;
             case Well:
                 thing.c_charges = Value;
+                break;
+            case AutoRefuel:
+                thing.autoRefuel = Value != 0;
+                break;
+            case StockUse:
+                thing.c_isDisableStockUse = Value != 0;
                 break;
             case LightColor:
                 thing.c_lightColor = Value;

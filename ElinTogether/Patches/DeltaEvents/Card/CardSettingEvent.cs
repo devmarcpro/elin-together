@@ -169,6 +169,41 @@ internal static class CardSettingEvent
     }
 
     /// <summary>
+    ///     The two switches of a crafting station's window: refuel by itself, do not take from the stock
+    /// </summary>
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(Card), nameof(Card.autoRefuel), MethodType.Setter)]
+    internal static void OnAutoRefuel(Card __instance, out bool __state)
+    {
+        __state = __instance.autoRefuel;
+    }
+
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(Card), nameof(Card.autoRefuel), MethodType.Setter)]
+    internal static void OnAutoRefuelSet(Card __instance, bool __state)
+    {
+        if (__instance is Thing && __instance.autoRefuel != __state) {
+            Tell(__instance, CardSettingDelta.AutoRefuel);
+        }
+    }
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(Card), nameof(Card.c_isDisableStockUse), MethodType.Setter)]
+    internal static void OnStockUse(Card __instance, out bool __state)
+    {
+        __state = __instance.c_isDisableStockUse;
+    }
+
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(Card), nameof(Card.c_isDisableStockUse), MethodType.Setter)]
+    internal static void OnStockUseSet(Card __instance, bool __state)
+    {
+        if (__instance is Thing && __instance.c_isDisableStockUse != __state) {
+            Tell(__instance, CardSettingDelta.StockUse);
+        }
+    }
+
+    /// <summary>
     ///     "Turn on/off automatically" of a light (shift menu of the tile)
     /// </summary>
     [HarmonyPrefix]

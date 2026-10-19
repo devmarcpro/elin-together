@@ -34,6 +34,8 @@ P16 l'outil « drapeaux de case » du mode construction (AM_FlagCell : pas de ne
     l'host l'enleve, l'invite le voit.
 P17 l'invite boit a un puits (le menu de la case, « boire »), puis l'host : la charge du puits est la meme dans les
     deux jeux (trouve par le comparateur : sur une carte tenue par l'invite, le puits ne s'usait que chez l'host).
+P18 l'invite bascule les deux interrupteurs de la fenetre d'un poste d'artisanat (recharge automatique, ne pas
+    utiliser le stock : les champs que basculent les boutons) : l'host a les memes. Puis l'host les remet.
 """
 import os
 import sys
@@ -367,9 +369,23 @@ def p17(ctx):
         log(f"puits {uid} : host {charges(H)}, invite {charges(A)}")
 
 
+def p18(ctx):
+    to_base()
+    uid = ev(H, 'var t = EClass._map.things.FirstOrDefault(x => x.IsInstalled && x.trait is TraitCrafter); return t == null ? "" : t.uid.ToString();')
+    if not uid:
+        uid = ev(H, 'var t = ThingGen.Create("workbench"); EClass._zone.AddCard(t, EClass.pc.pos.GetNearestPoint(allowChara: false)).Install(); return t.uid.ToString();')
+        eventually(lambda: ev(A, f'({thing(uid)} != null).ToString()') == "True", timeout=10)
+    read = lambda port: ev(port, f'var t = {thing(uid)}; return t.autoRefuel + "/" + t.c_isDisableStockUse;')  # noqa: E731
+    before = read(A)
+    for who, port, other in (("l'invite", A, H), ("l'host", H, A)):
+        want = ev(port, f'var t = {thing(uid)}; t.autoRefuel = !t.autoRefuel; t.c_isDisableStockUse = !t.c_isDisableStockUse; return t.autoRefuel + "/" + t.c_isDisableStockUse;')
+        check(f"{who} bascule recharge auto et stock du poste {uid} ({want}) : pareil dans l'autre jeu", eventually(lambda: read(other) == want, timeout=8))
+    check(f"retour a l'etat de depart des deux cotes ({before})", read(H) == before and read(A) == before)
+
+
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
-    steps = [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17]
+    steps = [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18]
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(",")]
     # (les deux joueurs de test ne meurent pas pendant la serie : un yeek de la base du depot a tue l'invite de test, niveau 1,
