@@ -617,7 +617,7 @@ sauvegardes ne sont pas touchées (copies dans `_backup/`).
 **À faire en premier**
 1. Rejouer la série complète (`bash _tools/release_gate.sh`, PC libre, ~2 h) sur le code actuel ; lire les journaux de
    chaque rouge (garder `Player.log` de l'host et `_shots/elin2-player.log` avant le lancement suivant, ils s'écrasent).
-2. Si elle est verte (ou rouges expliqués) : proposer une version (lot depuis la 0.26.789 dans `HANDOFF.md`).
+2. 0.26.808 publiée le 19 à midi sans cette série : la rejouer quand même, et corriger ce qu'elle trouve.
 
 **Défauts connus, pas corrigés**
 - Laisse du compagnon d'un invité : ne tire pas, parfois (`guest_suite` « le chat suit » ; diagnostic Debug en place).

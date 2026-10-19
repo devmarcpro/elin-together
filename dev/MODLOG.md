@@ -3144,3 +3144,9 @@ Dépôt : `dev/_tools` n'est plus suivi (demande de l'utilisateur).
 2026-10-19, 11h50 : **arrêt demandé par l'utilisateur** (« arrête toi, note tout dans la documentation »). Série
 complète relancée à 11h45 sur le code actuel (`cb452b0`) : arrêtée avant la fin, à rejouer. Build publié 0.26.789
 remis dans le jeu, bancs fermés. Passation : haut de `HANDOFF.md`.
+
+Publié : **0.26.808** (commit dae59f4, 2026-10-19 vers 12h, ordre de l'utilisateur : « release »), `--sans-barriere`
+(série complète arrêtée à sa demande ; chaque correction rouge puis verte). Zip Windows seul, identique en ligne
+(sha256 fce784eb…), note en anglais et en français. Dedans depuis la 0.26.789 : drapeaux de case, puits, poste
+d'artisanat, réglages du monde, machine à gènes, don « destin », butin selon la chance du tueur, graines selon le don
+du porteur. Build publié installé dans le jeu.
