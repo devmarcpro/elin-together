@@ -72,9 +72,10 @@ def walk_next_to(port, x, z):
 
 def p1(ctx):
     to_base()
-    me = state(A)["pc"]["uid"]
-    door = ev(H, f'var c = EClass._map.charas.Find(x => x.uid == {me}); var d = EClass._map.things.Where(t => t.IsInstalled && t.trait.GetType() == typeof(TraitDoor) '
-                 '&& t.c_lockLv == 0 && !(t.trait as TraitDoor).IsOpen() && !t.pos.HasChara).OrderBy(t => t.pos.Distance(c.pos)).Take(3); '
+    # (choisies dans le jeu de l'invite, a deux cases au moins : arrive a la base, il se tient parfois DANS une porte, que
+    # l'host, pas encore a jour de sa place, proposait ; le chemin vers elle echouait, quatre fois les 18-19)
+    door = ev(A, 'var c = EClass.pc; var d = EClass._map.things.Where(t => t.IsInstalled && t.trait.GetType() == typeof(TraitDoor) '
+                 '&& t.c_lockLv == 0 && !(t.trait as TraitDoor).IsOpen() && !t.pos.HasChara && t.pos.Distance(c.pos) >= 2).OrderBy(t => t.pos.Distance(c.pos)).Take(3); '
                  'return string.Join(";", d.Select(x => x.uid + "," + x.pos.x + "," + x.pos.z));')
     if not check("une porte fermee, sans serrure, sur la carte", bool(door)):
         return
