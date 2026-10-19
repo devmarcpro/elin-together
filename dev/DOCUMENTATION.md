@@ -622,7 +622,13 @@ Fait aussi depuis : couleur d'une lumière, figurine, apparence complète d'un h
 compagnons). `dev/_decomp` refait le 19 octobre pour Elin EA 23.356 (l'ancien : `_decomp/Elin_23352`) ; nouveautés
 du jeu à vérifier en multijoueur : jumelles (`HotItemActionBinocular`), toise (`TraitHeightMeasure`), balance
 (`TraitWeightScale`).
-Fait aussi le 19 au matin : drapeaux de case, puits, poste d'artisanat (recharge auto, stock).
+Fait aussi le 19 : drapeaux de case, puits, poste d'artisanat (recharge auto, stock), réglages du monde (ceux de
+l'host), machine à gènes (n°8), don « destin » (n°26), butin selon la chance du tueur et graines selon le don du
+porteur (n°25). Restes de la chasse du 5 octobre : n°13 forte pluie (effets rares sur la carte du monde, pas testé),
+n°17 habitants qui ne remarquent que l'host (conseil), n°25 réduction de dégâts du combat auto (avec « combat
+automatique ») et stock d'un marchand selon le don 1406 de l'host (stock commun : question de conception), n°27
+portail d'atterrissage, casque du ciel, moongate (mode survie ; le casque change un réglage du monde), n°28 divorce
+et anneau perdu.
 Trouvé par le recensement des fenêtres (agent, 19 au matin), pas encore traité : réglages du monde
 (`LayerWorldSetting`, `game.principal`) changés par un invité ; playlists de la zone (`LayerEditPlaylist`) ; titre du
 joueur (`LayerEmbark`) ; options d'export de la carte (`LayerUploader`) ; ce que fait l'écran de sommeil aux PNJ
