@@ -3,9 +3,10 @@
 /_shots/
 /_decomp/
 /_backup/
-/_tools/pylib/
-/_tools/ilspycmd.exe
-/_tools/.store/
+# le banc de test (scripts Python, suites, outils) : sur la machine seulement, plus dans le depot (demande de
+# l'utilisateur, 2026-10-19)
+/_tools/
+*.py
 __pycache__/
 # ce que make_release.ps1 fabrique ; le modele de l'installateur reste
 /_release/*
