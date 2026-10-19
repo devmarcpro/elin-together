@@ -330,5 +330,6 @@
     "LangGeneral.emp_ui_chara_delete_confirm.text": "删除 #1？其携带的物品也会一起消失，同伴留在这个世界。",
     "LangGeneral.emp_ui_chara_deleted.text": "角色已删除。",
     "LangGeneral.emp_ui_sv_cfg_delete_chara.text": "玩家可以删除自己的角色",
-    "LangGeneral.emp_ui_sv_desc_delete_chara.text": "在角色选择列表中删除（确认两次）。携带的物品一起消失，同伴留在世界中。"
+    "LangGeneral.emp_ui_sv_desc_delete_chara.text": "在角色选择列表中删除（确认两次）。携带的物品一起消失，同伴留在世界中。",
+    "LangGeneral.emp_world_setting_host.text": "世界设置由主机决定：你的更改未被保留。"
 }

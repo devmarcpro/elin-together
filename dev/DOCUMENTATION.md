@@ -622,6 +622,12 @@ Fait aussi depuis : couleur d'une lumière, figurine, apparence complète d'un h
 compagnons). `dev/_decomp` refait le 19 octobre pour Elin EA 23.356 (l'ancien : `_decomp/Elin_23352`) ; nouveautés
 du jeu à vérifier en multijoueur : jumelles (`HotItemActionBinocular`), toise (`TraitHeightMeasure`), balance
 (`TraitWeightScale`).
+Fait aussi le 19 au matin : drapeaux de case, puits, poste d'artisanat (recharge auto, stock).
+Trouvé par le recensement des fenêtres (agent, 19 au matin), pas encore traité : réglages du monde
+(`LayerWorldSetting`, `game.principal`) changés par un invité ; playlists de la zone (`LayerEditPlaylist`) ; titre du
+joueur (`LayerEmbark`) ; options d'export de la carte (`LayerUploader`) ; ce que fait l'écran de sommeil aux PNJ
+(`LayerSleep`, expérience). Propres à chaque joueur, pas des défauts : collection (`hoard`), gacha.
+Comparateur : orientation d'arbres et herbes qui change quand le temps passe, dans un seul jeu (visuel seulement).
 Reste de la liste : combat automatique (conseil : couper la protection croisée ; drapeau « combat auto » de l'invité
 à concevoir), portail, parchemin de résurrection, cases (neige, flotter), ascenseur, figurines, couleur de lumière,
 PCC d'un habitant (bouton de la liste), crime d'un sort de zone d'un autre joueur en ville (karma du joueur local ?),

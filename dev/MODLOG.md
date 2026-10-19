@@ -3095,3 +3095,11 @@ recruit 45, companion 28, travel 116, guest 334). Rouges, lus et rejoués seuls 
 - `sleep_suite` 120/121 (l'écran de sommeil de l'invité ne s'ouvre pas) : **vert seul** 124/124.
 Aucun défaut du mod trouvé par cette passe. Journaux du jeu de la passe écrasés par le lancement suivant (pièce
 jointe : `_shots/replay-*-player.log` pour les rejeux).
+
+2026-10-19, matin : comparateur sur une carte **tenue par l'invité** (`--guest-holds mysilia`, l'host en visite, dans les
+deux sens, aussi les objets en main) : un vrai défaut, **le puits** (`2660989`, `p17`) ; le reste : le temps qui passe
+(réservé) et l'orientation d'arbres. Recensement des fenêtres du jeu (agent haiku) : **poste d'artisanat** (recharge
+auto, stock : `6a2b160`, `p18`) ; **réglages du monde** (conseil : ceux de l'host ; `WorldPrincipalDelta` 858, la
+fenêtre d'un invité ne garde rien et le dit, `p19` rouge puis vert, série 45/45). Non traités, notés dans la liste :
+playlists de zone, titre du joueur, options d'export, effets du sommeil sur les PNJ. Limite connue : un invité dont
+la fenêtre est ouverte pendant que l'host change un réglage voit le message en la fermant sans avoir rien touché.

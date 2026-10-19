@@ -140,6 +140,7 @@ namespace ElinTogether.Models;
 [Union(855, typeof(TentZoneDelta))]
 [Union(856, typeof(GateFollowDelta))]
 [Union(857, typeof(CellFlagDelta))]
+[Union(858, typeof(WorldPrincipalDelta))]
 // Act
 [Union(900, typeof(ActThrowDelta))]
 // Element

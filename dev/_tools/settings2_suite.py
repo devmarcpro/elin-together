@@ -36,6 +36,8 @@ P17 l'invite boit a un puits (le menu de la case, « boire »), puis l'host : la
     deux jeux (trouve par le comparateur : sur une carte tenue par l'invite, le puits ne s'usait que chez l'host).
 P18 l'invite bascule les deux interrupteurs de la fenetre d'un poste d'artisanat (recharge automatique, ne pas
     utiliser le stock : les champs que basculent les boutons) : l'host a les memes. Puis l'host les remet.
+P19 reglages du monde (conseil du 19 : ceux de l'host) : l'invite ouvre la fenetre, bascule « benediction du vide » et la
+    ferme : rien ne change, ni chez lui ni chez l'host ; l'host fait de meme : l'invite recoit le changement.
 """
 import os
 import sys
@@ -383,9 +385,23 @@ def p18(ctx):
     check(f"retour a l'etat de depart des deux cotes ({before})", read(H) == before and read(A) == before)
 
 
+def p19(ctx):
+    read = lambda port: ev(port, 'return EClass.game.principal.disableVoidBlessing.ToString();')  # noqa: E731
+    toggle = ('var l = EClass.ui.AddLayer<LayerWorldSetting>(); l.pp.disableVoidBlessing = !l.pp.disableVoidBlessing; '
+              'var v = l.pp.disableVoidBlessing; l.Close(); return v.ToString();')
+    before = read(H)
+    check(f"au depart, meme reglage dans les deux jeux ({before} / {read(A)})", read(A) == before)
+    asked = ev(A, toggle)
+    time.sleep(3)
+    check(f"l'invite le bascule ({asked}) : garde chez personne (host {read(H)}, invite {read(A)})", read(H) == before and read(A) == before)
+    want = ev(H, toggle)
+    check(f"l'host le bascule ({want}) : l'invite le recoit", eventually(lambda: read(A) == want and read(H) == want, timeout=8))
+    ev(H, toggle)
+
+
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
-    steps = [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18]
+    steps = [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19]
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(",")]
     # (les deux joueurs de test ne meurent pas pendant la serie : un yeek de la base du depot a tue l'invite de test, niveau 1,
