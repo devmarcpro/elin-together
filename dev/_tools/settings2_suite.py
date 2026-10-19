@@ -32,6 +32,8 @@ P15 l'invite change l'apparence complete d'un habitant (la fenetre du jeu LayerE
 P16 l'outil « drapeaux de case » du mode construction (AM_FlagCell : pas de neige, flotter), utilise par l'invite sur
     une case pres de lui (OnProcessTiles, ce que fait le clic de l'outil) : la case a le drapeau chez l'host aussi ; puis
     l'host l'enleve, l'invite le voit.
+P17 l'invite boit a un puits (le menu de la case, « boire »), puis l'host : la charge du puits est la meme dans les
+    deux jeux (trouve par le comparateur : sur une carte tenue par l'invite, le puits ne s'usait que chez l'host).
 """
 import os
 import sys
@@ -345,9 +347,29 @@ def p16(ctx):
     check(f"l'host les remet : pareil chez l'invite ({before})", eventually(lambda: flags(A) == before and flags(H) == before, timeout=8))
 
 
+def p17(ctx):
+    to_base()
+    find = 'var w = EClass._map.things.FirstOrDefault(t => t.IsInstalled && t.trait is TraitWell w2 && !w2.IsHoly); return w == null ? "" : w.uid + "," + w.pos.x + "," + w.pos.z;'
+    well = ev(H, find)
+    if not well:
+        well = ev(H, 'var w = ThingGen.Create("well"); EClass._zone.AddCard(w, EClass.pc.pos.GetNearestPoint(allowChara: false)).Install(); return w.uid + "," + w.pos.x + "," + w.pos.z;')
+        eventually(lambda: ev(A, f'({thing(well.split(",")[0])} != null).ToString()') == "True", timeout=10)
+    uid, x, z = well.split(",")
+    for port in (H, A):
+        ev(port, f'{thing(uid)}.c_charges = 5; return "ok";')
+    charges = lambda port: ev(port, f'return {thing(uid)}.c_charges.ToString();')  # noqa: E731
+    for who, port, other, want in (("l'invite", A, H, "4"), ("l'host", H, A, "3")):
+        if not walk_next_to(port, x, z):
+            check(f"{who} marche jusqu'au puits", False)
+            return
+        r = act(port, (x, z), 'i.act is DynamicAct d && d.id == "actDrink"')
+        check(f"{who} boit au puits ({r}) : charge {want} dans les deux jeux", r == "ok" and eventually(lambda: charges(port) == want and charges(other) == want, timeout=8))
+        log(f"puits {uid} : host {charges(H)}, invite {charges(A)}")
+
+
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
-    steps = [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16]
+    steps = [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17]
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(",")]
     # (les deux joueurs de test ne meurent pas pendant la serie : un yeek de la base du depot a tue l'invite de test, niveau 1,

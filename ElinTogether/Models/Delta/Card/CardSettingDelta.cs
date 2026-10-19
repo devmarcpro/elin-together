@@ -39,6 +39,7 @@ public class CardSettingDelta : ElinDelta
     public const byte Lock = 16;
     public const byte LightColor = 17;
     public const byte Figure = 18;
+    public const byte Well = 19;
 
     [Key(0)]
     public required RemoteCard Card { get; init; }
@@ -99,6 +100,7 @@ public class CardSettingDelta : ElinDelta
                 Lock => card.c_lockLv,
                 LightColor => card.c_lightColor,
                 Figure => card.refVal,
+                Well => card.c_charges,
                 _ => 0,
             },
             Blob = kind == Painting ? card.c_textureData : null,
@@ -228,7 +230,7 @@ public class CardSettingDelta : ElinDelta
             (Kind == Teleporter && thing.trait is not TraitTeleporter) || (Kind == Door && thing.trait is not TraitDoor) ||
             (Kind == HouseBoard && thing.trait is not TraitHouseBoard) ||
             (Kind == Painting && (thing.trait is not TraitCanvas || Blob is not { Length: <= 1 << 20 })) ||
-            (Kind == RoomPlate && thing.trait is not TraitRoomPlate) || (Kind == Figure && (thing.trait is not TraitFigure { source: { } row } || Value < 0 || Value >= row.tiles.Length)) || Kind is > RoomPlate and < AutoToggle or > Figure) {
+            (Kind == RoomPlate && thing.trait is not TraitRoomPlate) || (Kind == Figure && (thing.trait is not TraitFigure { source: { } row } || Value < 0 || Value >= row.tiles.Length)) || (Kind == Well && thing.trait is not TraitWell) || Kind is > RoomPlate and < AutoToggle or > Well) {
             return;
         }
 
@@ -242,7 +244,7 @@ public class CardSettingDelta : ElinDelta
             // only the host manages the base: what stands on its map is not changed by the others, the sender gets the
             // setting the host keeps, which puts its copy back (what a player carries is its own)
             // (a door is opened by whoever walks there)
-            if (NetSession.Instance.Rules.HostManagesBase && !host.IsZoneSession && thing.GetRootCard() is not Chara && Kind != Door) {
+            if (NetSession.Instance.Rules.HostManagesBase && !host.IsZoneSession && thing.GetRootCard() is not Chara && Kind is not (Door or Well)) {
                 host.SendDeltaTo(OriginPeer, Create(thing, Kind));
                 return;
             }
@@ -312,6 +314,9 @@ public class CardSettingDelta : ElinDelta
                     thing.elements.SetBase(405, n[7]);
                 }
 
+                break;
+            case Well:
+                thing.c_charges = Value;
                 break;
             case LightColor:
                 thing.c_lightColor = Value;

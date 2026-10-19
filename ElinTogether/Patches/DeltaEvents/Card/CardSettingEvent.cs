@@ -21,7 +21,7 @@ internal static class CardSettingEvent
             return;
         }
 
-        if (card.GetRootCard() is not Chara && kind != CardSettingDelta.Door) {
+        if (card.GetRootCard() is not Chara && kind is not (CardSettingDelta.Door or CardSettingDelta.Well)) {
             RemoteBasePaidPatch.WarnHostOnly();
         }
 
@@ -301,6 +301,20 @@ internal static class FigureSettingEvent
         var figure = __instance as TraitFigure ?? AccessTools.GetDeclaredFields(__instance.GetType())
             .Select(f => f.GetValue(__instance)).OfType<TraitFigure>().FirstOrDefault();
         CardSettingEvent.Tell(figure?.owner, CardSettingDelta.Figure);
+    }
+}
+
+/// <summary>
+///     A well drunk from (or filled): its charges are written directly, no ModCharge the others would hear of. Drinking
+///     is not managing the base: allowed to everyone, as a door
+/// </summary>
+[HarmonyPatch(typeof(TraitWell), nameof(TraitWell.ModCharges))]
+internal static class WellSettingEvent
+{
+    [HarmonyPostfix]
+    internal static void OnWell(TraitWell __instance)
+    {
+        CardSettingEvent.Tell(__instance.owner, CardSettingDelta.Well);
     }
 }
 

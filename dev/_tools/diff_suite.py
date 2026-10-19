@@ -132,11 +132,22 @@ def main():
     ap.add_argument("--host-acts", action="store_true", help="l'host fait les actions, l'invite est compare")
     ap.add_argument("--held", type=int, default=0, help="prendre en main N sortes d'objets du sac, une a une")
     ap.add_argument("--zone", help="id d'une zone ou aller d'abord (ex. mysilia), host et invite ensemble")
+    ap.add_argument("--guest-holds", help="id d'une zone : l'invite y va seul (il la tient), puis l'host le rejoint")
     a = ap.parse_args()
     sys.stdout.reconfigure(encoding="utf-8")
     global H, A
     if a.host_acts:
         H, A = A, H  # (A : celui qui agit ; H : celui qu'on compare)
+    if a.guest_holds:
+        from travel_suite import client_settled, move, players, wait, zone_uid  # noqa: PLC0415
+        uid = int(ev(27551, f'return EClass.game.spatials.map.Values.First(z => z.id == "{a.guest_holds}" && z is Zone).uid.ToString();'))
+        move(27552, uid)
+        wait(client_settled(27552, uid, True), f"invite seul en zone {uid}", timeout=180)
+        time.sleep(3)
+        move(27551, uid)
+        wait(lambda: zone_uid(27551) == uid and players(27551) == 2 and players(27552) == 2, "l'host rejoint l'invite", timeout=180)
+        time.sleep(5)
+        log(f"carte {a.guest_holds} tenue par l'invite, l'host en visite")
     if a.zone:
         from travel_suite import host_goto  # noqa: PLC0415
         uid = int(ev(H, f'return EClass.game.spatials.map.Values.First(z => z.id == "{a.zone}" && z is Zone).uid.ToString();'))
