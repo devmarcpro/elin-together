@@ -277,6 +277,12 @@ def g1():
     check(f"le livre d'histoire de Fiama : l'invite a le sien, chez l'host ({had} -> {book(H)})",
           eventually(lambda: int(book(H)) == had + 1, timeout=15))
     check(f"et dans son propre jeu ({book(A)})", eventually(lambda: int(book(A)) == had + 1, timeout=15))
+    # (le coffre verrouille de Fiama pese 226 kg : l'invite de test, ecrase, ne marchait plus, et x5, x8, y4, v4 echouaient
+    # a la suite en passe complete, trois fois les 13-19 octobre ; repris ici, chez les deux joueurs, par l'host)
+    ev(H, 'foreach (var c in EClass._map.charas.Where(m => m.IsPC || m.GetBool("remote_chara"))) '
+          'foreach (var t in c.things.List(x => x.id == "1171" || x.id == "1172", onlyAccessible: false).ToList()) t.Destroy(); return "ok";')
+    check("le coffre et le crochet de Fiama repris : l'invite n'est plus ecrase sous le poids",
+          eventually(lambda: ev(A, 'return EClass.pc.burden.GetPhase().ToString();') in ("0", "1"), timeout=15))
 
 
 BOUNDS = 'var b = EClass._map.bounds; return b.x + "," + b.z + "," + b.maxX + "," + b.maxZ;'
@@ -1611,6 +1617,8 @@ def n1():
     check(f"l'host a mange en marchant (faim 80 -> {hunger(H, host_uid)} ; il prend le meilleur de son sac)", hunger(H, host_uid) < 65)
     check(f"l'invite n'a rien mange chez l'host ({before[0]} -> {rations(H, me)}, faim {hunger(H, me)})", rations(H, me) == before[0] and hunger(H, me) == 80)
     check(f"ni chez lui ({rations(A, me)})", rations(A, me) == before[0])
+    # (retour a la base : v4, joue apres, attend l'host a la maison ; sans ce retour il expirait, 19 octobre)
+    host_goto(H, A, HOME)
 
 
 def main():

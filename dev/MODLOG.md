@@ -3103,3 +3103,16 @@ auto, stock : `6a2b160`, `p18`) ; **réglages du monde** (conseil : ceux de l'ho
 fenêtre d'un invité ne garde rien et le dit, `p19` rouge puis vert, série 45/45). Non traités, notés dans la liste :
 playlists de zone, titre du joueur, options d'export, effets du sommeil sur les PNJ. Limite connue : un invité dont
 la fenêtre est ouverte pendant que l'host change un réglage voit le message en la fermant sans avoir rien touché.
+
+2026-10-19, 6h45 : **coupe-circuit** : x5 (électricité de la tente, invité seul à Vernis : 0 dans son jeu), x8 (exception
+du pont) et v4 (l'invité ne rejoint pas la base) rouges pour la **troisième** passe complète (13-14, 19 à 3h, 19 à 6h),
+toujours verts seuls. Hypothèse : x8/v4 en cascade (l'invité pas revenu sur la carte de l'host après x5). Nouvelle
+approche : rejouer l'enchaînement x2,x3,x4,x5,x6,x7,x8 dans l'ordre, journaux gardés.
+
+2026-10-19, 10h : **résolu, les rouges récurrents d'`oct10_suite`** (x5, x8, y4, v4, depuis le 13 octobre) : **le banc, pas
+le mod.** Série rejouée seule : même échec ; recherche par moitiés (A/B, puis quarts, puis une étape) : **g1** (début de
+la quête de la serrure de Fiama) donne à l'invité de test le coffre verrouillé, **226 kg** : écrasé (fardeau 4), il ne
+marchait plus ; la clé de x5 n'était jamais utilisée (il lui restait une clé), puis x8/y4/v4 en cascade. g1 reprend
+maintenant le coffre et le crochet. Restait v4 : n1 (18 octobre) laissait les deux joueurs sur la carte du monde, v4
+attendait l'host à la base ; n1 les ramène. Rejoué : série entière 201/202 puis n1,v4 18/18 sur banc neuf.
+Passe complète du matin (6h17-8h02) : 12/14, l'autre rouge `guest_suite` (g34 seringue, « le chat suit » à 6 cases) : connus, pas cherchés ici.
