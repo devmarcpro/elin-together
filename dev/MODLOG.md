@@ -3083,3 +3083,15 @@ rouge puis verte au banc). Zip identique en ligne (sha256 0c3e6c12…). Dedans d
 précède depuis le 18 (gestes partagés, âme solitaire, objet béni, sort de zone, portail, Vernis, manger
 automatiquement). Pas dedans : drapeaux de case (mis de côté, `git stash`). Le build Release laisse passer l'avis
 NU1902 (MessagePack 3.1.8, paru après la 0.26.764 : mise à jour à tester à part). Build publié installé dans le jeu.
+
+2026-10-19, 3h-5h45 : **drapeaux de case** (`0701fcc`, `p16` rouge puis vert) ; `settings2 p1` réparé (l'invité arrive
+parfois dans une porte : le test prenait les portes vues par l'host). **Série complète sur le code de la 0.26.789 +
+drapeaux** (3h04-4h58) : **11/14** (quest 59, together 131, base 178, trade 122, reconnect 56, death 11, ride 176,
+recruit 45, companion 28, travel 116, guest 334). Rouges, lus et rejoués seuls (journaux gardés) :
+- `oct10_suite` 195/201 : x3 (minage à Vernis), x5 (tente à la clé), x8 (fureur, exception du pont), v4 : **verts
+  seuls** (rouges seulement en fin de longue passe, comme les 13-14) ; y4 : **le test** (« ami » lu après 40 boules de
+  feu : brûlé, l'habitant devient hostile), corrigé, vert.
+- `away_recruit_suite` 44/45 : **le test** (la direction où regarde le compagnon comptée comme un réglage), corrigé.
+- `sleep_suite` 120/121 (l'écran de sommeil de l'invité ne s'ouvre pas) : **vert seul** 124/124.
+Aucun défaut du mod trouvé par cette passe. Journaux du jeu de la passe écrasés par le lancement suivant (pièce
+jointe : `_shots/replay-*-player.log` pour les rejeux).

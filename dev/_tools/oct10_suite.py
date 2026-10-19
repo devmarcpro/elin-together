@@ -1480,17 +1480,18 @@ def y4():
     lance par un autre joueur, le jeu ajoutait celles du joueur LOCAL. Ici, dans le jeu de l'host : l'host a 1214,
     l'invite rien ; l'invite lance 40 boules de feu (ActEffect.DamageEle, ce que fait le sort, sans le menu) sur un
     habitant ami (cree par eval). Avant : l'ami epargne ~4 fois sur 5 (l'aptitude de l'host) ; maintenant : touche.
-    (pas sur l'host : un joueur ne blesse pas un autre joueur, le mod l'empeche)"""
+    (pas sur l'host : un joueur ne blesse pas un autre joueur, le mod l'empeche ; « ami » lu avant les tirs : brule, il
+    devient hostile)"""
     guest = state(A)["pc"]["uid"]
     r = str(ev(H, f'var g = EClass._map.charas.Find(x => x.uid == {guest}); var h = EClass.pc; '
                   'var m = CharaGen.Create("putit"); EClass._zone.AddCard(m, g.pos.GetNearestPoint(allowChara: false)); '
-                  'm.hostility = m.c_originalHostility = Hostility.Friend; '
+                  'm.hostility = m.c_originalHostility = Hostility.Friend; var friend = g.IsFriendOrAbove(m); '
                   'var f = h.elements.Base(1214); h.elements.SetBase(1214, 1); '
                   'var g302 = g.elements.Base(302); var g1214 = g.elements.Base(1214); g.elements.SetBase(302, 0); g.elements.SetBase(1214, 0); '
                   'var hits = 0; for (var i = 0; i < 40; i++) { m.hp = m.MaxHP; var hp0 = m.hp; '
                   'ActEffect.DamageEle(g, EffectId.Ball, 100, Element.Create(910, 10), new System.Collections.Generic.List<Point> { m.pos.Copy(), g.pos.Copy() }, default(ActRef)); '
                   'if (m.hp < hp0 || m.isDead) hits++; if (m.isDead) break; } h.elements.SetBase(1214, f); g.elements.SetBase(302, g302); g.elements.SetBase(1214, g1214); '
-                  'var friend = g.IsFriendOrAbove(m); if (!m.isDead) m.Destroy(); g.hp = g.MaxHP; return hits + "|" + friend;'))
+                  'if (!m.isDead) m.Destroy(); g.hp = g.MaxHP; return hits + "|" + friend;'))
     hits, friend = r.split("|")
     check(f"l'habitant est un ami pour l'invite ({friend})", friend == "True")
     check(f"la boule de feu de l'invite (sans maitrise ni aptitude) touche l'ami au moins 30 fois sur 40, ou le tue ({hits})", int(hits) >= 30 or "dead" in r)

@@ -1,6 +1,11 @@
 # Passation — ElinTogether « indépendance »
 
-## 19 octobre 2026, 2h : publiée 0.26.789 (à lire en premier)
+## 19 octobre 2026, 5h45 (à lire en premier)
+
+- Publiée : 0.26.789. Depuis : drapeaux de case (`CellFlagDelta` 857, testé). Série complète jouée : 11/14, les trois
+  rouges verts seuls ou dus aux tests (détail : fin de `MODLOG.md`). Prochain delta : 858.
+
+## 19 octobre 2026, 2h : publiée 0.26.789
 
 - **Publiée : 0.26.789** (commit f8e4636), sans série complète (ordre de l'utilisateur). Build publié dans le jeu.
 - Mis de côté (`git stash list`, deux entrées « Drapeaux de case ») : à reprendre, `p16` vert à jouer.
