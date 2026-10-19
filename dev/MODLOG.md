@@ -3116,3 +3116,8 @@ marchait plus ; la clé de x5 n'était jamais utilisée (il lui restait une clé
 maintenant le coffre et le crochet. Restait v4 : n1 (18 octobre) laissait les deux joueurs sur la carte du monde, v4
 attendait l'host à la base ; n1 les ramène. Rejoué : série entière 201/202 puis n1,v4 18/18 sur banc neuf.
 Passe complète du matin (6h17-8h02) : 12/14, l'autre rouge `guest_suite` (g34 seringue, « le chat suit » à 6 cases) : connus, pas cherchés ici.
+
+2026-10-19, 10h45 : `guest_suite` seule : 333/334 (« le chat suit » : la laisse du compagnon de l'invité n'a pas tiré,
+le chat resté à 5 cases, **pas une ligne « Leash of »** : la fonction s'arrête avant, sur un de ses premiers gardes) ;
+g34 (seringue) verte. Diagnostic ajouté (Debug « Leash of … companions not pulled » : suivre, région, garder ses
+distances zone/invité/host). Rejouée : 334/334 (intermittent, pas repris). À lire au prochain rouge.

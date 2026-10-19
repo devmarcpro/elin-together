@@ -132,6 +132,13 @@ internal static class GuestLeash
         if (!player.IsRemotePlayer || !EClass._zone.PetFollow || EClass._zone.IsRegion ||
             (EClass._zone.KeepAllyDistance &&
              (PlayerTacticsDelta.KeepDistanceOf(player) ?? EClass.game.config.tactics.allyKeepDistance))) {
+            // (a leashed companion left behind by one of these: which one, 2026-10-19)
+            if (player.IsRemotePlayer && CompanionHelper.CompanionsOf(player).Any(m => m.GetInt(Key) != 0 && m.Dist(player) > 2)) {
+                EmpLog.Debug("Leash of {Player}'s companions not pulled: pets follow {PetFollow}, region {Region}, keep distance {Zone}/{Own}/{Host}",
+                    player.uid, EClass._zone.PetFollow, EClass._zone.IsRegion, EClass._zone.KeepAllyDistance,
+                    PlayerTacticsDelta.KeepDistanceOf(player), EClass.game.config.tactics.allyKeepDistance);
+            }
+
             return;
         }
 
