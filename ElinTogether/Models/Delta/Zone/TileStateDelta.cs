@@ -17,7 +17,7 @@ namespace ElinTogether.Models;
 [MessagePackObject]
 public class TileStateDelta : ElinDelta
 {
-    private const int Width = 24;
+    private const int Width = 25;
 
     // cells of one delta: a floor dragged over a whole map goes in several
     private const int MaxCells = 2048;
@@ -25,7 +25,8 @@ public class TileStateDelta : ElinDelta
     private static readonly HashSet<int> _dirty = [];
 
     /// <summary>
-    ///     x, z and the 22 terrain fields of each cell, one after the other
+    ///     x, z and the 23 terrain fields of each cell, one after the other (the last: the flags of the build mode's
+    ///     cell tool, see <see cref="FlagsOf" />)
     /// </summary>
     [Key(0)]
     public required int[] Cells { get; init; }
@@ -84,7 +85,7 @@ public class TileStateDelta : ElinDelta
                     x, z, c._block, c._blockMat, c._floor, c._floorMat, c.obj, c.objMat, c._bridge, c._bridgeMat,
                     c._roofBlock, c._roofBlockMat, c._deco, c._decoMat, c._dirs, c.objVal, c._roofBlockDir,
                     c.bridgePillar, c.height, c.bridgeHeight, c.hidePillar ? 1 : 0, c.isHarvested ? 1 : 0, c.crossWall ? 1 : 0,
-                    c.isWatered ? 1 : 0,
+                    c.isWatered ? 1 : 0, FlagsOf(c),
                 ]);
                 if (cells.Count >= MaxCells * Width) {
                     Send();
@@ -97,6 +98,24 @@ public class TileStateDelta : ElinDelta
         }
 
         _dirty.Clear();
+    }
+
+    /// <summary>
+    ///     The cell tool of the build mode (AM_FlagCell): no snow, floating, wall pillar, see-through, clear area
+    /// </summary>
+    internal static int FlagsOf(Cell c)
+    {
+        return (c.isClearSnow ? 1 : 0) | (c.isForceFloat ? 2 : 0) | (c.isToggleWallPillar ? 4 : 0) |
+               (c.toggleOcclusion ? 8 : 0) | (c.isClearArea ? 16 : 0);
+    }
+
+    internal static void SetFlags(Cell c, int flags)
+    {
+        c.isClearSnow = (flags & 1) != 0;
+        c.isForceFloat = (flags & 2) != 0;
+        c.isToggleWallPillar = (flags & 4) != 0;
+        c.toggleOcclusion = (flags & 8) != 0;
+        c.isClearArea = (flags & 16) != 0;
     }
 
     protected override void OnApply(ElinNetBase net)
@@ -123,7 +142,7 @@ public class TileStateDelta : ElinDelta
                        c._roofBlock == s[8] && c._roofBlockMat == s[9] && c._deco == s[10] && c._decoMat == s[11] &&
                        c._dirs == dirs && c.objVal == s[13] && c._roofBlockDir == s[14] && c.bridgePillar == s[15] &&
                        c.height == s[16] && c.bridgeHeight == s[17] && c.hidePillar == (s[18] != 0) && c.isHarvested == (s[19] != 0) &&
-                       c.crossWall == (s[20] != 0) && c.isWatered == (s[21] != 0);
+                       c.crossWall == (s[20] != 0) && c.isWatered == (s[21] != 0) && FlagsOf(c) == s[22];
             if (same) {
                 continue;
             }
@@ -157,6 +176,7 @@ public class TileStateDelta : ElinDelta
             c.isHarvested = s[19] != 0;
             c.crossWall = s[20] != 0;
             c.isWatered = s[21] != 0;
+            SetFlags(c, s[22]);
             c.room?.SetDirty();
             map.RefreshNeighborTiles(x, z);
             if (!many) {

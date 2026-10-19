@@ -29,6 +29,9 @@ P14 l'invite change le modele d'une figurine par le curseur (la fonction du curs
     l'host a le meme.
 P15 l'invite change l'apparence complete d'un habitant (la fenetre du jeu LayerEditPCC, ouverte par eval comme le fait
     « modifier l'apparence » de la liste des habitants ; une couleur changee, puis Apply) : l'host a la meme.
+P16 l'outil « drapeaux de case » du mode construction (AM_FlagCell : pas de neige, flotter), utilise par l'invite sur
+    une case pres de lui (OnProcessTiles, ce que fait le clic de l'outil) : la case a le drapeau chez l'host aussi ; puis
+    l'host l'enleve, l'invite le voit.
 """
 import os
 import sys
@@ -325,9 +328,25 @@ def p15(ctx):
     check(f"l'invite change une couleur ({r}) : l'host a la meme apparence", eventually(lambda: look(H) == want, timeout=8))
 
 
+def p16(ctx):
+    to_base()
+    at = ev(A, 'var p = EClass.pc.pos.Copy(); p.x += 1; return p.x + "," + p.z;')
+    x, z = at.split(",")
+    flags = lambda port: ev(port, f'var c = EClass._map.cells[{x}, {z}]; return c.isClearSnow + "/" + c.isForceFloat;')  # noqa: E731
+    before = flags(H)
+    for mode in ("flagSnow", "flagFloat"):
+        ev(A, f'ActionMode.FlagCell.mode = AM_FlagCell.Mode.{mode}; ActionMode.FlagCell.OnProcessTiles(new Point({x}, {z}), 0); return "ok";')
+    want = "/".join(str(v != "True") for v in before.split("/"))
+    check(f"l'invite bascule neige et flotter sur la case {x},{z} ({before} -> {want}) : pareil chez l'host et chez lui",
+          eventually(lambda: flags(H) == want and flags(A) == want, timeout=8))
+    for mode in ("flagSnow", "flagFloat"):
+        ev(H, f'ActionMode.FlagCell.mode = AM_FlagCell.Mode.{mode}; ActionMode.FlagCell.OnProcessTiles(new Point({x}, {z}), 0); return "ok";')
+    check(f"l'host les remet : pareil chez l'invite ({before})", eventually(lambda: flags(A) == before and flags(H) == before, timeout=8))
+
+
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
-    steps = [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15]
+    steps = [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16]
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(",")]
     # (les deux joueurs de test ne meurent pas pendant la serie : un yeek de la base du depot a tue l'invite de test, niveau 1,

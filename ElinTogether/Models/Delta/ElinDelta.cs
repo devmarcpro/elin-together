@@ -139,6 +139,7 @@ namespace ElinTogether.Models;
 [Union(854, typeof(CardSplitStackDelta))]
 [Union(855, typeof(TentZoneDelta))]
 [Union(856, typeof(GateFollowDelta))]
+[Union(857, typeof(CellFlagDelta))]
 // Act
 [Union(900, typeof(ActThrowDelta))]
 // Element
