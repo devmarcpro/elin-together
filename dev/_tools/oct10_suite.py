@@ -1541,6 +1541,20 @@ def y5():
     check(f"chez l'host : l'invite et son chien n'ont pas bouge ({before.split()[:2]} -> {g} {gd})", [g, gd] == before.split()[:2])
 
 
+def y6():
+    """Chasse du 5 octobre, n°26 : le don « destin » (1220) evite la mort avec assez d'endurance, la moitie pour « le
+    joueur », les deux tiers pour les autres ; dans le jeu de l'host, l'invite avait le seuil des autres. Ici, chez
+    l'host : l'invite a le don et 60 % d'endurance, un monstre lui porte un coup mortel (DamageHP, ce que fait le coup).
+    Attendu : sauve, comme l'host le serait. (Rouge : l'invite meurt ; rejouer sur un banc neuf apres.)"""
+    guest = state(A)["pc"]["uid"]
+    r = str(ev(H, f'var g = EClass._map.charas.Find(x => x.uid == {guest}); var tags = g.c_editorTags; g.c_editorTags = null; '
+                  'var f = g.elements.Base(1220); g.elements.SetBase(1220, 1); g.stamina.value = g.stamina.max * 6 / 10; g.hp = 5; '
+                  'var m = CharaGen.Create("putit"); EClass._zone.AddCard(m, g.pos.GetNearestPoint(allowChara: false)); m.hostility = m.c_originalHostility = Hostility.Enemy; '
+                  'g.DamageHP(9999, AttackSource.Melee, m); var r = g.isDead + "|" + g.HasCondition<ConInvulnerable>(); '
+                  'm.Destroy(); g.elements.SetBase(1220, f); g.c_editorTags = tags; if (!g.isDead) g.hp = g.MaxHP; return r;'))
+    check(f"l'invite au don « destin » et a 60 % d'endurance est sauve d'un coup mortel, comme le joueur (mort|invulnerable : {r})", r == "False|True")
+
+
 def v6():
     """Rapport (2026-10-15) : Tephra vaincu, quete de Vernis restee a 3. La reparation ne tournait qu'au lancement du
     serveur ; un etage du boss ouvert pendant la partie ne comptait pas. Ici, en cours de partie : quete a 3, l'etage
@@ -1630,7 +1644,7 @@ def main():
             continue
         check(f"{name} : pas de deuxieme ajout, lien remis ({r})", r == "0/0/True")
     check("au moins un jeu avait un autre membre dans l'equipe", RESULTS)
-    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, s3, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, z1, v1, v6, v7, v2, v3, v5, x2, x3, x4, x5, x6, x7, x8, x9, y1, y2, y3, y4, y5, t1, q1, f2, n1, v4)  # v1 avant t1 : t1 maudit l'invite de test, qui en meurt et ne voyage plus
+    steps = (o1, b1, c1, h1, f1, l1, m1, s1, s2, s3, g1, e1, r1, p1, x1, a1, d1, w1, i1, k1, j1, u1, z1, v1, v6, v7, v2, v3, v5, x2, x3, x4, x5, x6, x7, x8, x9, y1, y2, y3, y4, y5, y6, t1, q1, f2, n1, v4)  # v1 avant t1 : t1 maudit l'invite de test, qui en meurt et ne voyage plus
     if len(sys.argv) > 1:
         steps = [x for x in steps if x.__name__ in sys.argv[1].split(',')]
     for step in steps:

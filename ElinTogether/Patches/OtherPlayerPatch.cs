@@ -95,6 +95,28 @@ internal static class OtherPlayerPatch
         return IsMultiplayer && caster is Chara chara && CompanionHelper.OwnerOf(chara) is { } owner ? owner : EClass.pc;
     }
 
+    /// <summary>
+    ///     The fate feat (1220) saves from death a character with enough stamina: half for "the player", two thirds for
+    ///     anyone else. In the game that decides a guest's death, the guest had the stricter one. A player's own half
+    /// </summary>
+    [HarmonyTranspiler]
+    [HarmonyPatch(typeof(Card), nameof(Card.DamageHP), typeof(long), typeof(int), typeof(int), typeof(AttackSource), typeof(Card),
+        typeof(bool), typeof(Thing), typeof(Chara), typeof(int))]
+    internal static IEnumerable<CodeInstruction> OnDamageHP(IEnumerable<CodeInstruction> instructions)
+    {
+        var isPc = AccessTools.PropertyGetter(typeof(Card), nameof(Card.IsPC));
+        var list = instructions.ToList();
+        var fate = list.FindIndex(c => c.LoadsConstant(1220));
+        var at = fate < 0 ? -1 : list.FindIndex(fate, c => c.Calls(isPc));
+        if (at >= 0 && at - fate < 20) {
+            list[at] = new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(CompanionAllyLimitPatch), nameof(CompanionAllyLimitPatch.IsAnyPlayer))) {
+                labels = list[at].labels,
+            };
+        }
+
+        return list;
+    }
+
     private static Chara? _gateCaster;
 
     /// <summary>
