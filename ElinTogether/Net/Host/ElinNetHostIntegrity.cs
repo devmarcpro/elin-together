@@ -44,8 +44,10 @@ internal partial class ElinNetHost
             // an away player simulates its own zone, nothing it does applies to the host map
             // (its delta lists only carry chat, see OnWorldStateDeltaResponse)
             NetHandshakePhase.Joined when IsAway(peer) => packet is not (CharaStateSnapshot or
-                ZoneDataReceivedResponse),
-            NetHandshakePhase.Joined => true,
+                ZoneDataReceivedResponse or NetIntegrityResponse or SourceValidationResponse or SourceValidationContinue),
+            // a handshake packet once joined would send the player back to an earlier stage (from upstream 6f0fda1)
+            NetHandshakePhase.Joined => packet is not (NetIntegrityResponse or SourceValidationResponse or
+                SourceValidationContinue),
             _ => false,
         };
 
