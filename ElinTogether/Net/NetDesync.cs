@@ -4,6 +4,7 @@ using System.Diagnostics;
 using ElinTogether.Helper;
 using ElinTogether.Helper.Extensions;
 using ElinTogether.Models;
+using ElinTogether.Patches;
 using MessagePack;
 using UnityEngine;
 
@@ -434,6 +435,7 @@ internal static class NetDesync
         });
 
         if (repair) {
+            client.MarkResync();
             client.RequestZoneState(MapDataRequest.CurrentRemoteZone);
         }
     }
@@ -814,4 +816,44 @@ internal partial class ElinNetClient
     /// </summary>
     internal bool IsQuietForResync =>
         IsConnected && _pendingTravel is null && _pendingGrant is null && !_rejoining && _awaitingActivation == 0 && !IsInTransfer;
+
+    // the map asked again to repair it, until when: see TakeResyncSpot
+    private int _resyncZone;
+    private float _resyncUntil;
+
+    /// <summary>
+    ///     We ask for the map we stand on again: the tile that comes with it is the one the host's copy of our
+    ///     character had, a step or more behind when we walked during the round trip
+    /// </summary>
+    internal void MarkResync()
+    {
+        _resyncZone = _zone?.uid ?? 0;
+        _resyncUntil = Time.unscaledTime + 30f;
+    }
+
+    /// <summary>
+    ///     The asked map is loaded again in place: our own tile, taken just before the old map is left
+    /// </summary>
+    private Point? TakeResyncSpot(Zone zone)
+    {
+        var keep = _resyncZone == zone.uid && _zone == zone && Time.unscaledTime < _resyncUntil;
+        _resyncZone = 0;
+        return keep && pc.pos.IsValid ? pc.pos.Copy() : null;
+    }
+
+    /// <summary>
+    ///     Our own tile on the reloaded map when we can still stand there, then the host is told
+    /// </summary>
+    private bool MoveToResyncSpot(Point? own)
+    {
+        if (own is not { IsInBounds: true, IsBlocked: false } ||
+            (own.FirstChara is { } other && other != pc && other != pc.ride && other != pc.parasite)) {
+            return false;
+        }
+
+        EmpLog.Debug("Resync: keeping our own tile {@Pos}", (Position)own);
+        pc.Stub_Move(own, Card.MoveType.Force);
+        Delta.AddRemote((CharaMoveDelta)pc);
+        return true;
+    }
 }

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using ElinTogether.API.SourceValidation;
+using ElinTogether.Elements;
 using ElinTogether.Helper;
 using ElinTogether.Net;
 using ElinTogether.Patches;
@@ -157,17 +158,38 @@ public class CharaStateSnapshot : EClass
             return;
         }
 
-        // somehow we are riding it
-        if (chara.host is null) {
-            // only apply position fix if on the same map
-            if (NetSession.Instance.CurrentZone?.map is not null && chara.pos != Pos) {
-                var dist = chara.pos.Distance(Pos);
-                if (dist > 2 && (dist > 10 || !CharaMoveDelta.HasRecentMove(chara))) {
-                    EmpLog.Debug("Reconcile force move chara {Uid} from {@FromPos} to {@Pos}",
-                        chara.uid, chara.pos.Copy(), (Point)Pos);
-                    chara.Stub_Move(Pos, Card.MoveType.Force);
-                }
-            }
+        // somehow we are riding it, or it rides or carries someone: the ride moves it
+        if (chara.host is not null || chara.ride is not null || chara.parasite is not null) {
+            _mismatchSeen.Remove(chara.uid);
+            return;
         }
+
+        // only apply position fix if on the same map
+        if (NetSession.Instance.CurrentZone?.map is null || chara.pos == Pos) {
+            _mismatchSeen.Remove(chara.uid);
+            return;
+        }
+
+        // up to 10 tiles: a move delta on its way, or a task its owner's game walks it through, catches up
+        var dist = chara.pos.Distance(Pos);
+        if (dist <= 2 || (dist <= 10 && (CharaMoveDelta.HasRecentMove(chara) ||
+                                         chara.ai is GoalRemote { child.status: AIAct.Status.Running }))) {
+            _mismatchSeen.Remove(chara.uid);
+            return;
+        }
+
+        // seen once: a move delta dropped or deferred, a hitch. Only a second snapshot in a row moves it
+        var now = UnityEngine.Time.unscaledTime;
+        if (!_mismatchSeen.Remove(chara.uid, out var seen) || now - seen > 1f) {
+            _mismatchSeen[chara.uid] = now;
+            return;
+        }
+
+        EmpLog.Debug("Reconcile force move chara {Uid} from {@FromPos} to {@Pos}",
+            chara.uid, chara.pos.Copy(), (Point)Pos);
+        chara.Stub_Move(Pos, Card.MoveType.Force);
     }
+
+    // per character uid, when its tile last differed from the snapshot's by more than the snapshot allows
+    private static readonly Dictionary<int, float> _mismatchSeen = [];
 }
