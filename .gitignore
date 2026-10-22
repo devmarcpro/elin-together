@@ -355,3 +355,10 @@ healthchecksdb
 /ElinTogether/ElinTogether/Docs
 /ElinTogether/Docs
 /out*
+
+# Not the mod's code (user, 2026-10-22): working notes, plans, journal, build/release scripts, installer template,
+# depot server, editor settings. They live on the development machine only.
+/dev/
+/CLAUDE.md
+/.vscode/
+/scripts/
