@@ -14,48 +14,62 @@ namespace ElinTogether.Components;
 /// </summary>
 internal class TabServerConfiguration : TabEmpBase
 {
+    /// <summary>
+    ///     The host's checkbox rules by section: shared by this tab and the game's own mod config page (ModConfigPage)
+    /// </summary>
+    internal static IEnumerable<(string Section, (string Id, ConfigEntry<bool> Entry)[] Options)> Sections()
+    {
+        yield return ("players", [
+            ("independent_travel", EmpConfig.Server.IndependentTravel),
+            ("choose_chara", EmpConfig.Server.ChooseCharacter),
+            ("import_chara", EmpConfig.Server.ImportCharacter),
+            ("delete_chara", EmpConfig.Server.DeleteCharacter),
+            ("auto_reconnect", EmpConfig.Server.AutoReconnect),
+            ("auto_resync", EmpConfig.Server.AutoResync),
+            ("soft_recall", EmpConfig.Server.SoftRecall),
+            ("auto_host", EmpConfig.Server.AutoHost),
+            ("auto_save", EmpConfig.Server.AutoSave),
+            ("world_copy", EmpConfig.Server.WorldCopy),
+            ("takeover", EmpConfig.Server.Takeover),
+            ("same_game_version", EmpConfig.Server.SameGameVersion),
+            ("publish_mods", EmpConfig.Server.PublishMods),
+        ]);
+        yield return ("own", [
+            ("personal_quests", EmpConfig.Server.PersonalQuests),
+            ("player_shipping", EmpConfig.Server.PlayerShipping),
+            ("player_trade", EmpConfig.Server.PlayerTrade),
+            ("guest_build", EmpConfig.Server.GuestBuild),
+            ("player_kill", EmpConfig.Server.PlayerKill),
+            ("own_sleep", EmpConfig.Server.OwnSleep),
+            ("time_jumps_together", EmpConfig.Server.TimeJumpsTogether),
+            ("dump_spares_belt", EmpConfig.Server.DumpSparesBelt),
+            ("shared_tax", EmpConfig.Server.SharedTax),
+            ("once_per_player", EmpConfig.Server.OncePerPlayer),
+            ("host_manages_base", EmpConfig.Server.HostManagesBase),
+            ("duels", EmpConfig.Server.Duels),
+            ("auto_combat_per_player", EmpConfig.Server.AutoCombatPerPlayer),
+        ]);
+        yield return ("time", [
+            ("combat_time", EmpConfig.Server.PlayerCombatTime),
+            ("player_clock", EmpConfig.Server.PlayerClock),
+            ("step_pace", EmpConfig.Server.PlayerStepPace),
+            ("world_time", EmpConfig.Server.SharedWorldTime),
+            ("world_keeper", EmpConfig.Server.WorldKeeper),
+            ("turn_combat", EmpConfig.Server.TurnBasedCombat),
+            ("shared_speed", EmpConfig.Server.SharedAverageSpeed),
+        ]);
+    }
+
     public override void OnLayout()
     {
         TextSmall("emp_ui_sv_note_live".lang());
 
-        var players = Section("players");
-        Option(players, "independent_travel", EmpConfig.Server.IndependentTravel);
-        Option(players, "choose_chara", EmpConfig.Server.ChooseCharacter);
-        Option(players, "import_chara", EmpConfig.Server.ImportCharacter);
-        Option(players, "delete_chara", EmpConfig.Server.DeleteCharacter);
-        Option(players, "auto_reconnect", EmpConfig.Server.AutoReconnect);
-        Option(players, "auto_resync", EmpConfig.Server.AutoResync);
-        Option(players, "soft_recall", EmpConfig.Server.SoftRecall);
-        Option(players, "auto_host", EmpConfig.Server.AutoHost);
-        Option(players, "auto_save", EmpConfig.Server.AutoSave);
-        Option(players, "world_copy", EmpConfig.Server.WorldCopy);
-        Option(players, "takeover", EmpConfig.Server.Takeover);
-        Option(players, "same_game_version", EmpConfig.Server.SameGameVersion);
-        Option(players, "publish_mods", EmpConfig.Server.PublishMods);
-
-        var own = Section("own");
-        Option(own, "personal_quests", EmpConfig.Server.PersonalQuests);
-        Option(own, "player_shipping", EmpConfig.Server.PlayerShipping);
-        Option(own, "player_trade", EmpConfig.Server.PlayerTrade);
-        Option(own, "guest_build", EmpConfig.Server.GuestBuild);
-        Option(own, "player_kill", EmpConfig.Server.PlayerKill);
-        Option(own, "own_sleep", EmpConfig.Server.OwnSleep);
-        Option(own, "time_jumps_together", EmpConfig.Server.TimeJumpsTogether);
-        Option(own, "dump_spares_belt", EmpConfig.Server.DumpSparesBelt);
-        Option(own, "shared_tax", EmpConfig.Server.SharedTax);
-        Option(own, "once_per_player", EmpConfig.Server.OncePerPlayer);
-        Option(own, "host_manages_base", EmpConfig.Server.HostManagesBase);
-        Option(own, "duels", EmpConfig.Server.Duels);
-        Option(own, "auto_combat_per_player", EmpConfig.Server.AutoCombatPerPlayer);
-
-        var time = Section("time");
-        Option(time, "combat_time", EmpConfig.Server.PlayerCombatTime);
-        Option(time, "player_clock", EmpConfig.Server.PlayerClock);
-        Option(time, "step_pace", EmpConfig.Server.PlayerStepPace);
-        Option(time, "world_time", EmpConfig.Server.SharedWorldTime);
-        Option(time, "world_keeper", EmpConfig.Server.WorldKeeper);
-        Option(time, "turn_combat", EmpConfig.Server.TurnBasedCombat);
-        Option(time, "shared_speed", EmpConfig.Server.SharedAverageSpeed);
+        foreach (var (id, options) in Sections()) {
+            var card = Section(id);
+            foreach (var (option, entry) in options) {
+                Option(card, option, entry);
+            }
+        }
 
         // the count of unpaid tax bills against the bills that exist (ElinNetHost.RepairBillCount), for a host in game
         if (EClass.core.IsGameStarted && NetSession.Instance.Transport is ElinNetHost) {
@@ -65,7 +79,7 @@ internal class TabServerConfiguration : TabEmpBase
                 EmpPop.Information((off > 0 ? "emp_ui_sv_bills_done" : "emp_ui_sv_bills_none").Loc(off));
                 LayerElinTogether.Instance?.Reopen();
             });
-            TextSmall("        " + "emp_ui_sv_bills_desc".lang());
+            TextSmall("emp_ui_sv_bills_desc".lang());
         }
 
         BuildValidationSets();
@@ -85,8 +99,7 @@ internal class TabServerConfiguration : TabEmpBase
     private static void Option(YKVertical card, string id, ConfigEntry<bool> entry)
     {
         card.Toggle($"emp_ui_sv_cfg_{id}", entry.Value, value => entry.Value = value)
-            .SetTooltipLang(entry.Description.Description);
-        card.TextSmall("        " + $"emp_ui_sv_desc_{id}".lang());
+            .SetTooltipLang($"emp_ui_sv_desc_{id}");
     }
 
     private void BuildValidationSets()
