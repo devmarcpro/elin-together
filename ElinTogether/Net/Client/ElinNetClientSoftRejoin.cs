@@ -319,6 +319,7 @@ internal partial class ElinNetClient
                     },
                 ],
             });
+            MarkResync();
             RequestZoneState(MapDataRequest.CurrentRemoteZone);
         }
 

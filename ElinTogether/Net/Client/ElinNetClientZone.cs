@@ -263,6 +263,7 @@ internal partial class ElinNetClient
         EmpLog.Information("Received zone activation");
 
         var currentZone = Session.CurrentZone;
+        Point? ownSpot = null;
 
         if (currentZone?.uid != response.ZoneUid) {
             EmpLog.Debug("Ignoring stale ZoneActivateResponse (expected {ExpectedZoneFullName}/{ExpectedZoneUid}, " +
@@ -313,6 +314,7 @@ internal partial class ElinNetClient
                 return;
             }
         } else {
+            ownSpot = TakeResyncSpot(currentZone);
             EnterHostMap(currentZone);
         }
 
@@ -335,7 +337,11 @@ internal partial class ElinNetClient
                 return;
             }
 
-            pc.Stub_Move(response.Pos, Card.MoveType.Force);
+            // a map reloaded to repair it: where we stand, not where the host's copy of us stood (NetDesync)
+            if (!MoveToResyncSpot(ownSpot)) {
+                pc.Stub_Move(response.Pos, Card.MoveType.Force);
+            }
+
             pc.SetDir(pc.dir);
         });
     }
