@@ -20,7 +20,9 @@ internal partial class ElinNetHost
     /// <summary>
     ///     Shared speed of all players
     /// </summary>
-    public int SharedSpeed => (int)States.Values.Average(s => s.Speed);
+    // the players that told their speed (a 0 is one that did not yet: it slowed everyone, and no player at all
+    // threw), upstream 6f0fda1
+    public int SharedSpeed => (int)States.Values.Where(s => s.Speed > 0).Select(s => s.Speed).DefaultIfEmpty(0).Average();
 
     [ElinGameIOProperty("remote_chara")]
     private static Dictionary<ulong, int> SavedRemoteCharas

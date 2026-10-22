@@ -472,6 +472,8 @@ internal static class NetDesync
                 },
             ],
         });
+        // (the guest keeps its own tile after the reload, as for a checksum repair)
+        client.MarkResync();
         client.RequestZoneState(MapDataRequest.CurrentRemoteZone);
         return true;
     }

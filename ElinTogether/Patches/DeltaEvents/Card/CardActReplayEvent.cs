@@ -166,8 +166,12 @@ internal static class GuestLeash
             // one tug a step in the game, where every step of the player is seen. Here the steps of a guest come as
             // they come (two tiles in one message, a step whose tug was blocked): the leash pulls until the
             // companion is beside it again, a few tiles at most (it was left three tiles behind after five steps)
+            var tugs = new System.Text.StringBuilder();
             for (var tug = 0; tug < 4 && member.Dist(player) > 1; tug++) {
-                if (member.TryMoveTowards(player.pos) is var moved and not Card.MoveResult.Success) {
+                var was = member.pos.Copy();
+                var result = member.TryMoveTowards(player.pos);
+                tugs.Append($"{was.x},{was.z}>{result}>{member.pos.x},{member.pos.z} ");
+                if (result is var moved and not Card.MoveResult.Success) {
                     EmpLog.Debug("Leash of {Uid} pulled in vain: {Result} from {@From} toward {@To}",
                         member.uid, moved, (Position?)member.pos, (Position?)player.pos);
                     break;
@@ -175,7 +179,8 @@ internal static class GuestLeash
             }
 
             if (member.Dist(player) > 2) {
-                EmpLog.Debug("Leash of {Uid} pulled but still {Dist} away, at {@At}", member.uid, member.Dist(player), (Position?)member.pos);
+                EmpLog.Debug("Leash of {Uid} pulled but still {Dist} away, at {@At}: {Tugs} (ai {Ai}, host {Host}, speed {Speed})",
+                    member.uid, member.Dist(player), (Position?)member.pos, tugs.ToString(), member.ai?.GetType().Name, member.host?.uid ?? 0, member.Speed);
             }
         }
 

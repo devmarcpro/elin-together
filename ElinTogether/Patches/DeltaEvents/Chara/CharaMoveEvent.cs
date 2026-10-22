@@ -38,6 +38,13 @@ internal static class CharaMoveEvent
             return;
         }
 
+        // a client tells its own steps only: the game also moves others in it (the leash tugs its leashed
+        // companions at each step of "the player"), and those moves, sent, put the host's companion back where this
+        // game had it (the guest's leashed cat that did not follow, 2026-10-22)
+        if (connection.IsClient && !__instance.IsPC) {
+            return;
+        }
+
         // movement could be random in certain circumstances
         // not really a big problem if everyone is moving
         // simply ignore and wait for reconciliation or next delta

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Reflection;
 using ElinTogether.Helper;
 using ElinTogether.Models;
@@ -88,22 +89,17 @@ internal static class RemoteDontWanderPatch
         };
     }
 
+    /// <summary>
+    ///     An idle companion of another player takes food from the shared containers of "the player" in the game that
+    ///     runs it: the host's bag. Not from the host's (lending the guest for the whole idle step made the host's own
+    ///     character not "the player" and took from the guest's copy of its bag here: review 2026-10-22)
+    /// </summary>
     [HarmonyPrefix]
-    [HarmonyPatch(typeof(AI_Idle), nameof(AI_Idle.Run), MethodType.Enumerator)]
-    internal static void OnIdleStep(object __instance, out ScopeExit? __state)
+    [HarmonyPatch(typeof(Chara), nameof(Chara.TryTakeSharedItems), typeof(IEnumerable<Thing>), typeof(bool), typeof(bool))]
+    internal static bool OnTakeShared(Chara __instance)
     {
-        // every idle character of the map steps here: the field is looked up once
-        _idleSelf ??= AccessTools.Field(__instance.GetType(), "<>4__this");
-        __state = NetSession.Instance.Connection is ElinNetHost ? Lend((_idleSelf.GetValue(__instance) as AI_Idle)?.owner) : null;
-    }
-
-    private static FieldInfo? _idleSelf;
-
-    [HarmonyFinalizer]
-    [HarmonyPatch(typeof(AI_Idle), nameof(AI_Idle.Run), MethodType.Enumerator)]
-    internal static void OnIdleStepEnd(ScopeExit? __state)
-    {
-        __state?.Dispose();
+        return NetSession.Instance.Connection is not ElinNetHost || __instance.IsPC ||
+               CompanionHelper.OwnerOf(__instance) is not { IsRemotePlayer: true };
     }
 
     [HarmonyPrefix]

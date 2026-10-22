@@ -66,7 +66,7 @@ public class InvSaveDataDelta : ElinDelta
 
     protected override void OnApply(ElinNetBase net)
     {
-        if (Container?.Find() is not { } container || !IsOfTheMap(container) ||
+        if (Container?.Find() is not { isDestroyed: false } container || !IsOfTheMap(container) ||
             Data.Decompress<Window.SaveData>() is not { } data) {
             return;
         }

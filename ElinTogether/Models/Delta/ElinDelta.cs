@@ -196,6 +196,29 @@ public abstract class ElinDelta : EClass
         }
     }
 
+    /// <summary>
+    ///     What is done in this scope is told to no one, as if it came from another game (the copies the trade window
+    ///     shows, never part of the world)
+    /// </summary>
+    internal static ScopeExit Quiet()
+    {
+        _applyDepth++;
+        _quietDepth++;
+        return new() {
+            OnExit = () => {
+                _applyDepth--;
+                _quietDepth--;
+            },
+        };
+    }
+
+    private static int _quietDepth;
+
+    /// <summary>
+    ///     Cards made now are this game's alone (see <see cref="Quiet" />): not announced, not taken back
+    /// </summary>
+    internal static bool IsQuiet => _quietDepth > 0;
+
     internal static ScopeExit Simulate(bool active = true)
     {
         var depth = _applyDepth;

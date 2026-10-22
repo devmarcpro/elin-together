@@ -30,6 +30,11 @@ public static class PlayerTrade
     public const int Cancelled = 3;
 
     private const int Reach = 3;
+
+    /// <summary>
+    ///     After any change of either offer, nobody can confirm for this long (real time)
+    /// </summary>
+    internal const float LockSeconds = 3f;
     private const float CheckInterval = 0.25f;
 
     private static readonly List<Session> _sessions = [];
@@ -44,6 +49,13 @@ public static class PlayerTrade
     ///     What the authority last said about the trade the local player is in
     /// </summary>
     public static TradeStateDelta? View { get; private set; }
+
+    /// <summary>
+    ///     Until when (this game's real time) the table is locked after a change: "confirm" waits
+    /// </summary>
+    public static float LockedUntil { get; private set; }
+
+    public static bool IsLocked => Time.realtimeSinceStartup < LockedUntil;
 
     internal static bool Enabled => NetSession.Instance.Rules.AllowPlayerTrade;
 
@@ -93,6 +105,10 @@ public static class PlayerTrade
 
         SendOffer();
     }
+
+    public static IReadOnlyList<TradeItem> MyItems => _myItems;
+
+    public static int MyGold => _myGold;
 
     public static void SetGold(int gold)
     {
@@ -191,6 +207,7 @@ public static class PlayerTrade
 
         var before = View;
         View = state;
+        LockedUntil = Time.realtimeSinceStartup + state.LockMs / 1000f;
 
         switch (state.Phase) {
             case Invited when state.UidB == mine && (before is not { Phase: Invited } || before.TradeId != state.TradeId):
@@ -204,14 +221,14 @@ public static class PlayerTrade
                     () => AnswerInvitation(invitation, Decline_));
                 break;
             case Open:
-                LayerPlayerTrade.Refresh();
+                TradeWindow.Refresh();
                 break;
             case Done:
-                LayerPlayerTrade.Dismiss();
+                TradeWindow.Dismiss();
                 EmpPop.Information("emp_trade_done".lang());
                 break;
             case Cancelled:
-                LayerPlayerTrade.Dismiss();
+                TradeWindow.Dismiss();
                 EmpPop.Information((string.IsNullOrEmpty(state.Reason) ? "emp_trade_cancelled" : state.Reason).lang());
                 break;
         }
@@ -260,9 +277,10 @@ public static class PlayerTrade
                 // what was agreed on is not what is on the table anymore
                 session.Revision++;
                 session.ReadyA = session.ReadyB = false;
+                session.LockUntil = Time.realtimeSinceStartup + LockSeconds;
                 Tell(session, host, Open);
                 break;
-            case Confirm_ when session.IsOpen && intent.Revision == session.Revision:
+            case Confirm_ when session.IsOpen && intent.Revision == session.Revision && Time.realtimeSinceStartup >= session.LockUntil:
                 if (session.A == from) {
                     session.ReadyA = true;
                 } else {
@@ -332,7 +350,7 @@ public static class PlayerTrade
         _myItems.Clear();
         _myGold = 0;
         View = null;
-        LayerPlayerTrade.Dismiss();
+        TradeWindow.Dismiss();
     }
 
     /// <summary>
@@ -527,6 +545,7 @@ public static class PlayerTrade
             ReadyB = session.ReadyB,
             Revision = session.Revision,
             Reason = reason,
+            LockMs = Mathf.Max(0, (int)((session.LockUntil - Time.realtimeSinceStartup) * 1000)),
         };
 
         TellOne(host, session.A, state);
@@ -561,5 +580,8 @@ public static class PlayerTrade
         internal bool ReadyA;
         internal bool ReadyB;
         internal int Revision;
+
+        // a change on the table locks "confirm" a moment, for both (an offer swapped at the last second)
+        internal float LockUntil;
     }
 }

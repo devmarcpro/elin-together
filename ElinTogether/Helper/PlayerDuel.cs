@@ -53,11 +53,20 @@ public static class PlayerDuel
             return false;
         }
 
-        _over.RemoveAll(o => Time.unscaledTime > o.Until);
+        _over.RemoveAll(o => Time.realtimeSinceStartup > o.Until);
         return _over.Exists(o => (o.A == target.uid && o.B == origin.uid) || (o.B == target.uid && o.A == origin.uid));
     }
     private static int _nextId = 1;
     private static Dialog? _box;
+
+    // a duel's music in this game (the bout music of the game, 102), until the duel is over
+    private static bool _music;
+    private const int BoutMusic = 102;
+
+    // the same two players cannot start another duel right away (a challenge in a loop), in the authority. Real
+    // time: a game that is not in front runs its own clock slower (25 s for 40, bench 2026-10-22)
+    private static readonly List<(Chara A, Chara B, float Until)> _rest = [];
+    private const float RestSeconds = 30f;
 
     /// <summary>
     ///     What the authority last said about the duel the local player is in
@@ -136,7 +145,7 @@ public static class PlayerDuel
 
         // refused before it existed: the duel we may be in goes on
         if (state.DuelId == 0) {
-            EmpPop.Information(state.Reason.lang());
+            Msg.Say(state.Reason.Loc(PlayerTrade.NameOf(state.UidB)));
             return;
         }
 
@@ -152,26 +161,36 @@ public static class PlayerDuel
                     () => Answer(challenge, Decline_));
                 break;
             case Invited:
-                EmpPop.Information("emp_duel_asked".Loc(b));
+                Msg.Say("emp_duel_asked".Loc(b));
                 break;
             case Countdown:
-                EmpPop.Information("emp_duel_countdown".Loc(a, b));
+                Music(true);
+                Msg.Say("emp_duel_countdown".Loc(a, b));
                 break;
             case Fighting:
-                EmpPop.Information("emp_duel_fight".lang());
+                Msg.Say("emp_duel_fight".lang());
                 break;
             case Won:
-                _over.Add((state.UidA, state.UidB, Time.unscaledTime + OverSeconds));
+                _over.Add((state.UidA, state.UidB, Time.realtimeSinceStartup + OverSeconds));
                 // mana and stamina are each player's own, its game gives them back
                 var pc = EClass.pc;
                 pc.hp = pc.MaxHP;
                 pc.mana.value = pc.mana.max;
                 pc.stamina.value = pc.stamina.max;
-                EmpPop.Information(state.WinnerUid == state.UidA ? "emp_duel_won".Loc(a, b) : "emp_duel_won".Loc(b, a));
+                Music(false);
+                var other = state.UidA == mine ? b : a;
+                if (state.WinnerUid == mine) {
+                    SE.Play("questComplete");
+                    Msg.Say("emp_duel_win".Loc(other));
+                } else {
+                    Msg.Say("emp_duel_lose".Loc(other));
+                }
+
                 break;
             case Cancelled:
                 CloseBox();
-                EmpPop.Information(state.Reason.lang());
+                Music(false);
+                Msg.Say(state.Reason.lang());
                 break;
         }
     }
@@ -192,14 +211,47 @@ public static class PlayerDuel
     }
 
     /// <summary>
+    ///     The other duellist of this game's player, while they fight: an enemy to it, as the opponent of a bout is in
+    ///     the game (a left click attacks it, a spell and the bow aim at it). Only between the two duellists
+    /// </summary>
+    internal static bool IsFoe(Chara chara)
+    {
+        if (_fights.Count == 0 || EClass.pc is not { } pc) {
+            return false;
+        }
+
+        return _fights.Exists(f => (f.UidA == pc.uid && f.UidB == chara.uid) || (f.UidB == pc.uid && f.UidA == chara.uid));
+    }
+
+    /// <summary>
     ///     Another connection or another world (see PlayerTrade.WatchSession): whatever duel was going on is over
     /// </summary>
     internal static void Clear()
     {
         _sessions.Clear();
         _fights.Clear();
+        _rest.Clear();
         View = null;
         CloseBox();
+        _music = false;
+    }
+
+    /// <summary>
+    ///     The game's bout music while this game's player duels, the map's own after
+    /// </summary>
+    private static void Music(bool on)
+    {
+        if (on == _music) {
+            return;
+        }
+
+        _music = on;
+        if (on) {
+            var ids = new List<int> { BoutMusic };
+            EClass.Sound.SwitchPlaylist(ModUtil.CreatePlaylist(ref ids, EClass.Sound.GetPlaylist(EClass._zone.IDPlayList) ?? EClass.Sound.GetPlaylist("Day")));
+        } else {
+            EClass._zone.RefreshBGM();
+        }
     }
 
     private static void CloseBox()
@@ -228,7 +280,7 @@ public static class PlayerDuel
 
         if (intent.Kind == Accept_) {
             session.Phase = Countdown;
-            session.Deadline = Time.unscaledTime + CountdownSeconds;
+            session.Deadline = Time.realtimeSinceStartup + CountdownSeconds;
             Tell(session, host);
         } else {
             End(session, host, "emp_duel_declined");
@@ -275,10 +327,11 @@ public static class PlayerDuel
                 session.B.hp = session.B.MaxHP;
                 session.Phase = Won;
                 _sessions.Remove(session);
+                _rest.Add((session.A, session.B, Time.realtimeSinceStartup + RestSeconds));
                 Tell(session, host, winner.uid);
                 EmpLog.Information("Player {Winner} won a duel against {Loser}",
                     winner.uid, (winner == session.A ? session.B : session.A).uid);
-            } else if (session.Phase != Fighting && Time.unscaledTime >= session.Deadline) {
+            } else if (session.Phase != Fighting && Time.realtimeSinceStartup >= session.Deadline) {
                 if (session.Phase == Invited) {
                     End(session, host, "emp_duel_noanswer");
                 } else {
@@ -314,11 +367,22 @@ public static class PlayerDuel
             return;
         }
 
+        _rest.RemoveAll(r => Time.realtimeSinceStartup > r.Until);
+        if (_rest.Exists(r => (r.A == from && r.B == partner) || (r.A == partner && r.B == from))) {
+            TellOne(host, from, new() {
+                Phase = Cancelled,
+                UidA = from.uid,
+                UidB = partner.uid,
+                Reason = "emp_duel_wait",
+            });
+            return;
+        }
+
         var session = new Session {
             Id = _nextId++,
             A = from,
             B = partner,
-            Deadline = Time.unscaledTime + AnswerSeconds,
+            Deadline = Time.realtimeSinceStartup + AnswerSeconds,
         };
         _sessions.Add(session);
         Tell(session, host);
@@ -327,6 +391,7 @@ public static class PlayerDuel
     private static void End(Session session, ElinNetHost host, string reason)
     {
         _sessions.Remove(session);
+        _rest.Add((session.A, session.B, Time.realtimeSinceStartup + RestSeconds));
         session.Phase = Cancelled;
         Tell(session, host, 0, reason);
     }

@@ -325,7 +325,7 @@ public class SteamNetLobbyManager : EClass
     {
         var lobbyId = request.m_steamIDLobby;
 
-        EmpPop.Information("emp_lobby_join_request".lang(), lobbyId);
+        EmpLog.Information("emp_lobby_join_request".lang(), lobbyId);
 
         ConnectLobby(lobbyId);
     }
@@ -338,7 +338,7 @@ public class SteamNetLobbyManager : EClass
             return;
         }
 
-        EmpPop.Information("emp_lobby_join_request".lang(), lobbyId);
+        EmpLog.Information("emp_lobby_join_request".lang(), lobbyId);
 
         ConnectLobby(lobbyId);
     }

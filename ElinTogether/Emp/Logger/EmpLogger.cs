@@ -38,8 +38,12 @@ internal static partial class EmpLogger
             .ConfigureSinks();
     }
 
+    // the game's own thread (the plugin starts on it): the game's UI is only touched from there
+    internal static int MainThread { get; private set; } = -1;
+
     internal static void InitLogger(ILogger? custom = null)
     {
+        MainThread = System.Threading.Thread.CurrentThread.ManagedThreadId;
         EmpLog.Logger = custom ?? DefaultLogger;
     }
 

@@ -12,7 +12,7 @@ internal class ResourceFetch
     internal static void SetTempFolder(string path)
     {
         TempFolder = path;
-        EmpPop.PopupInternal("emp_temp_folder_path".lang(), path);
+        EmpLog.Information("emp_temp_folder_path".lang(), path);
     }
 
     /// <summary>

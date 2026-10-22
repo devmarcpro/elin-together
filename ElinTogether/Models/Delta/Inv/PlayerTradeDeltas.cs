@@ -99,6 +99,12 @@ public class TradeStateDelta : ElinDelta
     [Key(11)]
     public string Reason { get; set; } = "";
 
+    /// <summary>
+    ///     How long "confirm" stays locked after the last change, in milliseconds
+    /// </summary>
+    [Key(12)]
+    public int LockMs { get; set; }
+
     protected override void OnApply(ElinNetBase net)
     {
         if (net is not ElinNetHost) {

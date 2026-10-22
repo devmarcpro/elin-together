@@ -29,6 +29,11 @@ internal static class CardGenEvent
             // pending uid
             __result.uid = PendingUid.GetNext();
 
+            // a card for this game's eyes only (the trade window's copies)
+            if (ElinDelta.IsQuiet) {
+                return;
+            }
+
             // client zone activation can't null uids
             if (ZoneActivateEvent.IsHappening) {
                 return;
@@ -43,8 +48,8 @@ internal static class CardGenEvent
             return;
         }
 
-        // host zone activation include the gen events as snaphsots
-        if (ZoneActivateEvent.IsHappening) {
+        // host zone activation include the gen events as snaphsots; a card for this game's eyes only
+        if (ZoneActivateEvent.IsHappening || ElinDelta.IsQuiet) {
             return;
         }
 
