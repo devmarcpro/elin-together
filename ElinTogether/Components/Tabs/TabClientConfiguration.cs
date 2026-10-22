@@ -56,13 +56,13 @@ internal class TabClientConfiguration : TabEmpBase
         var fetch = EmpConfig.Client.FetchMods;
         Toggle("emp_ui_cl_fetch_mods", fetch.Value, value => fetch.Value = value)
             .SetTooltipLang(fetch.Description.Description);
-        TextSmall("        " + "emp_ui_cl_desc_fetch_mods".lang());
+        TextSmall("emp_ui_cl_desc_fetch_mods".lang());
 
         // ... and kept: subscribed to, on in the player's own list, so that the next join needs no restart
         var keep = EmpConfig.Client.KeepMods;
         Toggle("emp_ui_cl_keep_mods", keep.Value, value => keep.Value = value)
             .SetTooltipLang(keep.Description.Description);
-        TextSmall("        " + "emp_ui_cl_desc_keep_mods".lang());
+        TextSmall("emp_ui_cl_desc_keep_mods".lang());
 
         // something went wrong: one zip to send, with the game's own log in it
         Row().Button("emp_ui_report".lang(), () => {
@@ -73,7 +73,7 @@ internal class TabClientConfiguration : TabEmpBase
                 EmpPop.Information("emp_ui_report_failed".lang());
             }
         });
-        TextSmall("        " + "emp_ui_report_desc".lang());
+        TextSmall("emp_ui_report_desc".lang());
     }
 
     private YKHorizontal Row()
