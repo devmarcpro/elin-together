@@ -46,6 +46,7 @@ internal class TabServerConfiguration : TabEmpBase
         Option(own, "once_per_player", EmpConfig.Server.OncePerPlayer);
         Option(own, "host_manages_base", EmpConfig.Server.HostManagesBase);
         Option(own, "duels", EmpConfig.Server.Duels);
+        Option(own, "auto_combat_per_player", EmpConfig.Server.AutoCombatPerPlayer);
 
         var time = Section("time");
         Option(time, "combat_time", EmpConfig.Server.PlayerCombatTime);

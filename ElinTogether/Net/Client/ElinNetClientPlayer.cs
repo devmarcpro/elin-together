@@ -264,6 +264,7 @@ internal partial class ElinNetClient
 
         // before the game reads them (widgets, window places): this player's own settings, not the host's
         OwnSettings.Carry(remoteChara);
+        PlayerTitleDelta.Carry(remoteChara);
 
         probeGame.isCloud = false;
         probeGame.isLoading = true;

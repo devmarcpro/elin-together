@@ -311,6 +311,14 @@ internal partial class EmpConfig
             "Otherwise the first player who buys it or earns it is the only one who has it, as the game does\n" +
             "游戏每个世界只给一次的东西，每位玩家都能得到一次：商店的限量商品，以及剧情任务和对话的奖励（每位玩家一份）。关闭时只有第一个购买或获得的玩家拥有（与原版相同）");
 
+        Server.AutoCombatPerPlayer = config.Bind(
+            "Server",
+            "AutoCombatPerPlayer",
+            true,
+            "Auto combat saves from a deadly hit the player who runs it and its own companions, with its own tactics and stamina: each player's auto combat protects its own, the host's no longer protects the others\n" +
+            "Otherwise the host's auto combat protects everyone and a guest's protects no one, as the game does in the host's game\n" +
+            "自动战斗会以玩家自己的战术和耐力，保护进行自动战斗的玩家及其同伴免受致命一击：每位玩家的自动战斗保护自己的人，主机的不再保护其他人。关闭时主机的自动战斗保护所有人，访客的不保护任何人");
+
         Server.SoftRecall = config.Bind(
             "Server",
             "SoftRecall",
@@ -486,6 +494,7 @@ internal partial class EmpConfig
         internal static ConfigEntry<bool> Takeover { get; set; } = null!;
         internal static ConfigEntry<bool> SharedTax { get; set; } = null!;
         internal static ConfigEntry<bool> OncePerPlayer { get; set; } = null!;
+        internal static ConfigEntry<bool> AutoCombatPerPlayer { get; set; } = null!;
         internal static ConfigEntry<bool> SoftRecall { get; set; } = null!;
         internal static ConfigEntry<bool> AutoHost { get; set; } = null!;
         internal static ConfigEntry<bool> OwnSleep { get; set; } = null!;

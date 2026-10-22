@@ -86,6 +86,9 @@ public class CharaMoveDelta : ElinDelta
             if (net.IsHost) {
                 GuestLeash.Follow(chara);
             }
+        } else if (net.IsHost) {
+            // (a leashed companion left behind while no "Leash of" line was written: the step itself, 2026-10-22)
+            GuestLeash.NoteMissedStep(chara, pos);
         }
     }
 

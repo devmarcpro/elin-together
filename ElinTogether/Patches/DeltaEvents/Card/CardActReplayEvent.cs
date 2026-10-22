@@ -129,6 +129,11 @@ internal static class GuestLeash
     /// </summary>
     internal static void Follow(Chara player)
     {
+        // (a leashed companion left behind with no line at all, 2026-10-22: is this even reached)
+        if (player.IsRemotePlayer && EClass._map.charas.Any(c => c.GetInt(Key) != 0 && c.Dist(player) > 2)) {
+            EmpLog.Debug("Leash of {Player}: follow after a step to {@To}", player.uid, (Position?)player.pos);
+        }
+
         if (!player.IsRemotePlayer || !EClass._zone.PetFollow || EClass._zone.IsRegion ||
             (EClass._zone.KeepAllyDistance &&
              (PlayerTacticsDelta.KeepDistanceOf(player) ?? EClass.game.config.tactics.allyKeepDistance))) {
@@ -168,6 +173,30 @@ internal static class GuestLeash
                     break;
                 }
             }
+
+            if (member.Dist(player) > 2) {
+                EmpLog.Debug("Leash of {Uid} pulled but still {Dist} away, at {@At}", member.uid, member.Dist(player), (Position?)member.pos);
+            }
+        }
+
+        // (a leashed one left behind that is not among this player's companions: whose it is, 2026-10-22)
+        foreach (var c in EClass._map.charas) {
+            if (c.GetInt(Key) != 0 && c.Dist(player) > 2 && !CompanionHelper.CompanionsOf(player).Contains(c) &&
+                CompanionHelper.OwnerOf(c) is var owner && (owner == player || c.CompanionOwnerUid == player.uid)) {
+                EmpLog.Debug("Leash of {Uid} not pulled: not a companion of {Player} (owner {Owner}, in party {InParty})",
+                    c.uid, player.uid, owner?.uid ?? 0, c.party?.members.Contains(c) ?? false);
+            }
+        }
+    }
+
+    /// <summary>
+    ///     A guest's step the host could not make: its leashed companions are not pulled after it
+    /// </summary>
+    internal static void NoteMissedStep(Chara player, Point to)
+    {
+        if (player.IsRemotePlayer && EClass._map.charas.Any(c => c.GetInt(Key) != 0 && c.Dist(player) > 1)) {
+            EmpLog.Debug("Leash of {Player}'s companions not pulled: its step to {@To} failed from {@From}",
+                player.uid, (Position?)to, (Position?)player.pos);
         }
     }
 }

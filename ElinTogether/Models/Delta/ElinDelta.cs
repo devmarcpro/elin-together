@@ -142,6 +142,9 @@ namespace ElinTogether.Models;
 [Union(857, typeof(CellFlagDelta))]
 [Union(858, typeof(WorldPrincipalDelta))]
 [Union(859, typeof(GeneMachineDelta))]
+[Union(860, typeof(AutoCombatDelta))]
+[Union(861, typeof(PlaylistDelta))]
+[Union(862, typeof(PlayerTitleDelta))]
 // Act
 [Union(900, typeof(ActThrowDelta))]
 // Element

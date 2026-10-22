@@ -202,7 +202,7 @@ internal static class ModList
             text.Append(mod.title).Append("\n    ");
             if (mod.id == ModInfo.Guid) {
                 // this fork is not the Workshop item it shares its id with
-                text.Append("https://github.com/devmarcpro/elin-together/releases (not the Workshop version: same version for every player)");
+                text.Append("https://github.com/jeanfreger/elin-together-independence/releases (not the Workshop version: same version for every player)");
             } else if (!string.IsNullOrEmpty(workshop)) {
                 text.Append(ModListFile.Page).Append(workshop);
             } else {

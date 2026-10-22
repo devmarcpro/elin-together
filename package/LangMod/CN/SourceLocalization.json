@@ -331,5 +331,7 @@
     "LangGeneral.emp_ui_chara_deleted.text": "角色已删除。",
     "LangGeneral.emp_ui_sv_cfg_delete_chara.text": "玩家可以删除自己的角色",
     "LangGeneral.emp_ui_sv_desc_delete_chara.text": "在角色选择列表中删除（确认两次）。携带的物品一起消失，同伴留在世界中。",
-    "LangGeneral.emp_world_setting_host.text": "世界设置由主机决定：你的更改未被保留。"
+    "LangGeneral.emp_world_setting_host.text": "世界设置由主机决定：你的更改未被保留。",
+    "LangGeneral.emp_ui_sv_cfg_auto_combat_per_player.text": "每位玩家的自动战斗保护自己的人",
+    "LangGeneral.emp_ui_sv_desc_auto_combat_per_player.text": "开：自动战斗保护正在自动战斗的玩家及其同伴免受致命一击，战术和耐力也是该玩家自己的。关：主机的自动战斗保护所有人，访客的不保护任何人。"
 }

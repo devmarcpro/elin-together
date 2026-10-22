@@ -49,6 +49,8 @@ internal class CoreSynchronizationContext : SynchronizationContext
         CharaSynchronizationContext.Update();
         NetProfileSynchronizationContext.Update();
         RemoteTacticsPatch.Update();
+        AutoCombatPerPlayerPatch.Update();
+        PlayerTitleDelta.Update();
         PersonalQuests.TellHolder();
         NameWatch.Update();
         AreaWatch.Update();
