@@ -155,6 +155,9 @@ public abstract class ElinDelta : EClass
 
     internal virtual OverrideOrder Order { get; } = OverrideOrder.Stack;
 
+    // what Order First/Last is counted by besides the type, e.g. the character the delta is about
+    internal virtual int OverrideKey => 0;
+
     internal virtual bool RequiresGameStarted { get; } = true;
 
     public static bool IsApplying => _applyDepth > 0;

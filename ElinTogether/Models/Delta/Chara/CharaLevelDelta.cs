@@ -8,6 +8,8 @@ public class CharaLevelDelta : ElinDelta
 {
     internal override OverrideOrder Order => OverrideOrder.Last;
 
+    internal override int OverrideKey => Owner.Uid;
+
     [Key(0)]
     public required RemoteCard Owner { get; init; }
 
