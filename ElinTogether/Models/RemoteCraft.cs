@@ -30,11 +30,22 @@ internal static class RemoteCraft
     {
         var self = EClass.player.chara;
         EClass.player.chara = crafter;
+        _standIns++;
 
         return new() {
-            OnExit = () => EClass.player.chara = self,
+            OnExit = () => {
+                EClass.player.chara = self;
+                _standIns--;
+            },
         };
     }
+
+    private static int _standIns;
+
+    /// <summary>
+    ///     "The player" is another player's character for now: what this game tells of its own player waits
+    /// </summary>
+    internal static bool IsStandingIn => _standIns > 0;
 
     internal static bool IsHostRun(AIAct? act)
     {
