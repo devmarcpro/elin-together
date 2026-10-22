@@ -37,7 +37,7 @@ internal static class CharaVisibilityChangeEvent
     internal static void OnKillActor(CardRenderer __instance)
     {
         if (NetSession.Instance.Connection is not { } connection || !NetCompany.HasCompany || EClass._zone.IsRegion ||
-            __instance.owner is not Chara) {
+            __instance.owner is not Chara || RemoteCraft.IsStandingIn) {
             return;
         }
 
@@ -60,7 +60,10 @@ internal static class CharaVisibilityChangeEvent
     [HarmonyPatch(typeof(Chara), nameof(Chara.Die))]
     internal static void OnDie(Chara __instance)
     {
-        if (NetSession.Instance.Connection is not { } connection || !NetCompany.HasCompany || EClass._zone.IsRegion) {
+        // killed while another player stands in as "the player" (its companion fought on this map): this game's
+        // own player is measured again by the next refresh, not reported under the other one's uid
+        if (NetSession.Instance.Connection is not { } connection || !NetCompany.HasCompany || EClass._zone.IsRegion ||
+            RemoteCraft.IsStandingIn) {
             return;
         }
 

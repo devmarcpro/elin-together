@@ -1,3 +1,4 @@
+using System.Reflection;
 using ElinTogether.Helper;
 using ElinTogether.Models;
 using ElinTogether.Net;
@@ -59,10 +60,10 @@ internal static class RemoteTacticsPatch
 }
 
 /// <summary>
-///     "Don't wander": a companion does not run after an enemy "the player" cannot see. For the companion of another
-///     player the game read the box of whoever simulates the map and measured from that player's eyes. Where the game
-///     decides it (looking for an enemy, a step of combat), that companion gets its own master's box, and its own
-///     master as "the player" when the box is ticked. Unticked, nothing else changes
+///     The companion of another player is run by whoever simulates the map, where "the player" is that one: it ran
+///     after enemies only that one saw and held back for its tactics, took from its bag, fished beside it. Where the
+///     game decides (an idle step, looking for an enemy, a step of combat), that companion has its own master as
+///     "the player" when that master stands on this map, and its master's "don't wander" box once it was told
 /// </summary>
 [HarmonyPatch]
 internal static class RemoteDontWanderPatch
@@ -70,21 +71,39 @@ internal static class RemoteDontWanderPatch
     private static ScopeExit? Lend(Chara? companion)
     {
         if (companion is null || NetSession.Instance.Connection is not ElinNetHost || companion.IsPC ||
-            CompanionHelper.OwnerOf(companion) is not { IsRemotePlayer: true } owner || owner == companion ||
-            PlayerTacticsDelta.DontWanderOf(owner) is not { } dontWander) {
+            CompanionHelper.OwnerOf(companion) is not { IsRemotePlayer: true, IsAliveInCurrentZone: true } owner ||
+            owner == companion) {
             return null;
         }
 
         var tactics = EClass.game.config.tactics;
         var own = tactics.dontWander;
-        tactics.dontWander = dontWander;
-        var standIn = dontWander ? RemoteCraft.AsCrafter(owner) : null;
+        tactics.dontWander = PlayerTacticsDelta.DontWanderOf(owner) ?? own;
+        var standIn = RemoteCraft.AsCrafter(owner);
         return new() {
             OnExit = () => {
-                standIn?.Dispose();
+                standIn.Dispose();
                 tactics.dontWander = own;
             },
         };
+    }
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(AI_Idle), nameof(AI_Idle.Run), MethodType.Enumerator)]
+    internal static void OnIdleStep(object __instance, out ScopeExit? __state)
+    {
+        // every idle character of the map steps here: the field is looked up once
+        _idleSelf ??= AccessTools.Field(__instance.GetType(), "<>4__this");
+        __state = NetSession.Instance.Connection is ElinNetHost ? Lend((_idleSelf.GetValue(__instance) as AI_Idle)?.owner) : null;
+    }
+
+    private static FieldInfo? _idleSelf;
+
+    [HarmonyFinalizer]
+    [HarmonyPatch(typeof(AI_Idle), nameof(AI_Idle.Run), MethodType.Enumerator)]
+    internal static void OnIdleStepEnd(ScopeExit? __state)
+    {
+        __state?.Dispose();
     }
 
     [HarmonyPrefix]
