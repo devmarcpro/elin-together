@@ -33,6 +33,13 @@ internal static class PlayerCombatTime
     private static readonly Dictionary<int, float> _given = [];
     private static readonly Dictionary<(int Monster, int Player), float> _stream = [];
     private static readonly Dictionary<(int Monster, int Player), int> _struck = [];
+
+    // Council 14, part of combat on each player's time (no box of its own): a striker's turns no longer let a
+    // monster smash the idle player it fights. They give it at most one turn ahead of what that player's own
+    // turns gave; after two of them with no turn of that player, the monster turns on the striker (a boss never does)
+    //   _idle: the struck grants a monster got from others since the last turn of the player it fights
+    private const int IdleGrants = 2;
+    private static readonly Dictionary<int, int> _idle = [];
     private static Map? _map;
 
     // in a client's game: what its player attacked since its last turn, told with that turn
@@ -71,6 +78,7 @@ internal static class PlayerCombatTime
         _given.Clear();
         _stream.Clear();
         _struck.Clear();
+        _idle.Clear();
     }
 
     internal static bool Enabled => NetSession.Instance.Rules.UsePlayerCombatTime;
@@ -144,8 +152,17 @@ internal static class PlayerCombatTime
                 _struck[key] = left - 1;
             }
 
+            // the player it fought is gone (dead, elsewhere, no player anymore): it follows the one who strikes it
+            var owner = TimeOwner(chara);
+            if (struck && owner is null && !chara.isDead && PlayerOf(chara) is null &&
+                (chara.enemy is not { isDead: false } foe || PlayerOf(foe) is not null)) {
+                chara.SetEnemy(player);
+                owner = TimeOwner(chara);
+            }
+
             // (a monster that fights nobody anymore is on world time again: nothing to hand out)
-            if (TimeOwner(chara) is not { } owner || (owner != player && !struck)) {
+            if (owner is null || (owner != player && !struck)) {
+                _idle.Remove(chara.uid);
                 continue;
             }
 
@@ -154,6 +171,17 @@ internal static class PlayerCombatTime
             // first turn gives nothing while someone else is playing, and everything if nobody is
             var given = _given.GetValueOrDefault(chara.uid);
             var stream = Mathf.Max(_stream.GetValueOrDefault(key), given - grant) + grant;
+            if (owner == player) {
+                _idle.Remove(chara.uid);
+            } else if ((_idle[chara.uid] = _idle.GetValueOrDefault(chara.uid) + 1) >= IdleGrants &&
+                       chara.c_bossType == BossType.none) {
+                EmpLog.Debug("Monster {Monster} turns on {Striker}: {Player} idle", chara.Name, player.Name, owner.Name);
+                chara.SetEnemy(player);
+                _idle.Remove(chara.uid);
+            } else {
+                stream = Mathf.Min(stream, _stream.GetValueOrDefault((chara.uid, owner.uid)) + grant);
+            }
+
             _stream[key] = stream;
             if (stream > given) {
                 chara.roundTimer += stream - given;
