@@ -11,6 +11,10 @@ namespace ElinTogether.Models;
 public class LZ4Bytes
 {
     private static readonly JsonSerializer _serializer = JsonSerializer.Create(GameIOContext.Settings);
+
+    // what another game sends is read with the types of the game and its mods only: the game's settings name the type
+    // to make in the text, any type at all (upstream 6f0fda1, 2026-10-14)
+    private static readonly JsonSerializer _deserializer = CreateDeserializer();
     public static LZ4Bytes Empty => field ??= new() { Bytes = [] };
 
     [Key(0)]
@@ -82,7 +86,14 @@ public class LZ4Bytes
         using var sr = new StreamReader(lz4, Encoding.UTF8);
         using var jr = new JsonTextReader(sr);
 
-        return _serializer.Deserialize<T>(jr)!;
+        return _deserializer.Deserialize<T>(jr)!;
+    }
+
+    private static JsonSerializer CreateDeserializer()
+    {
+        var deserializer = JsonSerializer.Create(GameIOContext.Settings);
+        deserializer.SerializationBinder = NetTypeBinder.Instance;
+        return deserializer;
     }
 
     public string DecompressToString()
