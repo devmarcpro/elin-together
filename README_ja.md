@@ -2,7 +2,7 @@
 
 [English](README.md) | [Français](README_fr.md) | [中文](README_zh.md) | 日本語
 
-[![最新リリース](https://img.shields.io/github/v/release/devmarcpro/elin-together?include_prereleases&label=latest%20release)](https://github.com/devmarcpro/elin-together/releases)
+[![最新リリース](https://img.shields.io/github/v/release/jeanfreger/elin-together-independence?include_prereleases&label=latest%20release)](https://github.com/jeanfreger/elin-together-independence/releases)
 
 [Elin](https://store.steampowered.com/app/2135150/Elin/) のマルチプレイ MOD、[Elin Together](https://github.com/ElinTogether/ElinTogether) の改造版です。目的はひとつ：**ゲーム内で、ホストと他のプレイヤーの違いをなくすこと**。各自が好きな場所へ、自分の仲間・クエスト・名声・お金とともに行き、ワールド（ストーリー、拠点、ギルド）は共有のままです。ワールドそのものも、特定のプレイヤーの PC に置いておく必要がなくなりました。
 
@@ -31,6 +31,8 @@
 - **お金。** 出荷の売上は、出荷箱にアイテムを入れたプレイヤーのものです。ゲストは自分のお金で請求書を払います。
 - **自分のキャラクター。** 参加すると、前に遊んでいたキャラクターに質問なしで戻ります。新しいプレイヤーは、ゲームのキャラクター作成画面で自分のキャラクターを作ります。ホストは、ソロのセーブのキャラクターを連れてくることを許可することもできます。
 - **自分の設定。** ウィンドウ、自動戦闘、バッグの整理、仲間への指示は、マップを移動しても再接続しても自分のものです。
+- **自動戦闘は自分の側を守る。** ゲームの自動戦闘は、それを使ったプレイヤーとその仲間を致命的な一撃から救います（そのプレイヤー自身の戦術スキルとスタミナで）。以前は、ホストの自動戦闘が全員を守り、ゲストの自動戦闘は誰も守りませんでした。誰のものでもない仲間は、誰にも守られません。
+- **自分の称号。** 自分で選んだ称号（異名）は自分のものです。ゲストがホストの称号をもらうことはなくなり、セッションをまたいでも自分の称号が残ります。
 
 ### 全員でひとつのワールド
 
@@ -38,11 +40,12 @@
 - **拠点。** ゲストもホストと同じように建築できます（床、壁、家具、採掘、掘削、伐採、ゾーン、地形ツール）。一方が建てたものは、すぐにもう一方にも見えます。研究、拠点のスキル、政策、住民、コンテナの設定は、どのプレイヤーでも管理できます。ホストは、チェックボックスひとつで拠点の管理を自分だけにできます。
 - **ギルド、好感度、カード図鑑、銀行。** ギルドへの加入はグループ全体に有効で、住民の好感度は全員で同じです。誰かが集めたカードは全員の図鑑に入り、銀行はどこでも同じ中身を表示します。
 - **ダンジョンクエスト。** 専用のゾーンを持つクエストは、どのプレイヤーでも受けられます。一人が出発すると、もう一人に同行するかどうかの「はい／いいえ」が表示されます。ゾーンは共有、報酬はクエストを受けた人のものです。
+- **マップの音楽。** マップのプレイリストウィンドウで選んだ音楽は、そのマップにいる全員で同じです。
 - **プレイヤー同士。** 取引ウィンドウ（双方がアイテムとお金を出し、双方が確定）、誰も死なず何も失わない決闘、そして決闘以外では互いを倒せないこと。
 
 ### ゲストもソロのプレイヤーと同じように遊べる
 
-ホストにできることがゲストにもできるようにする、数十の修正：死亡と遺言、神の贈り物、祭壇、罠、魔法書、治療師、祝福、出資、ルーン、自動収納、手に持った道具、Kettle でのコピー依頼、バーテンダーでの仲間の蘇生、ホストの画面に開いてしまっていたウィンドウ…。一覧は [`dev/DOCUMENTATION.md`](dev/DOCUMENTATION.md)（フランス語）にあります。
+ホストにできることがゲストにもできるようにする、数十の修正：死亡と遺言、神の贈り物、祭壇、罠、魔法書、治療師、祝福、出資、ルーン、自動収納、手に持った道具、Kettle でのコピー依頼、バーテンダーでの仲間の蘇生、ホストの画面に開いてしまっていたウィンドウ…。完全な一覧は開発者のメモに保管されていて、公開していません。
 
 ### ワールドはホストの PC に依存しない
 
@@ -51,6 +54,7 @@
 - **ホストは何もしなくてよい。** 他のプレイヤーがいる間、ワールドは 2 分ごとに自動保存されます。すでに共有されているワールドは、読み込むとすぐ Steam フレンドに公開されます。
 - **接続が切れても大丈夫。** 接続を失ったゲストは、自動でゲームに戻ります（3 分間再試行）。
 - **ゲーム同士の食い違いを防ぐ。** 回線が詰まってもメッセージを捨てません。2 秒ごとにマップごとの数値を比べ、食い違いが続くマップはその場で読み込み直します。
+- **より安全なネットワークデータ**（元の MOD から取り入れ）。他のゲームから送られてくるものは、ゲームとその MOD 自身のデータの種類としてしか読み込まれず、それ以外は拒否されます。
 - **専用サーバー。** Minecraft のサーバーのように、誰も操作しない Elin がワールドを動かし続けます。
 
 ### 全員が同じ MOD を、サブスクライブなしで
@@ -64,7 +68,7 @@
 
 Steam の Elin を **Nightly** ブランチ（Steam → Elin を右クリック → プロパティ → ベータ）にして、[YK Framework](https://steamcommunity.com/sharedfiles/filedetails/?id=3400020753) を入れてください。ワークショップで [Elin Together](https://steamcommunity.com/sharedfiles/filedetails/?id=3773298709) をサブスクライブすると、一緒に入ります。サブスクライブ後に Elin を一度起動して、閉じてください。
 
-1. [Releases ページ](https://github.com/devmarcpro/elin-together/releases)から `ElinTogether-independance.zip` をダウンロードします。
+1. [Releases ページ](https://github.com/jeanfreger/elin-together-independence/releases)から `ElinTogether-independance.zip` をダウンロードします。
 2. フォルダごと解凍して `Installer.bat` を実行します。Elin を探して MOD をコピーし、ワークショップ版からこの版に切り替えます。
 3. Steam から Elin を起動します。
 
@@ -140,6 +144,7 @@ Esc → Mods → Elin Together →「サーバー設定」。新しい挙動に�
 | 他のプレイヤーも建築モードを使える | オン | 他のプレイヤーも拠点で建築でき、費用と素材は本人が払います。オフ：ホストだけが建てられます。 |
 | 拠点の管理はホストだけ | オフ | 他のプレイヤーによる拠点の操作（研究、政策、住民、建築モードなど）は拒否されます。 |
 | プレイヤー同士の決闘 | オン | 相手キャラクターのメニューから決闘を申し込めます。誰も死なず、両者が回復し、何も失いません。 |
+| 各プレイヤーの自動戦闘が自分の側を守る | オン | 自動戦闘は、それを使ったプレイヤーとその仲間を致命的な一撃から救います（そのプレイヤーの戦術とスタミナで）。オフ：ホストの自動戦闘が全員を守り、ゲストの自動戦闘は誰も守りません。 |
 | プレイヤー同士で殺せる | オフ | オフ：致命的な一撃でも、相手プレイヤーのキャラクターの HP は 0 で止まります。 |
 | 戦闘は各プレイヤーの時間で進行 | オン | モンスターは戦っている相手が動いたときに動きます。誰も待ちません。ターン制より優先されます。 |
 | 各プレイヤーは自分の時計で動く | オン | ゲストもホストと同じように滑らかに動きます。通信の速さに左右されません。 |
@@ -178,26 +183,26 @@ Esc → Mods → Elin Together →「サーバー設定」。新しい挙動に�
 - MOD の自動取得：ワークショップの MOD のみ。Steam による Elin の再起動、Steam ロビー経由の復帰、Steam Deck や Linux、Mac では、まだ試していません。
 - まれな競合がいくつか知られていて、未修正です：二人が同じマスに建築する、旅のあとに騎乗動物が二重になる。
 
-完全な一覧と今後の予定は [`dev/DOCUMENTATION.md`](dev/DOCUMENTATION.md)（フランス語）にあります。
+完全な一覧は開発者のメモに保管されていて、公開していません。
 
 ## 問題が起きたら
 
 - ホストが関係するチェックボックスを外します。その点について、MOD は元の動作に戻ります。
 - 他のプレイヤーと食い違ったプレイヤーは、コンソールで `emp.reconnect_self` と入力します。
-- [このリポジトリの issues](https://github.com/devmarcpro/elin-together/issues) に、各プレイヤーの `Player.log` と `ElinMP/Logs/Session_<日付>.log`（`%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin` にあります）を添えて報告してください。このフォークの問題を、元のプロジェクトには報告しないでください。
+- [このリポジトリの issues](https://github.com/jeanfreger/elin-together-independence/issues) に、各プレイヤーの `Player.log` と `ElinMP/Logs/Session_<日付>.log`（`%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin` にあります）を添えて報告してください。このフォークの問題を、元のプロジェクトには報告しないでください。
 
 ## ビルド
 
-環境変数：`ElinGamePath`（ゲームのルートフォルダ）と `SteamContentPath`（`steamapps/workshop/content`、`YKFramework.dll` 用）。.NET SDK 11.0 プレビュー、`global.json` を参照。
+MOD は `dotnet build ./ElinTogether -c ReleaseNightly` でビルドします。ゲームがインストールされている必要があります。環境変数 `ElinGamePath` にゲームのフォルダを指定してください。`SteamContentPath`（`steamapps/workshop/content`）は `YKFramework.dll` 用です。.NET SDK 11.0 プレビュー、`global.json` を参照。
 
 ```ps
-git clone https://github.com/devmarcpro/elin-together
-cd elin-together
+git clone https://github.com/jeanfreger/elin-together-independence
+cd elin-together-independence
 dotnet restore ./ElinTogether --locked-mode
 dotnet build ./ElinTogether -c ReleaseNightly
 ```
 
-`dev/make_release.ps1` は、リリースの 2 つの zip（Windows 用と Mac 用）を作ります。開発環境（1 台の PC で複数のゲームウィンドウ、ゲーム内テスト、デバッグブリッジ）は [`dev/SETUP.md`](dev/SETUP.md)（フランス語）にあります。
+リリース用のパッケージ作成とテストツールはリポジトリに置いていません。テスト環境も公開していません。
 
 ## 仕組み（簡単に）
 

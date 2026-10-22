@@ -2,7 +2,7 @@
 
 [English](README.md) | [Français](README_fr.md) | 中文 | [日本語](README_ja.md)
 
-[![最新版本](https://img.shields.io/github/v/release/devmarcpro/elin-together?include_prereleases&label=latest%20release)](https://github.com/devmarcpro/elin-together/releases)
+[![最新版本](https://img.shields.io/github/v/release/jeanfreger/elin-together-independence?include_prereleases&label=latest%20release)](https://github.com/jeanfreger/elin-together-independence/releases)
 
 这是 [Elin Together](https://github.com/ElinTogether/ElinTogether)（[Elin](https://store.steampowered.com/app/2135150/Elin/) 的多人联机 Mod）的修改版，只有一个目标：**在游戏中，主机玩家与其他玩家没有任何区别**。每个人都可以带着自己的同伴、任务、名声和金钱去想去的地方，而世界（剧情、据点、公会）保持共享。世界本身也不必再存放在某一位玩家的电脑上。
 
@@ -31,6 +31,8 @@
 - **金钱。** 出货所得归把物品放进出货箱的玩家；客机玩家用自己的金币支付账单。
 - **你的角色。** 加入时直接回到自己之前玩的角色，不会被询问；新玩家在游戏的角色创建画面创建自己的角色。主机还可以允许玩家带来自己单人存档里的角色。
 - **你的设置。** 窗口、自动战斗、背包整理和同伴指示，在每次切换地图和重新连接后都保持是你自己的。
+- **自动战斗保护自己人。** 游戏的自动战斗会让启动它的玩家及其同伴免于致命一击（使用该玩家自己的战术技能和体力）。以前，主机的自动战斗保护所有人，客机玩家的自动战斗谁也不保护。不属于任何人的同伴，没有人保护。
+- **你的称号。** 你选择的称号（别名）属于你：客机玩家不再得到主机的称号，并且每次游戏都保留自己的称号。
 
 ### 所有人共享同一个世界
 
@@ -38,11 +40,12 @@
 - **据点。** 客机玩家可以像主机一样建造（地板、墙、家具、挖掘、开凿、砍伐、区域、地形工具），一方建造的东西另一方马上就能看到。研究、家园技能、政策、居民和容器设置，任何玩家都可以管理。主机可以用一个复选框把据点留给自己管理。
 - **公会、好感度、图鉴、银行。** 加入公会对整个团队有效，居民的好感度对所有人都一样，一位玩家收集的卡片会进入所有人的图鉴，银行在任何地方都显示相同的内容。
 - **地下城任务。** 任何玩家都可以接取带有独立区域的任务。一位玩家出发时，另一位会看到「是／否」的询问框，问是否同行：区域是共用的，报酬归接取任务的人。
+- **地图音乐。** 在地图的播放列表窗口里为该地图选的音乐，对这张地图上的所有玩家都相同。
 - **玩家之间。** 交易窗口（双方放入物品和金币，双方确认）、没有人会死也不会损失任何东西的决斗，以及决斗之外不能互相杀死。
 
 ### 客机玩家和单人玩家一样玩
 
-几十项修正，让主机能做的事客机玩家也能做：死亡与遗嘱、神的礼物、祭坛、陷阱、魔法书、治疗师、祝福、投资、符文、自动收纳、手持的工具、在 Kettle 处复制物品、在酒保处复活同伴、原本会在主机画面上弹出的窗口……完整列表见 [`dev/DOCUMENTATION.md`](dev/DOCUMENTATION.md)（法语）。
+几十项修正，让主机能做的事客机玩家也能做：死亡与遗嘱、神的礼物、祭坛、陷阱、魔法书、治疗师、祝福、投资、符文、自动收纳、手持的工具、在 Kettle 处复制物品、在酒保处复活同伴、原本会在主机画面上弹出的窗口……完整列表保存在开发者的笔记里，没有公开。
 
 ### 世界不再依赖主机的电脑
 
@@ -51,6 +54,7 @@
 - **主机不用再操心。** 有其他玩家在时，世界每 2 分钟自动保存；已经共享过的世界读取后会自动对 Steam 好友开放。
 - **掉线没关系。** 失去连接的客机玩家会自动回到游戏（重试 3 分钟）。
 - **各个游戏保持一致。** 线路拥堵时不会丢弃消息。每 2 秒各个游戏会比较每张地图的几个数值，差异持续存在时就地重新载入地图。
+- **更安全的网络数据**（取自原版 Mod）。收到其他游戏发来的内容时，只会按游戏及其模组自己的数据类型来读取；其他一律拒绝。
 - **专用服务器**，就像 Minecraft 服务器：一个没有人操作的 Elin 让世界一直运行。
 
 ### 所有人使用相同的模组，无需订阅
@@ -64,7 +68,7 @@
 
 需要 Steam 上的 Elin，并切换到 **Nightly** 分支（Steam → 右键 Elin → 属性 → 测试版），以及 [YK Framework](https://steamcommunity.com/sharedfiles/filedetails/?id=3400020753) 模组。在创意工坊订阅 [Elin Together](https://steamcommunity.com/sharedfiles/filedetails/?id=3773298709) 会一并带上它。订阅后启动一次 Elin，然后关闭。
 
-1. 从 [Releases 页面](https://github.com/devmarcpro/elin-together/releases)下载 `ElinTogether-independance.zip`。
+1. 从 [Releases 页面](https://github.com/jeanfreger/elin-together-independence/releases)下载 `ElinTogether-independance.zip`。
 2. 解压整个文件夹并运行 `Installer.bat`。它会找到 Elin、复制 Mod，并把创意工坊版本切换成本版本。
 3. 通过 Steam 启动 Elin。
 
@@ -140,6 +144,7 @@ Esc → Mods → Elin Together →「服务器设置」。每项新行为都有�
 | 其他玩家可使用建造模式 | 勾选 | 其他玩家可以在据点建造，金币和材料由他们自己支付。不勾选：只有主机可以建造。 |
 | 只有主机可以管理据点 | 不勾选 | 其他玩家对据点的操作（研究、政策、居民、建造模式……）会被拒绝。 |
 | 玩家之间可以决斗 | 勾选 | 在另一位玩家角色的菜单里发起决斗。没有人会死，双方都会恢复，什么也不会损失。 |
+| 每位玩家的自动战斗保护自己人 | 勾选 | 自动战斗让启动它的玩家及其同伴免于致命一击，使用该玩家自己的战术和体力。不勾选：主机的自动战斗保护所有人，客机玩家的谁也不保护。 |
 | 玩家之间可以互相杀死 | 不勾选 | 不勾选：致命一击只会让另一位玩家的角色生命值降为 0。 |
 | 战斗按各玩家时间进行 | 勾选 | 怪物在与它战斗的玩家行动时行动：没有人需要等待。优先于回合制战斗。 |
 | 每位玩家按自己的时钟行动 | 勾选 | 客机玩家和主机一样流畅地移动和行动，不受网络节奏影响。 |
@@ -178,26 +183,26 @@ Esc → Mods → Elin Together →「服务器设置」。每项新行为都有�
 - 自动获取模组：仅限创意工坊模组。由 Steam 重启 Elin、通过 Steam 大厅返回、Steam Deck 或 Linux、Mac 上都还没有试过。
 - 已知一些罕见的冲突，尚未修复：两位玩家在同一格建造、旅行后坐骑出现两份。
 
-完整列表和后续计划见 [`dev/DOCUMENTATION.md`](dev/DOCUMENTATION.md)（法语）。
+完整列表保存在开发者的笔记里，没有公开。
 
 ## 出现问题时
 
 - 主机取消勾选相关的复选框：在这一点上 Mod 的行为会恢复为原版。
 - 与其他人不同步的玩家在控制台输入 `emp.reconnect_self`。
-- 请提交到[本仓库的 issues](https://github.com/devmarcpro/elin-together/issues)，并附上每位玩家的 `Player.log` 和 `ElinMP/Logs/Session_<日期>.log`（位于 `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`）。请不要把本分支的问题报告给原项目。
+- 请提交到[本仓库的 issues](https://github.com/jeanfreger/elin-together-independence/issues)，并附上每位玩家的 `Player.log` 和 `ElinMP/Logs/Session_<日期>.log`（位于 `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`）。请不要把本分支的问题报告给原项目。
 
 ## 构建
 
-环境变量：`ElinGamePath`（游戏根目录）和 `SteamContentPath`（`steamapps/workshop/content`，用于引用 `YKFramework.dll`）。.NET SDK 11.0 预览版，见 `global.json`。
+Mod 用 `dotnet build ./ElinTogether -c ReleaseNightly` 构建。需要已安装游戏：请用环境变量 `ElinGamePath` 指定游戏文件夹。`SteamContentPath`（`steamapps/workshop/content`）用于引用 `YKFramework.dll`。.NET SDK 11.0 预览版，见 `global.json`。
 
 ```ps
-git clone https://github.com/devmarcpro/elin-together
-cd elin-together
+git clone https://github.com/jeanfreger/elin-together-independence
+cd elin-together-independence
 dotnet restore ./ElinTogether --locked-mode
 dotnet build ./ElinTogether -c ReleaseNightly
 ```
 
-`dev/make_release.ps1` 会生成一个版本的两个压缩包（Windows 和 Mac）。开发环境（一台电脑上开多个游戏窗口、游戏内测试、调试桥）的说明见 [`dev/SETUP.md`](dev/SETUP.md)（法语）。
+版本的打包脚本和测试工具不在仓库里，没有公开。测试环境也没有公开。
 
 ## 工作原理简述
 

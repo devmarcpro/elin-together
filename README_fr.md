@@ -2,7 +2,7 @@
 
 [English](README.md) | Français | [中文](README_zh.md) | [日本語](README_ja.md)
 
-[![Dernière version](https://img.shields.io/github/v/release/devmarcpro/elin-together?include_prereleases&label=derni%C3%A8re%20version)](https://github.com/devmarcpro/elin-together/releases)
+[![Dernière version](https://img.shields.io/github/v/release/jeanfreger/elin-together-independence?include_prereleases&label=derni%C3%A8re%20version)](https://github.com/jeanfreger/elin-together-independence/releases)
 
 Une version modifiée d'[Elin Together](https://github.com/ElinTogether/ElinTogether), le mod multijoueur
 d'[Elin](https://store.steampowered.com/app/2135150/Elin/), avec un seul but : **en jeu, aucune différence entre
@@ -66,6 +66,12 @@ mod lui-même leur revient (voir [Crédits](#crédits)).
   d'une sauvegarde solo.
 - **Vos réglages.** Fenêtres, combat automatique, tri du sac et consignes des compagnons restent les vôtres à
   chaque changement de carte et à chaque reconnexion.
+- **Le combat automatique protège les siens.** Le combat automatique du jeu sauve d'un coup mortel le joueur qui le
+  lance et ses compagnons (avec la compétence de tactique et l'endurance de ce joueur). Avant, celui de l'host
+  protégeait tout le monde et celui d'un invité personne. Un compagnon qui n'appartient à personne n'est protégé
+  par personne.
+- **Votre titre.** Le titre (alias) que vous avez choisi est le vôtre : un invité ne reçoit plus celui de l'host, et
+  garde le sien d'une session à l'autre.
 
 ### Un seul monde pour tous
 
@@ -80,6 +86,8 @@ mod lui-même leur revient (voir [Crédits](#crédits)).
   contenu partout.
 - **Quêtes à donjon.** N'importe quel joueur peut prendre une quête qui a sa propre zone. Quand il part, l'autre
   voit une boîte Oui/Non pour l'accompagner : la zone est commune et la récompense va à celui qui a pris la quête.
+- **La musique des cartes.** La musique choisie pour une carte dans sa fenêtre de liste de lecture est la même pour
+  tous les joueurs présents sur cette carte.
 - **Entre joueurs.** Une fenêtre d'échange (chacun met des objets et de l'or, les deux confirment), des duels où
   personne ne meurt et où rien n'est perdu, et pas de meurtre hors duel.
 
@@ -88,7 +96,7 @@ mod lui-même leur revient (voir [Crédits](#crédits)).
 Des dizaines de corrections pour que ce qui marche pour l'host marche pour un invité : mort et testament, cadeaux
 du dieu, autels, pièges, grimoires, guérisseur, bénédictions, investir, runes, rangement automatique, outils tenus
 en main, copie chez Kettle, résurrection d'un compagnon chez le barman, fenêtres qui s'ouvraient chez l'host… La
-liste est dans [`dev/DOCUMENTATION.md`](dev/DOCUMENTATION.md).
+liste complète est gardée dans les notes du développeur, elle n'est pas publiée.
 
 ### Le monde ne dépend plus du PC de l'host
 
@@ -104,6 +112,8 @@ liste est dans [`dev/DOCUMENTATION.md`](dev/DOCUMENTATION.md).
   essaie pendant 3 minutes).
 - **Les jeux restent d'accord.** Aucun message n'est jeté quand la liaison est saturée. Toutes les 2 secondes les
   jeux comparent quelques nombres par carte, et une carte dont l'écart dure est rechargée sur place.
+- **Des données réseau plus sûres** (reprises du mod d'origine). Ce qu'un autre jeu envoie n'est lu que comme les
+  types de données du jeu et de ses mods ; tout le reste est refusé.
 - **Un serveur dédié**, comme un serveur Minecraft : un Elin que personne ne joue fait tourner le monde.
 
 ### Les mêmes mods pour tous
@@ -124,7 +134,7 @@ Il faut Elin sur Steam, sur le canal **Nightly** (Steam → clic droit sur Elin 
 lui. Lancez Elin une fois après l'abonnement, puis fermez-le.
 
 1. Téléchargez `ElinTogether-independance.zip` sur la
-   [page des versions](https://github.com/devmarcpro/elin-together/releases).
+   [page des versions](https://github.com/jeanfreger/elin-together-independence/releases).
 2. Décompressez tout le dossier et lancez `Installer.bat`. Il trouve Elin, copie le mod dans
    `Elin\Package\Mod_ElinTogether` et remplace la version Workshop par celle-ci dans la liste de mods du jeu.
 3. Lancez Elin par Steam.
@@ -264,6 +274,7 @@ s'appliquent à tous dès qu'elles changent. Les noms des cases sont en anglais 
 | Other players can use build mode | cochée | Les autres joueurs construisent dans la base ; ils paient l'or et les matériaux. Décochée : seul l'host construit. |
 | Only the host manages the base | décochée | Ce que les autres demandent à la base (recherche, politiques, résidents, mode construction…) est refusé. |
 | Duels between players | cochée | « Challenge to a duel » sur le personnage d'un autre joueur. Personne ne meurt, les deux sont soignés, rien n'est perdu. |
+| Each player's auto combat protects its own | cochée | Le combat automatique sauve d'un coup mortel le joueur qui le lance et ses compagnons, avec la tactique et l'endurance de ce joueur. Décochée : celui de l'host protège tout le monde, celui d'un invité personne. |
 | Players can kill each other | décochée | Décochée : un coup qui tuerait le personnage d'un autre joueur le laisse à 0 point de vie. |
 | Combat on each player's time | cochée | Un monstre agit quand le joueur qu'il combat agit : personne n'attend. Passe avant le combat au tour par tour. |
 | Each player on its own clock | cochée | Un invité marche et agit aussi régulièrement que l'host, pas au rythme du réseau. |
@@ -407,8 +418,6 @@ l'ancien attend son joueur.
 | Les sauvegardes | `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin\Save` |
 | Le monde pris dans un dépôt | `…\Save\world_depot` (remplacé chaque fois que le monde est pris) |
 
-Le code est décrit fichier par fichier dans [`dev/DOCUMENTATION.md`](dev/DOCUMENTATION.md), section 4.
-
 ## Limites connues
 
 - **Un seul petit groupe y a joué pour de vrai.** Presque tout est vérifié par des tests en jeu sur un seul PC (deux
@@ -435,7 +444,7 @@ Le code est décrit fichier par fichier dans [`dev/DOCUMENTATION.md`](dev/DOCUME
 - Rattrapage des mondes joués avant « une part pour chacun » : les recettes, les billets de la dette, les cadeaux du
   mariage et les cadeaux de dialogue ne sont pas redonnés.
 
-La liste complète : [`dev/DOCUMENTATION.md`](dev/DOCUMENTATION.md), section 6.
+La liste complète est gardée dans les notes du développeur, elle n'est pas publiée.
 
 ## Ce qu'il reste avant une vraie sortie
 
@@ -486,16 +495,17 @@ Un changement est censé venir avec un test en jeu, cité dans le message de son
 le commit et la note de version disent « pas joué ». Les tests pilotent de vraies fenêtres du jeu par un pont de
 test (versions Debug seulement) : une fenêtre host et une à quatre fenêtres invitées sur un seul PC.
 
-- **Des suites par sujet** (`dev/_tools/*_suite.py`) : voyage, cartes partagées, quêtes, échange, base,
-  construction, duels, sommeil, mort, dépôt, mods… Chacune écrit ce qu'elle vérifie et ce qu'elle ne joue **pas**
-  comme un joueur.
-- **`first_time_suite.py`** : deux joueurs qui jouent ensemble pour la première fois sur un monde tout neuf, par
+- **Des suites par sujet** : voyage, cartes partagées, quêtes, échange, base, construction, duels, sommeil, mort,
+  dépôt, mods… Chacune écrit ce qu'elle vérifie et ce qu'elle ne joue **pas** comme un joueur.
+- **Une première partie** : deux joueurs qui jouent ensemble pour la première fois sur un monde tout neuf, par
   les écrans du jeu : création du personnage, texte d'ouverture, acte de propriété, ouverture de la partie, arrivée
   de l'invité, cadeaux d'Ashland, puis sauvegarde, fermeture des deux jeux, relance et retour.
-- **`dialog_walk_suite.py`** : une chasse. Chaque joueur marche jusqu'à chaque personnage de la carte et essaie
-  chaque choix de ses menus ; une boucle, une erreur du jeu, deux jeux qui ne sont plus d'accord ensuite ou un
-  objet en double est un défaut.
-- **Le bot** (`dev/_tools/bot.py`) : joue au hasard sur une fenêtre et vérifie que les jeux restent d'accord.
+- **Une chasse aux dialogues** : chaque joueur marche jusqu'à chaque personnage de la carte et essaie chaque choix
+  de ses menus ; une boucle, une erreur du jeu, deux jeux qui ne sont plus d'accord ensuite ou un objet en double
+  est un défaut.
+- **Le bot** : joue au hasard sur une fenêtre et vérifie que les jeux restent d'accord.
+
+Le banc de test n'est pas publié.
 
 Ce que le banc ne peut pas prouver : Steam entre deux vrais PC, une vraie souris, et tout ce que personne n'a pensé
 à tester. Ce sont les vraies soirées qui l'ont trouvé. La règle du projet : lire les journaux avant de conclure,
@@ -507,26 +517,25 @@ et dire ce qui n'a pas été joué.
 - Un joueur dont le jeu ne correspond plus à celui des autres tape `emp.reconnect_self` dans la console.
 - Elin s'est fermé tout seul à la première connexion : c'est la relance pour les mods, voir
   [Les parties avec mods](#les-parties-avec-mods).
-- Signalez-le dans [les tickets de ce dépôt](https://github.com/devmarcpro/elin-together/issues), avec les
+- Signalez-le dans [les tickets de ce dépôt](https://github.com/jeanfreger/elin-together-independence/issues), avec les
   fichiers `Player.log` et `ElinMP/Logs/Session_<date>.log` de chaque joueur
   (`%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`). Merci de ne pas signaler au projet d'origine les problèmes
   de ce fork.
 
 ## Compiler
 
-Variables d'environnement : `ElinGamePath` (dossier du jeu) et `SteamContentPath` (`steamapps/workshop/content`,
-pour `YKFramework.dll`). SDK .NET 11.0 preview, voir `global.json`.
+Le mod se compile avec `dotnet build ./ElinTogether -c ReleaseNightly`. Le jeu doit être installé : la variable
+d'environnement `ElinGamePath` doit donner son dossier. `SteamContentPath`
+(`steamapps/workshop/content`) donne `YKFramework.dll`. SDK .NET 11.0 preview, voir `global.json`.
 
 ```ps
-git clone https://github.com/devmarcpro/elin-together
-cd elin-together
+git clone https://github.com/jeanfreger/elin-together-independence
+cd elin-together-independence
 dotnet restore ./ElinTogether --locked-mode
 dotnet build ./ElinTogether -c ReleaseNightly
 ```
 
-`dev/make_release.ps1` fabrique le zip d'une version. Le poste de développement (plusieurs
-fenêtres du jeu sur un PC, suites de tests en jeu, pont de test) est décrit dans [`dev/SETUP.md`](dev/SETUP.md).
-Le journal du fork, jour par jour : [`dev/MODLOG.md`](dev/MODLOG.md).
+La fabrication du zip d'une version et les outils de test sont gardés hors du dépôt.
 
 ## Crédits
 

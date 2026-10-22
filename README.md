@@ -2,7 +2,7 @@
 
 English | [Français](README_fr.md) | [中文](README_zh.md) | [日本語](README_ja.md)
 
-[![Latest release](https://img.shields.io/github/v/release/devmarcpro/elin-together?include_prereleases&label=latest%20release)](https://github.com/devmarcpro/elin-together/releases)
+[![Latest release](https://img.shields.io/github/v/release/jeanfreger/elin-together-independence?include_prereleases&label=latest%20release)](https://github.com/jeanfreger/elin-together-independence/releases)
 
 A fork of [Elin Together](https://github.com/ElinTogether/ElinTogether), the multiplayer mod for
 [Elin](https://store.steampowered.com/app/2135150/Elin/), with one goal: **in game, no difference between the host
@@ -64,6 +64,11 @@ goes to them (see [Credits](#credits)).
   one on the game's creation screen. The host can also let players bring a character from one of their solo saves.
 - **Your settings.** Windows, auto combat, bag sorting and companion orders stay yours at every map change and
   reconnection.
+- **Auto combat protects your own.** The game's auto combat saves the player who runs it and its companions from a
+  deadly hit (with that player's own tactics skill and stamina). Before, the host's auto combat protected everyone
+  and a guest's protected no one. A companion that belongs to nobody is protected by no one.
+- **Your title.** The title (alias) you chose is yours: a guest no longer gets the host's, and keeps its own from one
+  session to the next.
 
 ### One world for everyone
 
@@ -76,6 +81,7 @@ goes to them (see [Credits](#credits)).
   all, the cards one player collects reach everyone's codex, and the bank shows the same content everywhere.
 - **Dungeon quests.** Any player can take a quest that has its own zone. When one sets out, the other gets a Yes/No
   box to come along: the zone is shared and the reward goes to whoever took the quest.
+- **Map music.** The music chosen for a map in its playlist window is the same for every player on that map.
 - **Between players.** A trade window (both put items and gold, both confirm), duels where nobody dies and nothing
   is lost, and no killing outside a duel.
 
@@ -83,8 +89,7 @@ goes to them (see [Credits](#credits)).
 
 Dozens of fixes so that what works for the host works for a guest: death and will, the god's gifts, altars, traps,
 spellbooks, the healer, blessings, investing, runes, auto-dump, tools held in hand, Kettle's copy shop, bringing a
-companion back at the barman's, windows that used to open on the host's screen… The list is in
-[`dev/DOCUMENTATION.md`](dev/DOCUMENTATION.md) (French).
+companion back at the barman's, windows that used to open on the host's screen… The full list is kept in the developer's notes, not published.
 
 ### The world does not depend on the host's PC
 
@@ -99,6 +104,8 @@ companion back at the barman's, windows that used to open on the host's screen�
   for 3 minutes).
 - **The games stay in agreement.** No message is dropped when the link is saturated. Every 2 seconds the games
   compare a few numbers per map, and a map that keeps differing is reloaded in place.
+- **Safer network data** (taken from the original mod). What another game sends is only read as the game's and its
+  mods' own kinds of data; anything else is refused.
 - **A dedicated server**, like a Minecraft server: an Elin nobody plays keeps the world running.
 
 ### The same mods for everyone
@@ -119,7 +126,7 @@ You need Elin on Steam, on the **Nightly** branch (Steam → right-click Elin �
 Launch Elin once after subscribing, then close it.
 
 1. Download `ElinTogether-independance.zip` from the
-   [Releases page](https://github.com/devmarcpro/elin-together/releases).
+   [Releases page](https://github.com/jeanfreger/elin-together-independence/releases).
 2. Unzip the whole folder and run `Installer.bat`. It finds Elin, copies the mod into `Elin\Package\Mod_ElinTogether`
    and switches from the Workshop version to this one in the game's mod list.
 3. Launch Elin through Steam.
@@ -255,6 +262,7 @@ everyone as soon as they change.
 | Other players can use build mode | on | The other players build in the base; they pay the gold and the materials. Off: only the host builds. |
 | Only the host manages the base | off | What the other players ask of the base (research, policies, residents, build mode…) is refused. |
 | Duels between players | on | "Challenge to a duel" on another player's character. Nobody dies, both are healed, nothing is lost. |
+| Each player's auto combat protects its own | on | Auto combat saves from a deadly hit the player who runs it and its companions, with that player's tactics and stamina. Off: the host's auto combat protects everyone, a guest's no one. |
 | Players can kill each other | off | Off: a strike that would kill another player's character leaves it at 0 hit points. |
 | Combat on each player's time | on | A monster acts when the player it fights acts: nobody waits. Takes over turn-based combat. |
 | Each player on its own clock | on | A guest walks and acts as smoothly as the host, not at the pace of the network. |
@@ -396,8 +404,6 @@ for its player.
 | Saves | `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin\Save` |
 | The world taken from a depot | `…\Save\world_depot` (replaced each time the world is taken) |
 
-The code is described file by file in [`dev/DOCUMENTATION.md`](dev/DOCUMENTATION.md), section 4 (French).
-
 ## Known limits
 
 - **Played for real by one small group only.** Almost everything is checked by in-game tests on one PC (two or three
@@ -423,7 +429,7 @@ The code is described file by file in [`dev/DOCUMENTATION.md`](dev/DOCUMENTATION
 - Catching up worlds played before "a share for everyone": recipes, the tickets of the debt, the wedding gifts and
   dialog gifts are not given again.
 
-The full list is in [`dev/DOCUMENTATION.md`](dev/DOCUMENTATION.md), section 6 (French).
+The full list is kept in the developer's notes, not published.
 
 ## What is left before a real release
 
@@ -474,14 +480,16 @@ A change is meant to come with an in-game test, named in its commit message; whe
 the commit and the release note say "not played". The tests drive real game windows through a debug bridge (Debug
 builds only): a host window and one to four guest windows on one PC.
 
-- **Suites by subject** (`dev/_tools/*_suite.py`): travel, shared maps, quests, trade, base, building, duels,
-  sleep, death, the depot, mods… Each prints what it checks and what it does **not** play like a player.
-- **`first_time_suite.py`**: two players playing together for the first time on a brand-new world, through the
-  game's own screens: character creation, the opening text, the deed, opening the game, the guest joining, Ashland's
+- **Suites by subject**: travel, shared maps, quests, trade, base, building, duels, sleep, death, the depot,
+  mods… Each prints what it checks and what it does **not** play like a player.
+- **A first-time game**: two players playing together for the first time on a brand-new world, through the game's
+  own screens: character creation, the opening text, the deed, opening the game, the guest joining, Ashland's
   gifts, then save, both games closed, started again and joined again.
-- **`dialog_walk_suite.py`**: a hunt. Each player walks to every character of the map and tries every choice of
-  its menus; a loop, a game error, two games that no longer agree afterwards or a doubled item is a defect.
-- **The bot** (`dev/_tools/bot.py`): plays at random on one window and checks that the games still agree.
+- **A dialog hunt**: each player walks to every character of the map and tries every choice of its menus; a loop,
+  a game error, two games that no longer agree afterwards or a doubled item is a defect.
+- **The bot**: plays at random on one window and checks that the games still agree.
+
+The test bench is not published.
 
 What the bench cannot prove: Steam between two real PCs, a real mouse, and anything nobody thought of testing.
 The real evenings found those. The rule of the project: read the logs before concluding, and say what was not
@@ -492,25 +500,24 @@ played.
 - The host unticks the checkbox involved: for that point the mod behaves like the original again.
 - A player whose game no longer matches the others' types `emp.reconnect_self` in the console.
 - Elin closed by itself at the first join: it is the restart for the mods, see [Games with mods](#games-with-mods).
-- Report it [here](https://github.com/devmarcpro/elin-together/issues), with every player's `Player.log` and
+- Report it [here](https://github.com/jeanfreger/elin-together-independence/issues), with every player's `Player.log` and
   `ElinMP/Logs/Session_<date>.log` from `%USERPROFILE%\AppData\LocalLow\Lafrontier\Elin`. Please do not report
   fork problems to the original project.
 
 ## Build
 
-Environment variables: `ElinGamePath` (root folder of the game) and `SteamContentPath`
-(`steamapps/workshop/content`, for `YKFramework.dll`). .NET SDK 11.0 preview, see `global.json`.
+The mod builds with `dotnet build ./ElinTogether -c ReleaseNightly`. The game must be installed: set the `ElinGamePath`
+environment variable to its root folder. `SteamContentPath`
+(`steamapps/workshop/content`) gives `YKFramework.dll`. .NET SDK 11.0 preview, see `global.json`.
 
 ```ps
-git clone https://github.com/devmarcpro/elin-together
-cd elin-together
+git clone https://github.com/jeanfreger/elin-together-independence
+cd elin-together-independence
 dotnet restore ./ElinTogether --locked-mode
 dotnet build ./ElinTogether -c ReleaseNightly
 ```
 
-`dev/make_release.ps1` builds the zip of a release. The development setup (several game
-windows on one PC, the in-game test suites, the debug bridge) is described in [`dev/SETUP.md`](dev/SETUP.md)
-(French). The day-by-day journal of the fork is [`dev/MODLOG.md`](dev/MODLOG.md) (French).
+The release packaging and the test tools are kept off the repository.
 
 ## Credits
 
