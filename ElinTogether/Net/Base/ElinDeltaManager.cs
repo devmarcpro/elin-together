@@ -175,13 +175,44 @@ public class ElinDeltaManager
                     GetLatestSnapshot()?.Desyncs.Add(new(BatchCount, desyncInfo, deltaType));
                 }
                 net.ReportDesync(desyncInfo);
-                EmpLog.Debug(ex, "Exception at processing delta {DeltaType}\n{@Delta}",
-                    deltaType, delta);
+                CountFailure(net, deltaType, ex, delta);
                 // noexcept
             }
         }
 
         BatchCount++;
+    }
+
+    // a kind of delta failing that often within the window leaves the map different here: a client reloads it
+    private const int FailureStrikes = 3;
+    private const float FailureWindow = 60f;
+
+    // delta type -> failures in the current window and when that window opened, for this session
+    private readonly Dictionary<string, (int Count, float Since)> _failures = [];
+
+    /// <summary>
+    ///     The first failure of a kind is a warning with its exception, the next ones stay in the debug journal.
+    ///     On a client, <see cref="FailureStrikes" /> failures of the same kind within <see cref="FailureWindow" />
+    ///     ask for the map again, under the rule and cooldowns of a checksum repair (NetDesync)
+    /// </summary>
+    private void CountFailure(ElinNetBase net, string deltaType, Exception ex, ElinDelta delta)
+    {
+        var now = UnityEngine.Time.unscaledTime;
+        var first = !_failures.TryGetValue(deltaType, out var seen);
+        var count = !first && now - seen.Since <= FailureWindow ? seen.Count + 1 : 1;
+        _failures[deltaType] = (count, count == 1 ? now : seen.Since);
+
+        if (first) {
+            EmpLog.Warning(ex, "Exception at processing delta {DeltaType}, further ones in the debug journal\n{@Delta}",
+                deltaType, delta);
+        } else {
+            EmpLog.Debug(ex, "Exception at processing delta {DeltaType}\n{@Delta}",
+                deltaType, delta);
+        }
+
+        if (net is ElinNetClient && count >= FailureStrikes && NetDesync.RepairFailingDelta(deltaType, count)) {
+            _failures[deltaType] = (0, now);
+        }
     }
 
     public List<ElinDelta> FlushOutBuffer()
@@ -213,7 +244,8 @@ public class ElinDeltaManager
         return [
             ..batch
                 .Select((delta, index) => new { delta, index })
-                .GroupBy(x => x.delta.GetType())
+                // one per character for a delta about one: a batch with two characters keeps both
+                .GroupBy(x => (x.delta.GetType(), x.delta.OverrideKey))
                 .SelectMany(g => {
                     return g.First().delta.Order switch {
                         ElinDelta.OverrideOrder.Stack => g,

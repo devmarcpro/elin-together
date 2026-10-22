@@ -441,6 +441,42 @@ internal static class NetDesync
     }
 
     /// <summary>
+    ///     A kind of delta kept failing here (ElinDeltaManager): what it should have changed is missing from this
+    ///     map. Reloaded as a checksum repair is, same rule, stillness and cooldowns; true when it was asked
+    /// </summary>
+    internal static bool RepairFailingDelta(string deltaType, int failures)
+    {
+        var session = NetSession.Instance;
+        var now = Time.unscaledTime;
+        if (session.Connection is not ElinNetClient client || !EClass.core.IsGameStarted || EClass._zone is not { } zone ||
+            now < _quietUntil || !ShouldRepair(session, client, now, out _)) {
+            return false;
+        }
+
+        var detail = $"{failures} failures of {deltaType}";
+        _lastWarning = $"{DateTime.Now:HH:mm:ss} {zone.ZoneFullName}: {detail}";
+        EmpLog.Warning("Reloading {ZoneFullName} after {Detail}, attempt {Repairs}",
+            zone.ZoneFullName, detail, _repairs);
+        EmpPop.Information("emp_ui_resync".lang());
+
+        _mapStrikes = 0;
+        _quietUntil = now + LoadGrace + LoadGrace;
+
+        // before the request: the host notes where we stand before it answers the map
+        client.Host.Send(new WorldStateDeltaList {
+            DeltaList = [
+                new DesyncReportDelta {
+                    ZoneFullName = zone.ZoneFullName,
+                    Detail = detail,
+                    Resync = true,
+                },
+            ],
+        });
+        client.RequestZoneState(MapDataRequest.CurrentRemoteZone);
+        return true;
+    }
+
+    /// <summary>
     ///     The reload drops what happens to the map while it loads and takes the screen for a moment: only when the
     ///     player does nothing, at most once per <see cref="Cooldown" /> (doubled after each one on the same map),
     ///     and no more after <see cref="MaxFruitless" /> reloads that never brought the numbers together or
