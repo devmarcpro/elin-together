@@ -26,21 +26,69 @@ internal partial class ElinNetClient
         ShowCharaChoice(request, request.Notice);
     }
 
+    /// <summary>
+    ///     A row of <see cref="ShowRowList" />: a character (or save) to pick, an action under them, or a gap between the two
+    /// </summary>
+    private record ChoiceRow(string Text, Action? Click, bool IsAction = false);
+
+    /// <summary>
+    ///     The game's own list window (like the barter or the moongate list), one button per row.
+    ///     Closing it without having clicked a row runs <paramref name="onCancel" />
+    /// </summary>
+    private void ShowRowList(string title, List<ChoiceRow> rows, Action onCancel)
+    {
+        var chosen = false;
+        var layer = ui.AddLayer<LayerList>().SetSize(520f).ManualList((list, l) => {
+            list.callbacks = new UIList.Callback<ChoiceRow, ItemGeneral>
+            {
+                onInstantiate = (row, item) => {
+                    item.DisableIcon();
+                    // actions sit under the characters, in another colour
+                    item.button1.mainText.SetText(row.Text, row.IsAction ? FontColor.Topic : FontColor.Default);
+                    item.Build();
+                    if (row.Click is not { } click) {
+                        // the gap between the characters and the actions
+                        item.button1.interactable = false;
+                        return;
+                    }
+
+                    item.button1.SetOnClick(() => {
+                        chosen = true;
+                        l.Close();
+                        click();
+                    });
+                },
+                onList = _ => {
+                    foreach (var row in rows) {
+                        list.Add(row);
+                    }
+                },
+            };
+        }).SetHeader(title);
+        layer.SetOnKill(() => {
+            if (!chosen) {
+                onCancel();
+            }
+        });
+    }
+
     private void ShowCharaChoice(SessionCharaSelectRequest request, string? notice = null)
     {
-        var labels = request.Charas.Select(c => c.Label).ToList();
+        var rows = request.Charas
+            .Select(c => new ChoiceRow(c.Label, () => Host.Send(new SessionCharaSelectResponse { Uid = c.Uid })))
+            .ToList();
+
         // then, in this order: a character from one of my saves (if the host allows it), a new character
-        var import = request.AllowImport ? labels.Count : -1;
+        rows.Add(new ChoiceRow("", null));
         if (request.AllowImport) {
-            labels.Add("emp_ui_chara_import".lang());
+            rows.Add(new ChoiceRow("emp_ui_chara_import".lang(), () => ShowSaveChoice(request), true));
         }
 
-        labels.Add("emp_ui_chara_new".lang());
+        rows.Add(new ChoiceRow("emp_ui_chara_new".lang(), () => Host.Send(new SessionCharaSelectResponse { Uid = 0 }), true));
 
         // then deleting one of them, when the host allows it
-        var delete = request.AllowDelete && request.Charas.Count > 0 ? labels.Count : -1;
-        if (delete >= 0) {
-            labels.Add("emp_ui_chara_delete".lang());
+        if (request.AllowDelete && request.Charas.Count > 0) {
+            rows.Add(new ChoiceRow("emp_ui_chara_delete".lang(), () => ShowDeleteChoice(request), true));
         }
 
         var title = "emp_ui_chara_pick".lang();
@@ -48,29 +96,7 @@ internal partial class ElinNetClient
             title = notice.lang() + " " + title;
         }
 
-        var chosen = false;
-        var dialog = Dialog.List(title, labels, label => label, (index, _) => {
-            chosen = true;
-            if (index == import) {
-                ShowSaveChoice(request);
-                return true;
-            }
-
-            if (index == delete) {
-                ShowDeleteChoice(request);
-                return true;
-            }
-
-            Host.Send(new SessionCharaSelectResponse {
-                Uid = index < request.Charas.Count ? request.Charas[index].Uid : 0,
-            });
-            return true;
-        });
-        dialog.SetOnKill(() => {
-            if (!chosen) {
-                Socket.Disconnect(Host, EmpDisconnectInfo.ClientCancel);
-            }
-        });
+        ShowRowList(title, rows, () => Socket.Disconnect(Host, EmpDisconnectInfo.ClientCancel));
     }
 
     /// <summary>
@@ -81,23 +107,14 @@ internal partial class ElinNetClient
     /// </summary>
     private void ShowDeleteChoice(SessionCharaSelectRequest request)
     {
-        var chosen = false;
-        var dialog = Dialog.List("emp_ui_chara_delete".lang(), request.Charas, c => c.Label, (index, _) => {
-            chosen = true;
-            var target = request.Charas[index];
+        var rows = request.Charas.Select(target => new ChoiceRow(target.Label, () =>
             Dialog.YesNo("emp_ui_chara_delete_confirm".lang(target.Label), () => {
                 Host.Send(new SessionCharaSelectResponse {
                     Uid = target.Uid,
                     Delete = true,
                 });
-            }, () => ShowCharaChoice(request, request.Notice));
-            return true;
-        });
-        dialog.SetOnKill(() => {
-            if (!chosen) {
-                ShowCharaChoice(request, request.Notice);
-            }
-        });
+            }, () => ShowCharaChoice(request, request.Notice)))).ToList();
+        ShowRowList("emp_ui_chara_delete".lang(), rows, () => ShowCharaChoice(request, request.Notice));
     }
 
     private void ShowSaveChoice(SessionCharaSelectRequest request)
@@ -108,18 +125,10 @@ internal partial class ElinNetClient
             return;
         }
 
-        var labels = saves.Select(CharaImport.Label).Append("emp_ui_chara_import_back".lang()).ToList();
-        var chosen = false;
-        var dialog = Dialog.List("emp_ui_chara_import_pick".lang(), labels, label => label, (index, _) => {
-            chosen = true;
-            if (index >= saves.Count) {
-                ShowCharaChoice(request);
-                return true;
-            }
-
-            if (CharaImport.Read(saves[index]) is not { } imported) {
+        var rows = saves.Select(save => new ChoiceRow(CharaImport.Label(save), () => {
+            if (CharaImport.Read(save) is not { } imported) {
                 ShowCharaChoice(request, "emp_ui_chara_import_fail");
-                return true;
+                return;
             }
 
             EmpLog.Information("Bringing {Name} from save {Source}", imported.Chara.Name, imported.Source);
@@ -129,13 +138,10 @@ internal partial class ElinNetClient
                 Karma = imported.Karma,
                 Source = imported.Source,
             });
-            return true;
-        });
-        dialog.SetOnKill(() => {
-            if (!chosen) {
-                ShowCharaChoice(request);
-            }
-        });
+        })).ToList();
+        rows.Add(new ChoiceRow("", null));
+        rows.Add(new ChoiceRow("emp_ui_chara_import_back".lang(), () => ShowCharaChoice(request), true));
+        ShowRowList("emp_ui_chara_import_pick".lang(), rows, () => ShowCharaChoice(request));
     }
 
     private void OnSessionNewPlayerRequest(SessionNewPlayerRequest request)
