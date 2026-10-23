@@ -1,3 +1,4 @@
+using ElinTogether.Helper;
 using ElinTogether.Net;
 using MessagePack;
 
@@ -8,6 +9,9 @@ public class InvRerollDelta : ElinDelta
 {
     [Key(0)]
     public required RemoteCard ShopOwner { get; init; }
+
+    [Key(1)]
+    public ShopGates? Gates { get; set; }
 
     protected override void OnApply(ElinNetBase net)
     {
@@ -38,7 +42,8 @@ public class InvRerollDelta : ElinDelta
 
         EMono._zone.influence -= cost;
         shopOwner.c_dateStockExpire = 0;
-        using (Simulate()) {
+        using (Simulate())
+        using (ShopStock.Opened(Gates)) {
             shopOwner.trait.OnBarter(true);
         }
 

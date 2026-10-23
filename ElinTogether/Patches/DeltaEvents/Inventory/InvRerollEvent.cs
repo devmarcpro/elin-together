@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Reflection;
+using ElinTogether.Helper;
 using ElinTogether.Models;
 using ElinTogether.Net;
 using HarmonyLib;
@@ -34,6 +35,7 @@ internal static class InvRerollEvent
 
         __state = new() {
             ShopOwner = owner,
+            Gates = connection.IsClient ? ShopStock.Local() : null,
         };
 
         return connection.IsHost;
