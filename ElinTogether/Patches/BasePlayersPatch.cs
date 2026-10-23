@@ -15,7 +15,8 @@ namespace ElinTogether.Patches;
 [HarmonyPatch]
 internal static class BasePlayersPatch
 {
-    private static bool IsMultiplayer => NetSession.Instance.Transport is not null;
+    // (host checkbox "players at base", NetSessionRules.PlayersAtBase: off, the game's own "the player")
+    private static bool IsMultiplayer => NetSession.Instance is { Transport: not null, Rules.PlayersAtBase: true };
 
     // the other players standing on the map this game runs
     private static IEnumerable<Chara> OthersOnMap(Chara pc)
