@@ -57,6 +57,10 @@ public class WeatherDelta : ElinDelta
 
         if (changed && game?.activeZone?.map is not null) {
             weather.RefreshWeather();
+            // the game waters the farm fields of its zone when the weather turns to rain (Weather.Set, not run here)
+            if (weather.IsRaining) {
+                game.activeZone.RainWater();
+            }
         }
     }
 }
