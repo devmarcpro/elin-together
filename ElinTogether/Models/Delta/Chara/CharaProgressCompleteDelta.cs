@@ -70,6 +70,10 @@ public class CharaProgressCompleteDelta : ElinDelta
             progress.OnProgressComplete();
             progress.Success();
 
+            // (the carried deltas first: the task decides whether it goes on from the state they leave, e.g. the last log of
+            // TaskChopWood.Loop; ticked before them it saw the log still there and started a chop on nothing)
+            DeltaList.ForEach(action => action.Apply(net));
+
             if (ai != progress) {
                 ai.Tick();
 
@@ -80,8 +84,6 @@ public class CharaProgressCompleteDelta : ElinDelta
                     chara.SetNoGoal();
                 }
             }
-
-            DeltaList.ForEach(action => action.Apply(net));
         } finally {
             Current = null;
         }
