@@ -53,6 +53,15 @@ public class CharaSettingDelta : ElinDelta
         });
     }
 
+    internal override string? OnHostPermit(ElinNetHost host, Chara? sender)
+    {
+        // a resident (no owner) is anyone's to talk to; another player's companion takes its orders from that player
+        return base.OnHostPermit(host, sender) ??
+               (Owner.Find() is Chara chara && CompanionHelper.OwnerOf(chara) is { } owner && owner.uid != sender!.uid
+                   ? $"{chara.uid} follows {owner.uid}"
+                   : null);
+    }
+
     protected override void OnApply(ElinNetBase net)
     {
         // never a player's character: these are settings of the characters players give orders to

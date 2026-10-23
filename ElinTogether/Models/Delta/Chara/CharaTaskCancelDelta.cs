@@ -27,6 +27,11 @@ public class CharaTaskCancelDelta : ElinDelta
     [Key(2)]
     public byte Reason { get; init; }
 
+    internal override string? OnHostPermit(ElinNetHost host, Chara? sender)
+    {
+        return base.OnHostPermit(host, sender) ?? NotOwned(sender, Owner, "task owner");
+    }
+
     protected override void OnApply(ElinNetBase net)
     {
         if (Owner.Find() is not Chara chara) {

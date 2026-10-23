@@ -399,6 +399,16 @@ internal partial class EmpConfig
             "Its companions stay in the world and no longer follow anyone\n" +
             "加入的玩家可以在角色列表中删除自己的某个角色及其携带的物品（会确认两次），其同伴留在世界中");
 
+        // off by default, the one rule that is: the checks are new and logged first ("would have refused"), a
+        // refusal of a legit act would cost a player what it did (council 2, audit 2026-10-23)
+        Server.EnforceOwnership = config.Bind(
+            "Server",
+            "EnforceOwnership",
+            false,
+            "What a guest's game says about a character that is neither its own nor one of its companions (its task, its damage, its skills, its party) is refused\n" +
+            "Off: only written to the log. A trade, a gift to another player or an order to one's own companion is never refused\n" +
+            "客机游戏发来的、关于既非其角色也非其同伴的角色的数据（任务、伤害、技能、队伍）会被拒绝；关闭时仅写入日志。交易、送给其他玩家的礼物或对自己同伴的命令永远不会被拒绝");
+
         Server.TravelCheckpointSeconds = config.Bind(
             "Server",
             "TravelCheckpointSeconds",
@@ -503,6 +513,7 @@ internal partial class EmpConfig
         internal static ConfigEntry<bool> ImportCharacter { get; set; } = null!;
 
         internal static ConfigEntry<bool> DeleteCharacter { get; set; } = null!;
+        internal static ConfigEntry<bool> EnforceOwnership { get; set; } = null!;
         internal static ConfigEntry<bool> PlayerTrade { get; set; } = null!;
         internal static ConfigEntry<bool> PlayerCombatTime { get; set; } = null!;
         internal static ConfigEntry<bool> PlayerClock { get; set; } = null!;

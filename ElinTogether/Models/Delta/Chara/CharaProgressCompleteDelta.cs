@@ -23,6 +23,12 @@ public class CharaProgressCompleteDelta : ElinDelta
     // progress replay, client local sim
     public static bool IsReplaying => Current is not null;
 
+    internal override string? OnHostPermit(ElinNetHost host, Chara? sender)
+    {
+        // what it carries is applied under it without a sender (picks, drops): checked here, once for all
+        return base.OnHostPermit(host, sender) ?? NotOwned(sender, Owner, "progress owner");
+    }
+
     protected override void OnApply(ElinNetBase net)
     {
         if (net.IsHost) {

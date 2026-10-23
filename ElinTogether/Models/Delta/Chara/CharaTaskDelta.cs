@@ -15,6 +15,12 @@ public class CharaTaskDelta : ElinDelta
     [Key(1)]
     public required TaskArgsBase? TaskArgs { get; init; }
 
+    internal override string? OnHostPermit(ElinNetHost host, Chara? sender)
+    {
+        // a guest's game reports the tasks of its own character only
+        return base.OnHostPermit(host, sender) ?? NotOwned(sender, Owner, "task owner");
+    }
+
     protected override void OnApply(ElinNetBase net)
     {
         if (Owner.Find() is not Chara { IsPC: false } chara) {

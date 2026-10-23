@@ -22,6 +22,9 @@ public class CharaAffinityDelta : ElinDelta
     [Key(2)]
     public bool Relative { get; set; }
 
+    // only the default permit (audit 2026-10-23): whoever a guest gives to or talks with is legit, another player
+    // too (a gift to it runs ModAffinity in the giver's game). How much is not checked: a gift moves it a lot
+
     protected override void OnApply(ElinNetBase net)
     {
         if (Owner.Find() is not Chara chara) {

@@ -309,5 +309,7 @@
     "LangGeneral.emp_trade_log_remove.text": "{0} 收回了 {1}。",
     "LangGeneral.emp_trade_log_gold.text": "{0} 现在出价 {1} 金币。",
     "LangGeneral.emp_trade_cant_offer.text": "无法交出 {0}。",
-    "LangGeneral.emp_trade_status.text": "{0}：{1} 金币，{2}"
+    "LangGeneral.emp_trade_status.text": "{0}：{1} 金币，{2}",
+    "LangGeneral.emp_ui_sv_cfg_enforce_ownership.text": "拒绝对他人角色的操作",
+    "LangGeneral.emp_ui_sv_desc_enforce_ownership.text": "客机游戏发来的、关于既非其角色也非其同伴的角色的数据（任务、伤害、技能、队伍）会被拒绝。不勾选时，仅写入日志。交易、送给其他玩家的礼物或对自己同伴的命令永远不会被拒绝。"
 }

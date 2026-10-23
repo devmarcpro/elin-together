@@ -30,6 +30,11 @@ public class CharaPickThingDelta : ElinDelta
     [Key(4)]
     public bool TryStack { get; set; } = true;
 
+    internal override string? OnHostPermit(ElinNetHost host, Chara? sender)
+    {
+        return base.OnHostPermit(host, sender) ?? NotOwned(sender, Owner, "picker");
+    }
+
     protected override void OnApply(ElinNetBase net)
     {
         // we do not apply to ourselves
