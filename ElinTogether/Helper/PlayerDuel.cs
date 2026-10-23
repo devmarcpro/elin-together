@@ -220,7 +220,20 @@ public static class PlayerDuel
             return false;
         }
 
-        return _fights.Exists(f => (f.UidA == pc.uid && f.UidB == chara.uid) || (f.UidB == pc.uid && f.UidA == chara.uid));
+        return AreDueling(pc.uid, chara.uid);
+    }
+
+    /// <summary>
+    ///     These two fight a duel, whoever plays them: also two guests whose blows the host plays on its map
+    /// </summary>
+    internal static bool AreDueling(int one, int other)
+    {
+        // (asked by every friend check of the game: nothing to look at most of the time)
+        if (_fights.Count == 0) {
+            return false;
+        }
+
+        return _fights.Exists(f => (f.UidA == one && f.UidB == other) || (f.UidB == one && f.UidA == other));
     }
 
     /// <summary>

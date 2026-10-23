@@ -19,6 +19,9 @@ internal partial class EmpConfig
     internal static void Reset()
     {
         var config = EmpMod.Instance.Config;
+        // where the world is kept and how to reach it are no settings: a reset of the options keeps them (the game's
+        // mod page "Reset" cleared the depot's key, review 2026-10-22)
+        var kept = (Client.DepotPath.Value, Client.DepotPassword.Value, Client.ServerAddress.Value);
         File.WriteAllText(config.ConfigFilePath, "");
 
         config.SaveOnConfigSet = false;
@@ -26,6 +29,7 @@ internal partial class EmpConfig
 
         Bind();
         Reload();
+        (Client.DepotPath.Value, Client.DepotPassword.Value, Client.ServerAddress.Value) = kept;
 
         config.Save();
         config.SaveOnConfigSet = true;

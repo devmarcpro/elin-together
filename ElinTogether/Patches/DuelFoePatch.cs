@@ -53,7 +53,7 @@ internal static class DuelFoePatch
     [HarmonyPatch(typeof(Chara), nameof(Chara.DoHostileAction))]
     internal static bool OnHostileAction(Chara __instance, Card _tg)
     {
-        if (_tg is not Chara target || !((__instance.IsPC && PlayerDuel.IsFoe(target)) || (target.IsPC && PlayerDuel.IsFoe(__instance)))) {
+        if (_tg is not Chara target || !PlayerDuel.AreDueling(__instance.uid, target.uid)) {
             return true;
         }
 
@@ -106,6 +106,7 @@ internal static class DuelFoePatch
 
     private static bool AreFoes(Chara one, Chara? other)
     {
-        return other is not null && ((one.IsPC && PlayerDuel.IsFoe(other)) || (other.IsPC && PlayerDuel.IsFoe(one)));
+        // (any two duellists: on the host, two guests' blows and spells are played there)
+        return other is not null && PlayerDuel.AreDueling(one.uid, other.uid);
     }
 }

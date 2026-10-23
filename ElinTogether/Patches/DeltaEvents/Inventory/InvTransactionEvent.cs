@@ -8,8 +8,14 @@ namespace ElinTogether.Patches;
 internal static class InvTransactionEvent
 {
     [HarmonyPrefix]
-    internal static bool OnTransactionProcess(InvOwner.Transaction __instance, bool startTransaction)
+    internal static bool OnTransactionProcess(InvOwner.Transaction __instance, bool startTransaction, bool __runOriginal)
     {
+        // an earlier prefix took it (the trade window puts a thing on the table, it moves nothing): Harmony still
+        // runs the others, and this one asked the host to move the thing away (a drop on "my offer", 2026-10-23)
+        if (!__runOriginal) {
+            return false;
+        }
+
         if (NetSession.Instance.Connection is not ElinNetClient client || ElinDelta.IsApplying) {
             return true;
         }

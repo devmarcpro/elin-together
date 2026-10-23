@@ -1,6 +1,7 @@
 using System.Linq;
 using BepInEx.Configuration;
 using ElinTogether.Components;
+using ElinTogether.Net;
 
 namespace ElinTogether;
 
@@ -25,16 +26,19 @@ internal static class ModConfigPage
 
     private static void Build(UINote note)
     {
-        note.AddHeader("emp_ui_sv_note_live".lang());
-
-        foreach (var (section, options) in TabServerConfiguration.Sections()) {
-            note.AddHeader($"emp_ui_sv_sec_{section}".lang());
-            foreach (var (id, entry) in options) {
-                Toggle(note, $"emp_ui_sv_cfg_{id}", $"emp_ui_sv_desc_{id}", entry);
+        // the host's rules: not while playing in someone else's game, where the host's apply (the mod's own window
+        // shows them only to the host too)
+        if (NetSession.Instance.Connection is not ElinNetClient) {
+            note.AddHeader("emp_ui_sv_note_live".lang());
+            foreach (var (section, options) in TabServerConfiguration.Sections()) {
+                note.AddHeader($"emp_ui_sv_sec_{section}".lang());
+                foreach (var (id, entry) in options) {
+                    Toggle(note, $"emp_ui_sv_cfg_{id}", $"emp_ui_sv_desc_{id}", entry);
+                }
             }
         }
 
-        note.AddHeader("Client");
+        note.AddHeader("emp_ui_tab_client".lang());
         Toggle(note, "emp_ui_cl_fetch_mods", "emp_ui_cl_desc_fetch_mods", EmpConfig.Client.FetchMods);
         Toggle(note, "emp_ui_cl_keep_mods", "emp_ui_cl_desc_keep_mods", EmpConfig.Client.KeepMods);
     }
