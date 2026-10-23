@@ -77,6 +77,8 @@ internal static class OwnSettings
                 Memo2 = player.memo2,
                 Hotbars = player.hotbars,
                 Flags = DialogFlagSync.OwnFlags(player),
+                Deepest = player.stats.deepest,
+                DeepestVoid = player.stats.deepestVoid,
                 Ability = EClass.game.altAbility && EClass.ui.IsAbilityOpen,
                 ZoomOut = ActionMode.Adv?.zoomOut2 ?? false,
             };
@@ -159,6 +161,9 @@ internal static class OwnSettings
 
             // (nothing noted: a first time in this world, its own counts start at zero, not at the host's)
             DialogFlagSync.SetOwnFlags(player, kept?.Flags);
+            // the depth reached is this player's own (see BossWinDelta), not the host's
+            player.stats.deepest = kept?.Deepest ?? 0;
+            player.stats.deepestVoid = kept?.DeepestVoid ?? 0;
             if (kept is null) {
                 return;
             }
@@ -372,6 +377,8 @@ internal static class OwnSettings
 
         // the counts the game keeps for "the player" that are this player's own, see DialogFlagSync
         public Dictionary<string, int>? Flags;
+        public int Deepest;
+        public int DeepestVoid;
 
         // the game these were noted from: not noted twice
         [JsonIgnore]
