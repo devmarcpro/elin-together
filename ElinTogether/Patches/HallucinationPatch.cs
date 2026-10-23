@@ -29,7 +29,9 @@ internal static class HallucinationPatch
 
     private static void Follow(Condition? leaving)
     {
-        if (EClass.pc is not { } pc) {
+        // (not EClass.pc: while a game is being loaded the game object is not set yet and EClass.pc throws. A
+        // guest whose character hallucinated could not load the host's save any more: issue #1, 2026-10-23)
+        if (EClass.core?.game?.player?.chara is not { } pc) {
             return;
         }
 
