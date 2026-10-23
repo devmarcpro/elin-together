@@ -44,7 +44,7 @@ public class CardDamageHpDelta : ElinDelta
     internal override string? OnHostPermit(ElinNetHost host, Chara? sender)
     {
         // a guest's game reports the blows its own character took (CardDamageHpEvent); who struck is anyone
-        return base.OnHostPermit(host, sender) ?? NotOwned(sender, Owner, "damaged");
+        return NoCharacter(sender) ?? NotOwned(sender, Owner, "damaged");
     }
 
     protected override void OnApply(ElinNetBase net)

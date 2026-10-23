@@ -14,7 +14,7 @@ public class CharaStaminaDelta : ElinDelta
 
     internal override string? OnHostPermit(ElinNetHost host, Chara? sender)
     {
-        return base.OnHostPermit(host, sender) ?? NotOwned(sender, Chara, "stamina of");
+        return NoCharacter(sender) ?? NotOwned(sender, Chara, "stamina of");
     }
 
     protected override void OnApply(ElinNetBase net)

@@ -32,7 +32,7 @@ public class CharaPickThingDelta : ElinDelta
 
     internal override string? OnHostPermit(ElinNetHost host, Chara? sender)
     {
-        return base.OnHostPermit(host, sender) ?? NotOwned(sender, Owner, "picker");
+        return NoCharacter(sender) ?? NotOwned(sender, Owner, "picker");
     }
 
     protected override void OnApply(ElinNetBase net)

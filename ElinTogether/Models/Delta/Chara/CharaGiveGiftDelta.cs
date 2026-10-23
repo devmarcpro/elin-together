@@ -26,7 +26,7 @@ public class CharaGiveGiftDelta : ElinDelta
     internal override string? OnHostPermit(ElinNetHost host, Chara? sender)
     {
         // to anyone (another player, its companion, a resident), but from the sender and out of what it holds
-        return base.OnHostPermit(host, sender) ?? NotOwned(sender, From, "giver") ??
+        return NoCharacter(sender) ?? NotOwned(sender, From, "giver") ??
                (Thing.Find()?.GetRootCard() is Chara holder && !OwnsOrCompanion(sender!, holder) ? $"the gift is held by {holder.uid}" : null);
     }
 

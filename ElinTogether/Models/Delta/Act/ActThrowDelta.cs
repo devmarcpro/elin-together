@@ -25,7 +25,7 @@ public class ActThrowDelta : ElinDelta
     internal override string? OnHostPermit(ElinNetHost host, Chara? sender)
     {
         // at anyone, but by the sender and out of what it holds
-        return base.OnHostPermit(host, sender) ?? NotOwned(sender, Owner, "thrower") ??
+        return NoCharacter(sender) ?? NotOwned(sender, Owner, "thrower") ??
                (Thing.Find()?.GetRootCard() is Chara holder && !OwnsOrCompanion(sender!, holder) ? $"the thrown thing is held by {holder.uid}" : null);
     }
 

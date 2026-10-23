@@ -198,7 +198,27 @@ public abstract class ElinDelta : EClass
     /// </summary>
     internal virtual string? OnHostPermit(ElinNetHost host, Chara? sender)
     {
+        return null;
+    }
+
+    /// <summary>
+    ///     For the deltas about a character: the sender must have one. Not for all: a guest that just left keeps
+    ///     sending its last batch (bills, quests, the codex), which the intake lets through for an away player
+    ///     (review 2026-10-23)
+    /// </summary>
+    protected static string? NoCharacter(Chara? sender)
+    {
         return sender is null ? "the sender has no character" : null;
+    }
+
+    /// <summary>
+    ///     A companion with no owner tag (an older world, a path that did not tag it) belongs to whoever the party's
+    ///     leader is in this game, the host: not known, so allowed (review 2026-10-23)
+    /// </summary>
+    internal static bool UntaggedCompanion(Chara chara)
+    {
+        return !chara.IsPC && !chara.GetBool("remote_chara") && chara.CompanionOwnerUid == 0 &&
+               chara.party is { } party && party.members.Contains(chara);
     }
 
     /// <summary>
@@ -217,7 +237,8 @@ public abstract class ElinDelta : EClass
     /// </summary>
     internal static bool OwnsOrCompanion(Chara sender, Chara target)
     {
-        return target.uid == sender.uid || PlayerKarma.PlayerBehind(target)?.uid == sender.uid;
+        return target.uid == sender.uid || UntaggedCompanion(target) ||
+               PlayerKarma.PlayerBehind(target)?.uid == sender.uid;
     }
 
     // delta type and peer -> when it was last logged, so a stream of the same delta is one line per window

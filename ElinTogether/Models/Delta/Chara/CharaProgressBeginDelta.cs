@@ -24,7 +24,7 @@ public class CharaProgressBeginDelta : ElinDelta
     internal override string? OnHostPermit(ElinNetHost host, Chara? sender)
     {
         // (it moves the character, Stub_Move)
-        return base.OnHostPermit(host, sender) ?? NotOwned(sender, Owner, "progress owner");
+        return NoCharacter(sender) ?? NotOwned(sender, Owner, "progress owner");
     }
 
     protected override void OnApply(ElinNetBase net)

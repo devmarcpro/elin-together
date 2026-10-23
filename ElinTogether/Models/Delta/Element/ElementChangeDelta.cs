@@ -19,7 +19,7 @@ public class ElementChangeDelta : ElinDelta
     internal override string? OnHostPermit(ElinNetHost host, Chara? sender)
     {
         // a guest's game reports the skills of its own character only
-        return base.OnHostPermit(host, sender) ?? NotOwned(sender, Owner, "skill owner");
+        return NoCharacter(sender) ?? NotOwned(sender, Owner, "skill owner");
     }
 
     protected override void OnApply(ElinNetBase net)

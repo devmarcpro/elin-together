@@ -26,7 +26,7 @@ public class CharaProgressCompleteDelta : ElinDelta
     internal override string? OnHostPermit(ElinNetHost host, Chara? sender)
     {
         // what it carries is applied under it without a sender (picks, drops): checked here, once for all
-        return base.OnHostPermit(host, sender) ?? NotOwned(sender, Owner, "progress owner");
+        return NoCharacter(sender) ?? NotOwned(sender, Owner, "progress owner");
     }
 
     protected override void OnApply(ElinNetBase net)

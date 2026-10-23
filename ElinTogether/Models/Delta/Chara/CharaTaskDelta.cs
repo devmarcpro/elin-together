@@ -18,7 +18,7 @@ public class CharaTaskDelta : ElinDelta
     internal override string? OnHostPermit(ElinNetHost host, Chara? sender)
     {
         // a guest's game reports the tasks of its own character only
-        return base.OnHostPermit(host, sender) ?? NotOwned(sender, Owner, "task owner");
+        return NoCharacter(sender) ?? NotOwned(sender, Owner, "task owner");
     }
 
     protected override void OnApply(ElinNetBase net)
