@@ -26,6 +26,23 @@ public class CharaReviveDelta : ElinDelta
     [Key(3)]
     public bool Penalty { get; set; }
 
+    /// <summary>
+    ///     World day (+1, so that 0 means none) a player's character was made in this world
+    /// </summary>
+    public const string BornKey = "emp_born";
+
+    /// <summary>
+    ///     The game protects a character from the death penalty for its first 90 days (Chara.Revive counts the
+    ///     world's days, which is the character's own age for the host's, made with the world). A guest's character
+    ///     counts from the day it was made here; one without a day (an older world, an imported one) counts from
+    ///     the start of the world, as before
+    /// </summary>
+    internal static bool IsProtected(Chara chara)
+    {
+        var born = chara.GetInt(BornKey) is > 0 and var day ? day - 1 : 0;
+        return player.stats.days - born <= 90 && !game.principal.disableDeathPenaltyProtection;
+    }
+
     protected override void OnApply(ElinNetBase net)
     {
         if (Owner.Find() is not Chara chara) {
@@ -61,7 +78,7 @@ public class CharaReviveDelta : ElinDelta
             // a player who dies here pays what one playing alone pays, by the same rules: after day 90, unless
             // its will spares it, a share of its gold falls where it stands. Once, here; the experience of its
             // attributes is its own game's to take (below). Council decision of 2026-10-04, see MODLOG
-            if (chara.IsRemotePlayer && (player.stats.days > 90 || game.principal.disableDeathPenaltyProtection) &&
+            if (chara.IsRemotePlayer && !IsProtected(chara) &&
                 !(chara.things.Find("letter_will") is not null && rnd(10) == 0)) {
                 Penalty = true;
                 if (chara.GetCurrency() is var gold and > 0) {

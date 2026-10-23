@@ -359,6 +359,8 @@ internal partial class ElinNetHost
         chara.SetBool(CINT.IsPC, false);
         chara.SetBool("emp_creating", true);
         game.cards.AssignUID(chara);
+        // its 90 days without a death penalty start now, not with the world (CharaReviveDelta.IsProtected)
+        chara.SetInt(CharaReviveDelta.BornKey, player.stats.days + 1);
 
         var host = pc;
         try {
