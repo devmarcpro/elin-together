@@ -333,6 +333,13 @@ internal partial class EmpConfig
             "A shop restocks with the stock bonus of the best player on the map, and its special shelves (the marriage and tape shop, Loytel's mart, the exotic merchant) follow the player who opens it\n" +
             "Otherwise the host's feats and progress decide for everyone, as the game does\n" +
             "商店补货时按地图上最强玩家的进货加成计算，特殊货架（婚礼与磁带店、洛伊特商店、异国商人）取决于打开商店的玩家。关闭时一律按主机的天赋和进度（与原版相同）");
+        Server.NearestSpawns = config.Bind(
+            "Server",
+            "NearestSpawns",
+            true,
+            "The feats that change what spawns on a map (legendary chance, friend or foe of Santa and the like, evolved, big daddy, shrines) are those of the player nearest to the spawn, not always the host's\n" +
+            "Otherwise the host's, as the game does\n" +
+            "影响地图刷怪的特性（传说怪几率、圣诞老人等特殊怪物的敌友、进化怪、大老爹、神殿）取离刷新点最近的玩家的，而不总是主机的。关闭时按主机的特性计算（与原版相同）");
 
         Server.AutoCombatPerPlayer = config.Bind(
             "Server",
@@ -520,6 +527,7 @@ internal partial class EmpConfig
         internal static ConfigEntry<bool> TownLife { get; set; } = null!;
         internal static ConfigEntry<bool> TownBoards { get; set; } = null!;
         internal static ConfigEntry<bool> ShopsFromEveryPlayer { get; set; } = null!;
+        internal static ConfigEntry<bool> NearestSpawns { get; set; } = null!;
         internal static ConfigEntry<bool> AutoCombatPerPlayer { get; set; } = null!;
         internal static ConfigEntry<bool> SoftRecall { get; set; } = null!;
         internal static ConfigEntry<bool> AutoHost { get; set; } = null!;

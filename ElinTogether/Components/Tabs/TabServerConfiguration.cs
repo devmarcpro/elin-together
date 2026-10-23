@@ -48,6 +48,7 @@ internal class TabServerConfiguration : TabEmpBase
             ("town_life", EmpConfig.Server.TownLife),
             ("town_boards", EmpConfig.Server.TownBoards),
             ("shops_from_every_player", EmpConfig.Server.ShopsFromEveryPlayer),
+            ("nearest_spawns", EmpConfig.Server.NearestSpawns),
             ("host_manages_base", EmpConfig.Server.HostManagesBase),
             ("duels", EmpConfig.Server.Duels),
             ("auto_combat_per_player", EmpConfig.Server.AutoCombatPerPlayer),
