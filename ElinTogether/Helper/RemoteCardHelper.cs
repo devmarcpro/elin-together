@@ -31,11 +31,26 @@ internal static class RemoteCardHelper
         internal bool IsRemotePlayer
         {
             get {
-                return NetSession.Instance.Connection switch {
-                    ElinNetHost host => host.ActiveRemoteCharas.ContainsValue(chara),
-                    ElinNetClient => !chara.IsPC && NetSession.Instance.CurrentPlayers.Any(n => n.CharaUid == chara.uid),
-                    _ => false,
-                };
+                switch (NetSession.Instance.Connection) {
+                    case ElinNetHost host:
+                        return host.ActiveRemoteCharas.ContainsValue(chara);
+                    case ElinNetClient:
+                        if (chara.IsPC) {
+                            return false;
+                        }
+
+                        // (no closure: asked for many cards each frame)
+                        var players = NetSession.Instance.CurrentPlayers;
+                        for (var i = 0; i < players.Count; i++) {
+                            if (players[i].CharaUid == chara.uid) {
+                                return true;
+                            }
+                        }
+
+                        return false;
+                    default:
+                        return false;
+                }
             }
         }
 
