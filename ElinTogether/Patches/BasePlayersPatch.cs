@@ -95,7 +95,9 @@ internal static class BasePlayersPatch
                 continue;
             }
 
-            if (others.Any(o => member.currentZone == o.currentZone) || CompanionHelper.OwnerOf(member) is { } owner && others.Contains(owner)) {
+            // (a player holding the map alone is no longer among the host's remote characters: its map counts too,
+            // worldmove_suite DAYS 2026-10-23)
+            if (others.Any(o => member.currentZone == o.currentZone) || member.currentZone is { } zone && host.IsLeased(zone.uid) || CompanionHelper.OwnerOf(member) is { } owner && others.Contains(owner)) {
                 member.c_daysWithPC++;
             }
         }
