@@ -35,6 +35,19 @@ public class CharaMakeAllyRequestDelta : ElinDelta
     [Key(5)]
     public LZ4Bytes? Data { get; init; }
 
+    /// <summary>
+    ///     What the invite dialog took for it (DramaCustomSequence "_invite"): in a client's game that ModNum changes
+    ///     nothing (CardModNumEvent), the host takes it from the recruiter's bag
+    /// </summary>
+    [Key(6)]
+    public RemoteCard? Paid { get; init; }
+
+    [Key(7)]
+    public int PaidNum { get; init; }
+
+    // the client's last payment in a dialog (thing, amount, frame)
+    private static (Card Thing, int Num, int Frame)? _payment;
+
     protected override void OnApply(ElinNetBase net)
     {
         if (net is not ElinNetHost host) {
@@ -55,14 +68,16 @@ public class CharaMakeAllyRequestDelta : ElinDelta
             return;
         }
 
+        // already ours: nothing was taken from the client for it, nothing to give back
         if (chara.IsPCParty) {
-            RefundRecruitCost(host, chara);
             return;
         }
 
+        host.ActiveRemoteCharas.TryGetValue(OriginPeer, out var recruiter);
         using var _ = Simulate();
+        TakePayment(recruiter, chara.source);
         // the companion follows the player who recruited it
-        chara.SetCompanionOwner(host.ActiveRemoteCharas.TryGetValue(OriginPeer, out var recruiter) ? recruiter : null);
+        chara.SetCompanionOwner(recruiter);
         chara.MakeAlly(ShowMsg);
     }
 
@@ -98,6 +113,8 @@ public class CharaMakeAllyRequestDelta : ElinDelta
         }
 
         using var _ = Simulate();
+        // Mamani's copy is what paying for Mamani gives
+        TakePayment(receiver == pc ? null : receiver, sources.charas.map["mamani"]);
         var copy = CharaGen.Create(LocalCardId);
         _zone.AddCard(copy, receiver.pos.GetNearestPoint());
         copy.isCopy = IsCopy;
@@ -137,22 +154,48 @@ public class CharaMakeAllyRequestDelta : ElinDelta
         chara.MakeAlly(ShowMsg);
     }
 
-    // should work?
-    private void RefundRecruitCost(ElinNetHost host, Chara chara)
+    /// <summary>
+    ///     The recruit cost the client's dialog paid, taken once from that player's bag. Never a refusal: a recruit
+    ///     the game gives for free (a story, a spell, a pet) comes without payment, an odd one is only logged
+    /// </summary>
+    private void TakePayment(Chara? recruiter, SourceChara.Row source)
     {
-        if (chara.trait.CanInvite || chara.source.recruitItems.IsEmpty()) {
+        if (Paid is null) {
             return;
         }
 
-        var reqs = chara.source.recruitItems[0].Split('/');
-        if (reqs.Length < 2) {
+        var reqs = source.recruitItems.IsEmpty() ? [] : source.recruitItems[0].Split('/');
+        if (recruiter is null || reqs.Length < 2 || Paid.Find() is not Thing { isDestroyed: false } paid ||
+            paid.GetRootCard() != recruiter || paid.id != reqs[0] || PaidNum != reqs[1].ToInt() ||
+            paid.Num < PaidNum) {
+            EmpLog.Warning("Recruit of {Id} by peer {PeerIndex}: payment {Paid} x{Num} not taken",
+                source.id, OriginPeer, Paid, PaidNum);
             return;
         }
 
-        var receiver = host.ActiveRemoteCharas.TryGetValue(OriginPeer, pc);
-        using var _ = Simulate();
-        var refund = ThingGen.Create(reqs[0]).SetNum(reqs[1].ToInt());
-        _zone.AddCard(refund, receiver.pos);
+        paid.ModNum(-PaidNum);
+    }
+
+    /// <summary>
+    ///     Client side: a ModNum asked for in a dialog that changed nothing here (CardModNumEvent)
+    /// </summary>
+    internal static void NotePayment(Card thing, int num)
+    {
+        _payment = (thing, num, UnityEngine.Time.frameCount);
+    }
+
+    // the recruit cost paid in this frame's dialog, right before the MakeAlly it pays for
+    private static (Card Thing, int Num)? TakeNotedPayment(Chara chara)
+    {
+        var noted = _payment;
+        _payment = null;
+        var source = chara.id == "mamani2" ? sources.charas.map["mamani"] : chara.source;
+        if (noted is not { } p || p.Frame != UnityEngine.Time.frameCount || source.recruitItems.IsEmpty()) {
+            return null;
+        }
+
+        var reqs = source.recruitItems[0].Split('/');
+        return reqs.Length >= 2 && p.Thing.id == reqs[0] && p.Num == reqs[1].ToInt() ? (p.Thing, p.Num) : null;
     }
 
     /// <summary>
@@ -166,12 +209,15 @@ public class CharaMakeAllyRequestDelta : ElinDelta
     public static CharaMakeAllyRequestDelta Create(Chara chara, bool msg)
     {
         var pending = PendingUid.IsPending(chara.uid);
+        var payment = TakeNotedPayment(chara);
         return new() {
             Owner = pending ? null : chara,
             LocalCardId = pending ? chara.id : null,
             IsCopy = chara.isCopy, // keep sync with host
             ShowMsg = msg,
             Data = pending && !_excluded.Contains(chara.id) ? LZ4Bytes.Create(chara) : null,
+            Paid = payment?.Thing,
+            PaidNum = payment?.Num ?? 0,
         };
     }
 }
