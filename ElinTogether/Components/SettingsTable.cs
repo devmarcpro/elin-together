@@ -94,12 +94,13 @@ internal static class SettingsTable
                 return -1;
             }
 
-            // (the old "All" box reads as both: its text said "same data and mods", and no file is listed)
+            // (the old "All" box also checks game files: stronger than "both", so it reads as Custom and picking an
+            // option never drops the file checks silently; review 2026-10-23)
             return ValidationConfig.GetConfiguredFlags(raw) switch {
                 ValidationFlags.None => 0,
                 ValidationFlags.Plugins => 1,
                 ValidationFlags.Sources => 2,
-                ValidationFlags.Sources | ValidationFlags.Plugins or ValidationFlags.All => 3,
+                ValidationFlags.Sources | ValidationFlags.Plugins => 3,
                 _ => -1,
             };
         },
@@ -287,6 +288,9 @@ internal static class SettingsTable
         if (preset is 0 or 1) {
             var target = PresetSource(preset);
             Write(HostRules().Select(e => (e, target.Raw(e)!)));
+        } else {
+            // "Custom" writes nothing: redraw so the line shows the real preset again
+            MarkDirty();
         }
     }
 
