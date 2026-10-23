@@ -1,3 +1,4 @@
+using ElinTogether.Helper;
 using ElinTogether.Net;
 using MessagePack;
 
@@ -8,6 +9,12 @@ public class OnBarterDelta : ElinDelta
 {
     [Key(0)]
     public required RemoteCard ShopOwner { get; init; }
+
+    /// <summary>
+    ///     What the player who opens the shop has reached, for the shelves that depend on it (see ShopStock)
+    /// </summary>
+    [Key(1)]
+    public ShopGates? Gates { get; set; }
 
     protected override void OnApply(ElinNetBase net)
     {
@@ -29,6 +36,7 @@ public class OnBarterDelta : ElinDelta
 
             // restock
             using var _ = Simulate();
+            using var opened = ShopStock.Opened(Gates);
             shopOwner.trait.OnBarter();
             return;
         }

@@ -45,6 +45,7 @@ internal class TabServerConfiguration : TabEmpBase
             ("dump_spares_belt", EmpConfig.Server.DumpSparesBelt),
             ("shared_tax", EmpConfig.Server.SharedTax),
             ("once_per_player", EmpConfig.Server.OncePerPlayer),
+            ("shops_from_every_player", EmpConfig.Server.ShopsFromEveryPlayer),
             ("host_manages_base", EmpConfig.Server.HostManagesBase),
             ("duels", EmpConfig.Server.Duels),
             ("auto_combat_per_player", EmpConfig.Server.AutoCombatPerPlayer),

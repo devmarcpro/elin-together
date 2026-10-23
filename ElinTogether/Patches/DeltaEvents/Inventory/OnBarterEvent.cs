@@ -1,3 +1,4 @@
+using ElinTogether.Helper;
 using ElinTogether.Models;
 using ElinTogether.Net;
 using HarmonyLib;
@@ -28,6 +29,7 @@ internal class OnBarterEvent
         // restock is from host
         __state = (new() {
             ShopOwner = owner,
+            Gates = connection.IsClient ? ShopStock.Local() : null,
         }, ElinDelta.PatchScope.Simulate(connection.IsHost));
 
         return connection.IsHost;

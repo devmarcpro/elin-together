@@ -309,5 +309,7 @@
     "LangGeneral.emp_trade_log_remove.text": "{0} 收回了 {1}。",
     "LangGeneral.emp_trade_log_gold.text": "{0} 现在出价 {1} 金币。",
     "LangGeneral.emp_trade_cant_offer.text": "无法交出 {0}。",
-    "LangGeneral.emp_trade_status.text": "{0}：{1} 金币，{2}"
+    "LangGeneral.emp_trade_status.text": "{0}：{1} 金币，{2}",
+    "LangGeneral.emp_ui_sv_cfg_shops_from_every_player.text": "商店按所有在场玩家计算",
+    "LangGeneral.emp_ui_sv_desc_shops_from_every_player.text": "商店补货按地图上最强玩家的进货加成计算，特殊货架（婚礼与磁带店、洛伊特商店、异国商人）取决于打开商店的玩家。不勾选时一律按主机的进度（与原版相同）。"
 }

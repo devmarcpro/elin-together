@@ -311,6 +311,14 @@ internal partial class EmpConfig
             "Otherwise the first player who buys it or earns it is the only one who has it, as the game does\n" +
             "游戏每个世界只给一次的东西，每位玩家都能得到一次：商店的限量商品，以及剧情任务和对话的奖励（每位玩家一份）。关闭时只有第一个购买或获得的玩家拥有（与原版相同）");
 
+        Server.ShopsFromEveryPlayer = config.Bind(
+            "Server",
+            "ShopsFromEveryPlayer",
+            true,
+            "A shop restocks with the stock bonus of the best player on the map, and its special shelves (the marriage and tape shop, Loytel's mart, the exotic merchant) follow the player who opens it\n" +
+            "Otherwise the host's feats and progress decide for everyone, as the game does\n" +
+            "商店补货时按地图上最强玩家的进货加成计算，特殊货架（婚礼与磁带店、洛伊特商店、异国商人）取决于打开商店的玩家。关闭时一律按主机的天赋和进度（与原版相同）");
+
         Server.AutoCombatPerPlayer = config.Bind(
             "Server",
             "AutoCombatPerPlayer",
@@ -494,6 +502,7 @@ internal partial class EmpConfig
         internal static ConfigEntry<bool> Takeover { get; set; } = null!;
         internal static ConfigEntry<bool> SharedTax { get; set; } = null!;
         internal static ConfigEntry<bool> OncePerPlayer { get; set; } = null!;
+        internal static ConfigEntry<bool> ShopsFromEveryPlayer { get; set; } = null!;
         internal static ConfigEntry<bool> AutoCombatPerPlayer { get; set; } = null!;
         internal static ConfigEntry<bool> SoftRecall { get; set; } = null!;
         internal static ConfigEntry<bool> AutoHost { get; set; } = null!;
