@@ -14,13 +14,19 @@ public class CardChargeDelta : ElinDelta
 
     protected override void OnApply(ElinNetBase net)
     {
-        // host to client only
-        if (net.IsHost) {
+        if (Card.Find() is not { isDestroyed: false } card) {
             return;
         }
 
-        if (Card.Find() is not { isDestroyed: false } card) {
-            return;
+        if (net is ElinNetHost host) {
+            // from a guest: only things in its own bag, then on to the others
+            if (!host.ActiveRemoteCharas.TryGetValue(OriginPeer, out var owner) || card.GetRootCard() != owner) {
+                EmpLog.Warning("Refusing {DeltaType} on {Uid} from peer {PeerIndex}",
+                    nameof(CardChargeDelta), card.uid, OriginPeer);
+                return;
+            }
+
+            host.Delta.AddRemote(this);
         }
 
         card.c_charges = Charges;
