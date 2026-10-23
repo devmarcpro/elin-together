@@ -1,0 +1,274 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using BepInEx.Configuration;
+using ElinTogether.API.SourceValidation;
+using ElinTogether.Net;
+
+namespace ElinTogether.Components;
+
+/// <summary>
+///     Where a reader takes the values of the host's rules from: the config entries themselves, their defaults, a
+///     preset, or the rules a guest received from its host. Null: not known there (a guest is not told every rule)
+/// </summary>
+internal sealed class RuleSource(Func<ConfigEntryBase, object?> read)
+{
+    internal static RuleSource Current => new(e => e.BoxedValue);
+    internal static RuleSource Defaults => new(e => e.DefaultValue);
+
+    internal bool? Get(ConfigEntryBase entry) => read(entry) as bool?;
+    internal object? Raw(ConfigEntryBase entry) => read(entry);
+}
+
+/// <summary>
+///     One question a host answers, written as several of the old boxes (council 2026-10-23): the boxes stay the
+///     storage, a choice only reads them (Read, -1 when they match no option: "Custom (see Advanced)") and writes
+///     them when the host picks an option. It never writes on open, nor for "Custom"
+/// </summary>
+internal sealed class Choice(string id, string[] options, Func<ConfigEntryBase[]> entries, Func<RuleSource, int> read,
+    Func<int, (ConfigEntryBase Entry, object Value)[]> write)
+{
+    internal string Id => id;
+    internal string[] Options => options;
+    internal ConfigEntryBase[] Entries => entries();
+    internal int Read(RuleSource source) => read(source);
+
+    /// <summary>
+    ///     What option i writes; nothing for an index past the options (the "Custom" line of the dropdown)
+    /// </summary>
+    internal (ConfigEntryBase Entry, object Value)[] WriteFor(int i) => i >= 0 && i < options.Length ? write(i) : [];
+
+    internal string Label => $"emp_ui_sv_cfg_{id}".lang();
+    internal string OptionLabel(int i) => i >= 0 && i < options.Length ? $"emp_ui_sv_opt_{id}_{options[i]}".lang() : "emp_ui_sv_custom".lang();
+}
+
+/// <summary>
+///     A line of the host's rules. Entry: a box; Choice: a question over several boxes; neither: a line drawn by the
+///     renderer itself (the joining checks, the tax bills). Under: the choice whose boxes these are, drawn indented
+///     under it in Advanced. Requires: false greys the box out (what it needs is off). Apply: when a change counts,
+///     for the rules that do not apply at once
+/// </summary>
+internal sealed record SettingRow(string Id, string Card, bool Advanced, ConfigEntry<bool>? Entry = null, Choice? Choice = null,
+    Func<bool>? Requires = null, string? Apply = null, string? Under = null)
+{
+    internal string Label => Choice?.Label ?? $"emp_ui_sv_cfg_{Id}".lang();
+
+    internal string Description
+    {
+        get {
+            var desc = $"emp_ui_sv_desc_{Id}".lang();
+            return Apply is null ? desc : $"{desc} {$"emp_ui_sv_apply_{Apply}".lang()}";
+        }
+    }
+}
+
+/// <summary>
+///     The host's rules as one table, drawn by the mod's own window (TabServerConfiguration) and by the game's mod
+///     config page (ModConfigPage) alike. Entries are read each time (EmpConfig.Reset binds new ones)
+/// </summary>
+internal static class SettingsTable
+{
+    // WHERE A NEW OPTION GOES (council 2026-10-23, placement rule):
+    // - a new option goes to Advanced (Advanced: true), in the group that fits it;
+    // - it is visible only if a new host must decide it before friends join, and then by joining an existing
+    //   choice (a new option of a Choice) or by replacing a visible row: never more than 13 visible rows;
+    // - a box that only brings back the old host-centred behaviour always goes to the "fallbacks" group;
+    // - its label is a sentence about what the players experience, says "host" and "friends" or "players",
+    //   never "guest"; its texts come in English, Japanese and Chinese in the same commit;
+    // - nothing is ever removed: a hidden box keeps its stored value and stays in Advanced.
+    internal static readonly string[] Cards = ["joining", "together", "host_leaves", "fallbacks", "time_details", "comfort", "repair"];
+
+    // the boxes of the host-centred fallbacks: "every player gets their own" on is all of them on
+    private static ConfigEntry<bool>[] Fallbacks() => [
+        EmpConfig.Server.PersonalQuests, EmpConfig.Server.PlayerShipping, EmpConfig.Server.OncePerPlayer,
+        EmpConfig.Server.SharedTax, EmpConfig.Server.TownLife, EmpConfig.Server.TownBoards,
+        EmpConfig.Server.ShopsFromEveryPlayer, EmpConfig.Server.NearestSpawns, EmpConfig.Server.ActivitiesFromActor,
+        EmpConfig.Server.AutoCombatPerPlayer, EmpConfig.Server.PlayersAtBase, EmpConfig.Server.SummonsFollowMaster,
+    ];
+
+    internal static Choice WhoJoins => new("who_joins", ["anyone", "mods", "data", "both"],
+        () => [EmpConfig.Server.SourceValidationSet],
+        source => {
+            if (source.Raw(EmpConfig.Server.SourceValidationSet) is not string raw || raw.Contains(':')) {
+                return -1;
+            }
+
+            // (the old "All" box reads as both: its text said "same data and mods", and no file is listed)
+            return ValidationConfig.GetConfiguredFlags(raw) switch {
+                ValidationFlags.None => 0,
+                ValidationFlags.Plugins => 1,
+                ValidationFlags.Sources => 2,
+                ValidationFlags.Sources | ValidationFlags.Plugins or ValidationFlags.All => 3,
+                _ => -1,
+            };
+        },
+        i => [(EmpConfig.Server.SourceValidationSet, new[] { "", "plugins", "sources", "sources,plugins" }[i])]);
+
+    internal static Choice WorldMapTime => new("world_map_choice", ["SharedClock", "TravelTogether"],
+        () => [EmpConfig.Server.WorldMapTime],
+        source => source.Raw(EmpConfig.Server.WorldMapTime) is Net.WorldMapTime mode ? (int)mode : -1,
+        i => [(EmpConfig.Server.WorldMapTime, (Net.WorldMapTime)i)]);
+
+    // own pace: PlayerCombatTime with its clock and step pace (turn-based does nothing then); turn-based, shared
+    // average and classic: without PlayerCombatTime (clock and step pace do nothing then, they are left alone)
+    internal static Choice CombatPace => new("combat_pace", ["own", "turns", "average", "classic"],
+        () => [EmpConfig.Server.PlayerCombatTime, EmpConfig.Server.PlayerClock, EmpConfig.Server.PlayerStepPace,
+            EmpConfig.Server.TurnBasedCombat, EmpConfig.Server.SharedAverageSpeed],
+        source => {
+            var (pct, pc, psp, tb, sas) = (source.Get(EmpConfig.Server.PlayerCombatTime), source.Get(EmpConfig.Server.PlayerClock),
+                source.Get(EmpConfig.Server.PlayerStepPace), source.Get(EmpConfig.Server.TurnBasedCombat),
+                source.Get(EmpConfig.Server.SharedAverageSpeed));
+            return (pct, pc, psp, tb, sas) switch {
+                (true, true, true, _, false) => 0,
+                (false, _, _, true, false) => 1,
+                (false, _, _, false, true) => 2,
+                (false, _, _, false, false) => 3,
+                _ => -1,
+            };
+        },
+        i => i switch {
+            0 => [(EmpConfig.Server.PlayerCombatTime, true), (EmpConfig.Server.PlayerClock, true),
+                (EmpConfig.Server.PlayerStepPace, true), (EmpConfig.Server.SharedAverageSpeed, false)],
+            1 => [(EmpConfig.Server.PlayerCombatTime, false), (EmpConfig.Server.TurnBasedCombat, true),
+                (EmpConfig.Server.SharedAverageSpeed, false)],
+            2 => [(EmpConfig.Server.PlayerCombatTime, false), (EmpConfig.Server.TurnBasedCombat, false),
+                (EmpConfig.Server.SharedAverageSpeed, true)],
+            _ => [(EmpConfig.Server.PlayerCombatTime, false), (EmpConfig.Server.TurnBasedCombat, false),
+                (EmpConfig.Server.SharedAverageSpeed, false)],
+        });
+
+    // (a guest is told only some of the twelve: the ones it knows decide)
+    internal static Choice OwnEverything => new("own_everything", ["yes", "no"],
+        () => [..Fallbacks()],
+        source => {
+            var known = Fallbacks().Select(e => source.Get(e)).Where(v => v.HasValue).Select(v => v!.Value).ToArray();
+            return known.Length == 0 ? -1 : known.All(v => v) ? 0 : known.All(v => !v) ? 1 : -1;
+        },
+        i => [..Fallbacks().Select(e => ((ConfigEntryBase)e, (object)(i == 0)))]);
+
+    // (the base's management also covers the build mode: "everyone builds, the host manages" has no boxes)
+    internal static Choice Building => Pair("building", ["all", "manage", "host"],
+        EmpConfig.Server.GuestBuild, EmpConfig.Server.HostManagesBase, [(true, false), (false, false), (false, true)]);
+
+    internal static Choice Fights => Pair("fights", ["off", "duels", "kills"],
+        EmpConfig.Server.Duels, EmpConfig.Server.PlayerKill, [(false, false), (true, false), (true, true)]);
+
+    internal static Choice HostLeaves => Pair("host_leaves", ["waits", "backup", "carry_on"],
+        EmpConfig.Server.WorldCopy, EmpConfig.Server.Takeover, [(false, false), (true, false), (true, true)]);
+
+    private static Choice Pair(string id, string[] options, ConfigEntry<bool> a, ConfigEntry<bool> b, (bool A, bool B)[] values)
+    {
+        return new(id, options, () => [a, b],
+            source => source.Get(a) is { } va && source.Get(b) is { } vb ? Array.IndexOf(values, (va, vb)) : -1,
+            i => [(a, values[i].A), (b, values[i].B)]);
+    }
+
+    internal static IEnumerable<Choice> Choices() => Rows().Where(r => r.Choice is not null).Select(r => r.Choice!);
+
+    internal static IEnumerable<SettingRow> Rows()
+    {
+        var pct = EmpConfig.Server.PlayerCombatTime;
+
+        // Joining
+        yield return new("who_joins", "joining", false, Choice: WhoJoins, Apply: "join");
+        yield return new("checks", "joining", true, Under: "who_joins", Apply: "join");
+        yield return new("same_game_version", "joining", false, EmpConfig.Server.SameGameVersion, Apply: "join");
+        yield return new("choose_chara", "joining", false, EmpConfig.Server.ChooseCharacter, Apply: "join");
+        yield return new("import_chara", "joining", false, EmpConfig.Server.ImportCharacter, Apply: "join");
+
+        // Playing together
+        yield return new("independent_travel", "together", false, EmpConfig.Server.IndependentTravel);
+        yield return new("world_map_choice", "together", false, Choice: WorldMapTime);
+        yield return new("combat_pace", "together", false, Choice: CombatPace);
+        yield return new("combat_time", "together", true, pct, Under: "combat_pace");
+        yield return new("player_clock", "together", true, EmpConfig.Server.PlayerClock, Requires: () => pct.Value, Under: "combat_pace");
+        yield return new("step_pace", "together", true, EmpConfig.Server.PlayerStepPace, Requires: () => pct.Value, Under: "combat_pace");
+        yield return new("turn_combat", "together", true, EmpConfig.Server.TurnBasedCombat, Requires: () => !pct.Value, Under: "combat_pace");
+        yield return new("shared_speed", "together", true, EmpConfig.Server.SharedAverageSpeed, Under: "combat_pace");
+        yield return new("own_everything", "together", false, Choice: OwnEverything);
+        yield return new("building", "together", false, Choice: Building);
+        yield return new("guest_build", "together", true, EmpConfig.Server.GuestBuild, Under: "building");
+        yield return new("host_manages_base", "together", true, EmpConfig.Server.HostManagesBase, Under: "building");
+        yield return new("fights", "together", false, Choice: Fights);
+        yield return new("duels", "together", true, EmpConfig.Server.Duels, Under: "fights");
+        yield return new("player_kill", "together", true, EmpConfig.Server.PlayerKill, Under: "fights");
+        yield return new("player_trade", "together", false, EmpConfig.Server.PlayerTrade);
+
+        // When the host leaves
+        yield return new("host_leaves", "host_leaves", false, Choice: HostLeaves);
+        yield return new("world_copy", "host_leaves", true, EmpConfig.Server.WorldCopy, Under: "host_leaves");
+        yield return new("takeover", "host_leaves", true, EmpConfig.Server.Takeover, Requires: () => EmpConfig.Server.WorldCopy.Value,
+            Under: "host_leaves");
+        yield return new("auto_host", "host_leaves", false, EmpConfig.Server.AutoHost, Apply: "load");
+
+        // Advanced: the way back to the host-centred game, one box each
+        yield return new("personal_quests", "fallbacks", true, EmpConfig.Server.PersonalQuests);
+        yield return new("player_shipping", "fallbacks", true, EmpConfig.Server.PlayerShipping);
+        yield return new("once_per_player", "fallbacks", true, EmpConfig.Server.OncePerPlayer);
+        yield return new("shared_tax", "fallbacks", true, EmpConfig.Server.SharedTax);
+        yield return new("town_life", "fallbacks", true, EmpConfig.Server.TownLife);
+        yield return new("town_boards", "fallbacks", true, EmpConfig.Server.TownBoards, Requires: () => EmpConfig.Server.PersonalQuests.Value);
+        yield return new("shops_from_every_player", "fallbacks", true, EmpConfig.Server.ShopsFromEveryPlayer);
+        yield return new("nearest_spawns", "fallbacks", true, EmpConfig.Server.NearestSpawns);
+        yield return new("activities_from_actor", "fallbacks", true, EmpConfig.Server.ActivitiesFromActor);
+        yield return new("auto_combat_per_player", "fallbacks", true, EmpConfig.Server.AutoCombatPerPlayer);
+        yield return new("players_at_base", "fallbacks", true, EmpConfig.Server.PlayersAtBase);
+        yield return new("summons_follow_master", "fallbacks", true, EmpConfig.Server.SummonsFollowMaster);
+
+        yield return new("world_time", "time_details", true, EmpConfig.Server.SharedWorldTime);
+        yield return new("world_keeper", "time_details", true, EmpConfig.Server.WorldKeeper);
+        yield return new("own_sleep", "time_details", true, EmpConfig.Server.OwnSleep);
+
+        yield return new("delete_chara", "comfort", true, EmpConfig.Server.DeleteCharacter, Apply: "join");
+        yield return new("dump_spares_belt", "comfort", true, EmpConfig.Server.DumpSparesBelt);
+        yield return new("publish_mods", "comfort", true, EmpConfig.Server.PublishMods, Apply: "join");
+
+        yield return new("auto_reconnect", "repair", true, EmpConfig.Server.AutoReconnect);
+        yield return new("auto_resync", "repair", true, EmpConfig.Server.AutoResync);
+        yield return new("soft_recall", "repair", true, EmpConfig.Server.SoftRecall);
+        yield return new("auto_save", "repair", true, EmpConfig.Server.AutoSave);
+        yield return new("enforce_ownership", "repair", true, EmpConfig.Server.EnforceOwnership);
+        yield return new("bills", "repair", true);
+    }
+
+    /// <summary>
+    ///     Every stored host rule the table shows: what a preset, the reset and the undo touch. Not the client's
+    ///     own options, the depot, SoftRecallSwitchedOn or the keys only in the file
+    /// </summary>
+    internal static ConfigEntryBase[] HostRules() => [
+        ..Rows().Where(r => r.Entry is not null).Select(r => (ConfigEntryBase)r.Entry!).Distinct(),
+        EmpConfig.Server.SourceValidationSet, EmpConfig.Server.WorldMapTime,
+    ];
+
+    /// <summary>
+    ///     Writes what differs, nothing else, and saves the file once
+    /// </summary>
+    internal static bool Write(IEnumerable<(ConfigEntryBase Entry, object Value)> changes)
+    {
+        var diff = changes.Where(c => !Equals(c.Entry.BoxedValue, c.Value)).ToArray();
+        if (diff.Length == 0) {
+            return false;
+        }
+
+        var config = EmpMod.Instance.Config;
+        var save = config.SaveOnConfigSet;
+        config.SaveOnConfigSet = false;
+        try {
+            foreach (var (entry, value) in diff) {
+                entry.BoxedValue = value;
+            }
+        } finally {
+            config.SaveOnConfigSet = save;
+        }
+
+        if (save) {
+            config.Save();
+        }
+
+        if (diff.Any(c => c.Entry == EmpConfig.Server.SourceValidationSet)) {
+            NetSession.Instance.Transport?.CreateValidation();
+        }
+
+        return true;
+    }
+}
