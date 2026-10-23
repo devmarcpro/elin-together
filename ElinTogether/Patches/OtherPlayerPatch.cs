@@ -141,6 +141,26 @@ internal static class OtherPlayerPatch
     }
 
     /// <summary>
+    ///     A plant that dominates an enemy of a player's party becomes a minion of "the player": the host's. The
+    ///     player the enemy belongs to
+    /// </summary>
+    [HarmonyTranspiler]
+    [HarmonyPatch(typeof(GoalCombat), nameof(GoalCombat.Run), MethodType.Enumerator)]
+    internal static IEnumerable<CodeInstruction> OnDominatePlant(IEnumerable<CodeInstruction> instructions)
+    {
+        var makeMinion = AccessTools.Method(typeof(Chara), nameof(Chara.MakeMinion));
+        var list = instructions.ToList();
+        for (var i = 1; i < list.Count; i++) {
+            // the dominating plant is the only one made a friend, with the master picked just before
+            if (list[i].Calls(makeMinion) && list[i - 1].LoadsConstant((int)MinionType.Friend)) {
+                list[i] = CodeInstruction.Call(typeof(OtherPlayerPatch), nameof(MakeMinionOf));
+            }
+        }
+
+        return list;
+    }
+
+    /// <summary>
     ///     "The player" does not die while a dialog is open, nor anyone in a bout while one is. Another player's
     ///     dialog is open in its own game, where its death is not decided: its game reports it
     ///     (<see cref="NetPeerState.Talking" />)
@@ -231,6 +251,16 @@ internal static class OtherPlayerPatch
         }
 
         return list;
+    }
+
+    internal static void MakeMinionOf(Chara plant, Chara master, MinionType type)
+    {
+        if (IsMultiplayer && master == EClass.pc && plant.ai is GoalCombat { tc: { } enemy } &&
+            CompanionHelper.OwnerOf(enemy) is { } owner) {
+            master = owner;
+        }
+
+        plant.MakeMinion(master, type);
     }
 
     /// <summary>

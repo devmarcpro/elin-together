@@ -1,4 +1,3 @@
-using System.Linq;
 using ElinTogether.Helper;
 using ElinTogether.Net;
 using MessagePack;
@@ -56,22 +55,14 @@ public class CharaMakeAllyRequestDelta : ElinDelta
             return;
         }
 
-        // already ours: nothing was paid (a client's payment does not change its bag), nothing to give back
         if (chara.IsPCParty) {
+            RefundRecruitCost(host, chara);
             return;
         }
 
-        host.ActiveRemoteCharas.TryGetValue(OriginPeer, out var recruiter);
         using var _ = Simulate();
-        // never a player, never a boss; one the game does not invite for free costs what its dialog asks
-        if (chara.IsPlayer || chara.c_bossType != BossType.none ||
-            (!chara.trait.CanInvite && !PayRecruitCost(recruiter, chara.source))) {
-            EmpLog.Warning("Refusing the recruit of {Id} {Uid} from peer {PeerIndex}", chara.id, chara.uid, OriginPeer);
-            return;
-        }
-
         // the companion follows the player who recruited it
-        chara.SetCompanionOwner(recruiter);
+        chara.SetCompanionOwner(host.ActiveRemoteCharas.TryGetValue(OriginPeer, out var recruiter) ? recruiter : null);
         chara.MakeAlly(ShowMsg);
     }
 
@@ -107,12 +98,6 @@ public class CharaMakeAllyRequestDelta : ElinDelta
         }
 
         using var _ = Simulate();
-        // Mamani's copy is what paying for Mamani gives (DramaCustomSequence "_invite")
-        if (!PayRecruitCost(receiver == pc ? null : receiver, sources.charas.map["mamani"])) {
-            EmpLog.Warning("Refusing {Id} from peer {PeerIndex}: not paid", LocalCardId, OriginPeer);
-            return;
-        }
-
         var copy = CharaGen.Create(LocalCardId);
         _zone.AddCard(copy, receiver.pos.GetNearestPoint());
         copy.isCopy = IsCopy;
@@ -152,29 +137,22 @@ public class CharaMakeAllyRequestDelta : ElinDelta
         chara.MakeAlly(ShowMsg);
     }
 
-    /// <summary>
-    ///     The host takes the recruit cost from the recruiter's bag: in a client's game the dialog's ModNum changes
-    ///     nothing (CardModNumEvent), so nothing else ever takes it
-    /// </summary>
-    private static bool PayRecruitCost(Chara? recruiter, SourceChara.Row source)
+    // should work?
+    private void RefundRecruitCost(ElinNetHost host, Chara chara)
     {
-        if (recruiter is null || source.recruitItems.IsEmpty()) {
-            return false;
+        if (chara.trait.CanInvite || chara.source.recruitItems.IsEmpty()) {
+            return;
         }
 
-        var reqs = source.recruitItems[0].Split('/');
+        var reqs = chara.source.recruitItems[0].Split('/');
         if (reqs.Length < 2) {
-            return false;
+            return;
         }
 
-        var reqId = reqs[0];
-        var reqNum = reqs[1].ToInt();
-        if (recruiter.things.List(t => t.id == reqId && t.Num >= reqNum, true).FirstOrDefault() is not { } paid) {
-            return false;
-        }
-
-        paid.ModNum(-reqNum);
-        return true;
+        var receiver = host.ActiveRemoteCharas.TryGetValue(OriginPeer, pc);
+        using var _ = Simulate();
+        var refund = ThingGen.Create(reqs[0]).SetNum(reqs[1].ToInt());
+        _zone.AddCard(refund, receiver.pos);
     }
 
     /// <summary>
