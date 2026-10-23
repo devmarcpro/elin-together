@@ -13,6 +13,7 @@ internal partial class ElinNetHost
 {
     private readonly Dictionary<int, int> _idleReports = [];
     private WorldStateSnapshot? _lastTick;
+    private const int MaxDeltasPerBatch = 2048;
     private bool _pauseUpdate;
 
     /// <summary>
@@ -111,7 +112,19 @@ internal partial class ElinNetHost
         // is about the world it is leaving, and would land after the copy it was sent (an item dropped then
         // exists twice)
         var away = IsAway(peer) || !_settled.Contains(peer.Id);
+        var count = 0;
         foreach (var delta in response.DeltaList) {
+            // a buggy client may send a null or a huge batch: drop them rather than throw for the whole batch
+            if (delta is null) {
+                EmpLog.Debug("Null delta from player {@Peer}, skipped", peer);
+                continue;
+            }
+
+            if (++count > MaxDeltasPerBatch) {
+                EmpLog.Warning("Delta batch from player {@Peer} cut at {Max} of {Total}", peer, MaxDeltasPerBatch, response.DeltaList.Count);
+                break;
+            }
+
             // an away player is not on the host map, only what it shares with the world is relevant here:
             // its chat and the quest log
             if (away && !OwnGrowth(delta, peer) && delta is not (MsgSayDelta or QuestStartDelta or QuestCompleteDelta or QuestChangePhaseDelta or DialogFlagDelta or StoryOutcomeDelta or QuestFailDelta or QuestUpdateDelta or PersonalQuestDelta or PlayerStandingDelta or BillPayDelta or WorldTimeReportDelta or QuestFollowDelta or CharaSleepDelta or SleepStateDelta or CodexDelta or AddRecipeDelta or BossWinDelta or ExtraTaxDelta or TentZoneDelta)) {

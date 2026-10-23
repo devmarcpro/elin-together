@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.IO.Compression;
 using System.Text;
@@ -16,6 +17,9 @@ public class LZ4Bytes
     // to make in the text, any type at all (upstream 6f0fda1, 2026-10-14)
     private static readonly JsonSerializer _deserializer = CreateDeserializer();
     public static LZ4Bytes Empty => field ??= new() { Bytes = [] };
+
+    // a map is some MB once decompressed; this only stops a buggy peer's bomb from eating the memory of the game
+    private const long MaxDecompressed = 256L * 1024 * 1024;
 
     [Key(0)]
     public required byte[] Bytes { get; init; }
@@ -82,7 +86,7 @@ public class LZ4Bytes
     public T Decompress<T>()
     {
         using var input = new MemoryStream(Bytes);
-        using var lz4 = new LZ4Stream(input, CompressionMode.Decompress);
+        using var lz4 = new CappedStream(new LZ4Stream(input, CompressionMode.Decompress));
         using var sr = new StreamReader(lz4, Encoding.UTF8);
         using var jr = new JsonTextReader(sr);
 
@@ -99,7 +103,7 @@ public class LZ4Bytes
     public string DecompressToString()
     {
         using var input = new MemoryStream(Bytes);
-        using var lz4 = new LZ4Stream(input, CompressionMode.Decompress);
+        using var lz4 = new CappedStream(new LZ4Stream(input, CompressionMode.Decompress));
         using var sr = new StreamReader(lz4, Encoding.UTF8);
 
         return sr.ReadToEnd();
@@ -108,7 +112,7 @@ public class LZ4Bytes
     public byte[] DecompressToBytes()
     {
         using var input = new MemoryStream(Bytes);
-        using var lz4 = new LZ4Stream(input, CompressionMode.Decompress);
+        using var lz4 = new CappedStream(new LZ4Stream(input, CompressionMode.Decompress));
         using var ms = new MemoryStream();
 
         lz4.CopyTo(ms);
@@ -119,7 +123,7 @@ public class LZ4Bytes
     public void DecompressToStream(Stream output)
     {
         using var input = new MemoryStream(Bytes);
-        using var lz4 = new LZ4Stream(input, CompressionMode.Decompress);
+        using var lz4 = new CappedStream(new LZ4Stream(input, CompressionMode.Decompress));
 
         lz4.CopyTo(output);
     }
@@ -130,5 +134,41 @@ public class LZ4Bytes
         using var fs = File.Create(filePath);
 
         DecompressToStream(fs);
+    }
+
+    private sealed class CappedStream(Stream inner) : Stream
+    {
+        private long _read;
+
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            var n = inner.Read(buffer, offset, count);
+            _read += n;
+            if (_read > MaxDecompressed) {
+                throw new InvalidDataException($"Decompressed data over {MaxDecompressed} bytes");
+            }
+
+            return n;
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing) {
+                inner.Dispose();
+            }
+
+            base.Dispose(disposing);
+        }
+
+        public override void Flush() { }
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     }
 }

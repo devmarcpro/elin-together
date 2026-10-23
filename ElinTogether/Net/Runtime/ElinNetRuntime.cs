@@ -7,6 +7,7 @@ namespace ElinTogether.Net;
 
 public partial class ElinNetBase
 {
+    private const int MaxDesyncTexts = 200;
     public readonly Dictionary<string, int> DesyncInfos = [];
 
     private EGui? _debugGui;
@@ -45,9 +46,12 @@ public partial class ElinNetBase
     internal void ReportDesync(string desyncInfo)
     {
         Desyncs++;
-        if (!DesyncInfos.TryAdd(desyncInfo, 1)) {
-            DesyncInfos[desyncInfo]++;
+        // bounded: a buggy peer can make endless distinct texts
+        if (!DesyncInfos.ContainsKey(desyncInfo) && DesyncInfos.Count >= MaxDesyncTexts) {
+            desyncInfo = "(other desyncs)";
         }
+
+        DesyncInfos[desyncInfo] = DesyncInfos.GetValueOrDefault(desyncInfo) + 1;
     }
 
     public void StartDebugGui()
