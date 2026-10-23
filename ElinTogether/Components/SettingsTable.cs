@@ -240,6 +240,55 @@ internal static class SettingsTable
         EmpConfig.Server.SourceValidationSet, EmpConfig.Server.WorldMapTime,
     ];
 
+    private static volatile bool _dirty;
+
+    /// <summary>
+    ///     Both pages are drawn again when a rule they show changes, from here or elsewhere (the file watcher
+    ///     reloads on its own thread: the next frame draws)
+    /// </summary>
+    internal static void Watch()
+    {
+        EmpMod.Instance.Config.SettingChanged += (_, e) => {
+            var entry = e.ChangedSetting;
+            if (entry == EmpConfig.Client.FetchMods || entry == EmpConfig.Client.KeepMods || HostRules().Contains(entry)) {
+                _dirty = true;
+            }
+        };
+    }
+
+    internal static void MarkDirty() => _dirty = true;
+
+    internal static void Update()
+    {
+        if (!_dirty) {
+            return;
+        }
+
+        _dirty = false;
+        LayerElinTogether.Instance?.Reopen();
+        ModConfigPage.Refresh();
+    }
+
+    /// <summary>
+    ///     The joining checks as one string: None and All stand alone (ticked with another, "none,all" read as no
+    ///     check at all, audit of the council 2026-10-23), Source and Plugin go together
+    /// </summary>
+    internal static string ToggleCheck(string raw, string option, bool on)
+    {
+        var parts = raw.Split(',').Select(p => p.Trim()).Where(p => p.Length > 0 && p != option).ToList();
+        if (!on) {
+            return string.Join(",", parts);
+        }
+
+        if (option is "none" or "all") {
+            return option;
+        }
+
+        parts.RemoveAll(p => p is "none" or "all");
+        parts.Insert(0, option);
+        return string.Join(",", parts);
+    }
+
     /// <summary>
     ///     Writes what differs, nothing else, and saves the file once
     /// </summary>

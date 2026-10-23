@@ -60,8 +60,10 @@ internal class TabClientConfiguration : TabEmpBase
 
         // ... and kept: subscribed to, on in the player's own list, so that the next join needs no restart
         var keep = EmpConfig.Client.KeepMods;
-        Toggle("emp_ui_cl_keep_mods", keep.Value, value => keep.Value = value)
-            .SetTooltipLang(keep.Description.Description);
+        // (keeping them means nothing without fetching them: greyed out until then)
+        var keepToggle = Toggle("emp_ui_cl_keep_mods", keep.Value, value => keep.Value = value);
+        keepToggle.SetTooltipLang(keep.Description.Description);
+        keepToggle.interactable = fetch.Value;
         TextSmall("emp_ui_cl_desc_keep_mods".lang());
 
         // something went wrong: one zip to send, with the game's own log in it

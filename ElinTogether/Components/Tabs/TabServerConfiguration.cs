@@ -1,5 +1,6 @@
 using ElinTogether.LangMod;
 using System.Collections.Generic;
+using System.Linq;
 using BepInEx.Configuration;
 using ElinTogether.Helper;
 using ElinTogether.Net;
@@ -112,8 +113,14 @@ internal class TabServerConfiguration : TabEmpBase
     /// </summary>
     private static void Option(YKVertical card, string id, ConfigEntry<bool> entry)
     {
-        card.Toggle($"emp_ui_sv_cfg_{id}", entry.Value, value => entry.Value = value)
-            .SetTooltipLang($"emp_ui_sv_desc_{id}");
+        var toggle = card.Toggle($"emp_ui_sv_cfg_{id}", entry.Value, value => entry.Value = value);
+        toggle.SetTooltipLang($"emp_ui_sv_desc_{id}");
+        // greyed while what it needs is off (the page is drawn again when that changes)
+        if (SettingsTable.Rows().FirstOrDefault(r => r.Id == id)?.Requires is { } requires) {
+            toggle.interactable = requires();
+        }
+        // (a tooltip needs a mouse: on a controller or a Steam Deck the line under the box is what tells)
+        card.TextSmall($"emp_ui_sv_desc_{id}".lang());
     }
 
     /// <summary>
@@ -151,15 +158,8 @@ internal class TabServerConfiguration : TabEmpBase
         };
 
         foreach (var option in options) {
-            list.Toggle($"emp_validation_{option}", EmpConfig.Server.SourceValidationSet.Value.Contains(option), value => {
-                var raw = EmpConfig.Server.SourceValidationSet.Value;
-                raw = raw.Replace($"{option},", "").Replace(option, "");
-                if (value) {
-                    raw = $"{option},{raw}";
-                }
-                EmpConfig.Server.SourceValidationSet.Value = raw;
-                NetSession.Instance.Transport?.CreateValidation();
-            });
+            list.Toggle($"emp_validation_{option}", EmpConfig.Server.SourceValidationSet.Value.Contains(option),
+                value => SettingsTable.Write([(EmpConfig.Server.SourceValidationSet, SettingsTable.ToggleCheck(EmpConfig.Server.SourceValidationSet.Value, option, value))]));
         }
     }
 }

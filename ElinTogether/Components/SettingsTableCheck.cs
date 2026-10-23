@@ -40,6 +40,18 @@ internal static class SettingsTableCheck
             }
         }
 
+        // the joining check boxes: None and All stand alone
+        foreach (var (raw, option, on, expected) in new[] {
+                     ("all", "none", true, "none"), ("none", "all", true, "all"), ("none", "sources", true, "sources"),
+                     ("all", "plugins", true, "plugins"), ("sources", "plugins", true, "plugins,sources"),
+                     ("plugins,sources", "plugins", false, "sources"), ("", "none", true, "none"),
+                 }) {
+            var got = SettingsTable.ToggleCheck(raw, option, on);
+            if (got != expected) {
+                failures.Add($"joining check {raw} + {option}={on}: {got}, expected {expected}");
+            }
+        }
+
         return failures.Count == 0 ? "ok" : string.Join("\n", failures);
     }
 
