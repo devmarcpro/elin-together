@@ -48,6 +48,7 @@ internal class TabServerConfiguration : TabEmpBase
             ("host_manages_base", EmpConfig.Server.HostManagesBase),
             ("duels", EmpConfig.Server.Duels),
             ("auto_combat_per_player", EmpConfig.Server.AutoCombatPerPlayer),
+            ("activities_from_actor", EmpConfig.Server.ActivitiesFromActor),
         ]);
         yield return ("time", [
             ("combat_time", EmpConfig.Server.PlayerCombatTime),

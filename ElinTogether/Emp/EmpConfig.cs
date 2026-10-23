@@ -399,6 +399,14 @@ internal partial class EmpConfig
             "Its companions stay in the world and no longer follow anyone\n" +
             "加入的玩家可以在角色列表中删除自己的某个角色及其携带的物品（会确认两次），其同伴留在世界中");
 
+        Server.ActivitiesFromActor = config.Bind(
+            "Server",
+            "ActivitiesFromActor",
+            true,
+            "What a barrel brews and what a baby pet learns from its mother's milk follow the player it is about: the one nearest to the barrel, the pet's owner\n" +
+            "Otherwise they follow the host's character, as for a player alone\n" +
+            "酒桶酿出的酒和幼宠喝母乳的成长取决于相关的玩家（离酒桶最近的玩家、宠物的主人）；关闭时取决于主机的角色");
+
         Server.TravelCheckpointSeconds = config.Bind(
             "Server",
             "TravelCheckpointSeconds",
@@ -509,6 +517,7 @@ internal partial class EmpConfig
         internal static ConfigEntry<bool> PlayerStepPace { get; set; } = null!;
         internal static ConfigEntry<bool> SharedWorldTime { get; set; } = null!;
         internal static ConfigEntry<bool> WorldKeeper { get; set; } = null!;
+        internal static ConfigEntry<bool> ActivitiesFromActor { get; set; } = null!;
         internal static ConfigEntry<int> TravelCheckpointSeconds { get; set; } = null!;
     }
 }

@@ -309,5 +309,7 @@
     "LangGeneral.emp_trade_log_remove.text": "{0} 收回了 {1}。",
     "LangGeneral.emp_trade_log_gold.text": "{0} 现在出价 {1} 金币。",
     "LangGeneral.emp_trade_cant_offer.text": "无法交出 {0}。",
-    "LangGeneral.emp_trade_status.text": "{0}：{1} 金币，{2}"
+    "LangGeneral.emp_trade_status.text": "{0}：{1} 金币，{2}",
+    "LangGeneral.emp_ui_sv_cfg_activities_from_actor.text": "酒桶和母乳取决于相关玩家",
+    "LangGeneral.emp_ui_sv_desc_activities_from_actor.text": "开启：酒桶酿出的酒按离酒桶最近的玩家的技能制作，幼宠喝母乳时按其主人的驯兽技能成长，主人获得经验。关闭：都取决于主机的角色，与单人游戏相同"
 }
