@@ -240,6 +240,77 @@ internal static class SettingsTable
         EmpConfig.Server.SourceValidationSet, EmpConfig.Server.WorldMapTime,
     ];
 
+    // presets: computed from the boxes each time a page opens, never stored (an old world with one box of its
+    // own reads as Custom, with what differs listed, and stays as it is)
+    internal static readonly string[] Presets = ["recommended", "classic", "custom"];
+
+    /// <summary>
+    ///     Classic host-led: the twelve fallbacks off, turn-based combat, everyone follows the host, only the host
+    ///     builds and manages the base; all else as recommended
+    /// </summary>
+    internal static RuleSource Classic
+    {
+        get {
+            var values = new Dictionary<ConfigEntryBase, object>();
+            foreach (var (entry, value) in CombatPace.WriteFor(1).Concat(OwnEverything.WriteFor(1)).Concat(Building.WriteFor(2))
+                         .Append((EmpConfig.Server.IndependentTravel, false))) {
+                values[entry] = value;
+            }
+            return new(e => values.TryGetValue(e, out var v) ? v : e.DefaultValue);
+        }
+    }
+
+    internal static RuleSource PresetSource(int preset) => preset == 0 ? RuleSource.Defaults : Classic;
+
+    /// <summary>
+    ///     The rows (choices and boxes not under a choice) whose value differs between two sources: what makes a
+    ///     world "Custom". A box a choice leaves alone (turn-based under each player's pace) does not count
+    /// </summary>
+    internal static List<string> Differences(RuleSource current, RuleSource target)
+    {
+        var rows = Rows().Where(r => r.Under is null);
+        return [
+            ..rows.Where(r => r.Choice is { } c ? c.Read(current) != c.Read(target) : r.Entry is { } e && current.Get(e) != target.Get(e))
+                .Select(r => r.Id),
+        ];
+    }
+
+    internal static int Preset(RuleSource current) =>
+        Differences(current, RuleSource.Defaults).Count == 0 ? 0 : Differences(current, Classic).Count == 0 ? 1 : 2;
+
+    /// <summary>
+    ///     Every host rule as the preset has it (Reset to recommended is preset 0); "Custom" writes nothing
+    /// </summary>
+    internal static void ApplyPreset(int preset)
+    {
+        if (preset is 0 or 1) {
+            var target = PresetSource(preset);
+            Write(HostRules().Select(e => (e, target.Raw(e)!)));
+        }
+    }
+
+    // what the host's rules were before each change made from a page, for this session only
+    private static readonly Stack<(ConfigDefinition Key, object Value)[]> _undo = new();
+    private static bool _undoing;
+
+    internal static bool CanUndo => _undo.Count > 0;
+
+    internal static void Undo()
+    {
+        if (_undo.Count == 0) {
+            return;
+        }
+
+        var config = EmpMod.Instance.Config;
+        var before = _undo.Pop();
+        _undoing = true;
+        try {
+            Write(before.Where(b => config.ContainsKey(b.Key)).Select(b => (config[b.Key], b.Value)));
+        } finally {
+            _undoing = false;
+        }
+    }
+
     private static volatile bool _dirty;
 
     /// <summary>
@@ -297,6 +368,10 @@ internal static class SettingsTable
         var diff = changes.Where(c => !Equals(c.Entry.BoxedValue, c.Value)).ToArray();
         if (diff.Length == 0) {
             return false;
+        }
+
+        if (!_undoing) {
+            _undo.Push([..HostRules().Select(e => (e.Definition, e.BoxedValue))]);
         }
 
         var config = EmpMod.Instance.Config;

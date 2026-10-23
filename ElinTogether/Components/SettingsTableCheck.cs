@@ -40,6 +40,16 @@ internal static class SettingsTableCheck
             }
         }
 
+        // presets computed, never stored: the defaults read as Recommended, the Classic values as Classic, one box
+        // off the defaults as Custom with that one row listed
+        if (SettingsTable.Preset(RuleSource.Defaults) != 0 || SettingsTable.Preset(SettingsTable.Classic) != 1) {
+            failures.Add($"presets: defaults {SettingsTable.Preset(RuleSource.Defaults)}, classic {SettingsTable.Preset(SettingsTable.Classic)}");
+        }
+        var one = Source(new() { [EmpConfig.Server.PlayerTrade] = !(bool)EmpConfig.Server.PlayerTrade.DefaultValue });
+        if (SettingsTable.Preset(one) != 2 || string.Join(",", SettingsTable.Differences(one, RuleSource.Defaults)) != "player_trade") {
+            failures.Add($"presets: one box off reads {SettingsTable.Preset(one)}: {string.Join(",", SettingsTable.Differences(one, RuleSource.Defaults))}");
+        }
+
         // the joining check boxes: None and All stand alone
         foreach (var (raw, option, on, expected) in new[] {
                      ("all", "none", true, "none"), ("none", "all", true, "all"), ("none", "sources", true, "sources"),

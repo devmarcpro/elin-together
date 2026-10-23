@@ -77,7 +77,26 @@ internal class TabServerConfiguration : TabEmpBase
     {
         TextSmall("emp_ui_sv_note_live".lang());
 
-        Toggle("emp_ui_sv_advanced", ShowAdvanced, value => {
+        // how we play together: the preset these rules make, what differs from the recommended ones
+        var top = Section("preset");
+        var preset = SettingsTable.Preset(RuleSource.Current);
+        var line = top.Horizontal();
+        line.Layout.childForceExpandWidth = true;
+        line.Text("emp_ui_sv_cfg_preset".lang());
+        line.Dropdown([..SettingsTable.Presets.Select(p => $"emp_ui_sv_opt_preset_{p}".lang())], SettingsTable.ApplyPreset, preset)
+            .LayoutElement().preferredWidth = 360f;
+        top.TextSmall(PresetText(preset));
+
+        var buttons = top.Horizontal();
+        buttons.Layout.childForceExpandWidth = true;
+        if (preset != 0) {
+            buttons.Button("emp_ui_sv_reset".lang(), () => SettingsTable.ApplyPreset(0));
+        }
+        if (SettingsTable.CanUndo) {
+            buttons.Button("emp_ui_sv_undo".lang(), SettingsTable.Undo);
+        }
+
+        top.Toggle("emp_ui_sv_advanced", ShowAdvanced, value => {
             ShowAdvanced = value;
             LayerElinTogether.Instance?.Reopen();
         });
@@ -94,6 +113,21 @@ internal class TabServerConfiguration : TabEmpBase
                 Draw(row.Under is null ? card : Indented(card), row);
             }
         }
+    }
+
+    /// <summary>
+    ///     What the preset means, or for Custom how many rows differ from the recommended rules and which (shared
+    ///     with ModConfigPage)
+    /// </summary>
+    internal static string PresetText(int preset)
+    {
+        if (preset != 2) {
+            return $"emp_ui_sv_desc_preset_{SettingsTable.Presets[preset]}".lang();
+        }
+
+        var rows = SettingsTable.Rows().ToDictionary(r => r.Id);
+        var diff = SettingsTable.Differences(RuleSource.Current, RuleSource.Defaults);
+        return "emp_ui_sv_diff".Loc(diff.Count, string.Join(", ", diff.Select(id => rows[id].Label)));
     }
 
     private YKVertical Section(string id)

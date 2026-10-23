@@ -376,5 +376,15 @@
     "LangGeneral.emp_ui_sv_desc_host_leaves.text": "世界等待：世界只在主机的电脑上。好友保留备份：每次自动保存后，每位好友的电脑都会保留一份副本。其他玩家继续：好友用该副本打开世界，游戏继续。",
     "LangGeneral.emp_ui_sv_opt_host_leaves_waits.text": "世界等待",
     "LangGeneral.emp_ui_sv_opt_host_leaves_backup.text": "好友保留备份",
-    "LangGeneral.emp_ui_sv_opt_host_leaves_carry_on.text": "其他玩家继续"
+    "LangGeneral.emp_ui_sv_opt_host_leaves_carry_on.text": "其他玩家继续",
+    "LangGeneral.emp_ui_sv_sec_preset.text": "一起游玩的方式",
+    "LangGeneral.emp_ui_sv_cfg_preset.text": "规则",
+    "LangGeneral.emp_ui_sv_opt_preset_recommended.text": "推荐的合作模式",
+    "LangGeneral.emp_ui_sv_opt_preset_classic.text": "传统的主机主导",
+    "LangGeneral.emp_ui_sv_opt_preset_custom.text": "自定义",
+    "LangGeneral.emp_ui_sv_desc_preset_recommended.text": "每个人都是完整的玩家：拥有自己的任务、商店和奖励，按自己的节奏游玩。",
+    "LangGeneral.emp_ui_sv_desc_preset_classic.text": "由主机主导：所有人跟随主机，战斗为回合制，只有主机建造和管理据点，任务和奖励以主机的角色为准。",
+    "LangGeneral.emp_ui_sv_diff.text": "与推荐设置有 {0} 处不同：{1}",
+    "LangGeneral.emp_ui_sv_reset.text": "恢复推荐设置",
+    "LangGeneral.emp_ui_sv_undo.text": "撤销上一次更改"
 }
