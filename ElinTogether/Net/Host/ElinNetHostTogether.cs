@@ -62,14 +62,16 @@ internal partial class ElinNetHost
     private void UpdateWorldMapTogether()
     {
         var now = Time.realtimeSinceStartup;
-        if (now < _nextAllOnWorldMapCheck || !core.IsGameStarted ||
-            NetSession.Instance.Rules.WorldMapTime != WorldMapTime.TravelTogether) {
+        var together = NetSession.Instance.Rules.WorldMapTime == WorldMapTime.TravelTogether;
+        // (Personal Pace: the leads are paid whatever the mode is now, once there are any)
+        if (now < _nextAllOnWorldMapCheck || !core.IsGameStarted || (!together && WorldMapLeads.Count == 0)) {
             return;
         }
 
         _nextAllOnWorldMapCheck = now + 0.5f;
         var all = AllOnWorldMap();
-        if (all == _toldAllOnWorldMap && now < _nextAllOnWorldMapTell) {
+        UpdateLeads(all, now);
+        if (!together || (all == _toldAllOnWorldMap && now < _nextAllOnWorldMapTell)) {
             return;
         }
 

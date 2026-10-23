@@ -14,7 +14,8 @@ namespace ElinTogether.Patches;
 ///     A step on the world map. Whoever steps pays it with its own body, the turns of hunger and conditions of
 ///     its character and of its companions, as in a solo game. The hours it costs follow the host's choice
 ///     (council 2026-10-23, <see cref="WorldMapTime" />): Shared Clock, every step of anyone moves the date;
-///     Travel Together, only while every player is on the world map. A host's step and a guest's are the same:
+///     Travel Together, only while every player is on the world map; Personal Pace, as the Shared Clock but the
+///     hours of a player travelling while the others are elsewhere are its lead (ElinNetHost.HoldLead). A host's step and a guest's are the same:
 ///     the guest's game, which does not own the date on the host's map, has the host pass the hours
 ///     (WorldTravelStepDelta); on its own copy of the world map it passes them itself and reports its date
 /// </summary>
@@ -119,11 +120,23 @@ internal static class RemoteTravelRegionPatch
                 }
 
                 return;
-            case ElinNetHost:
-                Advance(date, WorldTravelClock.Step(WorldTravelClock.Host, minutes),
+            case ElinNetHost host:
+                // Personal Pace: the part the world waits for is the host's lead, as anyone's
+                var held = host.HoldLead(EClass.pc.uid, minutes);
+                if (held > 0) {
+                    WorldMapLead.Held(held, ElinNetHost.LeadOf(EClass.pc.uid));
+                }
+
+                Advance(date, WorldTravelClock.Step(WorldTravelClock.Host, minutes - held),
                     (session.Self?.User.Name ?? EClass.pc.NameSimple, EClass.pc.uid));
                 return;
-            case ElinNetClient when session.IsZoneAuthority:
+            case ElinNetClient main when session.IsZoneAuthority:
+                // Personal Pace: the host keeps the leads, it says what part of this step the world waits for
+                if (session.Rules.WorldMapTime == WorldMapTime.PersonalPace) {
+                    main.SendWhileAway(new WorldTravelStepDelta { Minutes = minutes, Away = true });
+                    return;
+                }
+
                 Advance(date, minutes, (EClass.pc.NameSimple, 0));
                 return;
             case ElinNetClient client when !session.IsAway:
@@ -132,6 +145,17 @@ internal static class RemoteTravelRegionPatch
         }
 
         // visiting another player's map: its holder's date, not this game's
+    }
+
+    /// <summary>
+    ///     Personal Pace, on this player's own copy of the world map: the part of its step past its lead, as the
+    ///     host said (PlayerLeadDelta), passes here and is reported like any trip of the Shared Clock
+    /// </summary>
+    internal static void AdvanceAway(int minutes)
+    {
+        if (NetSession.Instance is { IsZoneAuthority: true, Transport: ElinNetClient } && EClass.core.IsGameStarted) {
+            Advance(EClass.world.date, minutes, (EClass.pc.NameSimple, 0));
+        }
     }
 
     private static void Advance(GameDate date, int minutes, (string Name, int Uid) traveller)

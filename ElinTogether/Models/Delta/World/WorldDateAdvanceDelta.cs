@@ -34,6 +34,14 @@ public class WorldDateAdvanceDelta : ElinDelta
     [Key(4)]
     public int TravellerUid { get; init; }
 
+    /// <summary>
+    ///     Personal Pace: this catch-up pays the lead of the player with this character. Every game postpones its
+    ///     quests by it, the traveller's too (they already lost its trip, see WorldMapLead); it alone is not told
+    ///     it lost nothing
+    /// </summary>
+    [Key(5)]
+    public int LeadOf { get; init; }
+
     // minutes the date of this client moved since the last of these messages: the world snapshot sets it too,
     // sometimes first
     private static int _moved;
@@ -47,9 +55,10 @@ public class WorldDateAdvanceDelta : ElinDelta
         // time another player made pass (elsewhere, or by a step of this map's holder on the world map) is
         // not taken from this player's quests. A night is its own: every player of the map sleeps it
         // except the steps of this player on the host's world map, which the host passes for it (council 2026-10-23)
-        var own = TravellerUid != 0 && pc?.uid == TravellerUid;
+        var own = LeadOf == 0 && TravellerUid != 0 && pc?.uid == TravellerUid;
         var others = !own && (CatchUp || (Minutes > 1 && pc?.conSleep is null));
-        (string, int)? traveller = Traveller is null || own ? null : (Traveller, TravellerUid);
+        var myLead = LeadOf != 0 && pc?.uid == LeadOf;
+        (string, int)? traveller = Traveller is null || own || myLead ? null : (Traveller, TravellerUid);
 
         // away from the host: this game simulates its own map and keeps its own date. With one date for the
         // world it catches up when the world went further without it; a visitor hears it from the map's holder

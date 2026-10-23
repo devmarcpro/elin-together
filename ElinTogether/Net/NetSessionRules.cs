@@ -244,10 +244,14 @@ public class NetSessionRules
 ///     SharedClock: the world map is a map like any other, every step of anyone moves the date of the game that
 ///     took it, the most advanced date is the world's and the others catch up without living it. <br />
 ///     TravelTogether: a step moves the date only when every player is on the world map, whoever steps. <br />
-///     (Personal Pace, the third mode of the council, is not built: not listed until it is)
+///     PersonalPace: as SharedClock, except that the world map hours of a player travelling while the others are
+///     elsewhere are held back as that player's lead (its hunger and its own quests pay them, the date stays), up
+///     to the host's cap; the world catches up with the largest lead once everyone is on the world map together or
+///     sleeps the same night, see ElinNetHost.HoldLead. An older peer reads it as SharedClock
 /// </summary>
 public enum WorldMapTime
 {
     SharedClock,
     TravelTogether,
+    PersonalPace,
 }
