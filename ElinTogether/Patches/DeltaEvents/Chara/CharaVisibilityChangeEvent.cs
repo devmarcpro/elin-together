@@ -17,12 +17,13 @@ internal static class CharaVisibilityChangeEvent
             return;
         }
 
+        // (already seen: skip the costly checks)
+        if (ActionModeCombat.EnemyVisibility.TryGetValue(EClass.pc.uid, out var value) && value) {
+            return;
+        }
+
         if (__instance.owner.ExistsOnMap && !EClass._zone.IsRegion && __instance.owner.IsHostile() &&
             EClass.pc.CanSeeLos(__instance.owner)) {
-            if (ActionModeCombat.EnemyVisibility.TryGetValue(EClass.pc.uid, out var value) && value) {
-                return;
-            }
-
             ActionModeCombat.EnemyVisibility[EClass.pc.uid] = true;
             EmpLog.Debug("Self enemy visibility changed to {CombatVisible} on enemy entering screen", true);
             connection.Delta.AddRemote(new EnemyVisibilityDelta {

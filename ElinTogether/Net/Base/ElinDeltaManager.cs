@@ -261,8 +261,16 @@ public class ElinDeltaManager
 
     public void RefreshBuffer()
     {
-        _outBuffer.AddRange(_outBufferUnrefreshed.Where(delta => delta.Refresh()));
-        _outBufferUnrefreshed.Clear();
+        if (_outBufferUnrefreshed.Count > 0) {
+            for (var i = 0; i < _outBufferUnrefreshed.Count; i++) {
+                if (_outBufferUnrefreshed[i].Refresh()) {
+                    _outBuffer.Add(_outBufferUnrefreshed[i]);
+                }
+            }
+
+            _outBufferUnrefreshed.Clear();
+        }
+
         CardGenDelta.ClearRecordedUids();
         QuestCreateDelta.ClearRecordedUids();
     }

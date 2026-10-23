@@ -43,6 +43,8 @@ public class ActionModeCombat
     private static bool? _lastReportedReady;
 
     internal static Dictionary<int, bool> EnemyVisibility { get; } = [];
+
+    private static readonly List<int> _keysToRemove = [];
     internal static CombatPhase Phase { get; private set; }
     internal static bool Activated => Phase != CombatPhase.Inactive;
     internal static bool Paused => Phase == CombatPhase.Deciding;
@@ -69,14 +71,27 @@ public class ActionModeCombat
             return;
         }
 
-        var players =NetSession.Instance.CurrentPlayers.ToList();
-        var keysToRemove = EnemyVisibility
-            .Where(kv => players.All(p => p.CharaUid != kv.Key))
-            .Select(kv => kv.Key)
-            .ToList();
+        // (runs every frame: no allocation, nothing to drop when nobody was seen)
+        if (EnemyVisibility.Count > 0) {
+            var current = NetSession.Instance.CurrentPlayers;
+            _keysToRemove.Clear();
+            foreach (var key in EnemyVisibility.Keys) {
+                var found = false;
+                for (var i = 0; i < current.Count; i++) {
+                    if (current[i].CharaUid == key) {
+                        found = true;
+                        break;
+                    }
+                }
 
-        foreach (var key in keysToRemove) {
-            EnemyVisibility.Remove(key);
+                if (!found) {
+                    _keysToRemove.Add(key);
+                }
+            }
+
+            foreach (var key in _keysToRemove) {
+                EnemyVisibility.Remove(key);
+            }
         }
 
         RefreshSelfVisibility(connection);
@@ -84,7 +99,7 @@ public class ActionModeCombat
 
         if (connection.IsHost) {
             ApplyTurnBudget();
-            HostPhaseUpdate(connection, players);
+            HostPhaseUpdate(connection, NetSession.Instance.CurrentPlayers.ToList());
         }
 
         UpdateDecideMessage();

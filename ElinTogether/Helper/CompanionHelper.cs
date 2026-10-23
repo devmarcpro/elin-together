@@ -100,7 +100,18 @@ internal static class CompanionHelper
     internal static List<Chara> CompanionsOf(Chara player)
     {
         var party = player.party ?? EClass.pc?.party;
-        return party?.members.Where(c => c is not null && c.IsCompanionOf(player)).ToList() ?? [];
+        var list = new List<Chara>();
+        if (party is null) {
+            return list;
+        }
+
+        foreach (var c in party.members) {
+            if (c is not null && c.IsCompanionOf(player)) {
+                list.Add(c);
+            }
+        }
+
+        return list;
     }
 
     /// <summary>

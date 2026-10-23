@@ -82,7 +82,26 @@ internal class GameSynchronizationContext : SynchronizationContext
                 return;
         }
 
-        if (NetSession.Instance.CurrentPlayers.All(n => n.Speed == 0)) {
+        var players = NetSession.Instance.CurrentPlayers;
+        var minSpeed = int.MaxValue;
+        var maxSpeed = int.MinValue;
+        var allZero = true;
+        for (var i = 0; i < players.Count; i++) {
+            var speed = players[i].Speed;
+            if (speed != 0) {
+                allZero = false;
+            }
+
+            if (speed > 0 && speed < minSpeed) {
+                minSpeed = speed;
+            }
+
+            if (speed > maxSpeed) {
+                maxSpeed = speed;
+            }
+        }
+
+        if (allZero) {
             RefSpeed = pc.Speed;
             return;
         }
@@ -90,8 +109,13 @@ internal class GameSynchronizationContext : SynchronizationContext
         if (NetSession.Instance.Rules.UseSharedSpeed) {
             RefSpeed = NetSession.Instance.SharedSpeed;
         } else {
-            var min = (float)NetSession.Instance.CurrentPlayers.Where(n => n.Speed > 0).Min(n => n.Speed);
-            var max = (float)NetSession.Instance.CurrentPlayers.Max(n => n.Speed);
+            // (Min over nothing positive threw before: the same here)
+            if (minSpeed == int.MaxValue) {
+                throw new InvalidOperationException("Sequence contains no elements");
+            }
+
+            var min = (float)minSpeed;
+            var max = (float)maxSpeed;
             var mult = Math.Sqrt(max / min);
 
             mult = Math.Min(mult, 8f);
@@ -113,8 +137,14 @@ internal class GameSynchronizationContext : SynchronizationContext
         // on its own clock a player's fast-forward is its own: the world follows it, as it follows the host's
         if (ownClock) {
             foreach (var state in NetSession.Instance.CurrentPlayers) {
-                if (state.Turbo && host.ActiveRemoteCharas.Values.Any(c => c.uid == state.CharaUid && c.IsInActiveMap)) {
-                    return true;
+                if (!state.Turbo) {
+                    continue;
+                }
+
+                foreach (var c in host.ActiveRemoteCharas.Values) {
+                    if (c.uid == state.CharaUid && c.IsInActiveMap) {
+                        return true;
+                    }
                 }
             }
         }
