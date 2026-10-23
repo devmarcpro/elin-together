@@ -175,7 +175,8 @@ internal static class PlayerCombatTime
                 _idle.Remove(chara.uid);
             } else if ((_idle[chara.uid] = _idle.GetValueOrDefault(chara.uid) + 1) >= IdleGrants &&
                        chara.c_bossType == BossType.none) {
-                EmpLog.Debug("Monster {Monster} turns on {Striker}: {Player} idle", chara.Name, player.Name, owner.Name);
+                EmpLog.Debug("Monster {Monster} turns on {Striker}: {Player} idle (its turn {Turn})", chara.Name, player.Name,
+                    owner.Name, chara.turn);
                 chara.SetEnemy(player);
                 _idle.Remove(chara.uid);
             } else {

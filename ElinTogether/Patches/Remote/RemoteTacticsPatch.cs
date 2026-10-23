@@ -90,16 +90,27 @@ internal static class RemoteDontWanderPatch
     }
 
     /// <summary>
-    ///     An idle companion of another player takes food from the shared containers of "the player" in the game that
-    ///     runs it: the host's bag. Not from the host's (lending the guest for the whole idle step made the host's own
-    ///     character not "the player" and took from the guest's copy of its bag here: review 2026-10-22)
+    ///     An idle companion takes food from the shared containers of "the player" it sees (AI_Idle): in the game that
+    ///     runs it, the host's bag. A companion of another player takes from its own master's instead (lending the
+    ///     master for the whole idle step made the host's own character not "the player": review 2026-10-22). The
+    ///     map's shared containers (the other call) stay as they are
     /// </summary>
     [HarmonyPrefix]
     [HarmonyPatch(typeof(Chara), nameof(Chara.TryTakeSharedItems), typeof(IEnumerable<Thing>), typeof(bool), typeof(bool))]
-    internal static bool OnTakeShared(Chara __instance)
+    internal static bool OnTakeShared(Chara __instance, ref IEnumerable<Thing> containers)
     {
-        return NetSession.Instance.Connection is not ElinNetHost || __instance.IsPC ||
-               CompanionHelper.OwnerOf(__instance) is not { IsRemotePlayer: true };
+        if (NetSession.Instance.Connection is not ElinNetHost || __instance.IsPC ||
+            CompanionHelper.OwnerOf(__instance) is not { IsRemotePlayer: true } owner ||
+            ReferenceEquals(containers, EClass._map.props.installed.containers)) {
+            return true;
+        }
+
+        if (!owner.IsAliveInCurrentZone || !__instance.CanSee(owner)) {
+            return false;
+        }
+
+        containers = owner.things.List(t => t.IsSharedContainer);
+        return true;
     }
 
     [HarmonyPrefix]

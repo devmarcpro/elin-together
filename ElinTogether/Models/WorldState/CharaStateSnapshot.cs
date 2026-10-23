@@ -170,10 +170,11 @@ public class CharaStateSnapshot : EClass
             return;
         }
 
-        // up to 10 tiles: a move delta on its way, or a task its owner's game walks it through, catches up
+        // up to 10 tiles: a move delta on its way, or a task its owner's game walks it through, catches up (not the
+        // empty task every copy runs: it pardoned any gap up to 10 tiles for good, parity_ai a3 2026-10-23)
         var dist = chara.pos.Distance(Pos);
         if (dist <= 2 || (dist <= 10 && (CharaMoveDelta.HasRecentMove(chara) ||
-                                         chara.ai is GoalRemote { child.status: AIAct.Status.Running }))) {
+                                         chara.ai is GoalRemote { child: { status: AIAct.Status.Running } and not NoGoal }))) {
             _mismatchSeen.Remove(chara.uid);
             return;
         }
