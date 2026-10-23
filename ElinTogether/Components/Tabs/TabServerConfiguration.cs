@@ -68,36 +68,32 @@ internal class TabServerConfiguration : TabEmpBase
         ]);
     }
 
+    /// <summary>
+    ///     Advanced rows shown: a view of this page only, never stored
+    /// </summary>
+    internal static bool ShowAdvanced;
+
     public override void OnLayout()
     {
         TextSmall("emp_ui_sv_note_live".lang());
 
-        foreach (var (id, options) in Sections()) {
+        Toggle("emp_ui_sv_advanced", ShowAdvanced, value => {
+            ShowAdvanced = value;
+            LayerElinTogether.Instance?.Reopen();
+        });
+
+        var rows = SettingsTable.Rows().Where(r => ShowAdvanced || !r.Advanced).ToList();
+        foreach (var id in SettingsTable.Cards) {
+            var inCard = rows.Where(r => r.Card == id).ToList();
+            if (inCard.Count == 0) {
+                continue;
+            }
+
             var card = Section(id);
-            foreach (var (option, entry) in options) {
-                Option(card, option, entry);
-            }
-
-            if (id == "time") {
-                card.Horizontal().Button(WorldMapTimeLabel(), () => {
-                    NextWorldMapTime();
-                    LayerElinTogether.Instance?.Reopen();
-                }).SetTooltipLang("emp_ui_sv_desc_world_map_time");
+            foreach (var row in inCard) {
+                Draw(row.Under is null ? card : Indented(card), row);
             }
         }
-
-        // the count of unpaid tax bills against the bills that exist (ElinNetHost.RepairBillCount), for a host in game
-        if (EClass.core.IsGameStarted && NetSession.Instance.Transport is ElinNetHost) {
-            var (count, found) = (EClass.player.taxBills, ElinNetHost.CountTaxBills());
-            Button("emp_ui_sv_bills".Loc(count, found), () => {
-                var off = ElinNetHost.RepairBillCount(true);
-                EmpPop.Information((off > 0 ? "emp_ui_sv_bills_done" : "emp_ui_sv_bills_none").Loc(off));
-                LayerElinTogether.Instance?.Reopen();
-            });
-            TextSmall("emp_ui_sv_bills_desc".lang());
-        }
-
-        BuildValidationSets();
     }
 
     private YKVertical Section(string id)
@@ -108,19 +104,60 @@ internal class TabServerConfiguration : TabEmpBase
         return card;
     }
 
-    /// <summary>
-    ///     A checkbox and, under it, what it does when on and off in one line
-    /// </summary>
-    private static void Option(YKVertical card, string id, ConfigEntry<bool> entry)
+    // the boxes of a choice, under it
+    private static YKVertical Indented(YKVertical card)
     {
-        var toggle = card.Toggle($"emp_ui_sv_cfg_{id}", entry.Value, value => entry.Value = value);
-        toggle.SetTooltipLang($"emp_ui_sv_desc_{id}");
-        // greyed while what it needs is off (the page is drawn again when that changes)
-        if (SettingsTable.Rows().FirstOrDefault(r => r.Id == id)?.Requires is { } requires) {
-            toggle.interactable = requires();
+        var sub = card.Vertical();
+        sub.Layout.padding = new(40, 0, 0, 0);
+        return sub;
+    }
+
+    /// <summary>
+    ///     A row and, under it, what it does in one line (a tooltip needs a mouse: on a controller or a Steam Deck
+    ///     the line under the row is what tells)
+    /// </summary>
+    private static void Draw(YKVertical card, SettingRow row)
+    {
+        switch (row) {
+            case { Choice: { } choice }:
+                var line = card.Horizontal();
+                line.Layout.childForceExpandWidth = true;
+                line.Text(row.Label);
+                var current = choice.Read(RuleSource.Current);
+                var options = Enumerable.Range(0, choice.Options.Length).Select(choice.OptionLabel).ToList();
+                // (boxes that match no option: shown as such, never rewritten until the host picks one)
+                if (current < 0) {
+                    options.Add(choice.OptionLabel(-1));
+                }
+                var dropdown = line.Dropdown(options, i => SettingsTable.Write(choice.WriteFor(i)), current < 0 ? options.Count - 1 : current);
+                dropdown.LayoutElement().preferredWidth = 360f;
+                break;
+            case { Entry: { } entry }:
+                var toggle = card.Toggle($"emp_ui_sv_cfg_{row.Id}", entry.Value, value => SettingsTable.Write([(entry, value)]));
+                toggle.SetTooltipLang($"emp_ui_sv_desc_{row.Id}");
+                // greyed while what it needs is off (the page is drawn again when that changes)
+                if (row.Requires is { } requires) {
+                    toggle.interactable = requires();
+                }
+                break;
+            case { Id: "checks" }:
+                BuildValidationSets(card);
+                return;
+            case { Id: "bills" }:
+                // the count of unpaid tax bills against the bills that exist (ElinNetHost.RepairBillCount), in game
+                if (EClass.core.IsGameStarted && NetSession.Instance.Transport is ElinNetHost) {
+                    var (count, found) = (EClass.player.taxBills, ElinNetHost.CountTaxBills());
+                    card.Button("emp_ui_sv_bills".Loc(count, found), () => {
+                        var off = ElinNetHost.RepairBillCount(true);
+                        EmpPop.Information((off > 0 ? "emp_ui_sv_bills_done" : "emp_ui_sv_bills_none").Loc(off));
+                        LayerElinTogether.Instance?.Reopen();
+                    });
+                    card.TextSmall("emp_ui_sv_bills_desc".lang());
+                }
+                return;
         }
-        // (a tooltip needs a mouse: on a controller or a Steam Deck the line under the box is what tells)
-        card.TextSmall($"emp_ui_sv_desc_{id}".lang());
+
+        card.TextSmall(row.Description);
     }
 
     /// <summary>
@@ -139,10 +176,8 @@ internal class TabServerConfiguration : TabEmpBase
         entry.Value = modes[(System.Array.IndexOf(modes, entry.Value) + 1) % modes.Length];
     }
 
-    private void BuildValidationSets()
+    private static void BuildValidationSets(YKVertical sets)
     {
-        var sets = Section("checks");
-
         sets.TextSmall("emp_ui_sv_desc_validation".lang());
 
         var list = sets.Grid()
