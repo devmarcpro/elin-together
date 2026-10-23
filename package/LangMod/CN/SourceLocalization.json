@@ -386,5 +386,6 @@
     "LangGeneral.emp_ui_sv_desc_preset_classic.text": "由主机主导：所有人跟随主机，战斗为回合制，只有主机建造和管理据点，任务和奖励以主机的角色为准。",
     "LangGeneral.emp_ui_sv_diff.text": "与推荐设置有 {0} 处不同：{1}",
     "LangGeneral.emp_ui_sv_reset.text": "恢复推荐设置",
-    "LangGeneral.emp_ui_sv_undo.text": "撤销上一次更改"
+    "LangGeneral.emp_ui_sv_undo.text": "撤销上一次更改",
+    "LangGeneral.emp_ui_sv_more.text": "更多选项在 Elin Together 窗口中（“世界规则”标签页）。"
 }

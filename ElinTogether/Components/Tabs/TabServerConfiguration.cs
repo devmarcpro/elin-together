@@ -10,64 +10,11 @@ using YKF;
 namespace ElinTogether.Components;
 
 /// <summary>
-///     The rules of the host, by subject: players and where they go, what is each player's own, how time and
-///     combat run, and at the bottom what a joining player's game has to match
+///     The host's rules ("World rules"), drawn from SettingsTable: the preset line, then the choices a new host
+///     makes before friends join; "Show advanced options" adds every box (council 2026-10-23)
 /// </summary>
 internal class TabServerConfiguration : TabEmpBase
 {
-    /// <summary>
-    ///     The host's checkbox rules by section: shared by this tab and the game's own mod config page (ModConfigPage)
-    /// </summary>
-    internal static IEnumerable<(string Section, (string Id, ConfigEntry<bool> Entry)[] Options)> Sections()
-    {
-        yield return ("players", [
-            ("independent_travel", EmpConfig.Server.IndependentTravel),
-            ("choose_chara", EmpConfig.Server.ChooseCharacter),
-            ("import_chara", EmpConfig.Server.ImportCharacter),
-            ("delete_chara", EmpConfig.Server.DeleteCharacter),
-            ("auto_reconnect", EmpConfig.Server.AutoReconnect),
-            ("auto_resync", EmpConfig.Server.AutoResync),
-            ("soft_recall", EmpConfig.Server.SoftRecall),
-            ("auto_host", EmpConfig.Server.AutoHost),
-            ("auto_save", EmpConfig.Server.AutoSave),
-            ("world_copy", EmpConfig.Server.WorldCopy),
-            ("takeover", EmpConfig.Server.Takeover),
-            ("same_game_version", EmpConfig.Server.SameGameVersion),
-            ("publish_mods", EmpConfig.Server.PublishMods),
-            ("enforce_ownership", EmpConfig.Server.EnforceOwnership),
-        ]);
-        yield return ("own", [
-            ("personal_quests", EmpConfig.Server.PersonalQuests),
-            ("player_shipping", EmpConfig.Server.PlayerShipping),
-            ("player_trade", EmpConfig.Server.PlayerTrade),
-            ("guest_build", EmpConfig.Server.GuestBuild),
-            ("player_kill", EmpConfig.Server.PlayerKill),
-            ("own_sleep", EmpConfig.Server.OwnSleep),
-            ("summons_follow_master", EmpConfig.Server.SummonsFollowMaster),
-            ("players_at_base", EmpConfig.Server.PlayersAtBase),
-            ("dump_spares_belt", EmpConfig.Server.DumpSparesBelt),
-            ("shared_tax", EmpConfig.Server.SharedTax),
-            ("once_per_player", EmpConfig.Server.OncePerPlayer),
-            ("town_life", EmpConfig.Server.TownLife),
-            ("town_boards", EmpConfig.Server.TownBoards),
-            ("shops_from_every_player", EmpConfig.Server.ShopsFromEveryPlayer),
-            ("nearest_spawns", EmpConfig.Server.NearestSpawns),
-            ("host_manages_base", EmpConfig.Server.HostManagesBase),
-            ("duels", EmpConfig.Server.Duels),
-            ("auto_combat_per_player", EmpConfig.Server.AutoCombatPerPlayer),
-            ("activities_from_actor", EmpConfig.Server.ActivitiesFromActor),
-        ]);
-        yield return ("time", [
-            ("combat_time", EmpConfig.Server.PlayerCombatTime),
-            ("player_clock", EmpConfig.Server.PlayerClock),
-            ("step_pace", EmpConfig.Server.PlayerStepPace),
-            ("world_time", EmpConfig.Server.SharedWorldTime),
-            ("world_keeper", EmpConfig.Server.WorldKeeper),
-            ("turn_combat", EmpConfig.Server.TurnBasedCombat),
-            ("shared_speed", EmpConfig.Server.SharedAverageSpeed),
-        ]);
-    }
-
     /// <summary>
     ///     Advanced rows shown: a view of this page only, never stored
     /// </summary>
@@ -192,22 +139,6 @@ internal class TabServerConfiguration : TabEmpBase
         }
 
         card.TextSmall(row.Description);
-    }
-
-    /// <summary>
-    ///     World map time is one choice among modes, not a checkbox: a button that shows the mode and goes to the
-    ///     next one (shared with ModConfigPage)
-    /// </summary>
-    internal static string WorldMapTimeLabel()
-    {
-        return "emp_ui_sv_cfg_world_map_time".Loc($"emp_ui_sv_wmt_{EmpConfig.Server.WorldMapTime.Value}".lang());
-    }
-
-    internal static void NextWorldMapTime()
-    {
-        var modes = (WorldMapTime[])System.Enum.GetValues(typeof(WorldMapTime));
-        var entry = EmpConfig.Server.WorldMapTime;
-        entry.Value = modes[(System.Array.IndexOf(modes, entry.Value) + 1) % modes.Length];
     }
 
     private static void BuildValidationSets(YKVertical sets)
