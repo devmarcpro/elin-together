@@ -438,6 +438,13 @@ internal partial class EmpConfig
             "What a guest's game says about a character that is neither its own nor one of its companions (its task, its damage, its skills, its party) is refused\n" +
             "Off: only written to the log. A trade, a gift to another player or an order to one's own companion is never refused\n" +
             "客机游戏发来的、关于既非其角色也非其同伴的角色的数据（任务、伤害、技能、队伍）会被拒绝；关闭时仅写入日志。交易、送给其他玩家的礼物或对自己同伴的命令永远不会被拒绝");
+        Server.ActivitiesFromActor = config.Bind(
+            "Server",
+            "ActivitiesFromActor",
+            true,
+            "What a barrel brews and what a baby pet learns from its mother's milk follow the player it is about: the one nearest to the barrel, the pet's owner\n" +
+            "Otherwise they follow the host's character, as for a player alone\n" +
+            "酒桶酿出的酒和幼宠喝母乳的成长取决于相关的玩家（离酒桶最近的玩家、宠物的主人）；关闭时取决于主机的角色");
 
         Server.TravelCheckpointSeconds = config.Bind(
             "Server",
@@ -554,6 +561,7 @@ internal partial class EmpConfig
         internal static ConfigEntry<bool> PlayerStepPace { get; set; } = null!;
         internal static ConfigEntry<bool> SharedWorldTime { get; set; } = null!;
         internal static ConfigEntry<bool> WorldKeeper { get; set; } = null!;
+        internal static ConfigEntry<bool> ActivitiesFromActor { get; set; } = null!;
         internal static ConfigEntry<int> TravelCheckpointSeconds { get; set; } = null!;
     }
 }
