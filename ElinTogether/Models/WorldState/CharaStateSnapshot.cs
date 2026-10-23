@@ -74,6 +74,7 @@ public class CharaStateSnapshot : EClass
                 LastReceivedTick = NetSession.Instance.Tick,
                 Speed = pc.Stub_get_Speed(),
                 Turbo = AM_Adv.turbo != 0f,
+                Talking = LayerDrama.IsActive(),
             },
         };
     }

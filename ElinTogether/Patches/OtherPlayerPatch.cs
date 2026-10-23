@@ -118,6 +118,122 @@ internal static class OtherPlayerPatch
     }
 
     /// <summary>
+    ///     A weak spot read in the codex adds up to 10% to the blows of "the player" only. The codex is shared
+    ///     (<see cref="CodexPatch" />): another player's blows get it too
+    /// </summary>
+    [HarmonyTranspiler]
+    [HarmonyPatch(typeof(Card), nameof(Card.DamageHP), typeof(long), typeof(int), typeof(int), typeof(AttackSource), typeof(Card),
+        typeof(bool), typeof(Thing), typeof(Chara), typeof(int))]
+    internal static IEnumerable<CodeInstruction> OnDamageHPWeakspot(IEnumerable<CodeInstruction> instructions)
+    {
+        var isPc = AccessTools.PropertyGetter(typeof(Card), nameof(Card.IsPC));
+        var codex = AccessTools.Field(typeof(Player), nameof(Player.codex));
+        var list = instructions.ToList();
+        var first = list.FindIndex(c => c.LoadsField(codex));
+        var at = first < 0 ? -1 : list.FindLastIndex(first, c => c.Calls(isPc));
+        if (at >= 0 && first - at < 6) {
+            list[at] = new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(CompanionAllyLimitPatch), nameof(CompanionAllyLimitPatch.IsAnyPlayer))) {
+                labels = list[at].labels,
+            };
+        }
+
+        return list;
+    }
+
+    /// <summary>
+    ///     "The player" does not die while a dialog is open, nor anyone in a bout while one is. Another player's
+    ///     dialog is open in its own game, where its death is not decided: its game reports it
+    ///     (<see cref="NetPeerState.Talking" />)
+    /// </summary>
+    [HarmonyTranspiler]
+    [HarmonyPatch(typeof(Card), nameof(Card.DamageHP), typeof(long), typeof(int), typeof(int), typeof(AttackSource), typeof(Card),
+        typeof(bool), typeof(Thing), typeof(Chara), typeof(int))]
+    internal static IEnumerable<CodeInstruction> OnDamageHPDialog(IEnumerable<CodeInstruction> instructions)
+    {
+        var isPc = AccessTools.PropertyGetter(typeof(Card), nameof(Card.IsPC));
+        var isActive = AccessTools.Method(typeof(LayerDrama), nameof(LayerDrama.IsActive));
+        var instance = AccessTools.Field(typeof(LayerDrama), nameof(LayerDrama.Instance));
+        var list = instructions.ToList();
+        var active = list.FindIndex(c => c.Calls(isActive));
+        if (active < 0 || active + 3 >= list.Count || !list[active + 3].Calls(isPc)) {
+            return list;
+        }
+
+        // LayerDrama.IsActive() && IsPC -> IsTalking(this) && IsAnyPlayer(this)
+        list[active + 3] = new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(CompanionAllyLimitPatch), nameof(CompanionAllyLimitPatch.IsAnyPlayer))) {
+            labels = list[active + 3].labels,
+        };
+        list[active] = new CodeInstruction(OpCodes.Ldarg_0) { labels = list[active].labels };
+        list.Insert(active + 1, CodeInstruction.Call(typeof(OtherPlayerPatch), nameof(IsTalking)));
+
+        // the bout's (bool)LayerDrama.Instance, the last one before: or the victim talks in its own game
+        var bout = list.FindLastIndex(active, c => c.LoadsField(instance));
+        if (bout >= 0 && active - bout < 6 && list[bout + 1].opcode == OpCodes.Call) {
+            list.Insert(bout + 2, new CodeInstruction(OpCodes.Ldarg_0));
+            list.Insert(bout + 3, CodeInstruction.Call(typeof(OtherPlayerPatch), nameof(OrTalking)));
+        }
+
+        return list;
+    }
+
+    // in a dialog of its own game: the local player by its open dialog, another player as its game reported
+    internal static bool IsTalking(Card card)
+    {
+        return card.IsPC ? LayerDrama.IsActive() : IsRemoteTalking(card);
+    }
+
+    internal static bool OrTalking(bool open, Card card)
+    {
+        return open || IsRemoteTalking(card);
+    }
+
+    private static bool IsRemoteTalking(Card card)
+    {
+        return IsMultiplayer && card is Chara { IsRemotePlayer: true, RemoteState: { Talking: true } };
+    }
+
+    /// <summary>
+    ///     A god's element on an item works only for "the player's" faith: another player's weapon was judged by the
+    ///     local player's god. The faith of the player who holds it (<see cref="Models.CharaFaithDelta" />)
+    /// </summary>
+    [HarmonyTranspiler]
+    [HarmonyPatch(typeof(Element), nameof(Element.IsActive))]
+    internal static IEnumerable<CodeInstruction> OnElementIsActive(IEnumerable<CodeInstruction> instructions)
+    {
+        var getPc = AccessTools.PropertyGetter(typeof(EClass), nameof(EClass.pc));
+        var list = instructions.ToList();
+        var at = list.FindIndex(c => c.Calls(getPc));
+        if (at >= 0) {
+            list[at] = new CodeInstruction(OpCodes.Ldarg_1) { labels = list[at].labels };
+            list.Insert(at + 1, CodeInstruction.Call(typeof(OtherPlayerPatch), nameof(PlayerOf)));
+        }
+
+        return list;
+    }
+
+    /// <summary>
+    ///     A summon of anyone but "the player" is at least half its caster's level (two thirds outside the party):
+    ///     another player's weak summon came out stronger than the same summon of the local player. A player's floor
+    /// </summary>
+    [HarmonyTranspiler]
+    [HarmonyPatch(typeof(ActEffect), nameof(ActEffect.ProcAt))]
+    internal static IEnumerable<CodeInstruction> OnProcAt(IEnumerable<CodeInstruction> instructions)
+    {
+        var isPc = AccessTools.PropertyGetter(typeof(Card), nameof(Card.IsPC));
+        var isFaction = AccessTools.PropertyGetter(typeof(Card), nameof(Card.IsPCFactionOrMinion));
+        var list = instructions.ToList();
+        var faction = list.FindIndex(c => c.Calls(isFaction));
+        var at = faction < 0 ? -1 : list.FindLastIndex(faction, c => c.Calls(isPc));
+        if (at >= 0 && faction - at < 8) {
+            list[at] = new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(CompanionAllyLimitPatch), nameof(CompanionAllyLimitPatch.IsAnyPlayer))) {
+                labels = list[at].labels,
+            };
+        }
+
+        return list;
+    }
+
+    /// <summary>
     ///     Luck (1660) makes the equipment a monster drops legendary: the game reads the local player's. Only the host
     ///     makes the loot: a guest's kill dropped by the host's luck. The killer's, or its owner's for a companion
     /// </summary>

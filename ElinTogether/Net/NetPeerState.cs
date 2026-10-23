@@ -39,6 +39,9 @@ public class NetPeerState
     [Key(10)]
     public bool Turbo { get; set; }
 
+    [Key(11)]
+    public bool Talking { get; set; }
+
     public Chara? FindChara()
     {
         return EClass.pc?.party?.members.Find(c => c?.uid == CharaUid);
