@@ -52,8 +52,9 @@ public class CharaMoveDelta : ElinDelta
             return;
         }
 
-        // a player moves its own character only (a client used to send the moves its game made for others)
-        if (net is ElinNetHost host && host.ActiveRemoteCharas.TryGetValue(OriginPeer, out var sender) && sender != chara) {
+        // a player moves its own character only (a client used to send the moves its game made for others); a peer
+        // with no character here yet moves nothing (review 2026-10-23: it could move anyone)
+        if (net is ElinNetHost host && (!host.ActiveRemoteCharas.TryGetValue(OriginPeer, out var sender) || sender != chara)) {
             EmpLog.Debug("Refusing the move of {Uid} from peer {Peer}: not its character", chara.uid, OriginPeer);
             return;
         }

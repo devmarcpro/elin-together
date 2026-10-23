@@ -34,8 +34,9 @@ public class TrolleyDelta : ElinDelta
         // a map two guests share without the host goes on as it came)
         Point to = new(X, Z);
         var here = EClass._zone?.uid == ZoneUid;
-        var trolley = here && to.IsValid && to.IsInBounds
-            ? EClass._map.things.Find(t => t.uid == Uid && t.trait is TraitTrolley)
+        // (along the rails, a step or two from where it is: a ride moves it one tile at a time)
+        var trolley = here && to.IsValid && to.IsInBounds && to.HasRail
+            ? EClass._map.things.Find(t => t.uid == Uid && t.trait is TraitTrolley && t.pos.Distance(to) <= 2)
             : null;
         if (here && trolley is null) {
             return;

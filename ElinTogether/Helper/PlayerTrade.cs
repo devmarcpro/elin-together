@@ -346,6 +346,7 @@ public static class PlayerTrade
 
     internal static void Clear()
     {
+        TradeWindow.ForgetClosed();
         _sessions.Clear();
         _myItems.Clear();
         _myGold = 0;

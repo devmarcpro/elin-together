@@ -69,6 +69,14 @@ public static class TradeWindow
         _last = view;
     }
 
+    /// <summary>
+    ///     Trades are numbered by each host from 1: a window closed in one session says nothing about the next
+    /// </summary>
+    internal static void ForgetClosed()
+    {
+        _closedTrade = -1;
+    }
+
     internal static void Dismiss()
     {
         _closing = true;

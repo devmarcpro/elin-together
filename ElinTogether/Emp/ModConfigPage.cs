@@ -28,7 +28,7 @@ internal static class ModConfigPage
     {
         // the host's rules: not while playing in someone else's game, where the host's apply (the mod's own window
         // shows them only to the host too)
-        if (NetSession.Instance.Connection is not ElinNetClient) {
+        if (NetSession.Instance.Transport is not ElinNetClient) {
             note.AddHeader("emp_ui_sv_note_live".lang());
             foreach (var (section, options) in TabServerConfiguration.Sections()) {
                 note.AddHeader($"emp_ui_sv_sec_{section}".lang());
