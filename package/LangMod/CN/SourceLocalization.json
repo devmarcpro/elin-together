@@ -387,5 +387,11 @@
     "LangGeneral.emp_ui_sv_diff.text": "与推荐设置有 {0} 处不同：{1}",
     "LangGeneral.emp_ui_sv_reset.text": "恢复推荐设置",
     "LangGeneral.emp_ui_sv_undo.text": "撤销上一次更改",
-    "LangGeneral.emp_ui_sv_more.text": "更多选项在 Elin Together 窗口中（“世界规则”标签页）。"
+    "LangGeneral.emp_ui_sv_more.text": "更多选项在 Elin Together 窗口中（“世界规则”标签页）。",
+    "LangGeneral.emp_ui_cl_sec_controls.text": "操作",
+    "LangGeneral.emp_ui_cl_sec_mods.text": "创意工坊模组",
+    "LangGeneral.emp_ui_cl_sec_depot.text": "共享存档文件夹（可选）",
+    "LangGeneral.emp_ui_cl_sec_help.text": "帮助",
+    "LangGeneral.emp_ui_cl_desc_ping.text": "按下此键可向其他玩家标记地图上的一处地点。",
+    "LangGeneral.emp_ui_cl_desc_depot.text": "存放世界的地方，让你们任何人都可以当主机。只是一起游玩的话不需要。"
 }

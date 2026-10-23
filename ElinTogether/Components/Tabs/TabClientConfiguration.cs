@@ -5,16 +5,22 @@ using YKF;
 
 namespace ElinTogether.Components;
 
+/// <summary>
+///     This player's own options, by card: Controls, Workshop mods, Shared save folder (optional), Help
+///     (council 2026-10-23)
+/// </summary>
 internal class TabClientConfiguration : TabEmpBase
 {
     public override void OnLayout()
     {
+        // Controls
+        var controls = Card("controls");
         var pingKey = new EInput.KeyMap {
             action = EAction.None,
             key = KeyCode.P,
             required = true,
         };
-        Row().Button("emp_ui_ping_keymap".Loc(pingKey.key.ToString()), () => {
+        Row(controls).Button("emp_ui_ping_keymap".Loc(pingKey.key.ToString()), () => {
             var l = global::Layer.Create<Dialog>("DialogKeymap");
             l.textDetail.SetText("dialog_keymap".lang("emp_ui_ping_action".lang()));
             l.keymap = pingKey;
@@ -24,9 +30,29 @@ internal class TabClientConfiguration : TabEmpBase
             });
             EMono.ui.AddLayer(l);
         }).SetTooltipLang(EmpConfig.Client.PingKeybind.Description.Description);
+        controls.TextSmall("emp_ui_cl_desc_ping".lang());
+
+        // Workshop mods: the mods of the game joined, fetched without subscribing (ModFetch): this player's own choice
+        var mods = Card("mods");
+        var fetch = EmpConfig.Client.FetchMods;
+        mods.Toggle("emp_ui_cl_fetch_mods", fetch.Value, value => fetch.Value = value)
+            .SetTooltipLang(fetch.Description.Description);
+        mods.TextSmall("emp_ui_cl_desc_fetch_mods".lang());
+
+        // ... and kept: subscribed to, on in the player's own list, so that the next join needs no restart
+        // (keeping them means nothing without fetching them: greyed out until then)
+        var keep = EmpConfig.Client.KeepMods;
+        var keepToggle = mods.Toggle("emp_ui_cl_keep_mods", keep.Value, value => keep.Value = value);
+        keepToggle.SetTooltipLang(keep.Description.Description);
+        keepToggle.interactable = fetch.Value;
+        mods.TextSmall("emp_ui_cl_desc_keep_mods".lang());
+
+        // Shared save folder (the depot): optional, not needed to play together
+        var folder = Card("depot");
+        folder.TextSmall("emp_ui_cl_desc_depot".lang());
 
         var depot = EmpConfig.Client.DepotPath;
-        Row().Button("emp_ui_depot_folder".lang(), () => {
+        Row(folder).Button("emp_ui_depot_folder".lang(), () => {
             Dialog.InputName("emp_ui_depot_folder_ask", depot.Value, (cancel, text) => {
                 if (!cancel) {
                     depot.Value = text.Trim();
@@ -34,10 +60,10 @@ internal class TabClientConfiguration : TabEmpBase
                 }
             }).input.field.characterLimit = 0;
         }).SetTooltipLang(depot.Description.Description);
-        Text(depot.Value.Length > 0 ? depot.Value : "-");
+        folder.Text(depot.Value.Length > 0 ? depot.Value : "-");
 
         var password = EmpConfig.Client.DepotPassword;
-        Row().Button("emp_ui_depot_password".lang(), () => {
+        Row(folder).Button("emp_ui_depot_password".lang(), () => {
             // a password or an access key is never shown again: the box opens empty. Left empty, a GitHub key is
             // kept (a depot of Elin Together Server may have no password: there, empty removes it)
             Dialog.InputName("emp_ui_depot_password_ask", "", (cancel, text) => {
@@ -47,27 +73,14 @@ internal class TabClientConfiguration : TabEmpBase
                 }
             }).input.field.characterLimit = 0;
         }).SetTooltipLang(password.Description.Description);
-        Text(password.Value.Length > 0 ? "***" : "-");
+        folder.Text(password.Value.Length > 0 ? "***" : "-");
 
         // how a private GitHub repository becomes the depot, where it is set
-        Text("emp_ui_depot_gh_help".lang());
+        folder.TextSmall("emp_ui_depot_gh_help".lang());
 
-        // the mods of the game joined, fetched without subscribing (ModFetch): this player's own choice
-        var fetch = EmpConfig.Client.FetchMods;
-        Toggle("emp_ui_cl_fetch_mods", fetch.Value, value => fetch.Value = value)
-            .SetTooltipLang(fetch.Description.Description);
-        TextSmall("emp_ui_cl_desc_fetch_mods".lang());
-
-        // ... and kept: subscribed to, on in the player's own list, so that the next join needs no restart
-        var keep = EmpConfig.Client.KeepMods;
-        // (keeping them means nothing without fetching them: greyed out until then)
-        var keepToggle = Toggle("emp_ui_cl_keep_mods", keep.Value, value => keep.Value = value);
-        keepToggle.SetTooltipLang(keep.Description.Description);
-        keepToggle.interactable = fetch.Value;
-        TextSmall("emp_ui_cl_desc_keep_mods".lang());
-
-        // something went wrong: one zip to send, with the game's own log in it
-        Row().Button("emp_ui_report".lang(), () => {
+        // Help: something went wrong, one zip to send, with the game's own log in it
+        var help = Card("help");
+        Row(help).Button("emp_ui_report".lang(), () => {
             if (BugReport.Make() is { } path) {
                 EmpPop.Information("emp_ui_report_done".Loc(path));
                 Util.ShowExplorer(path);
@@ -75,12 +88,20 @@ internal class TabClientConfiguration : TabEmpBase
                 EmpPop.Information("emp_ui_report_failed".lang());
             }
         });
-        TextSmall("emp_ui_report_desc".lang());
+        help.TextSmall("emp_ui_report_desc".lang());
     }
 
-    private YKHorizontal Row()
+    private YKVertical Card(string id)
     {
-        var row = Horizontal();
+        var card = this.MakeCard();
+        card.Layout.padding = new(20, 20, 8, 10);
+        card.HeaderSmall($"emp_ui_cl_sec_{id}".lang());
+        return card;
+    }
+
+    private static YKHorizontal Row(YKVertical card)
+    {
+        var row = card.Horizontal();
         row.Layout.childForceExpandWidth = true;
         return row;
     }
