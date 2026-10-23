@@ -82,6 +82,11 @@ public class ThingRequest : ElinDelta
             return;
         }
 
+        // a chest of a resident: the guest's game takes the karma but its guards and witnesses are here
+        if (net is ElinNetHost thief && thief.ActiveRemoteCharas.TryGetValue(OriginPeer, out var robber)) {
+            PlayerKarmaPatch.OnTakeFromResident(thief, robber, thing);
+        }
+
         var origin = thing.parent as Card;
         // the stack may have shrunk since the requester counted it: asking for more than is left would make
         // a copy of what was asked for
