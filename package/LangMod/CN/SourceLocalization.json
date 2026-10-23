@@ -309,5 +309,7 @@
     "LangGeneral.emp_trade_log_remove.text": "{0} 收回了 {1}。",
     "LangGeneral.emp_trade_log_gold.text": "{0} 现在出价 {1} 金币。",
     "LangGeneral.emp_trade_cant_offer.text": "无法交出 {0}。",
-    "LangGeneral.emp_trade_status.text": "{0}：{1} 金币，{2}"
+    "LangGeneral.emp_trade_status.text": "{0}：{1} 金币，{2}",
+    "LangGeneral.emp_ui_sv_cfg_town_life.text": "每位玩家身边都有城镇生活",
+    "LangGeneral.emp_ui_sv_desc_town_life.text": "镇民在每位玩家附近都会闲聊、打招呼、议论和扔石头，而不仅在主机的画面附近。议论和石头按所针对玩家自己的业报决定。不勾选时，只在主机附近，并按主机的业报决定（与原版相同）。"
 }
