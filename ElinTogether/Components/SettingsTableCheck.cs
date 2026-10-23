@@ -65,6 +65,41 @@ internal static class SettingsTableCheck
         return failures.Count == 0 ? "ok" : string.Join("\n", failures);
     }
 
+    /// <summary>
+    ///     The same through the real entries and file (the bench keeps a copy of the file and puts it back): every
+    ///     option written reads back, "Custom" writes nothing, each preset applied reads as itself. The rules are
+    ///     put back as they were at the end
+    /// </summary>
+    internal static string RunLive()
+    {
+        var failures = new List<string>();
+        var before = SettingsTable.HostRules().Select(e => (e, e.BoxedValue)).ToArray();
+        try {
+            foreach (var choice in SettingsTable.Choices()) {
+                for (var i = 0; i < choice.Options.Length; i++) {
+                    SettingsTable.Write(choice.WriteFor(i));
+                    if (choice.Read(RuleSource.Current) != i) {
+                        failures.Add($"{choice.Id}: option {i} written reads back {choice.Read(RuleSource.Current)}");
+                    }
+                }
+                if (SettingsTable.Write(choice.WriteFor(choice.Options.Length))) {
+                    failures.Add($"{choice.Id}: Custom wrote");
+                }
+            }
+
+            foreach (var preset in new[] { 1, 0 }) {
+                SettingsTable.ApplyPreset(preset);
+                if (SettingsTable.Preset(RuleSource.Current) != preset) {
+                    failures.Add($"preset {preset} applied reads {SettingsTable.Preset(RuleSource.Current)}");
+                }
+            }
+        } finally {
+            SettingsTable.Write(before);
+        }
+
+        return failures.Count == 0 ? "ok" : string.Join("\n", failures);
+    }
+
     internal static int CombatCustomCount()
     {
         var choice = SettingsTable.CombatPace;
