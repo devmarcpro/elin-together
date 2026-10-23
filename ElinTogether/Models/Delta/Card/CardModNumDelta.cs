@@ -1,3 +1,4 @@
+using ElinTogether.Helper;
 using ElinTogether.Net;
 using MessagePack;
 
@@ -28,6 +29,15 @@ public class CardModNumDelta : ElinDelta
             if (card is Chara) {
                 EmpLog.Warning("Refusing {DeltaType} on chara {Uid} from peer {PeerIndex}",
                     nameof(CardModNumDelta), card.uid, OriginPeer);
+                return;
+            }
+
+            // a client only ever says a card went away (CardDestroyEvent, Num 0): never more than there is, never
+            // in the bag of another player
+            var sender = (net as ElinNetHost)!.ActiveRemoteCharas.TryGetValue(OriginPeer, out var who) ? who : null;
+            if (Num < 0 || Num > card.Num || card.GetRootCard() is Chara { IsPlayer: true } root && root != sender) {
+                EmpLog.Warning("Refusing {DeltaType} {Uid}: {CardNum} -> {NewCardNum} from peer {PeerIndex}",
+                    nameof(CardModNumDelta), card.uid, card.Num, Num, OriginPeer);
                 return;
             }
 
