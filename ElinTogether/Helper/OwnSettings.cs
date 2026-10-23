@@ -75,6 +75,12 @@ internal static class OwnSettings
                 LightMod = player.customLightMod,
                 Memo = player.memo,
                 Memo2 = player.memo2,
+                Hoard = player.hoard,
+                KnownCraft = player.knownCraft,
+                Sketches = player.sketches,
+                KnownBGMs = player.knownBGMs,
+                KnownSongs = player.knownSongs,
+                HangIcons = player.hangIcons,
                 Hotbars = player.hotbars,
                 Flags = DialogFlagSync.OwnFlags(player),
                 Ability = EClass.game.altAbility && EClass.ui.IsAbilityOpen,
@@ -189,6 +195,15 @@ internal static class OwnSettings
             player.customLightMod = kept.LightMod;
             player.memo = kept.Memo ?? "";
             player.memo2 = kept.Memo2 ?? "";
+
+            // what this player collected or learned (the hoard, crafts and sketches seen, tunes heard and played), not
+            // the world: the host's copy of them is the host's own. Nothing noted (an older file): the copy stays
+            player.hoard = kept.Hoard ?? player.hoard;
+            player.knownCraft = kept.KnownCraft ?? player.knownCraft;
+            player.sketches = kept.Sketches ?? player.sketches;
+            player.knownBGMs = kept.KnownBGMs ?? player.knownBGMs;
+            player.knownSongs = kept.KnownSongs ?? player.knownSongs;
+            player.hangIcons = kept.HangIcons ?? player.hangIcons;
 
             // the cards are other objects in this copy of the world: found again by number
             var things = chara.things.Flatten().ToList();
@@ -358,6 +373,12 @@ internal static class OwnSettings
         public int LightMod;
         public string? Memo;
         public string? Memo2;
+        public Hoard? Hoard;
+        public HashSet<int>? KnownCraft;
+        public HashSet<int>? Sketches;
+        public HashSet<int>? KnownBGMs;
+        public Dictionary<string, KnownSong>? KnownSongs;
+        public Dictionary<string, string>? HangIcons;
 
         // windows of the cards the player carries, by card number; which of them were open
         public Dictionary<int, Window.SaveData> Bags = [];
