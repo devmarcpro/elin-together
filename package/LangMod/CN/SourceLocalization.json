@@ -309,5 +309,9 @@
     "LangGeneral.emp_trade_log_remove.text": "{0} 收回了 {1}。",
     "LangGeneral.emp_trade_log_gold.text": "{0} 现在出价 {1} 金币。",
     "LangGeneral.emp_trade_cant_offer.text": "无法交出 {0}。",
-    "LangGeneral.emp_trade_status.text": "{0}：{1} 金币，{2}"
+    "LangGeneral.emp_trade_status.text": "{0}：{1} 金币，{2}",
+    "LangGeneral.emp_ui_sv_cfg_summons_follow_master.text": "召唤物跟随召唤者",
+    "LangGeneral.emp_ui_sv_desc_summons_follow_master.text": "玩家召唤的生物去召唤者去的地方，无论是与主机同行还是独自行动。关闭：主机离开地图时其他玩家的召唤物会消失",
+    "LangGeneral.emp_ui_sv_cfg_players_at_base.text": "据点计算所有玩家",
+    "LangGeneral.emp_ui_sv_desc_players_at_base.text": "只要据点地图上有玩家醒着就会有袭击，幸运月看任一玩家的神，与玩家共处的天数在任何玩家所在处都会计算。关闭：只计算运行据点地图的那位玩家"
 }

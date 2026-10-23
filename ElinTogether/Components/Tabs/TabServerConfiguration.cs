@@ -41,6 +41,8 @@ internal class TabServerConfiguration : TabEmpBase
             ("guest_build", EmpConfig.Server.GuestBuild),
             ("player_kill", EmpConfig.Server.PlayerKill),
             ("own_sleep", EmpConfig.Server.OwnSleep),
+            ("summons_follow_master", EmpConfig.Server.SummonsFollowMaster),
+            ("players_at_base", EmpConfig.Server.PlayersAtBase),
             ("time_jumps_together", EmpConfig.Server.TimeJumpsTogether),
             ("dump_spares_belt", EmpConfig.Server.DumpSparesBelt),
             ("shared_tax", EmpConfig.Server.SharedTax),

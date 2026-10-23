@@ -184,11 +184,19 @@ public class NetSessionRules
     [Key(25)]
     public bool OncePerPlayer { get; set; } = true;
 
+    /// <summary>
+    ///     Audit 2026-10-23: raids, the lucky month and the days with a player count every player on the base map,
+    ///     not only the one whose game runs it, see Patches/PlayersAtBase.cs. Off: the game's own "the player"
+    /// </summary>
+    [Key(26)]
+    public bool PlayersAtBase { get; set; } = true;
+
     public static NetSessionRules Default => new() {
         AllowTakeover = EmpConfig.Server.Takeover.Value,
         SoftRecall = EmpConfig.Server.SoftRecall.Value,
         UseSharedTax = EmpConfig.Server.SharedTax.Value,
         OncePerPlayer = EmpConfig.Server.OncePerPlayer.Value,
+        PlayersAtBase = EmpConfig.Server.PlayersAtBase.Value,
         // (a takeover is made from that copy: asking for one asks for the other, a host that ticked only
         // "another player takes over" got nothing)
         KeepWorldCopy = EmpConfig.Server.WorldCopy.Value || EmpConfig.Server.Takeover.Value,
