@@ -35,7 +35,8 @@ public class ActThrowDelta : ElinDelta
 
         // never more than the stack still holds, that would make a copy
         var t = thing.Split(Math.Clamp(Thing.Num, 1, thing.Num));
-        ActThrow.Throw(owner, Point, Target, t, Method);
+        // the experience and stamina of a player's throw come from the host's game alone
+        Patches.ThrowGrowthPatch.Throw(net, this, owner, () => ActThrow.Throw(owner, Point, Target, t, Method));
 
         if (net.IsHost) {
             net.Delta.AddRemote(new ActThrowDelta {

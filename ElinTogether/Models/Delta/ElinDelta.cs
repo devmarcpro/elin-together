@@ -148,6 +148,7 @@ namespace ElinTogether.Models;
 [Union(863, typeof(TrolleyDelta))]
 // Act
 [Union(900, typeof(ActThrowDelta))]
+[Union(920, typeof(ThrowGrowthDelta))]
 // Element
 [Union(1000, typeof(ElementChangeDelta))]
 public abstract class ElinDelta : EClass

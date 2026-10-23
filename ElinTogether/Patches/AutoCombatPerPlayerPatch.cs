@@ -146,6 +146,24 @@ internal static class AutoCombatPerPlayerPatch
         };
     }
 
+    /// <summary>
+    ///     A finishing blow (neck hunt) spares "the player" while its auto combat has just saved it from death. Another
+    ///     player saved by its own auto combat in the host's game, which strikes, was finished at once
+    ///     (audit 2026-10-23). The same for each player, by its own auto combat
+    /// </summary>
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(Chara), nameof(Chara.TryNeckHunt))]
+    internal static bool OnTryNeckHunt(Chara TC, ref bool __result, bool __runOriginal)
+    {
+        if (!__runOriginal || TC is null || TC.IsPC || NetSession.Instance.Connection is not ElinNetHost ||
+            !EmpConfig.Server.AutoCombatPerPlayer.Value || !TC.IsRemotePlayer || !IsInvulnerable(TC)) {
+            return __runOriginal;
+        }
+
+        __result = false;
+        return false;
+    }
+
     internal static void SetInvulnerable(Card card, bool value)
     {
         var owner = OwnerOf(card);

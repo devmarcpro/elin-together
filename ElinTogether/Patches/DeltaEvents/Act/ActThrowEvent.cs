@@ -28,10 +28,7 @@ internal class ActThrowEvent
             };
         }
 
-        // exp comp
-        if (!connection.IsHost && c.IsPC) {
-            c.ModExp(SKILL.throwing, 50);
-        }
+        // no flat experience here any more: the host tells what the throw gave (ThrowGrowthDelta)
 
         return connection.IsHost;
     }
