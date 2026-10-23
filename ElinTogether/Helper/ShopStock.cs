@@ -29,6 +29,12 @@ public class ShopGates
     /// </summary>
     [Key(2)]
     public bool Exotic { get; init; }
+
+    /// <summary>
+    ///     Member of the mages guild (a magic shop offers the trial letter to those who are not)
+    /// </summary>
+    [Key(3)]
+    public bool Mage { get; init; }
 }
 
 /// <summary>
@@ -44,6 +50,7 @@ internal static class ShopStock
 
     private static ShopGates? _gates;
     private static bool? _exotic;
+    private static bool? _mage;
     private static bool _active;
 
     internal static ShopGates Local()
@@ -52,6 +59,7 @@ internal static class ShopStock
             Married = EClass.player.stats.married > 0,
             LoytelLv = EClass.player.flags.loytelMartLv,
             Exotic = EClass.player.IsMerchantGuildMember && Guild.Merchant.relation.rank >= 4,
+            Mage = Guild.Mage.IsMember,
         };
     }
 
@@ -93,8 +101,10 @@ internal static class ShopStock
         var standIn = best == EClass.pc ? null : RemoteCraft.AsCrafter(best);
         if (gates is not null) {
             stats.married = gates.Married ? System.Math.Max(1, married) : 0;
-            flags.loytelMartLv = gates.LoytelLv;
+            // (the mart has levels 0 to 2)
+            flags.loytelMartLv = System.Math.Clamp(gates.LoytelLv, 0, 2);
             _exotic = gates.Exotic;
+            _mage = gates.Mage;
         }
 
         return new() {
@@ -103,6 +113,7 @@ internal static class ShopStock
                 stats.married = married;
                 flags.loytelMartLv = loytel;
                 _exotic = null;
+                _mage = null;
                 _active = false;
             },
         };
@@ -129,6 +140,15 @@ internal static class ShopStock
     {
         if (_exotic is { } exotic) {
             __result = exotic ? ShopType.Exotic : ShopType.None;
+        }
+    }
+
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(Guild), nameof(Guild.IsMember), MethodType.Getter)]
+    internal static void OnIsMember(Guild __instance, ref bool __result)
+    {
+        if (_mage is { } mage && __instance is GuildMage) {
+            __result = mage;
         }
     }
 }

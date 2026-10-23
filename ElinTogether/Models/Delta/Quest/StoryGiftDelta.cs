@@ -50,13 +50,13 @@ public class StoryGiftDelta : ElinDelta
     /// <summary>
     ///     The client's gift is kept whole (a bill, a love lunch, a chest's contents are set after it is made),
     ///     only what no dialog or wish can give is brought back within the game's maxima: currency up to
-    ///     QuestRandom's 10,000,000, other stacks up to the 1000 of ActEffect.Wish, one of what does not stack,
+    ///     QuestRandom's 10,000,000, anything else up to the 1000 of ActEffect.Wish (a dialog gives several spellbooks or deeds at once),
     ///     an enchant up to what Thing.GetEnchant rolls at the game's level cap (ElementContainer, 10,000,000),
     ///     one charge on a rod of wishing (TraitRod.OnCreate)
     /// </summary>
     private void Bound(Thing thing)
     {
-        var max = thing.trait is TraitCurrency ? 10_000_000 : thing.trait.CanStack ? 1000 : 1;
+        var max = thing.trait is TraitCurrency ? 10_000_000 : 1000;
         if (thing.Num > max) {
             Odd(thing, "Num", thing.Num, max);
             thing.SetNum(max);
@@ -68,7 +68,8 @@ public class StoryGiftDelta : ElinDelta
         }
 
         foreach (var e in thing.elements.dict.Values) {
-            if (e.source.encFactor <= 0) {
+            // (an element this game does not know, from a mod only the client has: left as it came)
+            if (e.source is not { encFactor: > 0 }) {
                 continue;
             }
 

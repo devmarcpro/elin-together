@@ -313,7 +313,7 @@
     "LangGeneral.emp_ui_sv_cfg_town_life.text": "每位玩家身边都有城镇生活",
     "LangGeneral.emp_ui_sv_desc_town_life.text": "镇民在每位玩家附近都会闲聊、打招呼、议论和扔石头，而不仅在主机的画面附近。议论和石头按所针对玩家自己的业报决定。不勾选时，只在主机附近，并按主机的业报决定（与原版相同）。",
     "LangGeneral.emp_ui_sv_cfg_town_boards.text": "城镇告示板按在场所有玩家生成",
-    "LangGeneral.emp_ui_sv_desc_town_boards.text": "游戏重新生成城镇告示板时，地图上名声最高的玩家决定需要名声的委托是否出现，难度按在场玩家计算。不勾选时只按主机的角色生成（与原版相同）。",
+    "LangGeneral.emp_ui_sv_desc_town_boards.text": "游戏重新生成城镇告示板时，地图上名声最高的玩家决定需要名声的委托是否出现，难度按在场玩家计算。不勾选时只按主机的角色生成（与原版相同）。（需要开启个人委托。）",
     "LangGeneral.emp_ui_sv_cfg_shops_from_every_player.text": "商店按所有在场玩家计算",
     "LangGeneral.emp_ui_sv_desc_shops_from_every_player.text": "商店补货按地图上最强玩家的进货加成计算，特殊货架（婚礼与磁带店、洛伊特商店、异国商人）取决于打开商店的玩家。不勾选时一律按主机的进度（与原版相同）。",
     "LangGeneral.emp_ui_sv_cfg_nearest_spawns.text": "离刷新点最近的玩家决定刷怪",
