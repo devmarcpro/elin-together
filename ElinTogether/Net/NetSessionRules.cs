@@ -184,11 +184,18 @@ public class NetSessionRules
     [Key(25)]
     public bool OncePerPlayer { get; set; } = true;
 
+    /// <summary>
+    ///     Council 2026-10-23: a town board is drawn for the players on the map, not the host alone (TownBoardPatch)
+    /// </summary>
+    [Key(51)]
+    public bool TownBoards { get; set; } = true;
+
     public static NetSessionRules Default => new() {
         AllowTakeover = EmpConfig.Server.Takeover.Value,
         SoftRecall = EmpConfig.Server.SoftRecall.Value,
         UseSharedTax = EmpConfig.Server.SharedTax.Value,
         OncePerPlayer = EmpConfig.Server.OncePerPlayer.Value,
+        TownBoards = EmpConfig.Server.TownBoards.Value,
         // (a takeover is made from that copy: asking for one asks for the other, a host that ticked only
         // "another player takes over" got nothing)
         KeepWorldCopy = EmpConfig.Server.WorldCopy.Value || EmpConfig.Server.Takeover.Value,
