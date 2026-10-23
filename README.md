@@ -125,7 +125,7 @@ You need Elin on Steam, on the **Nightly** branch (Steam â†’ right-click Elin â†
 [Elin Together](https://steamcommunity.com/sharedfiles/filedetails/?id=3773298709) on the Workshop brings it along.
 Launch Elin once after subscribing, then close it.
 
-1. Download `ElinTogether-independance.zip` from the
+1. Download `ElinTogether-independence.zip` from the
    [Releases page](https://github.com/jeanfreger/elin-together-independence/releases).
 2. Unzip the whole folder and run `Installer.bat`. It finds Elin, copies the mod into `Elin\Package\Mod_ElinTogether`
    and switches from the Workshop version to this one in the game's mod list.
