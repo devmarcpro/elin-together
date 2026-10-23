@@ -20,4 +20,10 @@ public class PlayerCharaStateSnapshot
     /// </summary>
     [Key(4)]
     public bool Turbo { get; init; }
+
+    /// <summary>
+    ///     A dialog is open in the player's own game: it does not die meanwhile, see <see cref="Patches.OtherPlayerPatch.IsTalking" />
+    /// </summary>
+    [Key(5)]
+    public bool Talking { get; init; }
 }
