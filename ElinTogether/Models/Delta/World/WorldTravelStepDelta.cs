@@ -16,6 +16,14 @@ public class WorldTravelStepDelta : ElinDelta
     [Key(0)]
     public required int Minutes { get; init; }
 
+    /// <summary>
+    ///     Personal Pace: the step was taken on the player's own copy of the world map, away from the host. The
+    ///     host keeps what it holds as the lead and tells the player the rest, which its own game passes and
+    ///     reports as in the Shared Clock (WorldTimeReportDelta, checked there)
+    /// </summary>
+    [Key(1)]
+    public bool Away { get; init; }
+
     protected override void OnApply(ElinNetBase net)
     {
         if (net is not ElinNetHost host || !FromPeer) {
@@ -28,6 +36,16 @@ public class WorldTravelStepDelta : ElinDelta
             return;
         }
 
+        if (Away) {
+            var (heldAway, leadAway) = host.HoldLeadOfPeer(OriginPeer, Minutes);
+            host.SendDeltaTo(OriginPeer, new PlayerLeadDelta {
+                Lead = leadAway,
+                Held = heldAway,
+                Excess = Minutes - heldAway,
+            });
+            return;
+        }
+
         // the player saw everyone on the world map, the host no longer does (someone just left): no hours
         if (NetSession.Instance.Rules.WorldMapTime == WorldMapTime.TravelTogether && !host.AllOnWorldMap()) {
             EmpLog.Debug("World time: step of player {Peer} while not everyone is on the world map, no hours",
@@ -35,9 +53,55 @@ public class WorldTravelStepDelta : ElinDelta
             return;
         }
 
-        var moves = WorldTravelClock.Step(OriginPeer, WorldTravelClock.Plausible(OriginPeer, Minutes, "travel"));
+        // Personal Pace: what the world waits for is this player's lead, it paid it with its turns and its quests
+        var granted = WorldTravelClock.Plausible(OriginPeer, Minutes, "travel");
+        var (held, lead) = host.HoldLeadOfPeer(OriginPeer, granted);
+        if (held > 0) {
+            host.SendDeltaTo(OriginPeer, new PlayerLeadDelta {
+                Lead = lead,
+                Held = held,
+            });
+        }
+
+        var moves = WorldTravelClock.Step(OriginPeer, granted - held);
         if (moves > 0) {
             WorldDateAdvanceEvent.CatchUpNextFrame(WorldDateAdvanceEvent.AfterPending(moves), host.TravellerOf(OriginPeer));
+        }
+    }
+}
+
+/// <summary>
+///     Council 2026-10-23, Personal Pace, host to a player: its lead on the world (minutes), and for its step the
+///     part of it held back (its own quests pay it) and, away from the host, the part its game passes itself
+/// </summary>
+[MessagePackObject]
+public class PlayerLeadDelta : ElinDelta
+{
+    [Key(0)]
+    public required int Lead { get; init; }
+
+    [Key(1)]
+    public int Held { get; init; }
+
+    [Key(2)]
+    public int Excess { get; init; }
+
+    protected override void OnApply(ElinNetBase net)
+    {
+        if (net is ElinNetHost) {
+            return;
+        }
+
+        if (Held > 0) {
+            WorldMapLead.Held(Held, Lead);
+        } else {
+            WorldMapLead.Set(Lead);
+        }
+
+        if (Excess is > 0 and <= WorldTravelClock.MaxStepMinutes) {
+            // not from inside the delta loop, like any time this game passes
+            var excess = Excess;
+            core.actionsNextFrame.Add(() => RemoteTravelRegionPatch.AdvanceAway(excess));
         }
     }
 }

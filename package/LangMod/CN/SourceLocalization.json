@@ -349,7 +349,7 @@
     "LangGeneral.emp_ui_sv_opt_who_joins_data.text": "相同的游戏数据",
     "LangGeneral.emp_ui_sv_opt_who_joins_both.text": "相同的模组和游戏数据",
     "LangGeneral.emp_ui_sv_cfg_world_map_choice.text": "世界地图上的时间",
-    "LangGeneral.emp_ui_sv_desc_world_map_choice.text": "共享时钟：任何人在世界地图上走一步都会推进日期，其他人追上时间，但不会损失饱食度或任务时间。一起旅行：只有所有玩家都在世界地图上时，日期才会推进。",
+    "LangGeneral.emp_ui_sv_desc_world_map_choice.text": "共享时钟：世界地图上任何人每走一步都会推进日期，其他人追上时间但不会损失饱食度或任务时间。一起旅行：只有所有玩家都在世界地图上时日期才会推进。个人步调：与共享时钟相同，但在同伴身处别处时旅行的玩家会领先于世界：这段时间由他自己的饱食度和自己的任务承担，日期要等到所有人在世界地图上相聚或在同一晚睡觉时才追上。",
     "LangGeneral.emp_ui_sv_opt_world_map_choice_SharedClock.text": "共享时钟",
     "LangGeneral.emp_ui_sv_opt_world_map_choice_TravelTogether.text": "一起旅行",
     "LangGeneral.emp_ui_sv_cfg_combat_pace.text": "战斗节奏",
@@ -400,5 +400,14 @@
     "LangGeneral.emp_ui_rules_changed.text": "主机更改了“{0}”：{1} → {2}",
     "LangGeneral.emp_ui_rules_yes.text": "是",
     "LangGeneral.emp_ui_rules_no.text": "否",
-    "LangGeneral.emp_ui_rules_custom.text": "自定义"
+    "LangGeneral.emp_ui_rules_custom.text": "自定义",
+    "LangGeneral.emp_ui_sv_opt_world_map_choice_PersonalPace.text": "个人步调",
+    "LangGeneral.emp_ui_sv_cfg_world_map_lead.text": "独自旅行的玩家最多可领先多久（个人步调）",
+    "LangGeneral.emp_ui_sv_desc_world_map_lead.text": "个人步调：超过这个领先时间后，独自旅行的时间会像共享时钟一样为所有人推进日期。",
+    "LangGeneral.emp_ui_sv_opt_world_map_lead_12.text": "12 小时",
+    "LangGeneral.emp_ui_sv_opt_world_map_lead_24.text": "24 小时",
+    "LangGeneral.emp_ui_sv_opt_world_map_lead_48.text": "48 小时",
+    "LangGeneral.emp_ui_sv_opt_world_map_lead_72.text": "72 小时",
+    "LangGeneral.emp_ui_travel_lead.text": "你领先世界 {0} 小时（旅途的时间由你的饱食度和任务承担，日期在等你的同伴）。",
+    "LangGeneral.emp_ui_travel_lead_paid.text": "世界追上了你的旅程。"
 }

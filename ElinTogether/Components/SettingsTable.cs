@@ -105,10 +105,19 @@ internal static class SettingsTable
         },
         i => [(EmpConfig.Server.SourceValidationSet, new[] { "", "plugins", "sources", "sources,plugins" }[i])]);
 
-    internal static Choice WorldMapTime => new("world_map_choice", ["SharedClock", "TravelTogether"],
+    internal static Choice WorldMapTime => new("world_map_choice", ["SharedClock", "TravelTogether", "PersonalPace"],
         () => [EmpConfig.Server.WorldMapTime],
         source => source.Raw(EmpConfig.Server.WorldMapTime) is Net.WorldMapTime mode ? (int)mode : -1,
         i => [(EmpConfig.Server.WorldMapTime, (Net.WorldMapTime)i)]);
+
+    // Personal Pace: the hours a player travelling alone may run ahead of the world (another number typed in the
+    // file reads as Custom and is kept)
+    private static readonly int[] LeadCaps = [12, 24, 48, 72];
+
+    internal static Choice LeadCap => new("world_map_lead", [..LeadCaps.Select(h => h.ToString())],
+        () => [EmpConfig.Server.WorldMapLeadCap],
+        source => source.Raw(EmpConfig.Server.WorldMapLeadCap) is int hours ? Array.IndexOf(LeadCaps, hours) : -1,
+        i => [(EmpConfig.Server.WorldMapLeadCap, LeadCaps[i])]);
 
     // own pace: PlayerCombatTime with its clock and step pace (turn-based does nothing then); turn-based, shared
     // average and classic: without PlayerCombatTime (clock and step pace do nothing then, they are left alone)
@@ -219,6 +228,7 @@ internal static class SettingsTable
         yield return new("world_time", "time_details", true, EmpConfig.Server.SharedWorldTime);
         yield return new("world_keeper", "time_details", true, EmpConfig.Server.WorldKeeper);
         yield return new("own_sleep", "time_details", true, EmpConfig.Server.OwnSleep);
+        yield return new("world_map_lead", "time_details", true, Choice: LeadCap);
 
         yield return new("delete_chara", "comfort", true, EmpConfig.Server.DeleteCharacter, Apply: "join");
         yield return new("dump_spares_belt", "comfort", true, EmpConfig.Server.DumpSparesBelt);
@@ -238,7 +248,7 @@ internal static class SettingsTable
     /// </summary>
     internal static ConfigEntryBase[] HostRules() => [
         ..Rows().Where(r => r.Entry is not null).Select(r => (ConfigEntryBase)r.Entry!).Distinct(),
-        EmpConfig.Server.SourceValidationSet, EmpConfig.Server.WorldMapTime,
+        EmpConfig.Server.SourceValidationSet, EmpConfig.Server.WorldMapTime, EmpConfig.Server.WorldMapLeadCap,
     ];
 
     // presets: computed from the boxes each time a page opens, never stored (an old world with one box of its

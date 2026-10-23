@@ -792,6 +792,9 @@ internal class SleepSynchronizationContext : SynchronizationContext
 
         EmpLog.Debug("Party sleep started {SleepHours}", _hours);
 
+        // Personal Pace: a night slept together, the world catches up with whoever travelled ahead of it
+        host.ReleaseLeads();
+
         if (NetSession.Instance.Rules.UseOwnSleep && _ready.Count > 1) {
             WidgetPopText.Say("emp_ui_sleep_all".Loc());
         }

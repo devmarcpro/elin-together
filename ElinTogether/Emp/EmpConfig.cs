@@ -446,10 +446,18 @@ internal partial class EmpConfig
             WorldMapTime.SharedClock,
             "Who pays the hours of a trip on the world map. SharedClock: the world map is a map like any other, every step of anyone moves the date; the others catch up without losing hunger or quest time\n" +
             "TravelTogether: a step moves the date only when all the players are on the world map, whoever steps; otherwise the traveller pays its own turns and the date stays\n" +
-            "世界地图上旅行的时间由谁承担。SharedClock：世界地图与其他地图相同，任何人的每一步都会推进日期，其他人追上时间但不会损失饱食度或任务时间；TravelTogether：只有所有玩家都在世界地图上时，一步才会推进日期");
+            "PersonalPace: as SharedClock, but a player travelling while the others are elsewhere runs ahead of the world (its hunger and quests pay the hours, the date stays) up to WorldMapLeadCap hours; the world catches up once everyone is on the world map or sleeps together\n" +
+            "世界地图上旅行的时间由谁承担。SharedClock：世界地图与其他地图相同，任何人的每一步都会推进日期，其他人追上时间但不会损失饱食度或任务时间；TravelTogether：只有所有玩家都在世界地图上时，一步才会推进日期；PersonalPace：独自旅行的玩家领先于世界（饱食度与自己的任务承担时间，日期不动），所有人在世界地图上相聚或一起睡觉时世界追上");
         if (OldWorldMapTime(before) is { } old) {
             Server.WorldMapTime.Value = old;
         }
+
+        Server.WorldMapLeadCap = config.Bind(
+            "Server",
+            "WorldMapLeadCap",
+            24,
+            "Personal Pace: how many hours a player travelling alone may run ahead of the world; the hours past it move the date as in SharedClock\n" +
+            "个人步调：独自旅行的玩家最多可以领先世界多少小时，超出的部分像共享时钟一样推进日期");
 
         Server.DumpSparesBelt = config.Bind(
             "Server",
@@ -598,6 +606,7 @@ internal partial class EmpConfig
         internal static ConfigEntry<bool> SummonsFollowMaster { get; set; } = null!;
         internal static ConfigEntry<bool> PlayersAtBase { get; set; } = null!;
         internal static ConfigEntry<WorldMapTime> WorldMapTime { get; set; } = null!;
+        internal static ConfigEntry<int> WorldMapLeadCap { get; set; } = null!;
         internal static ConfigEntry<bool> DumpSparesBelt { get; set; } = null!;
         internal static ConfigEntry<bool> ImportCharacter { get; set; } = null!;
 

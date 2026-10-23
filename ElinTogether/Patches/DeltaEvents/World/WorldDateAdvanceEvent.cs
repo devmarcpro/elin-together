@@ -29,6 +29,7 @@ internal static class WorldDateAdvanceEvent
     private static int _pendingTarget;
     private static (string Name, int Uid)? _pendingTraveller;
     private static float _pendingSince;
+    private static int _pendingLeadOf;
     private static bool _pumping;
 
     // the trip of another player this player is told about once it is over
@@ -46,6 +47,12 @@ internal static class WorldDateAdvanceEvent
     ///     catch-up for one): its player, told along with the date (WorldDateAdvanceDelta.Traveller)
     /// </summary>
     internal static (string Name, int Uid)? Traveller { get; set; }
+
+    /// <summary>
+    ///     Personal Pace: the catch-up in progress pays the lead of this player (its character), whose own quests
+    ///     already lost those hours: it is not told it lost nothing (WorldDateAdvanceDelta.LeadOf)
+    /// </summary>
+    internal static int LeadOf { get; private set; }
 
     /// <summary>
     ///     Whether the hour passing now is one this other player of the map lives (what it carries goes off). <br />
@@ -101,6 +108,7 @@ internal static class WorldDateAdvanceEvent
             Minutes = a,
             GameDate = [..EClass.world.date.raw],
             CatchUp = IsCatchingUp,
+            LeadOf = IsCatchingUp ? LeadOf : 0,
             Traveller = Traveller?.Name,
             TravellerUid = Traveller?.Uid ?? 0,
         });
@@ -125,10 +133,14 @@ internal static class WorldDateAdvanceEvent
     ///     does. Council 2026-10-23: a catch-up for someone's trip waits while this player fights, loads or talks
     ///     (60 s at most, silently), and once the trip is over one line says who travelled
     /// </summary>
-    internal static void CatchUpNextFrame(int target, (string Name, int Uid)? traveller = null)
+    internal static void CatchUpNextFrame(int target, (string Name, int Uid)? traveller = null, int leadOf = 0)
     {
         if (target <= _pendingTarget) {
             return;
+        }
+
+        if (leadOf != 0) {
+            _pendingLeadOf = leadOf;
         }
 
         if (_pendingTarget == 0) {
@@ -184,10 +196,10 @@ internal static class WorldDateAdvanceEvent
                 return;
             }
 
-            var (target, traveller) = (_pendingTarget, _pendingTraveller);
-            (_pendingTarget, _pendingTraveller) = (0, null);
-            var moved = CatchUp(target, traveller);
-            if (traveller is { } who && moved > 0) {
+            var (target, traveller, leadOf) = (_pendingTarget, _pendingTraveller, _pendingLeadOf);
+            (_pendingTarget, _pendingTraveller, _pendingLeadOf) = (0, null, 0);
+            var moved = CatchUp(target, traveller, leadOf);
+            if (traveller is { } who && moved > 0 && (leadOf == 0 || leadOf != EClass.pc?.uid)) {
                 NoteTrip(who.Name, moved);
             }
         }
@@ -235,7 +247,7 @@ internal static class WorldDateAdvanceEvent
     ///     Going there tells the others in turn (the host its players, a map holder its visitors)
     /// </summary>
     /// <returns>the minutes advanced, 0 when this game is not behind</returns>
-    private static int CatchUp(int target, (string Name, int Uid)? traveller)
+    private static int CatchUp(int target, (string Name, int Uid)? traveller, int leadOf)
     {
         var behind = target - EClass.world.date.GetRaw();
         if (behind is <= 0 or > MaxCatchUpMinutes || EClass.game?.activeZone is null) {
@@ -248,11 +260,13 @@ internal static class WorldDateAdvanceEvent
 
         IsCatchingUp = true;
         Traveller = traveller;
+        LeadOf = leadOf;
         try {
             EClass.world.date.AdvanceMin(behind);
         } finally {
             IsCatchingUp = false;
             Traveller = null;
+            LeadOf = 0;
         }
 
         return behind;
