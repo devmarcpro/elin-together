@@ -99,8 +99,17 @@ internal partial class ElinNetClient
     /// <param name="rules"></param>
     private void OnSessionRulesUpdate(NetSessionRules rules)
     {
+        // the first rules of this host are the snapshot of the join; after that, a change is told in one line and
+        // the card "This world's rules" is drawn again (before them the session holds this game's own config)
+        var changed = Components.SettingsTable.NoticeChanges(_rulesReceived ? NetSession.Instance.Rules : null, rules);
+        _rulesReceived = true;
         NetSession.Instance.Rules = rules;
+        if (changed) {
+            Components.SettingsTable.MarkDirty();
+        }
     }
+
+    private bool _rulesReceived;
 
 #region Scheduler Jobs
 

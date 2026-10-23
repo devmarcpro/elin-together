@@ -80,6 +80,7 @@ internal sealed class EmpMod : BaseUnityPlugin
     private void Update()
     {
         ModFetch.Update();
+        Components.SettingsTable.Update();
         // (from the patches during a session; a server has to load its world before any session)
         EmpServer.Update();
     }
