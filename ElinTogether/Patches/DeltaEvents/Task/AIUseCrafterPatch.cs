@@ -190,6 +190,38 @@ internal static class AIUseCrafterPatch
         }
     }
 
+    /// <summary>
+    ///     A fortune roll reads and raises the roll counter and the lucky coins of "the player" (TraitCrafter.Craft,
+    ///     FortuneRollData.GetPrize): for another player they are its own, told with the request, and given back to
+    ///     its game after the roll (audit 2026-10-23). Host alone, or an older peer: the host's, as in the game
+    /// </summary>
+    private static ScopeExit? RollAs(AI_UseCrafter act, AIUseCrafterArgs args)
+    {
+        if (act.crafter is not TraitRollingFortune || args.SeedFortune is not { } seed ||
+            NetSession.Instance.Connection is not ElinNetHost host ||
+            host.ActiveRemoteCharas.FirstOrDefault(p => p.Value == act.owner) is not { Value: not null } peer) {
+            return null;
+        }
+
+        var player = EClass.player;
+        var (ownSeed, ownCoin) = (player.seedFortune, player.luckycoin);
+        player.seedFortune = seed;
+        player.luckycoin = args.LuckyCoin ?? 0;
+
+        return new() {
+            OnExit = () => {
+                // the next round of the same request goes on from here
+                args.SeedFortune = player.seedFortune;
+                args.LuckyCoin = player.luckycoin;
+                host.SendDeltaTo(peer.Key, new FortuneCountersDelta {
+                    SeedFortune = player.seedFortune,
+                    LuckyCoin = player.luckycoin,
+                });
+                (player.seedFortune, player.luckycoin) = (ownSeed, ownCoin);
+            },
+        };
+    }
+
     private static IEnumerable<AIAct.Status> RunRemote(AI_UseCrafter act, AIUseCrafterArgs args)
     {
         var crafter = act.crafter;
@@ -349,7 +381,8 @@ internal static class AIUseCrafterPatch
                     } else {
                         Thing? t;
                         using (MsgRelayContext.RedirectTo(act.owner))
-                        using (RemoteCraft.AsCrafter(act.owner)) {
+                        using (RemoteCraft.AsCrafter(act.owner))
+                        using (RollAs(act, args)) {
                             t = crafter.Craft(act);
                         }
 

@@ -161,6 +161,7 @@ internal static class InvOwnerOnProcessEvent
             EffectState = (int)effect.state,
             EffectRefId = refId,
             Consume = consume,
+            Deepest = effectId == EffectId.Reconstruction ? EClass.player.stats.deepest : null,
         });
     }
 }
