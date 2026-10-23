@@ -31,6 +31,46 @@ public class CardDecayDelta : ElinDelta
         return uids.Count == 0 ? null : new() { Uids = [..uids], Decay = [..decay] };
     }
 
+    /// <summary>
+    ///     Decay of every thing lying on the map (floor, fridges, containers), by uid; the host's hourly simulation of
+    ///     the map is the only one that ages them
+    /// </summary>
+    internal static Dictionary<int, int> SnapshotMap()
+    {
+        var snap = new Dictionary<int, int>();
+        void Walk(Thing thing)
+        {
+            if (thing.decay != 0) {
+                snap[thing.uid] = thing.decay;
+            }
+
+            foreach (var child in thing.things) {
+                Walk(child);
+            }
+        }
+
+        foreach (var thing in EClass._map.things) {
+            Walk(thing);
+        }
+
+        return snap;
+    }
+
+    /// <summary>Only what changed since the snapshot, so an hour costs a few bytes when little goes off</summary>
+    internal static CardDecayDelta? CreateMapChanges(Dictionary<int, int> before)
+    {
+        var uids = new List<int>();
+        var decay = new List<int>();
+        foreach (var (uid, value) in SnapshotMap()) {
+            if (!before.TryGetValue(uid, out var old) || old != value) {
+                uids.Add(uid);
+                decay.Add(value);
+            }
+        }
+
+        return uids.Count == 0 ? null : new() { Uids = [..uids], Decay = [..decay] };
+    }
+
     protected override void OnApply(ElinNetBase net)
     {
         if (net.IsHost || Uids.Length != Decay.Length) {
