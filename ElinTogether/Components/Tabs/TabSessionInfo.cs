@@ -20,6 +20,21 @@ internal class TabSessionInfo : TabEmpBase
 
     private void BuildOverviewSection()
     {
+        // a friend sees the rules of the host's world, read only, as the host last sent them (council 2026-10-23)
+        if (NetSession.Instance.Transport is not ElinNetClient) {
+            return;
+        }
+
+        var card = this.MakeCard();
+        card.Layout.padding = new(20, 20, 8, 10);
+        card.HeaderSmall("emp_ui_rules_title".lang());
+        card.TextSmall("emp_ui_rules_note".lang());
+        foreach (var (label, value) in SettingsTable.RuleLines(SettingsTable.FromRules(NetSession.Instance.Rules))) {
+            card.Text("emp_ui_rules_line".Loc(label, value));
+        }
+        if (SettingsTable.LastNotice is { } notice) {
+            card.TextSmall(notice);
+        }
     }
 
     private void BuildPlayerList()

@@ -393,5 +393,12 @@
     "LangGeneral.emp_ui_cl_sec_depot.text": "共享存档文件夹（可选）",
     "LangGeneral.emp_ui_cl_sec_help.text": "帮助",
     "LangGeneral.emp_ui_cl_desc_ping.text": "按下此键可向其他玩家标记地图上的一处地点。",
-    "LangGeneral.emp_ui_cl_desc_depot.text": "存放世界的地方，让你们任何人都可以当主机。只是一起游玩的话不需要。"
+    "LangGeneral.emp_ui_cl_desc_depot.text": "存放世界的地方，让你们任何人都可以当主机。只是一起游玩的话不需要。",
+    "LangGeneral.emp_ui_rules_title.text": "这个世界的规则",
+    "LangGeneral.emp_ui_rules_note.text": "由主机设定。更改会同时对所有人生效。",
+    "LangGeneral.emp_ui_rules_line.text": "{0}：{1}",
+    "LangGeneral.emp_ui_rules_changed.text": "主机更改了“{0}”：{1} → {2}",
+    "LangGeneral.emp_ui_rules_yes.text": "是",
+    "LangGeneral.emp_ui_rules_no.text": "否",
+    "LangGeneral.emp_ui_rules_custom.text": "自定义"
 }

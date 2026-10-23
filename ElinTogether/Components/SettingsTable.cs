@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using BepInEx.Configuration;
 using ElinTogether.API.SourceValidation;
+using ElinTogether.LangMod;
 using ElinTogether.Net;
 
 namespace ElinTogether.Components;
@@ -309,6 +310,84 @@ internal static class SettingsTable
         } finally {
             _undoing = false;
         }
+    }
+
+    /// <summary>
+    ///     The host's rules as a guest is told them (NetSessionRules, no new message): what it is not told reads null
+    /// </summary>
+    internal static RuleSource FromRules(NetSessionRules r)
+    {
+        var values = new Dictionary<ConfigEntryBase, object> {
+            [EmpConfig.Server.IndependentTravel] = r.AllowIndependentTravel,
+            [EmpConfig.Server.WorldMapTime] = r.WorldMapTime,
+            [EmpConfig.Server.PlayerCombatTime] = r.UsePlayerCombatTime,
+            [EmpConfig.Server.PlayerClock] = r.UsePlayerClock,
+            [EmpConfig.Server.PlayerStepPace] = r.UsePlayerStepPace,
+            [EmpConfig.Server.TurnBasedCombat] = r.UseTurnBasedCombat,
+            [EmpConfig.Server.SharedAverageSpeed] = r.UseSharedSpeed,
+            [EmpConfig.Server.PersonalQuests] = r.UsePersonalQuests,
+            [EmpConfig.Server.PlayerShipping] = r.UsePlayerShipping,
+            [EmpConfig.Server.OncePerPlayer] = r.OncePerPlayer,
+            [EmpConfig.Server.SharedTax] = r.UseSharedTax,
+            [EmpConfig.Server.TownBoards] = r.TownBoards,
+            [EmpConfig.Server.PlayersAtBase] = r.PlayersAtBase,
+            [EmpConfig.Server.GuestBuild] = r.AllowGuestBuild,
+            [EmpConfig.Server.HostManagesBase] = r.HostManagesBase,
+            [EmpConfig.Server.Duels] = r.AllowDuels,
+            [EmpConfig.Server.PlayerKill] = r.AllowPlayerKill,
+            [EmpConfig.Server.PlayerTrade] = r.AllowPlayerTrade,
+            [EmpConfig.Server.WorldCopy] = r.KeepWorldCopy,
+            [EmpConfig.Server.Takeover] = r.AllowTakeover,
+        };
+        return new(e => values.TryGetValue(e, out var v) ? v : null);
+    }
+
+    /// <summary>
+    ///     The visible rows a guest is told, as label and value (the card "This world's rules", read only)
+    /// </summary>
+    internal static List<(string Label, string Value)> RuleLines(RuleSource source)
+    {
+        var lines = new List<(string, string)>();
+        foreach (var row in Rows().Where(r => !r.Advanced)) {
+            if (row.Choice is { } choice) {
+                if (choice.Entries.All(e => source.Raw(e) is null)) {
+                    continue;
+                }
+                var read = choice.Read(source);
+                lines.Add((row.Label, read < 0 ? "emp_ui_rules_custom".lang() : choice.OptionLabel(read)));
+            } else if (row.Entry is { } entry && source.Get(entry) is { } on) {
+                lines.Add((row.Label, (on ? "emp_ui_rules_yes" : "emp_ui_rules_no").lang()));
+            }
+        }
+        return lines;
+    }
+
+    /// <summary>
+    ///     The last change of the host's rules a guest was told, shown on the card
+    /// </summary>
+    internal static string? LastNotice { get; private set; }
+
+    /// <summary>
+    ///     Tells the player, one line per row, what the host changed; before is null for the first rules of a
+    ///     session (the snapshot of the join). True if a line changed
+    /// </summary>
+    internal static bool NoticeChanges(NetSessionRules? before, NetSessionRules after)
+    {
+        if (before is null) {
+            LastNotice = null;
+            return true;
+        }
+
+        var old = RuleLines(FromRules(before)).ToDictionary(l => l.Label, l => l.Value);
+        var changed = false;
+        foreach (var (label, value) in RuleLines(FromRules(after))) {
+            if (old.TryGetValue(label, out var was) && was != value) {
+                LastNotice = "emp_ui_rules_changed".Loc(label, was, value);
+                EmpPop.Information(LastNotice);
+                changed = true;
+            }
+        }
+        return changed;
     }
 
     private static volatile bool _dirty;
