@@ -319,6 +319,14 @@ internal partial class EmpConfig
             "Otherwise the first player who buys it or earns it is the only one who has it, as the game does\n" +
             "游戏每个世界只给一次的东西，每位玩家都能得到一次：商店的限量商品，以及剧情任务和对话的奖励（每位玩家一份）。关闭时只有第一个购买或获得的玩家拥有（与原版相同）");
 
+        Server.TownBoards = config.Bind(
+            "Server",
+            "TownBoards",
+            true,
+            "When the game draws the offers of a town board again, the highest fame among the players on the map opens the offers that need fame, and the difficulty is that of the players present (a guest counts like the host)\n" +
+            "Otherwise the board is drawn for the host's character alone, as the game does\n" +
+            "游戏重新生成城镇告示板时，地图上名声最高的玩家决定需要名声的委托是否出现，难度按在场玩家计算（访客与主机同等对待）。关闭时只按主机的角色生成（与原版相同）");
+
         Server.AutoCombatPerPlayer = config.Bind(
             "Server",
             "AutoCombatPerPlayer",
@@ -503,6 +511,7 @@ internal partial class EmpConfig
         internal static ConfigEntry<bool> SharedTax { get; set; } = null!;
         internal static ConfigEntry<bool> OncePerPlayer { get; set; } = null!;
         internal static ConfigEntry<bool> TownLife { get; set; } = null!;
+        internal static ConfigEntry<bool> TownBoards { get; set; } = null!;
         internal static ConfigEntry<bool> AutoCombatPerPlayer { get; set; } = null!;
         internal static ConfigEntry<bool> SoftRecall { get; set; } = null!;
         internal static ConfigEntry<bool> AutoHost { get; set; } = null!;
