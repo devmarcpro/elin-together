@@ -303,6 +303,14 @@ internal partial class EmpConfig
             "Otherwise on the host's fame, as the game does\n" +
             "每月税金按在线玩家中最高的名声计算，而不总是按主机的名声。关闭时按主机的名声计算（与原版相同）");
 
+        Server.TownLife = config.Bind(
+            "Server",
+            "TownLife",
+            true,
+            "Townspeople chat, greet, gossip and throw stones near every player, not only near the host's screen; the gossip and the stones go by the karma of the player they are about\n" +
+            "Otherwise only near the host and about the host's karma, as the game does in the host's game\n" +
+            "镇民在每位玩家附近都会闲聊、打招呼、议论和扔石头，而不仅在主机的画面附近；议论和石头按所针对玩家自己的业报决定。关闭时只在主机附近，并按主机的业报（与原版相同）");
+
         Server.OncePerPlayer = config.Bind(
             "Server",
             "OncePerPlayer",
@@ -494,6 +502,7 @@ internal partial class EmpConfig
         internal static ConfigEntry<bool> Takeover { get; set; } = null!;
         internal static ConfigEntry<bool> SharedTax { get; set; } = null!;
         internal static ConfigEntry<bool> OncePerPlayer { get; set; } = null!;
+        internal static ConfigEntry<bool> TownLife { get; set; } = null!;
         internal static ConfigEntry<bool> AutoCombatPerPlayer { get; set; } = null!;
         internal static ConfigEntry<bool> SoftRecall { get; set; } = null!;
         internal static ConfigEntry<bool> AutoHost { get; set; } = null!;

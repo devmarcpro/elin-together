@@ -256,10 +256,17 @@ internal partial class ElinNetHost
     /// </summary>
     internal bool IsCriminal(Chara player)
     {
-        var karma = IsZoneSession
+        return KarmaOf(player) < 0 && !player.HasCondition<ConIncognito>();
+    }
+
+    /// <summary>
+    ///     The karma of another player, as its game last told it
+    /// </summary>
+    internal int KarmaOf(Chara player)
+    {
+        return IsZoneSession
             ? _visitorKarma.GetValueOrDefault(player.uid)
             : PlayerStandings.TryGetValue(player.uid, out var standing) && standing.Length >= 2 ? standing[StandingKarma] : 0;
-        return karma < 0 && !player.HasCondition<ConIncognito>();
     }
 
     internal bool HasCriminalHere()
