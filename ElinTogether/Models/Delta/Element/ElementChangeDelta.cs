@@ -16,6 +16,12 @@ public class ElementChangeDelta : ElinDelta
     [Key(2)]
     public required ImmutableArray<int> Value { get; init; }
 
+    internal override string? OnHostPermit(ElinNetHost host, Chara? sender)
+    {
+        // a guest's game reports the skills of its own character only
+        return base.OnHostPermit(host, sender) ?? NotOwned(sender, Owner, "skill owner");
+    }
+
     protected override void OnApply(ElinNetBase net)
     {
         if (Owner.Find() is not Chara { IsPC: false } chara) {

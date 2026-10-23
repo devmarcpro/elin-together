@@ -132,6 +132,7 @@ internal partial class ElinNetHost
             }
 
             delta.OriginPeer = peer.Id;
+            delta.FromPeer = true;
             Delta.AddLocal(delta);
         }
     }

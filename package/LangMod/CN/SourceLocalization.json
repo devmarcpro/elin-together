@@ -317,5 +317,7 @@
     "LangGeneral.emp_ui_sv_cfg_shops_from_every_player.text": "商店按所有在场玩家计算",
     "LangGeneral.emp_ui_sv_desc_shops_from_every_player.text": "商店补货按地图上最强玩家的进货加成计算，特殊货架（婚礼与磁带店、洛伊特商店、异国商人）取决于打开商店的玩家。不勾选时一律按主机的进度（与原版相同）。",
     "LangGeneral.emp_ui_sv_cfg_nearest_spawns.text": "离刷新点最近的玩家决定刷怪",
-    "LangGeneral.emp_ui_sv_desc_nearest_spawns.text": "地图刷怪（传说怪几率、圣诞老人等的敌友、进化怪、大老爹、神殿）取离刷新点最近的玩家的特性，而不总是主机的。不勾选时按主机的特性（与原版相同）。"
+    "LangGeneral.emp_ui_sv_desc_nearest_spawns.text": "地图刷怪（传说怪几率、圣诞老人等的敌友、进化怪、大老爹、神殿）取离刷新点最近的玩家的特性，而不总是主机的。不勾选时按主机的特性（与原版相同）。",
+    "LangGeneral.emp_ui_sv_cfg_enforce_ownership.text": "拒绝对他人角色的操作",
+    "LangGeneral.emp_ui_sv_desc_enforce_ownership.text": "客机游戏发来的、关于既非其角色也非其同伴的角色的数据（任务、伤害、技能、队伍）会被拒绝。不勾选时，仅写入日志。交易、送给其他玩家的礼物或对自己同伴的命令永远不会被拒绝。"
 }

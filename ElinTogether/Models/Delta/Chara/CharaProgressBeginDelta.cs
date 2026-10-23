@@ -21,6 +21,12 @@ public class CharaProgressBeginDelta : ElinDelta
     [Key(3)]
     public required int ActId { get; init; }
 
+    internal override string? OnHostPermit(ElinNetHost host, Chara? sender)
+    {
+        // (it moves the character, Stub_Move)
+        return base.OnHostPermit(host, sender) ?? NotOwned(sender, Owner, "progress owner");
+    }
+
     protected override void OnApply(ElinNetBase net)
     {
         if (Owner.Find() is not Chara { IsPC: false } chara) {

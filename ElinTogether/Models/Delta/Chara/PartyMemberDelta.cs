@@ -19,6 +19,12 @@ public class PartyMemberDelta : ElinDelta
 
     internal Chara? CaptureSource { get; init; }
 
+    internal override string? OnHostPermit(ElinNetHost host, Chara? sender)
+    {
+        // one sends away its own companions only
+        return base.OnHostPermit(host, sender) ?? NotOwned(sender, Member, "member");
+    }
+
     protected override void OnApply(ElinNetBase net)
     {
         if (net.IsHost) {

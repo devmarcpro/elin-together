@@ -33,6 +33,7 @@ internal class TabServerConfiguration : TabEmpBase
             ("takeover", EmpConfig.Server.Takeover),
             ("same_game_version", EmpConfig.Server.SameGameVersion),
             ("publish_mods", EmpConfig.Server.PublishMods),
+            ("enforce_ownership", EmpConfig.Server.EnforceOwnership),
         ]);
         yield return ("own", [
             ("personal_quests", EmpConfig.Server.PersonalQuests),

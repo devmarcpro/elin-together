@@ -43,6 +43,12 @@ public class CharaReviveDelta : ElinDelta
         return player.stats.days - born <= 90 && !game.principal.disableDeathPenaltyProtection;
     }
 
+    internal override string? OnHostPermit(ElinNetHost host, Chara? sender)
+    {
+        // a guest asks for its own character only, the revive of anything else is the host's (CharaReviveEvent)
+        return base.OnHostPermit(host, sender) ?? NotOwned(sender, Owner, "revived");
+    }
+
     protected override void OnApply(ElinNetBase net)
     {
         if (Owner.Find() is not Chara chara) {

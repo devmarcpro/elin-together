@@ -61,6 +61,12 @@ public class CharaTickConditionDelta : ElinDelta
         _step.Clear();
     }
 
+    internal override string? OnHostPermit(ElinNetHost host, Chara? sender)
+    {
+        // its own character, its companions on a world map step (RemoteTravelRegionPatch)
+        return base.OnHostPermit(host, sender) ?? NotOwned(sender, Owner, "conditions of");
+    }
+
     protected override void OnApply(ElinNetBase net)
     {
         if (Owner.Find() is not Chara { IsPC: false } chara) {

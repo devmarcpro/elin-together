@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using ElinTogether.Helper;
 using ElinTogether.Net;
 using ElinTogether.Patches;
 using MessagePack;
@@ -173,6 +176,9 @@ public abstract class ElinDelta : EClass
 
     internal int DeferCount { get; set; }
 
+    // came in from a guest (OriginPeer alone cannot say it: 0 is also a peer id)
+    internal bool FromPeer { get; set; }
+
     protected virtual void OnApply(ElinNetBase net)
     {
     }
@@ -182,8 +188,75 @@ public abstract class ElinDelta : EClass
         return true;
     }
 
+    /// <summary>
+    ///     On the host, for a delta a guest sent: why that guest may not do this (the character it is about is
+    ///     neither its own nor one of its companions), null when it may. Council 2 on network trust (audit
+    ///     2026-10-23): a reason is only logged ("would have refused") and the delta applied as before, unless the
+    ///     host turned EnforceOwnership on. Never a kick: a lagging game says stale things too. The default: the
+    ///     sender plays a character here
+    /// </summary>
+    internal virtual string? OnHostPermit(ElinNetHost host, Chara? sender)
+    {
+        return sender is null ? "the sender has no character" : null;
+    }
+
+    /// <summary>
+    ///     The reason to give when <paramref name="card" /> is a character that is neither the sender nor one of
+    ///     its companions or summons. A card not found is allowed: the delta does nothing with it anyway
+    /// </summary>
+    protected static string? NotOwned(Chara? sender, RemoteCard? card, string what)
+    {
+        return sender is not null && card?.Find() is Chara target && !OwnsOrCompanion(sender, target)
+            ? $"{what} {target.uid} is not the sender's"
+            : null;
+    }
+
+    /// <summary>
+    ///     The target is the sender itself, its companion, or the summon of one of them
+    /// </summary>
+    internal static bool OwnsOrCompanion(Chara sender, Chara target)
+    {
+        return target.uid == sender.uid || PlayerKarma.PlayerBehind(target)?.uid == sender.uid;
+    }
+
+    // delta type and peer -> when it was last logged, so a stream of the same delta is one line per window
+    private static readonly Dictionary<(Type, int), float> _permitLogged = [];
+    private const float PermitLogWindow = 10f;
+
+    /// <returns>false when the delta is refused (only with EnforceOwnership on)</returns>
+    private bool HostPermits(ElinNetHost host)
+    {
+        string? reason;
+        try {
+            reason = OnHostPermit(host, host.PlayerChara(OriginPeer));
+        } catch (Exception ex) {
+            // a check that fails says nothing: the delta goes on as it did before there were checks
+            EmpLog.Debug(ex, "Permit check of {DeltaType} threw", GetType().Name);
+            return true;
+        }
+
+        if (reason is null) {
+            return true;
+        }
+
+        var enforce = EmpConfig.Server.EnforceOwnership.Value;
+        var key = (GetType(), OriginPeer);
+        var now = UnityEngine.Time.unscaledTime;
+        if (!_permitLogged.TryGetValue(key, out var last) || now - last >= PermitLogWindow) {
+            _permitLogged[key] = now;
+            EmpLog.Warning(enforce ? "Refused {DeltaType} from peer {Peer}: {Reason}" : "Would have refused {DeltaType} from peer {Peer}: {Reason}",
+                GetType().Name, OriginPeer, reason);
+        }
+
+        return !enforce;
+    }
+
     public void Apply(ElinNetBase net)
     {
+        if (FromPeer && net is ElinNetHost permitHost && !HostPermits(permitHost)) {
+            return;
+        }
+
         _applyDepth++;
         // what the host does here, it does for the player who sent it: an ally made on the way (a monster
         // ball, a mount, a tamed animal) follows that player, not the host

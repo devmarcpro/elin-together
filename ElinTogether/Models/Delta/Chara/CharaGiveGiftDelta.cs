@@ -23,6 +23,13 @@ public class CharaGiveGiftDelta : ElinDelta
     /// </summary>
     internal static bool IsReplaying { get; private set; }
 
+    internal override string? OnHostPermit(ElinNetHost host, Chara? sender)
+    {
+        // to anyone (another player, its companion, a resident), but from the sender and out of what it holds
+        return base.OnHostPermit(host, sender) ?? NotOwned(sender, From, "giver") ??
+               (Thing.Find()?.GetRootCard() is Chara holder && !OwnsOrCompanion(sender!, holder) ? $"the gift is held by {holder.uid}" : null);
+    }
+
     protected override void OnApply(ElinNetBase net)
     {
         if (From.Find() is not Chara from || To.Find() is not Chara to || Thing.Find() is not Thing thing) {
