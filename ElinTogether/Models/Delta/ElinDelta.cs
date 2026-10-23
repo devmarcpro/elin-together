@@ -146,6 +146,7 @@ namespace ElinTogether.Models;
 [Union(861, typeof(PlaylistDelta))]
 [Union(862, typeof(PlayerTitleDelta))]
 [Union(863, typeof(TrolleyDelta))]
+[Union(871, typeof(CardItemStateDelta))]
 // Act
 [Union(900, typeof(ActThrowDelta))]
 // Element

@@ -782,7 +782,8 @@ internal static class NetDesync
             }
 
             unchecked {
-                mix += Mix(thing.uid, thing.Num, thing.c_equippedSlot != 0 ? 1 : 0, 0);
+                mix += Mix(thing.uid, thing.Num, thing.c_equippedSlot != 0 ? 1 : 0,
+                    ((int)thing.blessedState * 64 + thing.encLV) * 2 + (thing.isAcidproof ? 1 : 0));
             }
         }
 
