@@ -57,7 +57,7 @@ public class CharaSettingDelta : ElinDelta
     {
         // a resident (no owner) is anyone's to talk to; another player's companion takes its orders from that player
         return NoCharacter(sender) ??
-               (Owner.Find() is Chara chara && !UntaggedCompanion(chara) && CompanionHelper.OwnerOf(chara) is { } owner && owner.uid != sender!.uid
+               (Owner.Find() is Chara chara && CompanionHelper.OwnerOf(chara) is { } owner && owner.uid != sender!.uid
                    ? $"{chara.uid} follows {owner.uid}"
                    : null);
     }

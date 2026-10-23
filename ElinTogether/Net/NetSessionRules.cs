@@ -199,7 +199,7 @@ public class NetSessionRules
 
     /// <summary>
     ///     Audit 2026-10-23: raids, the lucky month and the days with a player count every player on the base map,
-    ///     not only the one whose game runs it, see Patches/PlayersAtBase.cs. Off: the game's own "the player"
+    ///     not only the one whose game runs it, see Patches/BasePlayersPatch.cs. Off: the game's own "the player"
     /// </summary>
     [Key(26)]
     public bool PlayersAtBase { get; set; } = true;

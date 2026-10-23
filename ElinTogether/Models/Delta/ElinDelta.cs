@@ -215,16 +215,6 @@ public abstract class ElinDelta : EClass
     }
 
     /// <summary>
-    ///     A companion with no owner tag (an older world, a path that did not tag it) belongs to whoever the party's
-    ///     leader is in this game, the host: not known, so allowed (review 2026-10-23)
-    /// </summary>
-    internal static bool UntaggedCompanion(Chara chara)
-    {
-        return !chara.IsPC && !chara.GetBool("remote_chara") && chara.CompanionOwnerUid == 0 &&
-               chara.party is { } party && party.members.Contains(chara);
-    }
-
-    /// <summary>
     ///     The reason to give when <paramref name="card" /> is a character that is neither the sender nor one of
     ///     its companions or summons. A card not found is allowed: the delta does nothing with it anyway
     /// </summary>
@@ -240,8 +230,9 @@ public abstract class ElinDelta : EClass
     /// </summary>
     internal static bool OwnsOrCompanion(Chara sender, Chara target)
     {
-        return target.uid == sender.uid || UntaggedCompanion(target) ||
-               PlayerKarma.PlayerBehind(target)?.uid == sender.uid;
+        // (an untagged companion reads as the party leader's, the host's: the host's own pets are never tagged, and
+        // letting untagged ones through let a guest act on them; bench permit_suite 2026-10-23)
+        return target.uid == sender.uid || PlayerKarma.PlayerBehind(target)?.uid == sender.uid;
     }
 
     // delta type and peer -> when it was last logged, so a stream of the same delta is one line per window
