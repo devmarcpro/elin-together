@@ -77,6 +77,12 @@ internal partial class ElinNetHost
             return;
         }
 
+        // a player still loading the host's world map (registered, not settled yet) would get the catch-up while its
+        // world copy is being replaced: it would never read who travelled (found 2026-10-24, host travels, guest joins)
+        if (Socket.Peers.Any(p => ActiveRemoteCharas.ContainsKey(p.Id) && !_departed.Contains(p.Id) && !_settled.Contains(p.Id))) {
+            return;
+        }
+
         var players = new List<(int Uid, int Peer)> { (pc.uid, WorldTravelClock.Host) };
         foreach (var peer in Socket.Peers) {
             if (PlayerUidOf(peer.Id) is not 0 and var uid) {
