@@ -27,6 +27,13 @@ internal static class TownLifePatch
     // the NPC of this idle step, when it talks only because another player is near it
     private static Card? _speaker;
 
+    // the NPC running this idle step (the AI_Idle's owner), for the priest and the boss
+    private static Chara? _owner;
+
+    private static readonly FieldInfo? IdleOfStep = AccessTools.Field(
+        AccessTools.EnumeratorMoveNext(AccessTools.Method(typeof(AI_Idle), nameof(AI_Idle.Run)))?.DeclaringType,
+        "<>4__this");
+
     private static ElinNetHost? Host =>
         NetSession.Instance.Connection is ElinNetHost host && EmpConfig.Server.TownLife.Value && NetCompany.HasCompany
             ? host
@@ -80,19 +87,108 @@ internal static class TownLifePatch
 
     [HarmonyPrefix]
     [HarmonyPatch(typeof(AI_Idle), nameof(AI_Idle.Run), MethodType.Enumerator)]
-    internal static void OnStep(out (Chara?, Card?) __state)
+    internal static void OnStep(object __instance, out (Chara?, Card?, Chara?) __state)
     {
-        __state = (_target, _speaker);
+        __state = (_target, _speaker, _owner);
         _target = null;
         _speaker = null;
+        // only with company (Host): alone, the step never reads it
+        _owner = Host is not null && IdleOfStep?.GetValue(__instance) is AI_Idle idle ? idle.owner : null;
     }
 
     // in a finalizer: nothing of a step leaks into the next one, even if the game's own code throws
     [HarmonyFinalizer]
     [HarmonyPatch(typeof(AI_Idle), nameof(AI_Idle.Run), MethodType.Enumerator)]
-    internal static void OnStepEnd((Chara?, Card?) __state)
+    internal static void OnStepEnd((Chara?, Card?, Chara?) __state)
     {
-        (_target, _speaker) = __state;
+        (_target, _speaker, _owner) = __state;
+    }
+
+    /// <summary>
+    ///     A priest heals the player beside it and an idle nefia boss goes for a player, not only the host's character:
+    ///     the game reads EClass.pc there. Alone, both helpers answer EClass.pc
+    /// </summary>
+    [HarmonyTranspiler]
+    [HarmonyPatch(typeof(AI_Idle), nameof(AI_Idle.Run), MethodType.Enumerator)]
+    internal static IEnumerable<CodeInstruction> OnRunTargets(IEnumerable<CodeInstruction> instructions)
+    {
+        var codes = new List<CodeInstruction>(instructions);
+        var getPc = AccessTools.PropertyGetter(typeof(EClass), nameof(EClass.pc));
+        var setEnemy = AccessTools.Method(typeof(Chara), nameof(Chara.SetEnemy));
+        var start = codes.FindIndex(c => c.opcode == OpCodes.Ldstr && c.operand as string == "priest");
+        var talks = codes.FindAll(c => c.opcode == OpCodes.Ldstr && c.operand as string == "no_problem");
+        var boss = codes.FindAll(c => c.Calls(getPc) && codes.IndexOf(c) is var at && at + 1 < codes.Count &&
+                                      codes[at + 1].Calls(setEnemy));
+        if (start < 0 || talks.Count != 2 || boss.Count != 1) {
+            EmpLog.Warning("Town life: AI_Idle priest/boss reads not found as expected: left as the game has it");
+            return codes;
+        }
+
+        var end = codes.IndexOf(talks[1]);
+        for (var i = start; i < end; i++) {
+            if (codes[i].Calls(getPc)) {
+                codes[i].operand = AccessTools.Method(typeof(TownLifePatch), nameof(Patient));
+            }
+        }
+
+        boss[0].operand = AccessTools.Method(typeof(TownLifePatch), nameof(BossTarget));
+        return codes;
+    }
+
+    /// <summary>
+    ///     The player a priest looks after: the nearest wounded one within 4 tiles, else the nearest within 4, else the
+    ///     host's character (out of reach, as the game's own check)
+    /// </summary>
+    internal static Chara Patient()
+    {
+        if (_owner is null || Host is not { } host) {
+            return EClass.pc;
+        }
+
+        Chara? best = null;
+        var bestWounded = false;
+        foreach (var chara in Players(host)) {
+            var wounded = chara.hp < chara.MaxHP;
+            if (_owner.Dist(chara) > 4 || (best is not null && (bestWounded && !wounded ||
+                                                                 bestWounded == wounded &&
+                                                                 _owner.Dist(chara) >= _owner.Dist(best)))) {
+                continue;
+            }
+
+            best = chara;
+            bestWounded = wounded;
+        }
+
+        return best ?? EClass.pc;
+    }
+
+    /// <summary>
+    ///     The idle boss's prey: the nearest player of the map
+    /// </summary>
+    internal static Chara BossTarget()
+    {
+        if (_owner is null || Host is not { } host) {
+            return EClass.pc;
+        }
+
+        var nearest = EClass.pc;
+        foreach (var chara in Players(host)) {
+            if (_owner.Dist(chara) < _owner.Dist(nearest)) {
+                nearest = chara;
+            }
+        }
+
+        return nearest;
+    }
+
+    private static IEnumerable<Chara> Players(ElinNetHost host)
+    {
+        yield return EClass.pc;
+        foreach (var chara in host.ActiveRemoteCharas.Values) {
+            if (chara.IsAliveInCurrentZone) {
+                yield return chara;
+            }
+        }
     }
 
     /// <summary>
