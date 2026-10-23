@@ -205,7 +205,12 @@ internal static class WorldDateAdvanceEvent
         }
 
         if (_tripOf is not null) {
-            if (Time.realtimeSinceStartup - _tripAt < TripEndSeconds) {
+            // a world copy being loaded (a player coming back to the host map) has no log to say it in yet: the
+            // line waits for it instead of being dropped (the guest never read that the host travelled, 2026-10-24)
+            // (three minutes at most: a player who went back to the title does not hear it in its next game)
+            var waited = Time.realtimeSinceStartup - _tripAt;
+            if (waited < TripEndSeconds || waited < 180f && (!EClass.core.IsGameStarted ||
+                    EClass.game is not { isLoading: false } || EClass.scene.mode != Scene.Mode.Zone)) {
                 Pump();
             } else {
                 SayTrip();
