@@ -154,6 +154,7 @@ namespace ElinTogether.Models;
 [Union(900, typeof(ActThrowDelta))]
 // Counters of the player
 [Union(910, typeof(FortuneCountersDelta))]
+[Union(920, typeof(ThrowGrowthDelta))]
 // Element
 [Union(1000, typeof(ElementChangeDelta))]
 public abstract class ElinDelta : EClass
