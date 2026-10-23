@@ -80,4 +80,32 @@ internal static class DuelFoePatch
             __result = false;
         }
     }
+
+    /// <summary>
+    ///     Between the two duellists, asked one about the other: what bolts, balls and breaths ask before they spare a
+    ///     friend (Control Magic) or hurt no friend at all. In the host's game the guest is of its party: the host's
+    ///     spells went around the guest (duel_suite D8, 2026-10-23)
+    /// </summary>
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(Chara), nameof(Chara.IsFriendOrAbove), typeof(Chara))]
+    internal static void OnIsFriendOf(Chara __instance, Chara c, ref bool __result)
+    {
+        if (__result && AreFoes(__instance, c)) {
+            __result = false;
+        }
+    }
+
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(Chara), nameof(Chara.IsHostile), typeof(Chara))]
+    internal static void OnIsHostileTo(Chara __instance, Chara c, ref bool __result)
+    {
+        if (!__result && AreFoes(__instance, c)) {
+            __result = true;
+        }
+    }
+
+    private static bool AreFoes(Chara one, Chara? other)
+    {
+        return other is not null && ((one.IsPC && PlayerDuel.IsFoe(other)) || (other.IsPC && PlayerDuel.IsFoe(one)));
+    }
 }
