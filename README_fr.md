@@ -133,21 +133,21 @@ Il faut Elin sur Steam, sur le canal **Nightly** (Steam → clic droit sur Elin 
 [Elin Together](https://steamcommunity.com/sharedfiles/filedetails/?id=3773298709) sur le Workshop l'amène avec
 lui. Lancez Elin une fois après l'abonnement, puis fermez-le.
 
-1. Téléchargez `ElinTogether-independance.zip` sur la
+1. Téléchargez `ElinTogether-independence.zip` sur la
    [page des versions](https://github.com/jeanfreger/elin-together-independence/releases).
-2. Décompressez tout le dossier et lancez `Installer.bat`. Il trouve Elin, copie le mod dans
+2. Décompressez tout le dossier et lancez `Install.bat`. Il trouve Elin, copie le mod dans
    `Elin\Package\Mod_ElinTogether` et remplace la version Workshop par celle-ci dans la liste de mods du jeu.
 3. Lancez Elin par Steam.
 
-`Desinstaller.bat` remet la version Workshop ; rien n'est supprimé, l'ancien état est gardé dans
-`Elin\_ElinTogether_sauvegarde`. La notice `LISEZMOI.txt` du zip explique tout.
+`Uninstall.bat` remet la version Workshop ; rien n'est supprimé, l'ancien état est gardé dans
+`Elin\_ElinTogether_sauvegarde`. La notice `README.txt` du zip explique tout.
 
 
 **Tous les joueurs doivent installer la même version.** Ce fork ne se connecte pas à la version du Workshop, ni à
 une autre version de lui-même : un joueur sur une autre version est refusé, avec un message qui nomme les deux
 versions. Chaque version est compilée pour une version d'Elin, écrite dans son titre.
 
-**Mettre à jour** : téléchargez le nouveau zip et relancez `Installer.bat`. Vos réglages sont gardés.
+**Mettre à jour** : téléchargez le nouveau zip et relancez `Install.bat`. Vos réglages sont gardés.
 
 ## Votre première partie ensemble
 
@@ -223,7 +223,7 @@ supprimez-le et créez-en un nouveau. Le dépôt garde aussi `modlist.txt`, les 
 
 **Serveur dédié.** `ElinTogetherServer.exe` a un second mode, « With Elin on this PC: the world runs all the
 time » : Elin tourne derrière, sans fenêtre, et les joueurs utilisent *Join by address* (`adresse:55556`, UDP).
-`Serveur.bat` fait la même chose avec une fenêtre de jeu. Windows seulement.
+`Server.bat` fait la même chose avec une fenêtre de jeu. Windows seulement.
 
 ## Les parties avec mods
 
@@ -470,7 +470,7 @@ recommander à n'importe qui (état au 12 octobre 2026).
 **3. L'installation**
 
 - Le mod demande le canal **Nightly** d'Elin, et chaque version est compilée pour une version précise du jeu.
-- Un zip et un `Installer.bat`, en français, qui remplace la version Workshop du mod d'origine. Pas de page Workshop.
+- Un zip et un `Install.bat`, en français, qui remplace la version Workshop du mod d'origine. Pas de page Workshop.
 - Tous les joueurs doivent avoir exactement la même version.
 
 **4. Ce qui manque**

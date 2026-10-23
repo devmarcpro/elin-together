@@ -127,12 +127,12 @@ Launch Elin once after subscribing, then close it.
 
 1. Download `ElinTogether-independence.zip` from the
    [Releases page](https://github.com/jeanfreger/elin-together-independence/releases).
-2. Unzip the whole folder and run `Installer.bat`. It finds Elin, copies the mod into `Elin\Package\Mod_ElinTogether`
+2. Unzip the whole folder and run `Install.bat`. It finds Elin, copies the mod into `Elin\Package\Mod_ElinTogether`
    and switches from the Workshop version to this one in the game's mod list.
 3. Launch Elin through Steam.
 
-`Desinstaller.bat` switches back to the Workshop version; nothing is deleted, the former state is kept in
-`Elin\_ElinTogether_sauvegarde`. The installer and its notes (`LISEZMOI.txt`) are in French; the steps are also on
+`Uninstall.bat` switches back to the Workshop version; nothing is deleted, the former state is kept in
+`Elin\_ElinTogether_sauvegarde`. The installer and its notes (`README.txt`) are in English (the notes also in Chinese); the steps are also on
 each release page.
 
 
@@ -140,7 +140,7 @@ each release page.
 version of itself: a player on another version is refused with a message that names both versions. Each release is
 built for one Elin build, named in its title.
 
-**Updating**: download the new zip and run `Installer.bat` again. Your settings are kept.
+**Updating**: download the new zip and run `Install.bat` again. Your settings are kept.
 
 ## Your first game together
 
@@ -211,7 +211,7 @@ copy of the world every 5 minutes. Delete it and create a new one when it gets l
 `modlist.txt`, the mods of the world.
 
 **Dedicated server.** `ElinTogetherServer.exe` has a second mode, "With Elin on this PC: the world runs all the
-time": Elin runs behind without a window and the players use *Join by address* (`host:55556`, UDP). `Serveur.bat`
+time": Elin runs behind without a window and the players use *Join by address* (`host:55556`, UDP). `Server.bat`
 does the same with a game window. Windows only.
 
 ## Games with mods
@@ -455,7 +455,7 @@ could recommend to anyone (as of 12 October 2026).
 **3. Installing**
 
 - The mod needs Elin's **Nightly** channel, and each release is built for one build of the game.
-- A zip and an `Installer.bat`, in French, which replaces the Workshop version of the original mod. No Workshop page.
+- A zip and an `Install.bat`, in English, which replaces the Workshop version of the original mod. No Workshop page.
 - Every player must have exactly the same version.
 
 **4. Missing pieces**

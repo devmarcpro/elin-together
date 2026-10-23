@@ -68,13 +68,13 @@
 
 需要 Steam 上的 Elin，并切换到 **Nightly** 分支（Steam → 右键 Elin → 属性 → 测试版），以及 [YK Framework](https://steamcommunity.com/sharedfiles/filedetails/?id=3400020753) 模组。在创意工坊订阅 [Elin Together](https://steamcommunity.com/sharedfiles/filedetails/?id=3773298709) 会一并带上它。订阅后启动一次 Elin，然后关闭。
 
-1. 从 [Releases 页面](https://github.com/jeanfreger/elin-together-independence/releases)下载 `ElinTogether-independance.zip`。
-2. 解压整个文件夹并运行 `Installer.bat`。它会找到 Elin、复制 Mod，并把创意工坊版本切换成本版本。
+1. 从 [Releases 页面](https://github.com/jeanfreger/elin-together-independence/releases)下载 `ElinTogether-independence.zip`。
+2. 解压整个文件夹并运行 `Install.bat`。它会找到 Elin、复制 Mod，并把创意工坊版本切换成本版本。
 3. 通过 Steam 启动 Elin。
 
-`Desinstaller.bat` 可以切换回创意工坊版本；不会删除任何东西。安装程序和随附说明（`LISEZMOI.txt`）是法语的；每个版本页面上也有这些步骤。
+`Uninstall.bat` 可以切换回创意工坊版本；不会删除任何东西。安装程序和随附说明（`README.txt`）是英文的（说明也有中文）；每个版本页面上也有这些步骤。
 
-**在 Mac 上**（在 CrossOver、Whisky 或 Wine 中运行 Elin）：下载 `ElinTogether-independance-mac.zip`，解压，打开终端，输入 `bash` 和一个空格，把 `Installer-Mac.command` 拖进窗口并按回车。Mod 是同一个。尚未在真正的 Mac 上试过。
+**在 Mac 上**（在 CrossOver、Whisky 或 Wine 中运行 Elin）：下载 `ElinTogether-independence-mac.zip`，解压，打开终端，输入 `bash` 和一个空格，把 `Installer-Mac.command` 拖进窗口并按回车。Mod 是同一个。尚未在真正的 Mac 上试过。
 
 **所有玩家必须安装同一个版本。** 本分支不会连接创意工坊上的版本，也不会连接它自己的其他版本。每个版本针对一个 Elin 版本构建，写在版本标题里。
 
@@ -111,7 +111,7 @@
 
 密钥以明文保存在每台电脑上 Mod 的设置文件里；它只能打开这一个仓库，可以一键撤销。压缩后超过 20 MB 的世界会被拒绝。GitHub 会保留世界的每个版本：这是免费的备份，也意味着仓库会随每次存档变大——变得很大时，删除它并新建一个。仓库里还保存着 `modlist.txt`，即这个世界的模组列表。
 
-**专用服务器。** `ElinTogetherServer.exe` 还有第二种模式「With Elin on this PC: the world runs all the time」：Elin 在后台无窗口运行，玩家使用「按地址加入」（`地址:55556`，UDP）。`Serveur.bat` 做同样的事，但带游戏窗口。仅限 Windows。
+**专用服务器。** `ElinTogetherServer.exe` 还有第二种模式「With Elin on this PC: the world runs all the time」：Elin 在后台无窗口运行，玩家使用「按地址加入」（`地址:55556`，UDP）。`Server.bat` 做同样的事，但带游戏窗口。仅限 Windows。
 
 ## 模组
 

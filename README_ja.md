@@ -68,13 +68,13 @@
 
 Steam の Elin を **Nightly** ブランチ（Steam → Elin を右クリック → プロパティ → ベータ）にして、[YK Framework](https://steamcommunity.com/sharedfiles/filedetails/?id=3400020753) を入れてください。ワークショップで [Elin Together](https://steamcommunity.com/sharedfiles/filedetails/?id=3773298709) をサブスクライブすると、一緒に入ります。サブスクライブ後に Elin を一度起動して、閉じてください。
 
-1. [Releases ページ](https://github.com/jeanfreger/elin-together-independence/releases)から `ElinTogether-independance.zip` をダウンロードします。
-2. フォルダごと解凍して `Installer.bat` を実行します。Elin を探して MOD をコピーし、ワークショップ版からこの版に切り替えます。
+1. [Releases ページ](https://github.com/jeanfreger/elin-together-independence/releases)から `ElinTogether-independence.zip` をダウンロードします。
+2. フォルダごと解凍して `Install.bat` を実行します。Elin を探して MOD をコピーし、ワークショップ版からこの版に切り替えます。
 3. Steam から Elin を起動します。
 
-`Desinstaller.bat` でワークショップ版に戻せます。何も削除されません。インストーラーと付属の説明（`LISEZMOI.txt`）はフランス語です。手順は各リリースのページにもあります。
+`Uninstall.bat` でワークショップ版に戻せます。何も削除されません。インストーラーと付属の説明（`README.txt`）は英語です（説明には中国語もあります）。手順は各リリースのページにもあります。
 
-**Mac の場合**（CrossOver、Whisky、Wine で動かす Elin）：`ElinTogether-independance-mac.zip` をダウンロードして解凍し、ターミナルを開いて `bash` とスペースを入力し、`Installer-Mac.command` をウィンドウにドラッグして Enter を押します。MOD は同じものです。本物の Mac ではまだ試していません。
+**Mac の場合**（CrossOver、Whisky、Wine で動かす Elin）：`ElinTogether-independence-mac.zip` をダウンロードして解凍し、ターミナルを開いて `bash` とスペースを入力し、`Installer-Mac.command` をウィンドウにドラッグして Enter を押します。MOD は同じものです。本物の Mac ではまだ試していません。
 
 **全員が同じリリースをインストールしてください。** このフォークはワークショップ版とは接続できず、このフォークの別のバージョンとも接続できません。各リリースは Elin の特定のバージョン向けにビルドされていて、リリースのタイトルに書いてあります。
 
@@ -111,7 +111,7 @@ Steam の Elin を **Nightly** ブランチ（Steam → Elin を右クリック 
 
 キーは、各 PC の MOD の設定ファイルに平文で保存されます。開けるのはそのリポジトリだけで、ワンクリックで無効にできます。zip で 20 MB を超えるワールドは拒否されます。GitHub はワールドのすべてのバージョンを残します。これは無料のバックアップになりますが、セーブのたびにリポジトリが大きくなるということでもあります。大きくなったら、削除して新しく作り直してください。デポには、ワールドの MOD リスト `modlist.txt` も保管されます。
 
-**専用サーバー。** `ElinTogetherServer.exe` には 2 つ目のモード「With Elin on this PC: the world runs all the time」があります。Elin がウィンドウなしで裏で動き、プレイヤーは「アドレスで参加」（`アドレス:55556`、UDP）を使います。`Serveur.bat` は、ゲームウィンドウ付きで同じことをします。Windows のみ。
+**専用サーバー。** `ElinTogetherServer.exe` には 2 つ目のモード「With Elin on this PC: the world runs all the time」があります。Elin がウィンドウなしで裏で動き、プレイヤーは「アドレスで参加」（`アドレス:55556`、UDP）を使います。`Server.bat` は、ゲームウィンドウ付きで同じことをします。Windows のみ。
 
 ## MOD
 
