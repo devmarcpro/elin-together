@@ -44,6 +44,32 @@ internal partial class ElinNetHost
     }
 
     /// <summary>
+    ///     The player leaves this map on its own: what it summoned goes with it, as the game carries the minions of
+    ///     a player leaving a map over to the next one (Chara.MoveZone, player.listCarryoverMap). Its own game
+    ///     does that in its copy; left here too, the same minion stood on two maps at once (audit 2026-10-23)
+    /// </summary>
+    private void TakeMinionsAlong(Chara player)
+    {
+        if (!SummonsFollowMaster.Enabled || _map is null || _zone is null) {
+            return;
+        }
+
+        foreach (var minion in _map.charas.Where(c => SummonsFollowMaster.IsCarriedMinion(c, player)).ToList()) {
+            minion.SetNoGoal();
+            _zone.RemoveCard(minion);
+            CardCache.Remove(minion.uid);
+
+            // its master keeps it, see CharaRemoveFromGameDelta
+            Delta.AddRemote(new CharaRemoveFromGameDelta {
+                Owner = minion,
+            });
+
+            EmpLog.Debug("Minion {Uid} leaves with player {OwnerUid}",
+                minion.uid, player.uid);
+        }
+    }
+
+    /// <summary>
     ///     The player stands on this map again, its companions join it
     /// </summary>
     /// <param name="keepSpot">back on the map they never really left: each where it stood, not around the player</param>

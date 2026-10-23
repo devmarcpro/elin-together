@@ -19,8 +19,10 @@ public class CharaRemoveFromGameDelta : ElinDelta
             return;
         }
 
-        // the host takes a departing player (and its companions) off its map and tells everyone, that player included
-        if (Owner.Find() is not Chara chara || chara.IsPC || chara.IsCompanionOf(pc)) {
+        // the host takes a departing player (and its companions, and what it summoned) off its map and tells
+        // everyone, that player included
+        if (Owner.Find() is not Chara chara || chara.IsPC || chara.IsCompanionOf(pc) ||
+            (chara.c_uidMaster != 0 && chara.c_uidMaster == pc.uid)) {
             return;
         }
 

@@ -321,5 +321,9 @@
     "LangGeneral.emp_ui_sv_cfg_enforce_ownership.text": "拒绝对他人角色的操作",
     "LangGeneral.emp_ui_sv_desc_enforce_ownership.text": "客机游戏发来的、关于既非其角色也非其同伴的角色的数据（任务、伤害、技能、队伍）会被拒绝。不勾选时，仅写入日志。交易、送给其他玩家的礼物或对自己同伴的命令永远不会被拒绝。",
     "LangGeneral.emp_ui_sv_cfg_activities_from_actor.text": "酒桶和母乳取决于相关玩家",
-    "LangGeneral.emp_ui_sv_desc_activities_from_actor.text": "开启：酒桶酿出的酒按离酒桶最近的玩家的技能制作，幼宠喝母乳时按其主人的驯兽技能成长，主人获得经验。关闭：都取决于主机的角色，与单人游戏相同"
+    "LangGeneral.emp_ui_sv_desc_activities_from_actor.text": "开启：酒桶酿出的酒按离酒桶最近的玩家的技能制作，幼宠喝母乳时按其主人的驯兽技能成长，主人获得经验。关闭：都取决于主机的角色，与单人游戏相同",
+    "LangGeneral.emp_ui_sv_cfg_summons_follow_master.text": "召唤物跟随召唤者",
+    "LangGeneral.emp_ui_sv_desc_summons_follow_master.text": "玩家召唤的生物去召唤者去的地方，无论是与主机同行还是独自行动。关闭：主机离开地图时其他玩家的召唤物会消失",
+    "LangGeneral.emp_ui_sv_cfg_players_at_base.text": "据点计算所有玩家",
+    "LangGeneral.emp_ui_sv_desc_players_at_base.text": "只要据点地图上有玩家醒着就会有袭击，幸运月看任一玩家的神，与玩家共处的天数在任何玩家所在处都会计算。关闭：只计算运行据点地图的那位玩家"
 }

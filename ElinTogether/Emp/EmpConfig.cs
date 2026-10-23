@@ -397,6 +397,22 @@ internal partial class EmpConfig
             "The night only passes for the world when every player is asleep at the same time. Otherwise everyone waits for everyone\n" +
             "玩家上床后立刻为自己睡觉，不用等别人；只有所有玩家同时睡着时，世界才会过夜。关闭时所有人互相等待");
 
+        Server.SummonsFollowMaster = config.Bind(
+            "Server",
+            "SummonsFollowMaster",
+            true,
+            "What a player summoned goes where that player goes: along with the host, or away on its own\n" +
+            "Otherwise, as in the game for the host alone, the summons of the others vanish when the host leaves the map\n" +
+            "玩家召唤的生物跟随召唤者：与主机同行或独自离开时都会一起走；关闭时主机离开地图会让其他玩家的召唤物消失");
+
+        Server.PlayersAtBase = config.Bind(
+            "Server",
+            "PlayersAtBase",
+            true,
+            "The base counts every player on its map: raids come while one of them is awake, the lucky month follows the god of any of them, and the days with a player count wherever a player is\n" +
+            "Otherwise only the player whose game runs the base map counts (the host, mostly)\n" +
+            "据点会计算地图上的所有玩家：只要有一人醒着就会有袭击，幸运月看任一玩家的神，与玩家共处的天数在任何玩家所在处都会计算；关闭时只计算运行据点地图的那位玩家");
+
         Server.TimeJumpsTogether = config.Bind(
             "Server",
             "TimeJumpsTogether",
@@ -549,6 +565,8 @@ internal partial class EmpConfig
         internal static ConfigEntry<bool> SoftRecall { get; set; } = null!;
         internal static ConfigEntry<bool> AutoHost { get; set; } = null!;
         internal static ConfigEntry<bool> OwnSleep { get; set; } = null!;
+        internal static ConfigEntry<bool> SummonsFollowMaster { get; set; } = null!;
+        internal static ConfigEntry<bool> PlayersAtBase { get; set; } = null!;
         internal static ConfigEntry<bool> TimeJumpsTogether { get; set; } = null!;
         internal static ConfigEntry<bool> DumpSparesBelt { get; set; } = null!;
         internal static ConfigEntry<bool> ImportCharacter { get; set; } = null!;

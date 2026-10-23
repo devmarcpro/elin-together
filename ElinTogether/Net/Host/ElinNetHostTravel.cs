@@ -886,6 +886,7 @@ internal partial class ElinNetHost
         }
 
         if (ActiveRemoteCharas.Remove(peer.Id, out var remoteChara)) {
+            TakeMinionsAlong(remoteChara);
             RemoveRemoteChara(remoteChara);
             TakeCompanionsAlong(remoteChara);
         }
