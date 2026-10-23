@@ -160,4 +160,17 @@ internal static class PlayerKarmaPatch
             __instance.pos.TryWitnessCrime(__instance);
         }
     }
+
+    // taking from a container of a resident, as Transaction.Process does (the guest's copy of the thing has no parent
+    // by then, so its game sees no theft): the karma goes to the guest, the witnesses roll here
+    internal static void OnTakeFromResident(ElinNetHost host, Chara player, Thing thing)
+    {
+        if (!PersonalQuests.Enabled || thing.parent is not Thing { isNPCProperty: true } || !player.IsAliveInCurrentZone) {
+            return;
+        }
+
+        thing.isNPCProperty = false;
+        host.GiveKarma(player, -1);
+        player.pos.TryWitnessCrime(player);
+    }
 }
