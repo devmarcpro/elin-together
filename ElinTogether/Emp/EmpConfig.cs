@@ -311,6 +311,14 @@ internal partial class EmpConfig
             "Otherwise the first player who buys it or earns it is the only one who has it, as the game does\n" +
             "游戏每个世界只给一次的东西，每位玩家都能得到一次：商店的限量商品，以及剧情任务和对话的奖励（每位玩家一份）。关闭时只有第一个购买或获得的玩家拥有（与原版相同）");
 
+        Server.NearestSpawns = config.Bind(
+            "Server",
+            "NearestSpawns",
+            true,
+            "The feats that change what spawns on a map (legendary chance, friend or foe of Santa and the like, evolved, big daddy, shrines) are those of the player nearest to the spawn, not always the host's\n" +
+            "Otherwise the host's, as the game does\n" +
+            "影响地图刷怪的特性（传说怪几率、圣诞老人等特殊怪物的敌友、进化怪、大老爹、神殿）取离刷新点最近的玩家的，而不总是主机的。关闭时按主机的特性计算（与原版相同）");
+
         Server.AutoCombatPerPlayer = config.Bind(
             "Server",
             "AutoCombatPerPlayer",
@@ -494,6 +502,7 @@ internal partial class EmpConfig
         internal static ConfigEntry<bool> Takeover { get; set; } = null!;
         internal static ConfigEntry<bool> SharedTax { get; set; } = null!;
         internal static ConfigEntry<bool> OncePerPlayer { get; set; } = null!;
+        internal static ConfigEntry<bool> NearestSpawns { get; set; } = null!;
         internal static ConfigEntry<bool> AutoCombatPerPlayer { get; set; } = null!;
         internal static ConfigEntry<bool> SoftRecall { get; set; } = null!;
         internal static ConfigEntry<bool> AutoHost { get; set; } = null!;

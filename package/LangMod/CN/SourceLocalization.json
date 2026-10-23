@@ -309,5 +309,7 @@
     "LangGeneral.emp_trade_log_remove.text": "{0} 收回了 {1}。",
     "LangGeneral.emp_trade_log_gold.text": "{0} 现在出价 {1} 金币。",
     "LangGeneral.emp_trade_cant_offer.text": "无法交出 {0}。",
-    "LangGeneral.emp_trade_status.text": "{0}：{1} 金币，{2}"
+    "LangGeneral.emp_trade_status.text": "{0}：{1} 金币，{2}",
+    "LangGeneral.emp_ui_sv_cfg_nearest_spawns.text": "离刷新点最近的玩家决定刷怪",
+    "LangGeneral.emp_ui_sv_desc_nearest_spawns.text": "地图刷怪（传说怪几率、圣诞老人等的敌友、进化怪、大老爹、神殿）取离刷新点最近的玩家的特性，而不总是主机的。不勾选时按主机的特性（与原版相同）。"
 }
