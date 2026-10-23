@@ -53,6 +53,24 @@ public class BossWinDelta : ElinDelta
             zone.SetBGM(114, refresh: true, 3f);
         }
 
+        // the depth reached is each player's own, raised in its own game as the game does for the one that fights
+        if (DangerLv > player.stats.deepest) {
+            player.stats.deepest = DangerLv;
+            Msg.Say("update_deepest", player.stats.deepest.ToString());
+        }
+
+        if (zone is Zone_Void) {
+            if (!player.flags.KilledBossInVoid) {
+                Msg.Say("boss_win_void", zone.Name);
+                player.flags.KilledBossInVoid = true;
+            }
+
+            if (-zone.lv > player.stats.deepestVoid) {
+                player.stats.deepestVoid = -zone.lv;
+                Msg.Say("update_deepest_void", player.stats.deepestVoid.ToString());
+            }
+        }
+
         player.ModFame(rndHalf(30 + DangerLv * 2));
         player.ModKarma(5);
     }
