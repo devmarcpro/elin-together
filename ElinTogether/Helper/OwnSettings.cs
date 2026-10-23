@@ -75,6 +75,8 @@ internal static class OwnSettings
                 LightMod = player.customLightMod,
                 Memo = player.memo,
                 Memo2 = player.memo2,
+                SpawnZone = player.uidSpawnZone,
+                LastTown = player.uidLastTown,
                 Hotbars = player.hotbars,
                 Flags = DialogFlagSync.OwnFlags(player),
                 Ability = EClass.game.altAbility && EClass.ui.IsAbilityOpen,
@@ -189,6 +191,9 @@ internal static class OwnSettings
             player.customLightMod = kept.LightMod;
             player.memo = kept.Memo ?? "";
             player.memo2 = kept.Memo2 ?? "";
+            // where this player revives (waystone, core zone, last town): the host's in a copy of its world
+            player.uidSpawnZone = kept.SpawnZone;
+            player.uidLastTown = kept.LastTown;
 
             // the cards are other objects in this copy of the world: found again by number
             var things = chara.things.Flatten().ToList();
@@ -358,6 +363,8 @@ internal static class OwnSettings
         public int LightMod;
         public string? Memo;
         public string? Memo2;
+        public int SpawnZone;
+        public int LastTown;
 
         // windows of the cards the player carries, by card number; which of them were open
         public Dictionary<int, Window.SaveData> Bags = [];
