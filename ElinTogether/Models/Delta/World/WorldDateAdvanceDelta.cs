@@ -22,6 +22,18 @@ public class WorldDateAdvanceDelta : ElinDelta
     [Key(2)]
     public bool CatchUp { get; init; }
 
+    /// <summary>
+    ///     Council 2026-10-23: the player whose world map trip made these minutes pass, null for any other time
+    /// </summary>
+    [Key(3)]
+    public string? Traveller { get; init; }
+
+    /// <summary>
+    ///     The character of <see cref="Traveller" /> on the host's map, 0 when it travels away from it
+    /// </summary>
+    [Key(4)]
+    public int TravellerUid { get; init; }
+
     // minutes the date of this client moved since the last of these messages: the world snapshot sets it too,
     // sometimes first
     private static int _moved;
@@ -34,13 +46,16 @@ public class WorldDateAdvanceDelta : ElinDelta
 
         // time another player made pass (elsewhere, or by a step of this map's holder on the world map) is
         // not taken from this player's quests. A night is its own: every player of the map sleeps it
-        var others = CatchUp || (Minutes > 1 && pc?.conSleep is null);
+        // except the steps of this player on the host's world map, which the host passes for it (council 2026-10-23)
+        var own = TravellerUid != 0 && pc?.uid == TravellerUid;
+        var others = !own && (CatchUp || (Minutes > 1 && pc?.conSleep is null));
+        (string, int)? traveller = Traveller is null || own ? null : (Traveller, TravellerUid);
 
         // away from the host: this game simulates its own map and keeps its own date. With one date for the
         // world it catches up when the world went further without it; a visitor hears it from the map's holder
         if (NetSession.Instance.IsAway) {
             if (NetSession.Instance is { IsZoneAuthority: true, Rules.UseSharedWorldTime: true }) {
-                WorldDateAdvanceEvent.CatchUpNextFrame([..GameDate]);
+                WorldDateAdvanceEvent.CatchUpNextFrame([..GameDate], traveller);
             } else if (others && net.IsZoneSession) {
                 PersonalQuests.Postpone(Minutes);
             }
@@ -60,6 +75,11 @@ public class WorldDateAdvanceDelta : ElinDelta
 
         SetClientDate([..GameDate]);
         _moved = 0;
+
+        // the world went on by another player's trip: this one is told it lost nothing
+        if (CatchUp && traveller is { } who) {
+            WorldDateAdvanceEvent.NoteTrip(who.Item1, Minutes);
+        }
 
         // the timer of a quest's map follows the one who simulates it, which leaves out the time another player
         // made pass elsewhere (WorldDateAdvanceEvent.OnAfterAdvanceMin)

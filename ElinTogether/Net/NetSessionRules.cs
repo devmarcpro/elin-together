@@ -127,11 +127,18 @@ public class NetSessionRules
     public bool UseOwnSleep { get; set; } = true;
 
     /// <summary>
-    ///     Council 10: a step on the world map moves the date only when all the players travel on it together;
-    ///     else the traveller pays its own turns. Off: every step adds its hours for all
+    ///     Before the council of 2026-10-23 on world map time: true for Travel Together. Still sent for a peer of an
+    ///     older version, read from <see cref="WorldMapTime" /> by this one
     /// </summary>
     [Key(18)]
-    public bool TimeJumpsTogether { get; set; } = true;
+    public bool TimeJumpsTogether { get; set; }
+
+    /// <summary>
+    ///     Council 2026-10-23: how the travel of one player on the world map moves the date of the world, see
+    ///     RemoteTravelRegionPatch
+    /// </summary>
+    [Key(94)]
+    public WorldMapTime WorldMapTime { get; set; } = WorldMapTime.SharedClock;
 
     /// <summary>
     ///     Council 10: auto-dump leaves the held item and the tool belt, as it leaves the hotbar
@@ -209,7 +216,8 @@ public class NetSessionRules
         KeepWorldCopy = EmpConfig.Server.WorldCopy.Value || EmpConfig.Server.Takeover.Value,
         AutoResync = EmpConfig.Server.AutoResync.Value,
         UseOwnSleep = EmpConfig.Server.OwnSleep.Value,
-        TimeJumpsTogether = EmpConfig.Server.TimeJumpsTogether.Value,
+        TimeJumpsTogether = EmpConfig.Server.WorldMapTime.Value == WorldMapTime.TravelTogether,
+        WorldMapTime = EmpConfig.Server.WorldMapTime.Value,
         DumpSparesBelt = EmpConfig.Server.DumpSparesBelt.Value,
         AllowReconnect = EmpConfig.Server.AutoReconnect.Value,
         HostManagesBase = EmpConfig.Server.HostManagesBase.Value,
@@ -229,4 +237,17 @@ public class NetSessionRules
         UseSharedWorldTime = EmpConfig.Server.SharedWorldTime.Value,
         UseWorldKeeper = EmpConfig.Server.WorldKeeper.Value,
     };
+}
+
+/// <summary>
+///     Council 2026-10-23, one choice of the host: who pays the hours a trip on the world map costs. <br />
+///     SharedClock: the world map is a map like any other, every step of anyone moves the date of the game that
+///     took it, the most advanced date is the world's and the others catch up without living it. <br />
+///     TravelTogether: a step moves the date only when every player is on the world map, whoever steps. <br />
+///     (Personal Pace, the third mode of the council, is not built: not listed until it is)
+/// </summary>
+public enum WorldMapTime
+{
+    SharedClock,
+    TravelTogether,
 }

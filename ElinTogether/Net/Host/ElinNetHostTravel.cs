@@ -310,6 +310,7 @@ internal partial class ElinNetHost
         base.Update();
         UpdateQuestAsk();
         UpdateSoftRejoins();
+        UpdateWorldMapTogether();
     }
 
     /// <summary>

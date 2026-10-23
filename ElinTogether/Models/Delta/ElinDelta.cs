@@ -155,6 +155,9 @@ namespace ElinTogether.Models;
 // Counters of the player
 [Union(910, typeof(FortuneCountersDelta))]
 [Union(920, typeof(ThrowGrowthDelta))]
+// World map time
+[Union(940, typeof(WorldTravelStepDelta))]
+[Union(941, typeof(WorldMapTogetherDelta))]
 // Element
 [Union(1000, typeof(ElementChangeDelta))]
 public abstract class ElinDelta : EClass

@@ -11,10 +11,12 @@ using HarmonyLib;
 namespace ElinTogether.Patches;
 
 /// <summary>
-///     A step on the world map. Council 10 (rule TimeJumpsTogether): it moves the date, three hours, only when
-///     it is the host's and every player is on the world map; whoever steps always pays it with its own body, the
-///     turns of hunger and conditions of its character and of its companions, as in a solo game. <br />
-///     Rule off: only the game that simulates the map runs the step, and each one adds its hours for all
+///     A step on the world map. Whoever steps pays it with its own body, the turns of hunger and conditions of
+///     its character and of its companions, as in a solo game. The hours it costs follow the host's choice
+///     (council 2026-10-23, <see cref="WorldMapTime" />): Shared Clock, every step of anyone moves the date;
+///     Travel Together, only while every player is on the world map. A host's step and a guest's are the same:
+///     the guest's game, which does not own the date on the host's map, has the host pass the hours
+///     (WorldTravelStepDelta); on its own copy of the world map it passes them itself and reports its date
 /// </summary>
 [HarmonyPatch]
 internal static class RemoteTravelRegionPatch
@@ -52,22 +54,8 @@ internal static class RemoteTravelRegionPatch
                         return false;
                     }
 
-                    var session = NetSession.Instance;
-                    if (session.IsHost) {
-                        return true;
-                    }
-
                     // next to the one who simulates the map: its step is its own to pay too
-                    if (session.Rules.TimeJumpsTogether) {
-                        return chara.IsPC;
-                    }
-
-                    // client exp comp
-                    if (chara.IsPC) {
-                        EClass.player.distanceTravel++;
-                    }
-
-                    return false;
+                    return NetSession.Instance.IsHost || chara.IsPC;
                 }))
             .MatchStartForward(
                 new OperandContains(OpCodes.Callvirt, nameof(GameDate.AdvanceMin)));
@@ -105,13 +93,58 @@ internal static class RemoteTravelRegionPatch
     /// </summary>
     internal static void StepDate(GameDate date, int minutes)
     {
-        var session = NetSession.Instance;
-        IsPayingStep = session.Transport is not null && session.Rules.TimeJumpsTogether;
+        IsPayingStep = NetSession.Instance.Transport is not null;
 
         if (DateMoves()) {
-            date.AdvanceMin(minutes);
+            Travel(date, minutes, false);
         } else {
             Tell();
+        }
+    }
+
+    /// <summary>
+    ///     The hours of this game's step or express hour pass: alone as the game does it; on the host, what the
+    ///     walk of its player adds to the others walking with it (WorldTravelClock); on a player's own copy of the
+    ///     world map on its own date, reported with its name; next to the host, the host passes them
+    /// </summary>
+    internal static void Travel(GameDate date, int minutes, bool express)
+    {
+        var session = NetSession.Instance;
+        switch (session.Transport) {
+            case null:
+                if (express) {
+                    date.AdvanceHour();
+                } else {
+                    date.AdvanceMin(minutes);
+                }
+
+                return;
+            case ElinNetHost:
+                Advance(date, WorldTravelClock.Step(WorldTravelClock.Host, minutes),
+                    (session.Self?.User.Name ?? EClass.pc.NameSimple, EClass.pc.uid));
+                return;
+            case ElinNetClient when session.IsZoneAuthority:
+                Advance(date, minutes, (EClass.pc.NameSimple, 0));
+                return;
+            case ElinNetClient client when !session.IsAway:
+                client.Delta.AddRemote(new WorldTravelStepDelta { Minutes = minutes });
+                return;
+        }
+
+        // visiting another player's map: its holder's date, not this game's
+    }
+
+    private static void Advance(GameDate date, int minutes, (string Name, int Uid) traveller)
+    {
+        if (minutes <= 0) {
+            return;
+        }
+
+        WorldDateAdvanceEvent.Traveller = traveller;
+        try {
+            date.AdvanceMin(minutes);
+        } finally {
+            WorldDateAdvanceEvent.Traveller = null;
         }
     }
 
@@ -121,29 +154,25 @@ internal static class RemoteTravelRegionPatch
     internal static bool DateMoves()
     {
         var session = NetSession.Instance;
-        if (!session.Rules.TimeJumpsTogether) {
+        if (session.Rules.WorldMapTime != WorldMapTime.TravelTogether) {
             return true;
         }
 
+        // a guest's steps move the date as the host's do, when the host says everyone is on the world map (the
+        // "_ => false" that kept a guest's steps from ever moving it is gone, council 2026-10-23)
         return session.Transport switch {
             null => true,
             ElinNetHost host => host.AllOnWorldMap(),
-            // ponytail: with the rule on, only the host's steps can move the date, as the council wrote it (the date
-            // of a guest follows the host's). A guest does not know where the others are, so its own steps never
-            // move it, next to the host or alone on its copy of the world map, and it says nothing about it (Tell).
-            // Host/guest inequality that stays: everyone on the world map, the host steps: the date moves;
-            // the guest steps: it does not. Telling the guest where everyone is would need one more message
-            _ => false,
+            _ => WorldMapTogetherDelta.AllOnWorldMap,
         };
     }
 
     /// <summary>
-    ///     "Your friends are elsewhere": said only by the host, the one who knows it is true. A guest (next to the
-    ///     host or alone on its copy of the map) cannot tell, so it stays silent
+    ///     "Your friends are elsewhere", once per trip: the host knows it, a guest has it from the host
     /// </summary>
     internal static void Tell()
     {
-        if (_told || NetSession.Instance.Transport is not ElinNetHost) {
+        if (_told || NetSession.Instance.Transport is null) {
             return;
         }
 
@@ -243,7 +272,7 @@ internal static class TravelExpressPatch
     internal static void ExpressHour(GameDate date)
     {
         if (RemoteTravelRegionPatch.DateMoves()) {
-            date.AdvanceHour();
+            RemoteTravelRegionPatch.Travel(date, Date.HourToken, true);
         } else {
             RemoteTravelRegionPatch.Tell();
         }

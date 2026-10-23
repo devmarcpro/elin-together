@@ -1,4 +1,7 @@
+using System.IO;
+using System.Text.RegularExpressions;
 using BepInEx.Configuration;
+using ElinTogether.Net;
 using ReflexCLI.Attributes;
 using UnityEngine;
 
@@ -7,9 +10,33 @@ namespace ElinTogether;
 [ConsoleCommandClassCustomizer("emp")]
 internal partial class EmpConfig
 {
+    /// <summary>
+    ///     A config file of the mod from before the council of 2026-10-23 on world map time has the checkbox
+    ///     TimeJumpsTogether and no WorldMapTime: on is Travel Together, off was every step moving the date
+    ///     (Shared Clock). A new install has neither and takes the default, Shared Clock
+    /// </summary>
+    internal static WorldMapTime? OldWorldMapTime(string configText)
+    {
+        if (Regex.IsMatch(configText, @"^\s*WorldMapTime\s*=", RegexOptions.Multiline)) {
+            return null;
+        }
+
+        var old = Regex.Match(configText, @"^\s*TimeJumpsTogether\s*=\s*(\w+)", RegexOptions.Multiline);
+        if (!old.Success) {
+            return null;
+        }
+
+        return old.Groups[1].Value.Equals("true", System.StringComparison.OrdinalIgnoreCase)
+            ? Net.WorldMapTime.TravelTogether
+            : Net.WorldMapTime.SharedClock;
+    }
+
     internal static void Bind()
     {
         var config = EmpMod.Instance.Config;
+
+        // what an older version of the mod left in the file, read before any Bind saves it again
+        var before = File.Exists(config.ConfigFilePath) ? File.ReadAllText(config.ConfigFilePath) : "";
 
         Policy.Verbose = config.Bind(
             "RuntimePolicy",
@@ -413,13 +440,16 @@ internal partial class EmpConfig
             "Otherwise only the player whose game runs the base map counts (the host, mostly)\n" +
             "据点会计算地图上的所有玩家：只要有一人醒着就会有袭击，幸运月看任一玩家的神，与玩家共处的天数在任何玩家所在处都会计算；关闭时只计算运行据点地图的那位玩家");
 
-        Server.TimeJumpsTogether = config.Bind(
+        Server.WorldMapTime = config.Bind(
             "Server",
-            "TimeJumpsTogether",
-            true,
-            "A step on the world map only moves the date of the world when all the players travel on it together\n" +
-            "Otherwise the traveller pays its own turns and the date stays. Off: every step of anyone adds 3 hours for all\n" +
-            "只有所有玩家一起在世界地图上旅行时，世界地图上的一步才会推进世界日期；否则旅行者只消耗自己的回合。关闭时任何人的每一步都会让所有人过 3 小时");
+            "WorldMapTime",
+            WorldMapTime.SharedClock,
+            "Who pays the hours of a trip on the world map. SharedClock: the world map is a map like any other, every step of anyone moves the date; the others catch up without losing hunger or quest time\n" +
+            "TravelTogether: a step moves the date only when all the players are on the world map, whoever steps; otherwise the traveller pays its own turns and the date stays\n" +
+            "世界地图上旅行的时间由谁承担。SharedClock：世界地图与其他地图相同，任何人的每一步都会推进日期，其他人追上时间但不会损失饱食度或任务时间；TravelTogether：只有所有玩家都在世界地图上时，一步才会推进日期");
+        if (OldWorldMapTime(before) is { } old) {
+            Server.WorldMapTime.Value = old;
+        }
 
         Server.DumpSparesBelt = config.Bind(
             "Server",
@@ -567,7 +597,7 @@ internal partial class EmpConfig
         internal static ConfigEntry<bool> OwnSleep { get; set; } = null!;
         internal static ConfigEntry<bool> SummonsFollowMaster { get; set; } = null!;
         internal static ConfigEntry<bool> PlayersAtBase { get; set; } = null!;
-        internal static ConfigEntry<bool> TimeJumpsTogether { get; set; } = null!;
+        internal static ConfigEntry<WorldMapTime> WorldMapTime { get; set; } = null!;
         internal static ConfigEntry<bool> DumpSparesBelt { get; set; } = null!;
         internal static ConfigEntry<bool> ImportCharacter { get; set; } = null!;
 

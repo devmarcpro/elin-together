@@ -35,6 +35,15 @@ internal static class ModConfigPage
                 foreach (var (id, entry) in options) {
                     Toggle(note, $"emp_ui_sv_cfg_{id}", $"emp_ui_sv_desc_{id}", entry);
                 }
+
+                if (section == "time") {
+                    UIButton? button = null;
+                    button = note.AddButton(TabServerConfiguration.WorldMapTimeLabel(), () => {
+                        TabServerConfiguration.NextWorldMapTime();
+                        button!.mainText.text = TabServerConfiguration.WorldMapTimeLabel();
+                    });
+                    button.SetTooltipLang("emp_ui_sv_desc_world_map_time");
+                }
             }
         }
 

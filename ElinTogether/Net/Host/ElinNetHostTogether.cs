@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
+using ElinTogether.Models;
+using UnityEngine;
 
 namespace ElinTogether.Net;
 
@@ -45,5 +47,43 @@ internal partial class ElinNetHost
         }
 
         return true;
+    }
+
+    // Travel Together: what the players were last told of AllOnWorldMap, when to look again and to tell again
+    private bool _toldAllOnWorldMap;
+    private float _nextAllOnWorldMapCheck;
+    private float _nextAllOnWorldMapTell;
+
+    /// <summary>
+    ///     Council 2026-10-23, Travel Together: the players learn whether everyone is on the world map, which lets
+    ///     their steps move the date as the host's do. Looked at twice a second, told when it changes and every
+    ///     5 s (a player who just joined)
+    /// </summary>
+    private void UpdateWorldMapTogether()
+    {
+        var now = Time.realtimeSinceStartup;
+        if (now < _nextAllOnWorldMapCheck || !core.IsGameStarted ||
+            NetSession.Instance.Rules.WorldMapTime != WorldMapTime.TravelTogether) {
+            return;
+        }
+
+        _nextAllOnWorldMapCheck = now + 0.5f;
+        var all = AllOnWorldMap();
+        if (all == _toldAllOnWorldMap && now < _nextAllOnWorldMapTell) {
+            return;
+        }
+
+        (_toldAllOnWorldMap, _nextAllOnWorldMapTell) = (all, now + 5f);
+        Delta.AddRemote(new WorldMapTogetherDelta { All = all });
+    }
+
+    /// <summary>
+    ///     The name of that player and the character it plays on this map (0 when it is away): told with the hours
+    ///     of its trip
+    /// </summary>
+    internal (string Name, int Uid) TravellerOf(int peerId)
+    {
+        var name = Socket.Peers.FirstOrDefault(p => p.Id == peerId)?.User.Name ?? "?";
+        return (name, ActiveRemoteCharas.TryGetValue(peerId, out var chara) ? chara.uid : 0);
     }
 }

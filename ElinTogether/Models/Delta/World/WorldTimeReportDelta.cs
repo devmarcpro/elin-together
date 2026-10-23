@@ -15,12 +15,28 @@ public class WorldTimeReportDelta : ElinDelta
     [Key(0)]
     public required ImmutableArray<int> GameDate { get; init; }
 
+    /// <summary>
+    ///     The date moved by a trip of this player on its own copy of the world map (council 2026-10-23): the
+    ///     others are told who travelled
+    /// </summary>
+    [Key(1)]
+    public bool Travel { get; init; }
+
     protected override void OnApply(ElinNetBase net)
     {
-        if (net is not ElinNetHost || !NetSession.Instance.Rules.UseSharedWorldTime) {
+        if (net is not ElinNetHost host || !NetSession.Instance.Rules.UseSharedWorldTime) {
             return;
         }
 
-        WorldDateAdvanceEvent.CatchUpNextFrame([..GameDate]);
+        // audit 2026-10-23: the host took any date a player sent, a month ahead at once. It believes what
+        // travel can make pass since what it already has (what waits to be caught up included)
+        var from = WorldDateAdvanceEvent.AfterPending(0);
+        var ahead = WorldDateAdvanceEvent.Minutes([..GameDate]) - from;
+        var granted = WorldTravelClock.Plausible(OriginPeer, ahead, "time away");
+        if (granted <= 0) {
+            return;
+        }
+
+        WorldDateAdvanceEvent.CatchUpNextFrame(from + granted, Travel ? host.TravellerOf(OriginPeer) : null);
     }
 }

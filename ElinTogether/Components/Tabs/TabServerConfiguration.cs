@@ -44,7 +44,6 @@ internal class TabServerConfiguration : TabEmpBase
             ("own_sleep", EmpConfig.Server.OwnSleep),
             ("summons_follow_master", EmpConfig.Server.SummonsFollowMaster),
             ("players_at_base", EmpConfig.Server.PlayersAtBase),
-            ("time_jumps_together", EmpConfig.Server.TimeJumpsTogether),
             ("dump_spares_belt", EmpConfig.Server.DumpSparesBelt),
             ("shared_tax", EmpConfig.Server.SharedTax),
             ("once_per_player", EmpConfig.Server.OncePerPlayer),
@@ -77,6 +76,13 @@ internal class TabServerConfiguration : TabEmpBase
             foreach (var (option, entry) in options) {
                 Option(card, option, entry);
             }
+
+            if (id == "time") {
+                card.Horizontal().Button(WorldMapTimeLabel(), () => {
+                    NextWorldMapTime();
+                    LayerElinTogether.Instance?.Reopen();
+                }).SetTooltipLang("emp_ui_sv_desc_world_map_time");
+            }
         }
 
         // the count of unpaid tax bills against the bills that exist (ElinNetHost.RepairBillCount), for a host in game
@@ -108,6 +114,22 @@ internal class TabServerConfiguration : TabEmpBase
     {
         card.Toggle($"emp_ui_sv_cfg_{id}", entry.Value, value => entry.Value = value)
             .SetTooltipLang($"emp_ui_sv_desc_{id}");
+    }
+
+    /// <summary>
+    ///     World map time is one choice among modes, not a checkbox: a button that shows the mode and goes to the
+    ///     next one (shared with ModConfigPage)
+    /// </summary>
+    internal static string WorldMapTimeLabel()
+    {
+        return "emp_ui_sv_cfg_world_map_time".Loc($"emp_ui_sv_wmt_{EmpConfig.Server.WorldMapTime.Value}".lang());
+    }
+
+    internal static void NextWorldMapTime()
+    {
+        var modes = (WorldMapTime[])System.Enum.GetValues(typeof(WorldMapTime));
+        var entry = EmpConfig.Server.WorldMapTime;
+        entry.Value = modes[(System.Array.IndexOf(modes, entry.Value) + 1) % modes.Length];
     }
 
     private void BuildValidationSets()

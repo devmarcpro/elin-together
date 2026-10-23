@@ -325,5 +325,10 @@
     "LangGeneral.emp_ui_sv_cfg_summons_follow_master.text": "召唤物跟随召唤者",
     "LangGeneral.emp_ui_sv_desc_summons_follow_master.text": "玩家召唤的生物去召唤者去的地方，无论是与主机同行还是独自行动。关闭：主机离开地图时其他玩家的召唤物会消失",
     "LangGeneral.emp_ui_sv_cfg_players_at_base.text": "据点计算所有玩家",
-    "LangGeneral.emp_ui_sv_desc_players_at_base.text": "只要据点地图上有玩家醒着就会有袭击，幸运月看任一玩家的神，与玩家共处的天数在任何玩家所在处都会计算。关闭：只计算运行据点地图的那位玩家"
+    "LangGeneral.emp_ui_sv_desc_players_at_base.text": "只要据点地图上有玩家醒着就会有袭击，幸运月看任一玩家的神，与玩家共处的天数在任何玩家所在处都会计算。关闭：只计算运行据点地图的那位玩家",
+    "LangGeneral.emp_ui_sv_cfg_world_map_time.text": "世界地图时间：{0}",
+    "LangGeneral.emp_ui_sv_desc_world_map_time.text": "点击切换。共享时钟：世界地图与其他地图相同，任何人的每一步都会推进日期；其他人会追上时间，但不会损失饱食度或任务时间（战斗、读取或对话中最多等待60秒）。一起旅行：只有所有玩家都在世界地图上时，任何人的一步才会推进日期；否则旅行者只消耗自己的回合，日期不变。",
+    "LangGeneral.emp_ui_sv_wmt_SharedClock.text": "共享时钟",
+    "LangGeneral.emp_ui_sv_wmt_TravelTogether.text": "一起旅行",
+    "LangGeneral.emp_ui_travel_bystander.text": "{0}旅行了{1}小时。世界继续前进，你没有任何损失。"
 }
