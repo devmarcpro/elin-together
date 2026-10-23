@@ -81,6 +81,8 @@ internal static class OwnSettings
                 KnownBGMs = player.knownBGMs,
                 KnownSongs = player.knownSongs,
                 HangIcons = player.hangIcons,
+                SpawnZone = player.uidSpawnZone,
+                LastTown = player.uidLastTown,
                 Hotbars = player.hotbars,
                 Flags = DialogFlagSync.OwnFlags(player),
                 Deepest = player.stats.deepest,
@@ -200,6 +202,9 @@ internal static class OwnSettings
             player.customLightMod = kept.LightMod;
             player.memo = kept.Memo ?? "";
             player.memo2 = kept.Memo2 ?? "";
+            // where this player revives (waystone, core zone, last town): the host's in a copy of its world
+            player.uidSpawnZone = kept.SpawnZone;
+            player.uidLastTown = kept.LastTown;
 
             // what this player collected or learned (the hoard, crafts and sketches seen, tunes heard and played), not
             // the world: the host's copy of them is the host's own. Nothing noted (an older file): the copy stays
@@ -384,6 +389,8 @@ internal static class OwnSettings
         public HashSet<int>? KnownBGMs;
         public Dictionary<string, KnownSong>? KnownSongs;
         public Dictionary<string, string>? HangIcons;
+        public int SpawnZone;
+        public int LastTown;
 
         // windows of the cards the player carries, by card number; which of them were open
         public Dictionary<int, Window.SaveData> Bags = [];
