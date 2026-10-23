@@ -89,7 +89,43 @@ internal static class AreaWatch
 
     internal static int Hash(List<Area> areas)
     {
-        return string.Join("|", areas.Select(Sign)).GetHashCode();
+        // the same fields as Sign, folded into a number as they are read: four looks a second no longer build
+        // a text of every cell of every area (audit 2026-10-23). The number never leaves this game
+        unchecked {
+            var h = 17;
+            foreach (var area in areas) {
+                h = h * 31 + area.uid;
+                h = h * 31 + (area.type?.id?.GetHashCode() ?? 0);
+                if (area.type?.uidCharas is { } charas) {
+                    // (a set: its order says nothing)
+                    var sum = 0;
+                    foreach (var uid in charas) {
+                        sum += uid * -1640531535;
+                    }
+
+                    h = h * 31 + sum;
+                }
+
+                h = h * 31 + (area.data?.name?.GetHashCode() ?? 0);
+                if (area.data?.ints is { } ints) {
+                    foreach (var i in ints) {
+                        h = h * 31 + i;
+                    }
+                }
+
+                h = h * 31 + (area.points?.Count ?? 0);
+                if (area.points is { } points) {
+                    foreach (var p in points) {
+                        h = h * 31 + p.x * 4099 + p.z;
+                    }
+                }
+
+                // (between two areas)
+                h *= 1000003;
+            }
+
+            return h;
+        }
     }
 
     /// <summary>

@@ -70,8 +70,13 @@ internal static class CompanionHelper
     internal static int UsedAllySlots(Chara player)
     {
         var used = player.Evalue(1431);
-        foreach (var companion in CompanionsOf(player)) {
-            used += 1 + companion.Evalue(1431);
+        // (as CompanionsOf lists them, without building the list: MaxHP of every remote player's companion asks)
+        if ((player.party ?? EClass.pc?.party) is { } party) {
+            foreach (var companion in party.members) {
+                if (companion is not null && companion.IsCompanionOf(player)) {
+                    used += 1 + companion.Evalue(1431);
+                }
+            }
         }
 
         return used;
