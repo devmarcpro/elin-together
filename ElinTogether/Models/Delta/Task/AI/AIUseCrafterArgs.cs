@@ -39,6 +39,16 @@ public class AIUseCrafterArgs : TaskArgsBase
     [Key(8)]
     public bool FirstTime { get; init; }
 
+    /// <summary>
+    ///     Fortune roll: the roll counter and the lucky coins of the player who rolls, its own (the game reads the
+    ///     host's). Kept up to date by the host across the rounds of one request. Null from an older peer: the host's
+    /// </summary>
+    [Key(9)]
+    public int? SeedFortune { get; set; }
+
+    [Key(10)]
+    public int? LuckyCoin { get; set; }
+
     public static AIUseCrafterArgs Create(AI_UseCrafter ai)
     {
         var targets = ai.layer?.GetTargets() ?? [];
@@ -56,6 +66,8 @@ public class AIUseCrafterArgs : TaskArgsBase
             RecipeId = ai.recipe?.id,
             RecipeMat = ai.recipe?.idMat ?? -1,
             FirstTime = ai.recipe?.HasFirstTimeBonus() ?? false,
+            SeedFortune = ai.crafter is TraitRollingFortune ? EClass.player.seedFortune : null,
+            LuckyCoin = ai.crafter is TraitRollingFortune ? EClass.player.luckycoin : null,
         };
     }
 

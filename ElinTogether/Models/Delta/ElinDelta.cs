@@ -149,6 +149,8 @@ namespace ElinTogether.Models;
 [Union(871, typeof(CardItemStateDelta))]
 // Act
 [Union(900, typeof(ActThrowDelta))]
+// Counters of the player
+[Union(910, typeof(FortuneCountersDelta))]
 // Element
 [Union(1000, typeof(ElementChangeDelta))]
 public abstract class ElinDelta : EClass

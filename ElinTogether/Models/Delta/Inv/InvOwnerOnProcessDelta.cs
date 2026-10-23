@@ -72,6 +72,13 @@ public class InvOwnerOnProcessDelta : ElinDelta
     [Key(10)]
     public int Seed { get; init; }
 
+    /// <summary>
+    ///     Reconstruction: the deepest level the reader reached, its own (see OwnSettings), which the rebuilt item's
+    ///     level starts from; the game reads the host's (audit 2026-10-23). Null from an older peer: the host's
+    /// </summary>
+    [Key(11)]
+    public int? Deepest { get; init; }
+
     protected override void OnApply(ElinNetBase net)
     {
         if (Thing.Find() is not Thing { isDestroyed: false } thing) {
@@ -252,7 +259,16 @@ public class InvOwnerOnProcessDelta : ElinDelta
         using var reader = effectId == EffectId.Reconstruction && thing.GetRootCard() is Chara { IsRemotePlayer: true } who
             ? RemoteCraft.AsCrafter(who)
             : null;
-        ActEffect.Proc(effectId, power, (BlessedState)EffectState, thing.GetRootCard(), thing, actRef);
+        var ownDeepest = player.stats.deepest;
+        if (reader is not null && Deepest is { } deepest) {
+            player.stats.deepest = Math.Max(deepest, 0);
+        }
+
+        try {
+            ActEffect.Proc(effectId, power, (BlessedState)EffectState, thing.GetRootCard(), thing, actRef);
+        } finally {
+            player.stats.deepest = ownDeepest;
+        }
 
         // InvOwnerChangeMaterial._OnProcess
         if (effectId == EffectId.ChangeMaterial && thing.trait is TraitGodStatue god) {

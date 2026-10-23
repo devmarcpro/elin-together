@@ -87,6 +87,8 @@ internal static class OwnSettings
                 Flags = DialogFlagSync.OwnFlags(player),
                 Deepest = player.stats.deepest,
                 DeepestVoid = player.stats.deepestVoid,
+                SeedFortune = player.seedFortune,
+                LuckyCoin = player.luckycoin,
                 Ability = EClass.game.altAbility && EClass.ui.IsAbilityOpen,
                 ZoomOut = ActionMode.Adv?.zoomOut2 ?? false,
             };
@@ -172,6 +174,9 @@ internal static class OwnSettings
             // the depth reached is this player's own (see BossWinDelta), not the host's
             player.stats.deepest = kept?.Deepest ?? 0;
             player.stats.deepestVoid = kept?.DeepestVoid ?? 0;
+            // so are its fortune rolls and lucky coins (see FortuneCountersDelta)
+            player.seedFortune = kept?.SeedFortune ?? 0;
+            player.luckycoin = kept?.LuckyCoin ?? 0;
             if (kept is null) {
                 return;
             }
@@ -407,6 +412,8 @@ internal static class OwnSettings
         public Dictionary<string, int>? Flags;
         public int Deepest;
         public int DeepestVoid;
+        public int SeedFortune;
+        public int LuckyCoin;
 
         // the game these were noted from: not noted twice
         [JsonIgnore]
