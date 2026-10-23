@@ -208,6 +208,12 @@ public class CharaBagDelta : ElinDelta
                 }
             }
 
+            // curse, enchant and coating are the keeper's too
+            if (mine != theirs && ((int)mine.blessedState, mine.encLV, mine.isAcidproof) !=
+                ((int)theirs.blessedState, theirs.encLV, theirs.isAcidproof)) {
+                CardItemStateDelta.Land(mine, (int)theirs.blessedState, theirs.encLV, theirs.isAcidproof);
+            }
+
             if (mine != theirs && mine.Num != theirs.Num) {
                 // the way a client is given an amount, see CardModNumEvent
                 new CardModNumDelta {
