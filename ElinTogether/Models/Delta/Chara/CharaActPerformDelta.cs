@@ -132,7 +132,21 @@ public class CharaActPerformDelta : ElinDelta
 
         // a zap names its user as target while it performs: only the tile aimed at is passed on
         if (net.IsHost) {
-            act.Perform(chara, null, Pos);
+            // a guest's game owns its bag and has already sent the charges it took (CardChargeEvent): this replay
+            // takes one more, so give one back first, the count stays the guest's
+            var left = tool.c_charges;
+            if (ToolKind == ToolAct.Zap) {
+                tool.c_charges = left + 1;
+            }
+
+            try {
+                act.Perform(chara, null, Pos);
+            } finally {
+                if (ToolKind == ToolAct.Zap && tool.c_charges != left && !tool.isDestroyed) {
+                    tool.c_charges = left;
+                }
+            }
+
             return;
         }
 
