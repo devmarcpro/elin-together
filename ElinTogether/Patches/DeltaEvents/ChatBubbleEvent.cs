@@ -4,6 +4,7 @@ using ElinTogether.Helper;
 using ElinTogether.Models;
 using ElinTogether.Net;
 using HarmonyLib;
+using Random = UnityEngine.Random;
 
 namespace ElinTogether.Patches;
 
@@ -57,10 +58,22 @@ internal class ChatBubbleEvent
             G = color.g,
             B = color.b,
             A = color.a,
+            Chat = true,
+            ChatId = Random.Range(1, int.MaxValue),
         };
+        MsgSayDelta.Remember(delta.ChatId);
 
+        if (!NetSession.Instance.Rules.GlobalChat) {
+            // map-local: the players of the map we are on (an away player without a map session has none)
+            connection?.Delta.AddRemote(delta);
+            return;
+        }
+
+        // global chat: to every player, wherever they are
         if (away is not null) {
             away.SendChatWhileAway(delta);
+        } else if (NetSession.Instance.Transport is ElinNetHost main) {
+            main.SendDeltaToAllExcept(int.MinValue, delta);
         } else {
             connection!.Delta.AddRemote(delta);
         }
