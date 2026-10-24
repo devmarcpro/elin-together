@@ -197,6 +197,17 @@ public static class TradeWindow
         var theirGold = iAmA ? view.GoldB : view.GoldA;
 
         _confirm?.mainText.SetText((iAmReady ? "emp_trade_you_ready" : "emp_trade_confirm").lang());
+        // (greyed while a change is still locked, lit again when the lock ends)
+        if (_confirm is { } confirm) {
+            confirm.interactable = !PlayerTrade.IsLocked;
+            if (!confirm.interactable) {
+                TweenUtil.Delay(view.LockMs / 1000f + 0.1f, () => {
+                    if (confirm && !PlayerTrade.IsLocked) {
+                        confirm.interactable = true;
+                    }
+                });
+            }
+        }
         _gold?.mainText.SetText("emp_trade_gold".Loc(myGold));
         _status?.mainText.SetText("emp_trade_status".Loc(partner.Name, theirGold, (theyAreReady ? "emp_trade_they_ready" : "emp_trade_they_wait").lang()));
     }
