@@ -164,6 +164,7 @@ namespace ElinTogether.Models;
 [Union(964, typeof(GateItemAnswer))]
 [Union(965, typeof(GateZoneDelta))]
 [Union(970, typeof(MarriageDelta))]
+[Union(971, typeof(CharaBanishRequest))]
 // Element
 [Union(1000, typeof(ElementChangeDelta))]
 public abstract class ElinDelta : EClass
