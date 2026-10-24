@@ -52,7 +52,7 @@ internal static class OtherModsCompat
         }
     }
 
-    private static Exception SwallowNre(Exception __exception)
+    private static Exception? SwallowNre(Exception __exception)
     {
         return __exception is NullReferenceException ? null : __exception;
     }

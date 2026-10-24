@@ -31,7 +31,7 @@ public class SleepReadyDelta : ElinDelta
     ///     Only the count, nothing said: a player who comes in while others sleep learns how many do
     /// </summary>
     [Key(5)]
-    public bool Quiet { get; init; }
+    public new bool Quiet { get; init; }
 
     protected override void OnApply(ElinNetBase net)
     {
