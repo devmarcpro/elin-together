@@ -325,6 +325,8 @@ internal partial class ElinNetHost
         } else {
             EmpLog.Warning("No active map to send with the world to player {@Peer}", peer);
         }
+
+        TellMarriages();
     }
 
     /// <summary>

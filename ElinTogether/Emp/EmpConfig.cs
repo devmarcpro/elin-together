@@ -456,6 +456,16 @@ internal partial class EmpConfig
             "Only that player gets the lines, the host passes them on without showing them\n" +
             "对其他玩家角色选择“交谈”会打开与该玩家的私聊，无论对方在哪里；只有该玩家会收到，主机只转发不显示");
 
+        Server.SharedMarriages = config.Bind(
+            "Server",
+            "SharedMarriages",
+            true,
+            "Every player can marry: a resident is the spouse of the character who married it, the first to propose wins, and the host keeps who in its save
+" +
+            "Wedding, divorce and the lost ring deed work for that character only. Otherwise, as before, a guest's marriage stays in its own game
+" +
+            "每位玩家都可以结婚：居民是与之结婚的角色的配偶，先求婚者优先，主机在存档中记录；婚礼、离婚和遗失戒指证书只对该角色有效。关闭时如以前一样，客人的婚姻只存在于其自己的游戏中");
+
         Server.GlobalChat = config.Bind(
             "Server",
             "GlobalChat",
@@ -633,6 +643,7 @@ internal partial class EmpConfig
 
         internal static ConfigEntry<bool> Follow { get; set; } = null!;
         internal static ConfigEntry<bool> PrivateChat { get; set; } = null!;
+        internal static ConfigEntry<bool> SharedMarriages { get; set; } = null!;
         internal static ConfigEntry<WorldMapTime> WorldMapTime { get; set; } = null!;
         internal static ConfigEntry<int> WorldMapLeadCap { get; set; } = null!;
         internal static ConfigEntry<bool> DumpSparesBelt { get; set; } = null!;

@@ -223,6 +223,13 @@ public class NetSessionRules
     [Key(97)]
     public bool PrivateChat { get; set; } = true;
 
+    /// <summary>
+    ///     Council 2026-10-24: a resident is married to the character who married it, the host keeps who for every
+    ///     player and runs marriage, wedding, divorce and the lost ring for whoever acts, see SharedMarriages
+    /// </summary>
+    [Key(101)]
+    public bool SharedMarriages { get; set; } = true;
+
     public static NetSessionRules Default => new() {
         AllowTakeover = EmpConfig.Server.Takeover.Value,
         SoftRecall = EmpConfig.Server.SoftRecall.Value,
@@ -233,6 +240,7 @@ public class NetSessionRules
         GlobalChat = EmpConfig.Server.GlobalChat.Value,
         AllowFollow = EmpConfig.Server.Follow.Value,
         PrivateChat = EmpConfig.Server.PrivateChat.Value,
+        SharedMarriages = EmpConfig.Server.SharedMarriages.Value,
         // (a takeover is made from that copy: asking for one asks for the other, a host that ticked only
         // "another player takes over" got nothing)
         KeepWorldCopy = EmpConfig.Server.WorldCopy.Value || EmpConfig.Server.Takeover.Value,

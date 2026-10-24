@@ -73,7 +73,9 @@ public class CardActReplayDelta : ElinDelta
         var root = card.GetRootCard();
         if (Held
                 ? card.trait is not (TraitTicketFurniture or TraitSyringe or TraitStethoscope or TraitLeash or TraitWrench or
-                    TraitEcoMark or TraitToolBrushStrip or TraitToolHammerStrip or TraitWhipLove) ||
+                    TraitEcoMark or TraitToolBrushStrip or TraitToolHammerStrip or TraitWhipLove or TraitDeedDivorce or
+                    TraitDeedLostRing) ||
+                  (card.trait is TraitDeedDivorce or TraitDeedLostRing && !SharedMarriages.Enabled) ||
                   root != sender
                 : card.trait is not TraitWell || root.pos.Distance(sender.pos) > 2) {
             return;
@@ -133,7 +135,9 @@ public class CardActReplayDelta : ElinDelta
         var wished = EClass.player.wellWished;
         EClass.player.wellWished = true;
         try {
-            item?.act.Perform();
+            using (card.trait is TraitDeedDivorce ? SharedMarriages.SaidYes() : new ScopeExit()) {
+                item?.act.Perform();
+            }
         } finally {
             EClass.player.wellWished = wished;
         }
