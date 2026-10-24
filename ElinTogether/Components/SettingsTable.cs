@@ -207,6 +207,9 @@ internal static class SettingsTable
         yield return new("player_trade", "together", false, EmpConfig.Server.PlayerTrade);
         yield return new("follow", "together", false, EmpConfig.Server.Follow);
         yield return new("private_chat", "together", false, EmpConfig.Server.PrivateChat);
+        yield return new("guest_moongate", "together", false, EmpConfig.Server.GuestMoongate);
+        yield return new("guest_landing_portal", "together", false, EmpConfig.Server.GuestLandingPortal);
+        yield return new("guest_sky_helm", "together", false, EmpConfig.Server.GuestSkyHelm);
 
         // When the host leaves
         yield return new("host_leaves", "host_leaves", false, Choice: HostLeaves);
@@ -352,6 +355,9 @@ internal static class SettingsTable
             [EmpConfig.Server.GlobalChat] = r.GlobalChat,
             [EmpConfig.Server.Follow] = r.AllowFollow,
             [EmpConfig.Server.PrivateChat] = r.PrivateChat,
+            [EmpConfig.Server.GuestMoongate] = r.GuestMoongate,
+            [EmpConfig.Server.GuestLandingPortal] = r.GuestLandingPortal,
+            [EmpConfig.Server.GuestSkyHelm] = r.GuestSkyHelm,
             [EmpConfig.Server.GuestBuild] = r.AllowGuestBuild,
             [EmpConfig.Server.HostManagesBase] = r.HostManagesBase,
             [EmpConfig.Server.Duels] = r.AllowDuels,

@@ -18,6 +18,11 @@ internal static class CardOnUseEvent
     [HarmonyPrefix]
     internal static bool OnUseCard(Trait __instance, Chara c)
     {
+        // the moongate, the landing portal, the sky helm: replayed on the host they act for the host, see GateItems
+        if (GateItems.OnUse(__instance, c) is { } runHere) {
+            return runHere;
+        }
+
         return !TryRequest(__instance, c, null, null);
     }
 

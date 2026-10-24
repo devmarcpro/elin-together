@@ -223,6 +223,26 @@ public class NetSessionRules
     [Key(97)]
     public bool PrivateChat { get; set; } = true;
 
+    /// <summary>
+    ///     A guest's moongate: the host makes the zone of the map in its world, the guest goes alone, see GateItems.
+    ///     Off: a guest's use does nothing
+    /// </summary>
+    [Key(98)]
+    public bool GuestMoongate { get; set; } = true;
+
+    /// <summary>
+    ///     A guest's landing portal takes it to the host's survival gate zone, the host stays. Off: nothing happens
+    /// </summary>
+    [Key(99)]
+    public bool GuestLandingPortal { get; set; } = true;
+
+    /// <summary>
+    ///     A guest's sky helm: the host's list on its screen, its tickets pay, the host sets the gate zone for
+    ///     everyone. Off: nothing happens
+    /// </summary>
+    [Key(100)]
+    public bool GuestSkyHelm { get; set; } = true;
+
     public static NetSessionRules Default => new() {
         AllowTakeover = EmpConfig.Server.Takeover.Value,
         SoftRecall = EmpConfig.Server.SoftRecall.Value,
@@ -233,6 +253,9 @@ public class NetSessionRules
         GlobalChat = EmpConfig.Server.GlobalChat.Value,
         AllowFollow = EmpConfig.Server.Follow.Value,
         PrivateChat = EmpConfig.Server.PrivateChat.Value,
+        GuestMoongate = EmpConfig.Server.GuestMoongate.Value,
+        GuestLandingPortal = EmpConfig.Server.GuestLandingPortal.Value,
+        GuestSkyHelm = EmpConfig.Server.GuestSkyHelm.Value,
         // (a takeover is made from that copy: asking for one asks for the other, a host that ticked only
         // "another player takes over" got nothing)
         KeepWorldCopy = EmpConfig.Server.WorldCopy.Value || EmpConfig.Server.Takeover.Value,

@@ -456,6 +456,30 @@ internal partial class EmpConfig
             "Only that player gets the lines, the host passes them on without showing them\n" +
             "对其他玩家角色选择“交谈”会打开与该玩家的私聊，无论对方在哪里；只有该玩家会收到，主机只转发不显示");
 
+        Server.GuestMoongate = config.Bind(
+            "Server",
+            "GuestMoongate",
+            true,
+            "Another player's moongate takes that player alone to a map the host downloaded, the host stays where it is\n" +
+            "Otherwise a moongate does nothing for the other players\n" +
+            "其他玩家使用月之门时，只有该玩家前往主机已下载的地图，主机留在原地；关闭时月之门对其他玩家无效");
+
+        Server.GuestLandingPortal = config.Bind(
+            "Server",
+            "GuestLandingPortal",
+            true,
+            "Another player's landing portal takes that player alone to the gate zone of the survival world\n" +
+            "Otherwise a landing portal does nothing for the other players\n" +
+            "其他玩家使用着陆传送门时，只有该玩家前往生存模式的门所在区域；关闭时对其他玩家无效");
+
+        Server.GuestSkyHelm = config.Bind(
+            "Server",
+            "GuestSkyHelm",
+            true,
+            "Another player's sky helm shows the host's destinations on that player's screen, its sky tickets pay, and the gate zone moves for everyone\n" +
+            "Otherwise a sky helm does nothing for the other players\n" +
+            "其他玩家使用天空舵时，在该玩家的屏幕上显示主机的目的地列表，用该玩家的天空船票支付，所有人的门所在区域一起改变；关闭时对其他玩家无效");
+
         Server.GlobalChat = config.Bind(
             "Server",
             "GlobalChat",
@@ -633,6 +657,9 @@ internal partial class EmpConfig
 
         internal static ConfigEntry<bool> Follow { get; set; } = null!;
         internal static ConfigEntry<bool> PrivateChat { get; set; } = null!;
+        internal static ConfigEntry<bool> GuestMoongate { get; set; } = null!;
+        internal static ConfigEntry<bool> GuestLandingPortal { get; set; } = null!;
+        internal static ConfigEntry<bool> GuestSkyHelm { get; set; } = null!;
         internal static ConfigEntry<WorldMapTime> WorldMapTime { get; set; } = null!;
         internal static ConfigEntry<int> WorldMapLeadCap { get; set; } = null!;
         internal static ConfigEntry<bool> DumpSparesBelt { get; set; } = null!;

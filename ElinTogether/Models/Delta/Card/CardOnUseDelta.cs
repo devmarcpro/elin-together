@@ -104,6 +104,11 @@ public class CardOnUseDelta : ElinDelta
             return;
         }
 
+        // these act for "the player": on the host, the host. A guest does them as its own, see GateItems
+        if (net.IsHost && card.trait is TraitMoongate or TraitLandingPortal or TraitSkyHelm) {
+            return;
+        }
+
         Relay(net);
         card.trait.OnUse(user);
     }
