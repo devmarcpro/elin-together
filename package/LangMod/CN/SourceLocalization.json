@@ -419,5 +419,15 @@
     "LangGeneral.emp_follow_lost.text": "你看不到#1了。",
     "LangGeneral.emp_follow_danger.text": "危险！你不再跟随。",
     "LangGeneral.emp_ui_sv_cfg_follow.text": "玩家可以互相跟随",
-    "LangGeneral.emp_ui_sv_desc_follow.text": "点击其他玩家并选择“跟随”：你的角色会在同一地图上跟着对方走。按键、受到攻击、看到怪物或对方离开地图都会停止。"
+    "LangGeneral.emp_ui_sv_desc_follow.text": "点击其他玩家并选择“跟随”：你的角色会在同一地图上跟着对方走。按键、受到攻击、看到怪物或对方离开地图都会停止。",
+    "LangGeneral.emp_people_players.text": "玩家",
+    "LangGeneral.emp_people_offline.text": "离线",
+    "LangGeneral.emp_act_talk.text": "交谈",
+    "LangGeneral.emp_whisper_with.text": "与#1私聊",
+    "LangGeneral.emp_whisper_offline.text": "#1未连接。",
+    "LangGeneral.emp_whisper_from.text": "#1（私聊）",
+    "LangGeneral.emp_whisper_to.text": "对#1",
+    "LangGeneral.emp_whisper_you.text": "你",
+    "LangGeneral.emp_ui_sv_cfg_private_chat.text": "私聊",
+    "LangGeneral.emp_ui_sv_desc_private_chat.text": "对其他玩家角色选择“交谈”会打开与该玩家的私聊；只有该玩家会收到，无论对方在哪里"
 }
