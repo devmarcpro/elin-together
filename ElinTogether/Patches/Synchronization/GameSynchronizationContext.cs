@@ -106,7 +106,9 @@ internal class GameSynchronizationContext : SynchronizationContext
             return;
         }
 
-        if (NetSession.Instance.Rules.UseSharedSpeed) {
+        // a host alone gets no speed report, so no shared speed (0): measured against 0, every step took a tenth
+        // of its time (user, 2026-10-24: "the player is propelled")
+        if (NetSession.Instance.Rules.UseSharedSpeed && NetSession.Instance.SharedSpeed > 0) {
             RefSpeed = NetSession.Instance.SharedSpeed;
         } else {
             // (Min over nothing positive threw before: the same here)
