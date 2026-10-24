@@ -29,6 +29,16 @@ public class SpatialGenDelta : ElinDelta
     [Key(5)]
     public bool IsInstance { get; init; }
 
+    /// <summary>
+    ///     A site found by reading a map (TraitScrollMap) is known and has a prefix ("Chilly"), set after it is made:
+    ///     each game rolled its own name and the guest's did not show it on the world map (hunt 2 row 21)
+    /// </summary>
+    [Key(6)]
+    public bool IsKnown { get; init; }
+
+    [Key(7)]
+    public int IdPrefix { get; init; }
+
     public static SpatialGenDelta Create(Zone zone)
     {
         return new() {
@@ -39,6 +49,8 @@ public class SpatialGenDelta : ElinDelta
             Icon = zone.icon,
             // sent a frame after the zone is created, the game has set its instance by then
             IsInstance = zone.IsInstance,
+            IsKnown = zone.isKnown,
+            IdPrefix = zone.idPrefix,
         };
     }
 
@@ -52,6 +64,7 @@ public class SpatialGenDelta : ElinDelta
         var remoteZone = game.spatials.Find(ZoneUid);
         if (remoteZone?.ZoneFullName == ZoneFullName && remoteZone.uid == ZoneUid) {
             // we already handled this on zone data response code
+            Name(remoteZone);
             return;
         }
 
@@ -65,6 +78,7 @@ public class SpatialGenDelta : ElinDelta
 
         remoteZone.lv = zoneLv;
         remoteZone.uid = ZoneUid;
+        Name(remoteZone);
 
         if (game.spatials.Find(ZoneUid) is { } exist) {
             EmpLog.Warning("Zone uid {ZoneUid} taken by local zone {LocalZoneFullName}, " +
@@ -81,5 +95,11 @@ public class SpatialGenDelta : ElinDelta
         }
 
         SpatialGenEvent.HeldRefZones[ZoneUid] = remoteZone;
+    }
+
+    private void Name(Zone zone)
+    {
+        zone.isKnown |= IsKnown;
+        zone.idPrefix = IdPrefix;
     }
 }
