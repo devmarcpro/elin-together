@@ -30,8 +30,7 @@ internal class ChatBubbleEvent
                 Duration = duration,
             });
             if (chara.RemoteState is { } state) {
-                WidgetPopText.Say($"{state.User.Name.TagColor(PeerColorizer.GetColor(state.Index))}: {text}",
-                    sprite: UIHelper.FindSprite("emo2_hint"));
+                PopChat(state.User.Name.TagColor(PeerColorizer.GetColor(state.Index)), text);
             }
             return true;
         }
@@ -39,9 +38,26 @@ internal class ChatBubbleEvent
         return ElinDelta.IsApplying;
     }
 
+    /// <summary>
+    ///     Last player lines shown (the bench reads them)
+    /// </summary>
+    internal static readonly Queue<string> Shown = new();
+
+    /// <summary>
+    ///     A player's line, the way the game shows a player speaking: "name: text" in the pop text
+    /// </summary>
+    internal static void PopChat(string who, string text)
+    {
+        WidgetPopText.Say($"{who}: {text}", sprite: UIHelper.FindSprite("emo2_hint"));
+        Shown.Enqueue(text);
+        while (Shown.Count > 20) {
+            Shown.Dequeue();
+        }
+    }
+
     [HarmonyPrefix]
     [HarmonyPatch(typeof(AM_Adv), nameof(AM_Adv.OnEnterChat))]
-    internal static void OnEnterChat()
+    internal static void OnEnterChat(string text)
     {
         // an away player still chats with everyone, straight through the transport
         var away = NetSession.Instance.IsAway ? NetSession.Instance.Transport as ElinNetClient : null;
@@ -50,16 +66,16 @@ internal class ChatBubbleEvent
             return;
         }
 
-        var text = EClass.game.log.dict[EClass.game.log.currentLogIndex - 1].text;
-        var color = MsgBlock.lastBlock.txt.color;
         var delta = new MsgSayDelta {
             Text = text,
-            R = color.r,
-            G = color.g,
-            B = color.b,
-            A = color.a,
+            R = 1,
+            G = 1,
+            B = 1,
+            A = 1,
             Chat = true,
             ChatId = Random.Range(1, int.MaxValue),
+            SpeakerUid = EClass.pc.uid,
+            Name = EClass.pc.RemoteState?.User.Name ?? EClass.pc.Name,
         };
         MsgSayDelta.Remember(delta.ChatId);
 

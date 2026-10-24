@@ -1,4 +1,7 @@
 using System.Collections.Generic;
+using System.Linq;
+using ElinTogether.Helper;
+using ElinTogether.Patches;
 using ElinTogether.Net;
 using MessagePack;
 using UnityEngine;
@@ -35,6 +38,15 @@ public class MsgSayDelta : ElinDelta
     /// </summary>
     [Key(7)]
     public int ChatId { get; init; }
+
+    /// <summary>
+    ///     Character of the player who typed the line, and its name for players that do not know it
+    /// </summary>
+    [Key(8)]
+    public int SpeakerUid { get; init; }
+
+    [Key(9)]
+    public string? Name { get; init; }
 
     private static readonly Queue<int> RecentIds = new();
 
@@ -77,6 +89,20 @@ public class MsgSayDelta : ElinDelta
                 NetSession.Instance.Transport is ElinNetClient up) {
                 up.SendChatWhileAway(this);
             }
+        }
+
+        // a player's line shows like a player speaking on the map: the pop text, never the log (user, 2026-10-24).
+        // A speaker on this map already showed it with its bubble, see CardRendererTalkDelta
+        if (Chat) {
+            // (box unticked: a player elsewhere is not heard, the host's lines reach away players all the same)
+            if ((SpeakerUid == 0 || EClass._map?.charas.Exists(c => c.uid == SpeakerUid) != true) &&
+                NetSession.Instance.Rules.GlobalChat) {
+                var state = NetSession.Instance.CurrentPlayers.FirstOrDefault(p => p.CharaUid == SpeakerUid);
+                ChatBubbleEvent.PopChat(state is null ? Name ?? "?" : state.User.Name.TagColor(PeerColorizer.GetColor(state.Index)),
+                    Text);
+            }
+
+            return;
         }
 
         Msg.SetColor(new Color {

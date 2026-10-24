@@ -36,8 +36,7 @@ public class CardRendererTalkDelta : ElinDelta
         card.HostRenderer.Say(Text, duration: Duration);
 
         if (card is Chara { IsPlayer: true, RemoteState: { } state }) {
-            WidgetPopText.Say($"{state.User.Name.TagColor(PeerColorizer.GetColor(state.Index))}: {Text}",
-                sprite: UIHelper.FindSprite("emo2_hint"));
+            ChatBubbleEvent.PopChat(state.User.Name.TagColor(PeerColorizer.GetColor(state.Index)), Text);
         }
     }
 }
