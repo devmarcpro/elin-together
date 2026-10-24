@@ -159,6 +159,7 @@ namespace ElinTogether.Models;
 [Union(940, typeof(WorldTravelStepDelta))]
 [Union(941, typeof(WorldMapTogetherDelta))]
 [Union(960, typeof(PlayerLeadDelta))]
+[Union(962, typeof(WhisperDelta))]
 // Element
 [Union(1000, typeof(ElementChangeDelta))]
 public abstract class ElinDelta : EClass

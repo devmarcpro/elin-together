@@ -448,6 +448,14 @@ internal partial class EmpConfig
             "Any key, a blow, a monster in sight or a window stops it; so does the other player leaving the map\n" +
             "其他玩家角色的菜单中提供“跟随”：你的角色会在同一地图上跟着对方走；按任意键、受到攻击、看到怪物或打开窗口都会停止，对方离开地图时也会停止");
 
+        Server.PrivateChat = config.Bind(
+            "Server",
+            "PrivateChat",
+            true,
+            "Talk on another player's character opens a private chat with that player, wherever they are\n" +
+            "Only that player gets the lines, the host passes them on without showing them\n" +
+            "对其他玩家角色选择“交谈”会打开与该玩家的私聊，无论对方在哪里；只有该玩家会收到，主机只转发不显示");
+
         Server.GlobalChat = config.Bind(
             "Server",
             "GlobalChat",
@@ -624,6 +632,7 @@ internal partial class EmpConfig
         internal static ConfigEntry<bool> GlobalChat { get; set; } = null!;
 
         internal static ConfigEntry<bool> Follow { get; set; } = null!;
+        internal static ConfigEntry<bool> PrivateChat { get; set; } = null!;
         internal static ConfigEntry<WorldMapTime> WorldMapTime { get; set; } = null!;
         internal static ConfigEntry<int> WorldMapLeadCap { get; set; } = null!;
         internal static ConfigEntry<bool> DumpSparesBelt { get; set; } = null!;

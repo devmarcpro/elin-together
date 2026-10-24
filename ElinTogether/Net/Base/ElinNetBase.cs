@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using ElinTogether.Helper;
 using ElinTogether.Models;
 using ElinTogether.Net.Steam;
@@ -151,6 +153,8 @@ public abstract partial class ElinNetBase : EMono
             }
         }
     }
+
+    internal IEnumerable<int> PeerIds => Socket.Peers.Select(p => p.Id);
 
     internal bool SendDeltaTo(int peerIndex, ElinDelta delta)
     {
