@@ -54,6 +54,12 @@ internal static class CharaActPerformEvent
             }
 
             connection.Delta.AddRemote(delta);
+            // the other games replay the ride where they last saw the rider: one step behind, the pair stood on
+            // another tile there until someone moved (ride2 "on the spot", 2026-10-24). Where the rider stands, after
+            if (__instance.id is ABILITY.ActRide or ABILITY.ActParasite && Act.CC.IsPC) {
+                connection.Delta.AddRemote((CharaMoveDelta)Act.CC);
+            }
+
             EmpLog.Debug("Act {ActId} by chara {OwnerUid} at {@Pos}, target {TargetUid}",
                 delta.ActId, delta.Owner.Uid, delta.Pos, delta.TargetCard?.Uid);
 
