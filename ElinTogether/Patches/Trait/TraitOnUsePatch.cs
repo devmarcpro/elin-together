@@ -49,6 +49,8 @@ internal class TraitOnUsePatch
             // the local player, hanged or sent away
             AccessTools.Method(typeof(TraitRope), nameof(TraitRope.OnUse), [typeof(Chara)]),
             AccessTools.Method(typeof(TraitWaystone), nameof(TraitWaystone.OnUse), [typeof(Chara)]),
+            // the gold statue of Mani opens a window to choose a gene (hunt 2 row 27); the other statues run as before
+            AccessTools.Method(typeof(TraitPowerStatue), nameof(TraitPowerStatue.OnUse), [typeof(Chara)]),
         ];
     }
 
@@ -56,6 +58,10 @@ internal class TraitOnUsePatch
     internal static bool OnRemotePlayerUse(Trait __instance, Chara c)
     {
         if (!NetSession.Instance.HasActiveConnection || c is not { IsPC: false, IsRemotePlayer: true }) {
+            return true;
+        }
+
+        if (__instance is TraitPowerStatue statue && !(statue.Religion?.id == "machine" && statue.owner.material.id == 12)) {
             return true;
         }
 
