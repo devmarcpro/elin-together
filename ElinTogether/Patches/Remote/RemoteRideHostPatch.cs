@@ -11,6 +11,11 @@ internal class RemoteRideHostPatch
     [HarmonyPatch(typeof(BaseGameScreen), nameof(BaseGameScreen.RefreshPosition))]
     internal static void OnSetHostRideFocus(BaseGameScreen __instance)
     {
+        // (a carried player does not tick: its rider gone from this map is seen here, each frame it is carried)
+        if (EClass.pc.host is not null) {
+            FreeIfDropped(EClass.pc);
+        }
+
         if (EClass.pc.host is { } host) {
             EClass.player.position = host.renderer.position;
         }
@@ -30,6 +35,101 @@ internal class RemoteRideHostPatch
             .SetInstruction(
                 Transpilers.EmitDelegate((Card card) => card.IsPC || EClass.pc.host == card))
             .InstructionEnumeration();
+    }
+
+    /// <summary>
+    ///     A ride between two players is a same-map tie (council 2026-10-24 ride): when the rider changes map, the
+    ///     game that drops the tie clears the rider's side only, the carried one kept saying it was carried. It then
+    ///     could not ride, be ridden or get off any more. Whoever says it is carried by one that does not carry it
+    ///     is free, and a player learns he got off. Each tick (Chara.SyncRide) and before a ride act lists its targets
+    /// </summary>
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(Chara), nameof(Chara.SyncRide), [])]
+    internal static void OnSyncRide(Chara __instance)
+    {
+        FreeIfDropped(__instance);
+    }
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(ActRide), nameof(ActRide.Perform))]
+    internal static void OnRidePerform()
+    {
+        if (Act.TP is { IsValid: true } at) {
+            foreach (var chara in at.ListCharas()) {
+                FreeIfDropped(chara);
+            }
+        }
+    }
+
+    internal static void FreeIfDropped(Chara chara)
+    {
+        if (chara.host is not { } host) {
+            return;
+        }
+
+        // the world's own rider, not a copy of it left from another map (seen 2026-10-24: a copy still riding the
+        // host's character while the guest's real character rode nothing); by uid, as CompanionHelper.RebindRide
+        var rider = EClass.game.cards.globalCharas.Find(host.uid) ?? host;
+        // a player carried by anyone gone from this map (who the rider is, a guest holding the map no longer knows:
+        // the host's character is not one of its own session's players)
+        var gone = PlayerPeoplePatch.IsPlayerChara(chara) && EClass._map?.charas is { } here && here.Contains(chara) &&
+                   !here.Contains(rider);
+        if (gone || (rider.ride?.uid != chara.uid && rider.parasite?.uid != chara.uid)) {
+            Untie(rider, chara);
+        }
+    }
+
+    /// <summary>
+    ///     Two players: a same-map tie. One of them leaves this map (the rider changes map, a guest leaves the
+    ///     host's map, the host hands it over): it ends here, the one who stays is free where he stands. Kept, it
+    ///     pulled the one who stayed onto the frozen tile of the one gone at every step, or to (0, 0) on a smaller
+    ///     map (Chara.SyncRide, ride2 nefia 2026-10-24)
+    /// </summary>
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(Zone), nameof(Zone.RemoveCard))]
+    internal static void OnRemoveCard(Zone __instance, Card t)
+    {
+        if (!__instance.IsActiveZone || t is not Chara leaving || !PlayerPeoplePatch.IsPlayerChara(leaving)) {
+            return;
+        }
+
+        if (leaving.host is { } rider && PlayerPeoplePatch.IsPlayerChara(rider)) {
+            Untie(rider, leaving);
+        }
+
+        foreach (var carried in new[] { leaving.ride, leaving.parasite }) {
+            if (carried is not null && PlayerPeoplePatch.IsPlayerChara(carried)) {
+                Untie(leaving, carried);
+            }
+        }
+    }
+
+    private static void Untie(Chara rider, Chara carried)
+    {
+        EmpLog.Debug("Chara {Uid} no longer carried by {Rider}: freed", carried.uid, rider.uid);
+        if (rider.ride?.uid == carried.uid) {
+            rider.ride = null;
+        }
+
+        if (rider.parasite?.uid == carried.uid) {
+            rider.parasite = null;
+        }
+
+        // (and the world's own one: the rider may have carried a copy of it)
+        if (EClass.game.cards.globalCharas.Find(carried.uid) is { } own && own != carried && own.host?.uid == rider.uid) {
+            own.host = null;
+            own._CreateRenderer();
+            own.SetDirtySpeed();
+            carried = own;
+        }
+
+        carried.host = null;
+        carried._CreateRenderer();
+        carried.SetDirtySpeed();
+        rider.SetDirtySpeed();
+        if (carried.IsPC || rider.IsPC) {
+            rider.Say("ride_unride", rider, carried);
+        }
     }
 
     [HarmonyPrefix]
