@@ -440,6 +440,14 @@ internal partial class EmpConfig
             "Otherwise only the player whose game runs the base map counts (the host, mostly)\n" +
             "据点会计算地图上的所有玩家：只要有一人醒着就会有袭击，幸运月看任一玩家的神，与玩家共处的天数在任何玩家所在处都会计算；关闭时只计算运行据点地图的那位玩家");
 
+        Server.GlobalChat = config.Bind(
+            "Server",
+            "GlobalChat",
+            true,
+            "What a player types in the chat is read by every player, wherever they are: on another map, on the world map, away on their own\n" +
+            "Otherwise only the players on the same map as the speaker read it. Lines of townspeople and the game stay on their map either way\n" +
+            "玩家输入的聊天内容所有玩家都能看到，无论身在何处（其他地图、世界地图、独自行动）；关闭时只有同一地图上的玩家能看到。居民和游戏的台词无论如何都只在本地图显示");
+
         Server.WorldMapTime = config.Bind(
             "Server",
             "WorldMapTime",
@@ -605,6 +613,7 @@ internal partial class EmpConfig
         internal static ConfigEntry<bool> OwnSleep { get; set; } = null!;
         internal static ConfigEntry<bool> SummonsFollowMaster { get; set; } = null!;
         internal static ConfigEntry<bool> PlayersAtBase { get; set; } = null!;
+        internal static ConfigEntry<bool> GlobalChat { get; set; } = null!;
         internal static ConfigEntry<WorldMapTime> WorldMapTime { get; set; } = null!;
         internal static ConfigEntry<int> WorldMapLeadCap { get; set; } = null!;
         internal static ConfigEntry<bool> DumpSparesBelt { get; set; } = null!;

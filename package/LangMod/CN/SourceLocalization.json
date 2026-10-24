@@ -409,5 +409,7 @@
     "LangGeneral.emp_ui_sv_opt_world_map_lead_48.text": "48 小时",
     "LangGeneral.emp_ui_sv_opt_world_map_lead_72.text": "72 小时",
     "LangGeneral.emp_ui_travel_lead.text": "你领先世界 {0} 小时（旅途的时间由你的饱食度和任务承担，日期在等你的同伴）。",
-    "LangGeneral.emp_ui_travel_lead_paid.text": "世界追上了你的旅程。"
+    "LangGeneral.emp_ui_travel_lead_paid.text": "世界追上了你的旅程。",
+    "LangGeneral.emp_ui_sv_cfg_global_chat.text": "聊天对所有玩家可见",
+    "LangGeneral.emp_ui_sv_desc_global_chat.text": "玩家输入的聊天内容所有玩家都能看到，无论身在何处（其他地图、世界地图、独自行动）。关闭：只有同一地图上的玩家能看到。居民和游戏的台词始终只在本地图显示"
 }

@@ -111,6 +111,20 @@ internal partial class ElinNetHost
         return _departed.Contains(peerId);
     }
 
+    /// <summary>
+    ///     To every player that is not away (on a map), except one
+    /// </summary>
+    internal void SendDeltaToMapPeers(int exceptPeer, ElinDelta delta)
+    {
+        foreach (var peer in Socket.Peers) {
+            if (peer.Id != exceptPeer && !IsAway(peer)) {
+                peer.Send(new WorldStateDeltaList {
+                    DeltaList = [delta],
+                });
+            }
+        }
+    }
+
     internal bool IsAway(ISteamNetPeer peer)
     {
         // zone session: a leaving guest already handed its character to its host link

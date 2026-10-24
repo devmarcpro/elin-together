@@ -204,6 +204,13 @@ public class NetSessionRules
     [Key(26)]
     public bool PlayersAtBase { get; set; } = true;
 
+    /// <summary>
+    ///     Player chat reaches every player, whatever map or zone it is on (an away player included); NPC and game
+    ///     lines stay on their map. Off: a chat line reaches only the players on the same map as its speaker
+    /// </summary>
+    [Key(95)]
+    public bool GlobalChat { get; set; } = true;
+
     public static NetSessionRules Default => new() {
         AllowTakeover = EmpConfig.Server.Takeover.Value,
         SoftRecall = EmpConfig.Server.SoftRecall.Value,
@@ -211,6 +218,7 @@ public class NetSessionRules
         OncePerPlayer = EmpConfig.Server.OncePerPlayer.Value,
         TownBoards = EmpConfig.Server.TownBoards.Value,
         PlayersAtBase = EmpConfig.Server.PlayersAtBase.Value,
+        GlobalChat = EmpConfig.Server.GlobalChat.Value,
         // (a takeover is made from that copy: asking for one asks for the other, a host that ticked only
         // "another player takes over" got nothing)
         KeepWorldCopy = EmpConfig.Server.WorldCopy.Value || EmpConfig.Server.Takeover.Value,
