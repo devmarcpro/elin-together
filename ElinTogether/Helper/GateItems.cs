@@ -318,11 +318,13 @@ internal static class GateItems
             return;
         }
 
-        var uid = game.survival.gateZone?.uid ?? 0;
+        var gate = game.survival.gateZone;
+        var uid = gate?.uid ?? 0;
         if (uid != _toldGate) {
             _toldGate = uid;
             host.Delta.AddRemote(new GateZoneDelta {
                 ZoneUid = uid,
+                Zone = gate is null ? null : SpatialGenDelta.Create(gate),
             });
         }
     }

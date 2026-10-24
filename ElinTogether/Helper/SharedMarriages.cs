@@ -164,9 +164,10 @@ internal static class SharedMarriages
             return true;
         }
 
-        switch (NetSession.Instance.Connection) {
+        // Transport: a guest alone on a map it holds asks the world host too
+        switch (NetSession.Instance.Transport) {
             case ElinNetClient client:
-                client.Delta.AddRemote(new MarriageDelta {
+                client.SendWhileAway(new MarriageDelta {
                     Kind = MarriageDelta.Step.Marry,
                     Npc = npc,
                 });
@@ -235,9 +236,9 @@ internal static class SharedMarriages
             return;
         }
 
-        switch (NetSession.Instance.Connection) {
+        switch (NetSession.Instance.Transport) {
             case ElinNetClient client:
-                client.Delta.AddRemote(new MarriageDelta {
+                client.SendWhileAway(new MarriageDelta {
                     Kind = MarriageDelta.Step.Wed,
                     Npc = c,
                 });

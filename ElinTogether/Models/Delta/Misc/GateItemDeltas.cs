@@ -115,10 +115,18 @@ public class GateZoneDelta : ElinDelta
     [Key(0)]
     public required int ZoneUid { get; init; }
 
+    // the zone itself, for a player whose world never had it
+    [Key(1)]
+    public SpatialGenDelta? Zone { get; init; }
+
     protected override void OnApply(ElinNetBase net)
     {
         if (net is ElinNetHost || game is not { IsSurvival: true }) {
             return;
+        }
+
+        if (game.spatials.Find(ZoneUid) is null) {
+            Zone?.Apply(net);
         }
 
         if (ZoneUid == 0 || game.spatials.Find(ZoneUid) is not null) {
