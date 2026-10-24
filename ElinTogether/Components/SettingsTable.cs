@@ -205,6 +205,7 @@ internal static class SettingsTable
         yield return new("duels", "together", true, EmpConfig.Server.Duels, Under: "fights");
         yield return new("player_kill", "together", true, EmpConfig.Server.PlayerKill, Under: "fights");
         yield return new("player_trade", "together", false, EmpConfig.Server.PlayerTrade);
+        yield return new("follow", "together", false, EmpConfig.Server.Follow);
 
         // When the host leaves
         yield return new("host_leaves", "host_leaves", false, Choice: HostLeaves);
@@ -348,6 +349,7 @@ internal static class SettingsTable
             [EmpConfig.Server.TownBoards] = r.TownBoards,
             [EmpConfig.Server.PlayersAtBase] = r.PlayersAtBase,
             [EmpConfig.Server.GlobalChat] = r.GlobalChat,
+            [EmpConfig.Server.Follow] = r.AllowFollow,
             [EmpConfig.Server.GuestBuild] = r.AllowGuestBuild,
             [EmpConfig.Server.HostManagesBase] = r.HostManagesBase,
             [EmpConfig.Server.Duels] = r.AllowDuels,

@@ -440,6 +440,14 @@ internal partial class EmpConfig
             "Otherwise only the player whose game runs the base map counts (the host, mostly)\n" +
             "据点会计算地图上的所有玩家：只要有一人醒着就会有袭击，幸运月看任一玩家的神，与玩家共处的天数在任何玩家所在处都会计算；关闭时只计算运行据点地图的那位玩家");
 
+        Server.Follow = config.Bind(
+            "Server",
+            "Follow",
+            true,
+            "The menu on another player's character offers Follow: your character walks after it, on the same map\n" +
+            "Any key, a blow, a monster in sight or a window stops it; so does the other player leaving the map\n" +
+            "其他玩家角色的菜单中提供“跟随”：你的角色会在同一地图上跟着对方走；按任意键、受到攻击、看到怪物或打开窗口都会停止，对方离开地图时也会停止");
+
         Server.GlobalChat = config.Bind(
             "Server",
             "GlobalChat",
@@ -614,6 +622,8 @@ internal partial class EmpConfig
         internal static ConfigEntry<bool> SummonsFollowMaster { get; set; } = null!;
         internal static ConfigEntry<bool> PlayersAtBase { get; set; } = null!;
         internal static ConfigEntry<bool> GlobalChat { get; set; } = null!;
+
+        internal static ConfigEntry<bool> Follow { get; set; } = null!;
         internal static ConfigEntry<WorldMapTime> WorldMapTime { get; set; } = null!;
         internal static ConfigEntry<int> WorldMapLeadCap { get; set; } = null!;
         internal static ConfigEntry<bool> DumpSparesBelt { get; set; } = null!;

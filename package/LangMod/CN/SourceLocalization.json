@@ -411,5 +411,13 @@
     "LangGeneral.emp_ui_travel_lead.text": "你领先世界 {0} 小时（旅途的时间由你的饱食度和任务承担，日期在等你的同伴）。",
     "LangGeneral.emp_ui_travel_lead_paid.text": "世界追上了你的旅程。",
     "LangGeneral.emp_ui_sv_cfg_global_chat.text": "聊天对所有玩家可见",
-    "LangGeneral.emp_ui_sv_desc_global_chat.text": "玩家输入的聊天内容所有玩家都能看到，无论身在何处（其他地图、世界地图、独自行动）。关闭：只有同一地图上的玩家能看到。居民和游戏的台词始终只在本地图显示"
+    "LangGeneral.emp_ui_sv_desc_global_chat.text": "玩家输入的聊天内容所有玩家都能看到，无论身在何处（其他地图、世界地图、独自行动）。关闭：只有同一地图上的玩家能看到。居民和游戏的台词始终只在本地图显示",
+    "LangGeneral.emp_act_follow.text": "跟随",
+    "LangGeneral.emp_follow_start.text": "你开始跟随#1。按任意键停止。",
+    "LangGeneral.emp_follow_stop.text": "你不再跟随#1。",
+    "LangGeneral.emp_follow_left.text": "#1离开了地图。你不再跟随。",
+    "LangGeneral.emp_follow_lost.text": "你看不到#1了。",
+    "LangGeneral.emp_follow_danger.text": "危险！你不再跟随。",
+    "LangGeneral.emp_ui_sv_cfg_follow.text": "玩家可以互相跟随",
+    "LangGeneral.emp_ui_sv_desc_follow.text": "点击其他玩家并选择“跟随”：你的角色会在同一地图上跟着对方走。按键、受到攻击、看到怪物或对方离开地图都会停止。"
 }

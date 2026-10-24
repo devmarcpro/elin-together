@@ -211,6 +211,12 @@ public class NetSessionRules
     [Key(95)]
     public bool GlobalChat { get; set; } = true;
 
+    /// <summary>
+    ///     The menu on another player's character offers "Follow": the local character walks after it, see PlayerFollow
+    /// </summary>
+    [Key(96)]
+    public bool AllowFollow { get; set; } = true;
+
     public static NetSessionRules Default => new() {
         AllowTakeover = EmpConfig.Server.Takeover.Value,
         SoftRecall = EmpConfig.Server.SoftRecall.Value,
@@ -219,6 +225,7 @@ public class NetSessionRules
         TownBoards = EmpConfig.Server.TownBoards.Value,
         PlayersAtBase = EmpConfig.Server.PlayersAtBase.Value,
         GlobalChat = EmpConfig.Server.GlobalChat.Value,
+        AllowFollow = EmpConfig.Server.Follow.Value,
         // (a takeover is made from that copy: asking for one asks for the other, a host that ticked only
         // "another player takes over" got nothing)
         KeepWorldCopy = EmpConfig.Server.WorldCopy.Value || EmpConfig.Server.Takeover.Value,

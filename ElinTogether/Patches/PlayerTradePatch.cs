@@ -14,7 +14,7 @@ internal static class PlayerTradePatch
     [HarmonyPostfix]
     internal static void OnUpdatePlan(ActPlan __instance)
     {
-        if (!PlayerTrade.Enabled && !PlayerDuel.Enabled) {
+        if (!PlayerTrade.Enabled && !PlayerDuel.Enabled && !PlayerFollow.Enabled) {
             return;
         }
 
@@ -35,6 +35,14 @@ internal static class PlayerTradePatch
             if (PlayerDuel.Enabled) {
                 __instance.TrySetAct("emp_act_duel", () => {
                     PlayerDuel.Challenge(other.uid);
+                    return false;
+                }, other, null, 2);
+            }
+
+            // and walking after it (PlayerFollow), not on the world map
+            if (PlayerFollow.Enabled && !EClass._zone.IsRegion) {
+                __instance.TrySetAct("emp_act_follow", () => {
+                    PlayerFollow.Start(other);
                     return false;
                 }, other, null, 2);
             }
