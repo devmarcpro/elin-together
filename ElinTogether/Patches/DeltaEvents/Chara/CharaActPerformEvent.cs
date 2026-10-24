@@ -42,6 +42,13 @@ internal static class CharaActPerformEvent
             return;
         }
 
+        // a reload is a ranged act aimed at oneself, a reload only for "the player" (ActRanged.IsReload): replayed
+        // for another player's character it was a shot at itself (hunt 2 row 18). The ammo and the reload
+        // condition are the shooter's own, sent as they change
+        if (__instance is ActRanged && Act.TC == Act.CC) {
+            return;
+        }
+
         // host propagates every act perform event
         // clients only propagate self
         if (connection.IsHost || Act.CC.IsPC) {
