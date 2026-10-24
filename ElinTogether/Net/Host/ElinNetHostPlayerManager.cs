@@ -293,6 +293,9 @@ internal partial class ElinNetHost
         CardCache.Add(chara);
         CardCache.CacheContainer(chara.things);
 
+        // (registered again without leaving first: the old state stayed in the list, and a read by character found it
+        // first, e.g. "talking" from a dialog closed long ago, 2026-10-24)
+        Session.CurrentPlayers.RemoveAll(p => p.Index == peer.Id || p.CharaUid == chara.uid);
         Session.CurrentPlayers.Add(state);
     }
 
