@@ -21,6 +21,9 @@ internal static class DialogFlagSync
     private const string Story = "f:";
     private const string KeyItem = "k:";
     private const string Debt = "p:debt";
+    // the base's monthly bill is the host's (WorldKeeperHooks): a guest's choice of an extra tax (the maid, an
+    // investor) was kept in its own game and never paid (hunt 3 row 50)
+    private const string ExtraTax = "p:extraTax";
     private const string Guild = "g:";
 
     /// <summary>
@@ -163,6 +166,8 @@ internal static class DialogFlagSync
             player.keyItems[item] = value;
         } else if (id == Debt) {
             player.debt = value;
+        } else if (id == ExtraTax) {
+            player.extraTax = value;
         } else if (id.StartsWith(Guild)) {
             // g:<guild>:<t|r|e>
             var parts = id.Split(':');
@@ -226,6 +231,7 @@ internal static class DialogFlagSync
         }
 
         values[Debt] = player.debt;
+        values[ExtraTax] = player.extraTax;
 
         // one membership for the group: who joined a guild, its rank and what it contributed
         foreach (var guild in Guilds()) {
