@@ -70,7 +70,14 @@ public class StoryOutcomeDelta : ElinDelta
                 return;
         }
 
-        // the game's own code, with the dialog it expects around it
+        RunGameOutcome(Method, target);
+    }
+
+    /// <summary>
+    ///     The game's own code, with the dialog it expects around it
+    /// </summary>
+    internal static void RunGameOutcome(string method, Chara? target)
+    {
         var stage = new GameObject("emp_story_outcome");
         stage.SetActive(false);
         try {
@@ -80,7 +87,7 @@ public class StoryOutcomeDelta : ElinDelta
             var outcome = stage.AddComponent<DramaOutcome>();
             outcome.manager = manager;
 
-            AccessTools.Method(typeof(DramaOutcome), Method).Invoke(outcome, null);
+            AccessTools.Method(typeof(DramaOutcome), method).Invoke(outcome, null);
         } finally {
             UnityEngine.Object.Destroy(stage);
         }

@@ -479,6 +479,13 @@ internal partial class EmpConfig
             "Another player's sky helm shows the host's destinations on that player's screen, its sky tickets pay, and the gate zone moves for everyone\n" +
             "Otherwise a sky helm does nothing for the other players\n" +
             "其他玩家使用天空舵时，在该玩家的屏幕上显示主机的目的地列表，用该玩家的天空船票支付，所有人的门所在区域一起改变；关闭时对其他玩家无效");
+        Server.SharedMarriages = config.Bind(
+            "Server",
+            "SharedMarriages",
+            true,
+            "Every player can marry: a resident is the spouse of the character who married it, the first to propose wins, and the host keeps who in its save\n" +
+            "Wedding, divorce and the lost ring deed work for that character only. Otherwise, as before, a guest's marriage stays in its own game\n" +
+            "每位玩家都可以结婚：居民是与之结婚的角色的配偶，先求婚者优先，主机在存档中记录；婚礼、离婚和遗失戒指证书只对该角色有效。关闭时如以前一样，客人的婚姻只存在于其自己的游戏中");
 
         Server.GlobalChat = config.Bind(
             "Server",
@@ -660,6 +667,7 @@ internal partial class EmpConfig
         internal static ConfigEntry<bool> GuestMoongate { get; set; } = null!;
         internal static ConfigEntry<bool> GuestLandingPortal { get; set; } = null!;
         internal static ConfigEntry<bool> GuestSkyHelm { get; set; } = null!;
+        internal static ConfigEntry<bool> SharedMarriages { get; set; } = null!;
         internal static ConfigEntry<WorldMapTime> WorldMapTime { get; set; } = null!;
         internal static ConfigEntry<int> WorldMapLeadCap { get; set; } = null!;
         internal static ConfigEntry<bool> DumpSparesBelt { get; set; } = null!;

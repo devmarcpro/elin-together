@@ -29,7 +29,7 @@ internal static class CardActReplayEvent
                      typeof(TraitTicketFurniture), typeof(TraitSyringeBlood), typeof(TraitSyringeGene),
                      typeof(TraitSyringeHeaven), typeof(TraitSyringeUnicorn), typeof(TraitStethoscope), typeof(TraitLeash),
                      typeof(TraitWrench), typeof(TraitEcoMark), typeof(TraitToolBrushStrip), typeof(TraitToolHammerStrip),
-                     typeof(TraitWhipLove), typeof(TraitWhipEgg),
+                     typeof(TraitWhipLove), typeof(TraitWhipEgg), typeof(TraitDeedDivorce), typeof(TraitDeedLostRing),
                  }) {
             yield return AccessTools.DeclaredMethod(type, nameof(Trait.TrySetHeldAct));
         }
@@ -46,7 +46,8 @@ internal static class CardActReplayEvent
     [HarmonyPostfix]
     internal static void After(Trait __instance, ActPlan p, ActPlan.Item[] __state)
     {
-        if (NetSession.Instance.Connection is not { } connection || ElinDelta.IsApplying) {
+        if (NetSession.Instance.Connection is not { } connection || ElinDelta.IsApplying ||
+            (__instance is TraitDeedDivorce or TraitDeedLostRing && !SharedMarriages.Enabled)) {
             return;
         }
 
@@ -79,7 +80,7 @@ internal static class CardActReplayEvent
             return false;
         }
 
-        client.Delta.AddRemote(new CardActReplayDelta {
+        var delta = new CardActReplayDelta {
             Card = card,
             RootCard = card.GetRootCard(),
             User = EClass.pc,
@@ -89,7 +90,15 @@ internal static class CardActReplayEvent
             Index = index,
             Id = act.id,
             Leashed = (trait is TraitLeash && item.tc is Chara companion) ? !companion.isLeashed : null,
-        });
+        };
+
+        // the divorce asks yes or no here, the host replays the yes (SharedMarriages)
+        if (trait is TraitDeedDivorce) {
+            Dialog.YesNo("dialogDivorce", () => client.Delta.AddRemote(delta));
+            return false;
+        }
+
+        client.Delta.AddRemote(delta);
 
         // the wish of a well: the host never rolls it for another player, this game does, with its own key and
         // flag, at the game's odds (4/5 x 4/5 x 3/4 x 1/10)
@@ -109,8 +118,9 @@ internal static class CardActReplayEvent
             return own?.Invoke() ?? false;
         }
 
-        // the ticket and the four tools end no turn, the whips do (as in the game)
-        return trait is not (TraitTicketFurniture or TraitWrench or TraitEcoMark or TraitToolBrushStrip or TraitToolHammerStrip);
+        // the ticket, the four tools and the lost ring deed end no turn, the whips do (as in the game)
+        return trait is not (TraitTicketFurniture or TraitWrench or TraitEcoMark or TraitToolBrushStrip or TraitToolHammerStrip or
+            TraitDeedLostRing);
     }
 }
 

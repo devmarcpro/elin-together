@@ -210,6 +210,7 @@ internal static class SettingsTable
         yield return new("guest_moongate", "together", false, EmpConfig.Server.GuestMoongate);
         yield return new("guest_landing_portal", "together", false, EmpConfig.Server.GuestLandingPortal);
         yield return new("guest_sky_helm", "together", false, EmpConfig.Server.GuestSkyHelm);
+        yield return new("shared_marriages", "together", false, EmpConfig.Server.SharedMarriages);
 
         // When the host leaves
         yield return new("host_leaves", "host_leaves", false, Choice: HostLeaves);
@@ -358,6 +359,7 @@ internal static class SettingsTable
             [EmpConfig.Server.GuestMoongate] = r.GuestMoongate,
             [EmpConfig.Server.GuestLandingPortal] = r.GuestLandingPortal,
             [EmpConfig.Server.GuestSkyHelm] = r.GuestSkyHelm,
+            [EmpConfig.Server.SharedMarriages] = r.SharedMarriages,
             [EmpConfig.Server.GuestBuild] = r.AllowGuestBuild,
             [EmpConfig.Server.HostManagesBase] = r.HostManagesBase,
             [EmpConfig.Server.Duels] = r.AllowDuels,
