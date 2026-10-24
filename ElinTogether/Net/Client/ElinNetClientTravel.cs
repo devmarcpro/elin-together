@@ -113,7 +113,7 @@ internal partial class ElinNetClient
             return false;
         }
 
-        if (Session.IsAway && zone.uid == _hostZoneUid) {
+        if (Session.IsAway && zone.uid == _hostZoneUid && !_localZones.Contains(zone)) {
             EmpLog.Information("Returning from {AwayZone} to host zone {ZoneFullName}",
                 Session.AwayZone!.ZoneFullName, zone.ZoneFullName);
 
@@ -370,7 +370,7 @@ internal partial class ElinNetClient
             return;
         }
 
-        if (travel.Zone.uid == _hostZoneUid) {
+        if (travel.Zone.uid == _hostZoneUid && !_localZones.Contains(travel.Zone)) {
             _pendingTravel = null;
             SendRejoin(ZoneArrival.Create(travel.Zone.uid, travel.Transition));
             return;
