@@ -56,6 +56,24 @@ internal static class RideOffMapPatch
             c.uid, __instance.uid, at.x, at.z);
         // (as placed on the map for the first time: nothing to take it off from)
         map._AddCard(to.x, to.z, c, true);
+        // _AddCard alone does not make it one of this map's charas: Chara.RefreshSpeed skips a chara of another zone
+        // (stale speed 0 copied to its rider) and the horse belonged to no map once the rider stepped off (issue #2).
+        // It joins the zone at once, and its list of charas once the game is done walking it (Zone.Activate)
+        if (EClass._zone is { } zone && !map.charas.Contains(c)) {
+            // (a map still loaded that lists it would keep a second copy)
+            if (c.parent is Zone { map: not null } old && old != zone) {
+                old.map.charas.Remove(c);
+            }
+
+            c.parent = zone;
+            c.currentZone = zone;
+            CoroutineHelper.Deferred(() => {
+                if (c.parent == zone && zone.IsActiveZone && !zone.map.charas.Contains(c) && (__instance.ride == c || __instance.parasite == c)) {
+                    // (the list only, not Zone.AddCard: that one is synced, and the card is already in its cell)
+                    zone.map.charas.Add(c);
+                }
+            });
+        }
         return false;
     }
 }
