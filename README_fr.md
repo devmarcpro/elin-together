@@ -1,5 +1,7 @@
 # Elin Together — version « indépendance »
 
+**Version actuelle : 0.26.943** (zip `ElinTogether-independence.zip`).
+
 [English](README.md) | Français | [中文](README_zh.md) | [日本語](README_ja.md)
 
 [![Dernière version](https://img.shields.io/github/v/release/jeanfreger/elin-together-independence?include_prereleases&label=derni%C3%A8re%20version)](https://github.com/jeanfreger/elin-together-independence/releases)
@@ -90,6 +92,32 @@ mod lui-même leur revient (voir [Crédits](#crédits)).
   tous les joueurs présents sur cette carte.
 - **Entre joueurs.** Une fenêtre d'échange (chacun met des objets et de l'or, les deux confirment), des duels où
   personne ne meurt et où rien n'est perdu, et pas de meurtre hors duel.
+
+### Temps et réglages simplifiés
+
+- **Temps sur la carte du monde, trois modes** (choix de l'host) : *Horloge commune* (une seule horloge, la carte du
+  monde n'attend personne), *Voyager ensemble* (le groupe avance d'un bloc sur la carte du monde, on attend un
+  joueur encore en chargement) et *Rythme personnel* (chacun voyage à son rythme, les autres rattrapent au
+  regroupement).
+- **Réglages réorganisés.** Des préréglages et des choix simples en haut (« Coop recommandée », « Classique mené par
+  l'host » ou Personnalisé), toutes les cases gardées dans une section *Avancé*, une description sous chaque case,
+  les cases dépendantes grisées, « Revenir au recommandé » et « Annuler ». Les amis voient « Règles de ce monde » en
+  lecture seule. La même page est dans la page de config des mods du jeu.
+
+### Le monde lit chaque joueur
+
+- **Le contenu du monde vient de chaque joueur, pas seulement de l'host.** Tableaux de la ville (palier de
+  renommée, danger, récompenses), stock des boutiques et étagères spéciales, apparitions sur la carte, tonneaux,
+  étagères d'affinage et lait maternel suivent les joueurs présents sur la carte.
+- **Base et vie de la ville pour chaque joueur.** Raids, mois de chance, jours avec le joueur et pluie sur une ferme
+  comptent chaque joueur ; habitants, prêtres, boss de nefia, rumeurs et pierres agissent autour de chaque joueur
+  selon son karma ; la mort d'un boss crédite la profondeur à chaque joueur de la carte ; les invocations suivent
+  leur propre maître.
+- **Chance, journaux et compteurs de chaque joueur** (tirages de chance, niveau de reconstruction, journaux, trésor,
+  recettes connues, croquis, airs, points de résurrection) restent à lui d'une copie du monde à l'autre. Un
+  recrutement n'est payé qu'une fois.
+- **Combat auto par joueur**, mêmes règles de combat pour tous (points faibles, plancher d'invocation, progression
+  du lancer, vitesse) et duel aux règles du jeu.
 
 ### Un invité joue comme un joueur solo
 
@@ -282,7 +310,14 @@ s'appliquent à tous dès qu'elles changent. Les noms des cases sont en anglais 
 | One date for the whole world | cochée | Le temps passé par un joueur seul sur une autre carte compte pour tous. Décochée : seule la date de l'host compte. |
 | What time does to the world happens once | cochée | Météo, quêtes expirées, impôts, salaires et lettres sont faits par un seul jeu. |
 | Everyone sleeps for themselves | cochée | Celui qui se couche dort tout de suite. La nuit passe pour le monde quand tous dorment en même temps. |
-| Time only jumps when everyone jumps | cochée | Un pas sur la carte du monde ne fait avancer la date que si tous les joueurs voyagent ensemble. |
+| Temps sur la carte du monde | Horloge commune | Liste : *Horloge commune*, *Voyager ensemble* ou *Rythme personnel* (voir plus haut). |
+| La base compte chaque joueur | cochée | Raids, mois de chance et jours avec le joueur comptent chaque joueur de la carte de la base. |
+| Tonneaux et lait suivent le joueur | cochée | Étagères d'affinage, briques à sécher et lait maternel utilisent le joueur concerné. |
+| Les invocations suivent l'invocateur | cochée | Une invocation reste avec son propre maître quand la carte change. |
+| Tableaux de la ville pour chaque joueur présent | cochée | Palier de renommée et danger suivent les joueurs de la carte (demande les quêtes personnelles). |
+| Stock des boutiques pour chaque joueur | cochée | Le bonus du meilleur joueur compte ; les étagères spéciales suivent celui qui ouvre la boutique. |
+| Apparitions selon le joueur le plus proche | cochée | Les apparitions lisent les exploits du joueur le plus proche du point d'apparition. |
+| Vie de la ville autour de chaque joueur | cochée | Habitants, rumeurs et pierres agissent autour de chaque joueur, selon son karma. |
 | Tax on the most famous player | cochée | L'impôt du mois est calculé sur la plus haute renommée des joueurs connectés. Décochée : sur celle de l'host. |
 | Auto-dump spares hand and tool belt | cochée | Le rangement automatique laisse ce que vous tenez et votre ceinture à outils. Décochée : comme le jeu. |
 | Players come back by themselves after a connection loss | cochée | Un joueur qui perd la connexion revient tout seul dans la partie, pendant 3 minutes. |
@@ -422,9 +457,8 @@ l'ancien attend son joueur.
 
 - **Un seul petit groupe y a joué pour de vrai.** Presque tout est vérifié par des tests en jeu sur un seul PC (deux
   ou trois fenêtres). « Pas joué » dans une note de version ou un message de commit veut dire exactement cela.
-- **Une seule date pour le monde**, qui n'avance qu'avec l'host : sur la carte du monde, seuls ses pas la font
-  avancer ; la nuit commune ne passe que si tout le monde dort. Chacun peut dormir « à soi » sans la faire bouger
-  (quand l'host dort seul, elle avance d'une dizaine de minutes).
+- **Une seule date pour le monde.** La façon dont un voyage sur la carte du monde la fait avancer dépend du choix
+  *Temps sur la carte du monde* de l'host ; la nuit commune ne passe que si tout le monde dort.
 - **Quand l'host part ou plante**, un invité peut reprendre le monde tout seul : la case existe (« Takeover »), elle
   est décochée tant que ce n'est pas joué entre deux vrais PC. Sans elle, quelqu'un prend le monde dans le dépôt.
 - Retrouver l'host ne recharge plus tout le monde (case cochée d'office depuis la 0.26.691) ; au moindre doute le mod
@@ -470,7 +504,7 @@ recommander à n'importe qui (état au 12 octobre 2026).
 **3. L'installation**
 
 - Le mod demande le canal **Nightly** d'Elin, et chaque version est compilée pour une version précise du jeu.
-- Un zip et un `Install.bat`, en français, qui remplace la version Workshop du mod d'origine. Pas de page Workshop.
+- Un zip (`Install.bat`, `Uninstall.bat`, `Server.bat`, `README.txt`), en anglais, qui remplace la version Workshop du mod d'origine. Pas de page Workshop.
 - Tous les joueurs doivent avoir exactement la même version.
 
 **4. Ce qui manque**
@@ -544,5 +578,5 @@ Le mod est l'œuvre de l'équipe Elin Together : [DK](https://github.com/gottydu
 [Han](https://github.com/chuahan), Omega, [InuiDame](https://github.com/InuiDame),
 [Drakeny](https://github.com/Drakeny) (tests), noa (Elin). Licence MIT, voir [LICENSE](LICENSE).
 
-Les changements de ce fork ont été écrits avec un assistant de programmation (Claude Code), dirigé par le
+Fait par jeanfreger avec Claude (Anthropic). Les changements de ce fork ont été écrits avec un assistant de programmation (Claude Code), dirigé par le
 propriétaire du fork. Aucun fichier du jeu ni code décompilé du jeu n'est dans ce dépôt.

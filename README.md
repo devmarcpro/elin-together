@@ -1,5 +1,7 @@
 # Elin Together — "independence" fork
 
+**Current version: 0.26.943** (zip `ElinTogether-independence.zip`).
+
 English | [Français](README_fr.md) | [中文](README_zh.md) | [日本語](README_ja.md)
 
 [![Latest release](https://img.shields.io/github/v/release/jeanfreger/elin-together-independence?include_prereleases&label=latest%20release)](https://github.com/jeanfreger/elin-together-independence/releases)
@@ -85,6 +87,29 @@ goes to them (see [Credits](#credits)).
 - **Between players.** A trade window (both put items and gold, both confirm), duels where nobody dies and nothing
   is lost, and no killing outside a duel.
 
+### Time and settings made simpler
+
+- **World map time, three modes** (host choice): *Shared clock* (one clock, the world map waits for no one),
+  *Travel together* (the group moves on the world map as one, a player still loading is waited for) and *Personal
+  pace* (each player travels at their own pace; the others catch up when they regroup).
+- **Settings reorganised.** Presets and plain choices on top ("Recommended co-op", "Classic host-led", or Custom),
+  every individual box kept in an *Advanced* section, a description under each box, dependent boxes greyed out,
+  "Reset to recommended" and "Undo". Friends see "This world's rules" read only. The same page is in the game's own
+  mod config page.
+
+### The world reads every player
+
+- **World content from every player, not only the host.** Town boards (fame gate, danger, rewards), shop stock and
+  special shelves, map spawns, barrels, aging shelves and mother's milk follow the players on the map instead of the
+  host's character alone.
+- **Base and town life for every player.** Raids, lucky month, days with the player and rain on a farm count every
+  player; townspeople, priests, nefia bosses, rumours and stones act around each player and by that player's karma;
+  a boss kill credits the depth to every player on the map; summons follow their own master.
+- **Each player's fortune, diaries and counters** (fortune rolls, reconstruction level, diaries, hoard, known
+  crafts, sketches, tunes, respawn anchors) belong to that player and survive world copies. Recruits are paid once.
+- **Auto combat per player**, combat parity (weak spots, summon floor, throw growth, speed) and a duel with the
+  game's own rules.
+
 ### A guest plays like a solo player
 
 Dozens of fixes so that what works for the host works for a guest: death and will, the god's gifts, altars, traps,
@@ -115,7 +140,7 @@ companion back at the barman's, windows that used to open on the host's screen�
 - **Different Elin versions can play together.** Only the mod's version must be the same for everyone; players on
   another Elin version are let in with a warning.
 
-Almost all of this is a **checkbox on the host's side**: unticked, the mod behaves like the original. See
+Almost all of this is a **checkbox or choice on the host's side**: off, the mod behaves like the original. See
 [Settings](#settings).
 
 ## Install
@@ -270,7 +295,14 @@ everyone as soon as they change.
 | One date for the whole world | on | Time passed by a player alone on another map counts for everyone. Off: only the host's date counts. |
 | What time does to the world happens once | on | Weather, expired quests, taxes, salaries and letters are handled by one game only. |
 | Everyone sleeps for themselves | on | A player who goes to bed sleeps at once. The night passes for the world when all sleep at the same time. |
-| Time only jumps when everyone jumps | on | A step on the world map only moves the date when all the players travel together. |
+| World map time | Shared clock | Dropdown: *Shared clock*, *Travel together* or *Personal pace* (see above). |
+| The base counts every player | on | Raids, lucky month and days with the player count every player on the base map. |
+| Barrels and milk follow the player | on | Aging shelves, drying bricks and mother's milk use the player they are about. |
+| Summons follow their summoner | on | A summon stays with its own master when the map changes. |
+| Town boards from every player present | on | Fame gate and danger follow the players on the map (needs personal quests). |
+| Shop stock from every player | on | The best player's bonus counts; special shelves follow the player who opens the shop. |
+| Spawns from the nearest player | on | Map spawns read the feats of the player nearest to the spawn. |
+| Town life around every player | on | Townspeople, rumours and stones act around each player, by that player's karma. |
 | Tax on the most famous player | on | The monthly tax is computed on the highest fame among the connected players. Off: on the host's. |
 | Auto-dump spares hand and tool belt | on | Auto-dump leaves what you hold and what is in your tool belt. Off: as in the game. |
 | Players come back by themselves after a connection loss | on | A player who loses the connection joins the game again by itself, for 3 minutes. |
@@ -408,9 +440,8 @@ for its player.
 
 - **Played for real by one small group only.** Almost everything is checked by in-game tests on one PC (two or three
   windows). "Not played" in a release note or a commit message means exactly that.
-- **One date for the world**, which only moves with the host: on the world map only the host's steps move it; the
-  shared night only passes when everyone sleeps. Each player can sleep a night "of its own" without moving it (when
-  the host sleeps alone it moves by about ten minutes).
+- **One date for the world.** How a trip on the world map moves it depends on the host's *World map time* choice;
+  the shared night only passes when everyone sleeps.
 - **When the host leaves or crashes**, a guest can take the world over by itself: the checkbox exists ("Takeover") and
   stays off until it has been played between two real PCs. Without it someone takes the world from the depot.
 - Meeting the host again no longer reloads the whole world (ticked by default since 0.26.691); at the slightest doubt
@@ -419,8 +450,6 @@ for its player.
 - On the host's screen, walking guests can move in jumps of three tiles.
 - **More than three players**: five game windows were tested on one PC, never five real PCs. Expect the game to
   slow down as players are added.
-- Zones are generated with the host's feats (odds of monsters, of shrines), and the residents of a base only
-  "notice" the host (rumours, gifts).
 - Dungeon quests for two, when the guest took the quest: subdue, harvest and music quests. Defense quests are
   settled alone. An adventurer duel started by a guest leaves the adventurer in two places during the duel.
 - Duels between players have no arena, betting or give-up button. Equipped items cannot be traded.
@@ -526,5 +555,5 @@ The mod is the work of the Elin Together team: [DK](https://github.com/gottyduke
 [Han](https://github.com/chuahan), Omega, [InuiDame](https://github.com/InuiDame),
 [Drakeny](https://github.com/Drakeny) (testing), noa (Elin). MIT license, see [LICENSE](LICENSE).
 
-The fork's changes were written with an AI coding assistant (Claude Code), directed by the fork's owner. No game
+Made by jeanfreger together with Claude (Anthropic). The fork's changes were written with an AI coding assistant (Claude Code), directed by the fork's owner. No game
 file and no decompiled game code is in this repository.
